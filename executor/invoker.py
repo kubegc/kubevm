@@ -32,6 +32,7 @@ Import third party libs
 '''
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
+from kubernetes.client import V1DeleteOptions
 from xmltodict import unparse
 from xmljson import badgerfish as bf
 from libvirt import libvirtError
@@ -334,9 +335,20 @@ def vMBlockDevWatcher():
                         runCmd(cmd)   
         except:
             logger.error('Oops! ', exc_info=1)
+#             deleteCustomObject(name, V1DeleteOptions(), GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
+            
+def deleteCustomObject(name, body, group=None, version=None, plural=None):
+    retv = client.CustomObjectsApi().delete_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    return retv
 
 def getMetadataName(jsondict):
-    return jsondict['raw_object']['metadata']['name']
+    metadata = jsondict['raw_object']['metadata']
+    metadata_name = metadata.get('name')
+    if metadata_name:
+        return metadata_name
+    else:
+        raise Exception('FATAL ERROR! No metadata name!') 
 
 def forceUsingMetadataName(metadata_name,jsondict):
     spec = jsondict['raw_object']['spec']

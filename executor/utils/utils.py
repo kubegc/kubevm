@@ -26,7 +26,7 @@ def runCmd(cmd):
         std_err = p.stderr.readlines()
         if std_out:
             logger.debug(std_out)
-            return std_out[0]
+            return str.strip(std_out[0])
         else:
             return std_out
     finally:

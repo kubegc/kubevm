@@ -41,7 +41,7 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
+from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
 
@@ -202,7 +202,7 @@ def vMWatcher():
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
-                    undefine(metadata_name)
+                    undefine_with_snapshot(metadata_name)
         except:
             logger.error('Oops! ', exc_info=1)
         

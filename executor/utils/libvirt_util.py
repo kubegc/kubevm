@@ -634,6 +634,19 @@ def undefine(vm_):
     dom = _get_dom(vm_)
     return dom.undefine() == 0
 
+def undefine_with_snapshot(vm_):
+    '''
+    Remove a defined vm, this does not purge the virtual machine image, and
+    this only works if the vm is powered down
+   
+    CLI Example::
+   
+        salt '*' virt.undefine <vm name>
+    '''
+    dom = _get_dom(vm_)
+    flags = libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+    return dom.undefineFlags(flags) == 0
+
 def list_pools():
     conn = __get_conn()
     return conn.listStoragePools()

@@ -173,7 +173,7 @@ def vMWatcher():
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd:
                         runCmd(cmd)
-                    if not is_vm_active(metadata_name):
+                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                         create(metadata_name)
                 elif _isInstallVMFromImage(jsondict):
                     (jsondict, new_vm_vcpus, new_vm_memory) = _preprocessInCreateVMFromImage(jsondict)

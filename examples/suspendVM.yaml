@@ -1,0 +1,21 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "vm"
+  },
+  "spec": {
+    "domain": {
+       "name": {
+          "text": "Centos"
+        }
+    },
+    "image": "CentOS7",
+    "nodeName": "node22",
+    "lifecycle": {
+      "suspendVM": {
+        "domain": "Centos"
+      }
+    }
+  }
+}

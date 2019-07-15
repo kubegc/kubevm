@@ -1,0 +1,19 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "vm2"
+  },
+  "spec": {
+    "image": "CentOS7",
+    "lifecycle": {
+      "createAndStartVMFromImage": {
+        "name": "yuewen-clone",
+        "original": "yuewen",
+        "memory": "2048",
+        "vcpus": "2",
+        "file": "/var/lib/libvirt/images/yuewen-clone.qcow2"
+      }
+    }
+  }
+}

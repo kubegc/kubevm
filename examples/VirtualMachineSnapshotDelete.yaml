@@ -1,0 +1,15 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachineSnapshot",
+  "metadata": {
+    "name": "snap2"
+  },
+  "spec": {
+    "image": "CentOS7",
+    "lifecycle": {
+      "deleteSnapshot": {
+        "domain": "ddd"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "os1"
+  },
+  "spec": {
+    "domain": {
+       "name": {
+          "text": "Centos"
+        }
+    },
+    "image": "CentOS7",
+    "lifecycle": {
+      "plugDisk": {
+        "source": "/dev/udisk1/udisk1",
+        "target": "sdb",
+        "targetbus": "scsi",
+        "live": true,
+        "config": true
+      }
+    }
+  }
+}

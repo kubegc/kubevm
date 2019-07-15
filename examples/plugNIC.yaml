@@ -1,0 +1,23 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "os1"
+  },
+  "spec": {
+    "domain": {
+       "name": {
+          "text": "Centos"
+        }
+    },
+    "image": "CentOS7",
+    "lifecycle": {
+      "plugNIC": {
+        "type": "bridge",
+        "source": "virbr0",
+        "live": true,
+        "config": true
+      }
+    }
+  }
+}

@@ -1,0 +1,191 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
+  name: virtualmachines.cloudplus.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.domain.uuid.text
+    name: UUID
+    type: string
+  - JSONPath: .spec.domain._type
+    name: TYPE
+    type: string
+  - JSONPath: .spec.domain.vcpu.text
+    name: CPU
+    type: string
+  - JSONPath: .spec.domain.memory.text
+    name: RAM(KB)
+    type: string
+  - JSONPath: .spec.status
+    name: STATUS
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
+  - JSONPath: .spec.image
+    name: IMAGE
+    type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachine
+    plural: virtualmachines
+    shortNames:
+    - vm
+    - vms
+    singular: virtualmachine
+  scope: Namespaced
+  version: v1alpha3
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
+  name: virtualmachineimages.cloudplus.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.domain.uuid.text
+    name: UUID
+    type: string
+  - JSONPath: .spec.status
+    name: STATUS
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
+  - JSONPath: .spec.image
+    name: IMAGE
+    type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachineImage
+    plural: virtualmachineimages
+    shortNames:
+    - vmi
+    - vmis
+    singular: virtualmachineimage
+  scope: Namespaced
+  version: v1alpha3
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
+  name: virtualmachinedisks.cloudplus.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.volume.name.text
+    name: NAME
+    type: string
+  - JSONPath: .spec.volume.target.format._type
+    name: TYPE
+    type: string  
+  - JSONPath: .spec.volume.target.path.text
+    name: PATH
+    type: string  
+  - JSONPath: .spec.status
+    name: STATUS
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachineDisk
+    plural: virtualmachinedisks
+    shortNames:
+    - vmd
+    - vmds
+    singular: virtualmachinedisk
+  scope: Namespaced
+  version: v1alpha3
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
+  name: virtualmachinesnapshots.cloudplus.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.domainsnapshot.name.text
+    name: NAME
+    type: string
+  - JSONPath: .spec.domainsnapshot.domain.name.text
+    name: VM
+    type: string  
+  - JSONPath: .spec.status
+    name: STATUS
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachineSnapshot
+    plural: virtualmachinesnapshots
+    shortNames:
+    - vmsn
+    - vmsns
+    singular: virtualmachinesnapshot
+  scope: Namespaced
+  version: v1alpha3
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
+  name: virtualmachineuitdisks.cloudplus.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.UitVolume.data[0].name
+    name: NAME
+    type: string
+  - JSONPath: .spec.UitVolume.data[0].now_host
+    name: ACTIVENODE
+    type: string
+  - JSONPath: .spec.UitVolume.data[0].block_type
+    name: TYPE
+    type: string  
+  - JSONPath: .spec.UitVolume.data[0].path
+    name: PATH
+    type: string  
+  - JSONPath: .spec.UitVolume.data[0].size
+    name: SIZE
+    type: string 
+  - JSONPath: .spec.status
+    name: STATUS
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachineUITDisk
+    plural: virtualmachineuitdisks
+    shortNames:
+    - vmud
+    - vmuds
+    singular: virtualmachineuitdisk
+  scope: Namespaced
+  version: v1alpha3 

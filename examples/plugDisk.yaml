@@ -1,0 +1,17 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachineDisk",
+  "metadata": {
+    "name": "disk1"
+  },
+  "spec": {
+    "image": "CentOS7",
+    "lifecycle": {
+      "createDisk": {
+        "pool": "volumes1",
+        "capacity": "10G",
+        "format": "qcow2"
+      }
+    }
+  }
+}

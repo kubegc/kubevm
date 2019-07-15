@@ -1,0 +1,187 @@
+attach-device <domain> <file> [--persistent] [--config] [--live] [--current]
+attach-disk <domain> <source> <target> [--targetbus <string>] [--driver <string>] [--subdriver <string>] [--iothread <string>] [--cache <string>] [--io <string>] [--type <string>] [--mode <string>] [--sourcetype <string>] [--serial <string>] [--wwn <string>] [--rawio] [--address <string>] [--multifunction] [--print-xml] [--persistent] [--config] [--live] [--current]
+attach-interface <domain> <type> <source> [--target <string>] [--mac <string>] [--script <string>] [--model <string>] [--inbound <string>] [--outbound <string>] [--persistent] [--config] [--live] [--current] [--print-xml] [--managed]
+autostart <domain> [--disable]
+blkdeviotune <domain> <device> [--total-bytes-sec <number>] [--read-bytes-sec <number>] [--write-bytes-sec <number>] [--total-iops-sec <number>] [--read-iops-sec <number>] [--write-iops-sec <number>] [--total-bytes-sec-max <number>] [--read-bytes-sec-max <number>] [--write-bytes-sec-max <number>] [--total-iops-sec-max <number>] [--read-iops-sec-max <number>] [--write-iops-sec-max <number>] [--size-iops-sec <number>] [--group-name <string>] [--total-bytes-sec-max-length <number>] [--read-bytes-sec-max-length <number>] [--write-bytes-sec-max-length <number>] [--total-iops-sec-max-length <number>] [--read-iops-sec-max-length <number>] [--write-iops-sec-max-length <number>] [--config] [--live] [--current]
+blkiotune <domain> [--weight <number>] [--device-weights <string>] [--device-read-iops-sec <string>] [--device-write-iops-sec <string>] [--device-read-bytes-sec <string>] [--device-write-bytes-sec <string>] [--config] [--live] [--current]
+blockcommit <domain> <path> [--bandwidth <number>] [--base <string>] [--shallow] [--top <string>] [--active] [--delete] [--wait] [--verbose] [--timeout <number>] [--pivot] [--keep-overlay] [--async] [--keep-relative] [--bytes]
+blockcopy <domain> <path> [--dest <string>] [--bandwidth <number>] [--shallow] [--reuse-external] [--blockdev] [--wait] [--verbose] [--timeout <number>] [--pivot] [--finish] [--async] [--xml <string>] [--format <string>] [--granularity <number>] [--buf-size <number>] [--bytes] [--transient-job]
+blockjob <domain> <path> [--abort] [--async] [--pivot] [--info] [--bytes] [--raw] [--bandwidth <number>]
+blockpull <domain> <path> [--bandwidth <number>] [--base <string>] [--wait] [--verbose] [--timeout <number>] [--async] [--keep-relative] [--bytes]
+blockresize <domain> <path> <size>
+change-media <domain> <path> [--source <string>] [--eject] [--insert] [--update] [--current] [--live] [--config] [--force] [--print-xml] [--block]
+cpu-stats <domain> [--total] [--start <number>] [--count <number>]
+create <file> [--console] [--paused] [--autodestroy] [--pass-fds <string>] [--validate]
+define <file> [--validate]
+desc <domain> [--live] [--config] [--current] [--title] [--edit] [[--new-desc] <string>]...
+destroy <domain> [--graceful]
+detach-device <domain> <file> [--persistent] [--config] [--live] [--current]
+detach-device-alias <domain> <alias> [--config] [--live] [--current]
+detach-disk <domain> <target> [--persistent] [--config] [--live] [--current] [--print-xml]
+detach-interface <domain> <type> [--mac <string>] [--persistent] [--config] [--live] [--current]
+domfsfreeze <domain> [[--mountpoint] <string>]...
+domfsthaw <domain> [[--mountpoint] <string>]...
+domfsinfo <domain>
+domfstrim <domain> [--minimum <number>] [--mountpoint <string>]
+domid <domain>
+domif-setlink <domain> <interface> <state> [--config]
+domiftune <domain> <interface> [--inbound <string>] [--outbound <string>] [--config] [--live] [--current]
+domjobabort <domain>
+domjobinfo <domain> [--completed]
+domname <domain>
+domrename <domain> <new-name>
+dompmsuspend <domain> <target> [--duration <number>]
+dompmwakeup <domain>
+domuuid <domain>
+domxml-from-native <format> <config>
+domxml-to-native <format> [--domain <string>] [--xml <string>]
+dump <domain> <file> [--live] [--crash] [--bypass-cache] [--reset] [--verbose] [--memory-only] [--format <string>]
+dumpxml <domain> [--inactive] [--security-info] [--update-cpu] [--migratable]
+edit <domain> [--skip-validate]
+inject-nmi <domain>
+iothreadinfo <domain> [--config] [--live] [--current]
+iothreadpin <domain> <iothread> <cpulist> [--config] [--live] [--current]
+iothreadadd <domain> <id> [--config] [--live] [--current]
+iothreaddel <domain> <id> [--config] [--live] [--current]
+send-key <domain> [--codeset <string>] [--holdtime <number>] {[--keycode] <string>}...
+send-process-signal <domain> <pid> <signame>
+lxc-enter-namespace <domain> [--noseclabel] {[--cmd] <string>}...
+managedsave <domain> [--bypass-cache] [--running] [--paused] [--verbose]
+managedsave-remove <domain>
+managedsave-edit <domain> [--running] [--paused]
+managedsave-dumpxml <domain> [--security-info]
+managedsave-define <domain> <xml> [--running] [--paused]
+memtune <domain> [--hard-limit <number>] [--soft-limit <number>] [--swap-hard-limit <number>] [--min-guarantee <number>] [--config] [--live] [--current]
+metadata <domain> <uri> [--live] [--config] [--current] [--edit] [--key <string>] [--set <string>] [--remove]
+migrate <domain> <desturi> [--live] [--offline] [--p2p] [--direct] [--tunnelled] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--auto-converge] [--rdma-pin-all] [--abort-on-error] [--postcopy] [--postcopy-after-precopy] [--migrateuri <string>] [--graphicsuri <string>] [--listen-address <string>] [--dname <string>] [--timeout <number>] [--timeout-suspend] [--timeout-postcopy] [--xml <string>] [--migrate-disks <string>] [--disks-port <number>] [--comp-methods <string>] [--comp-mt-level <number>] [--comp-mt-threads <number>] [--comp-mt-dthreads <number>] [--comp-xbzrle-cache <number>] [--auto-converge-initial <number>] [--auto-converge-increment <number>] [--persistent-xml <string>] [--tls]
+migrate-setmaxdowntime <domain> <downtime>
+migrate-getmaxdowntime <domain>
+migrate-compcache <domain> [--size <number>]
+migrate-setspeed <domain> <bandwidth>
+migrate-getspeed <domain>
+migrate-postcopy <domain>
+numatune <domain> [--mode <string>] [--nodeset <string>] [--config] [--live] [--current]
+qemu-attach <pid>
+qemu-monitor-command <domain> [--hmp] [--pretty] {[--cmd] <string>}...
+qemu-agent-command <domain> [--timeout <number>] [--async] [--block] [--pretty] {[--cmd] <string>}...
+reboot <domain> [--mode <string>]
+reset <domain>
+restore <file> [--bypass-cache] [--xml <string>] [--running] [--paused]
+resume <domain>
+save <domain> <file> [--bypass-cache] [--xml <string>] [--running] [--paused] [--verbose]
+save-image-define <file> <xml> [--running] [--paused]
+save-image-dumpxml <file> [--security-info]
+save-image-edit <file> [--running] [--paused]
+schedinfo <domain> [--weight <number>] [--cap <number>] [--current] [--config] [--live] [[--set] <string>]...
+screenshot <domain> [--file <string>] [--screen <number>]
+set-lifecycle-action <domain> <type> <action> [--config] [--live] [--current]
+set-user-password <domain> <user> <password> [--encrypted]
+setmaxmem <domain> <size> [--config] [--live] [--current]
+setmem <domain> <size> [--config] [--live] [--current]
+setvcpus <domain> <count> [--maximum] [--config] [--live] [--current] [--guest] [--hotpluggable]
+shutdown <domain> [--mode <string>]
+start <domain> [--console] [--paused] [--autodestroy] [--bypass-cache] [--force-boot] [--pass-fds <string>]
+suspend <domain>
+ttyconsole <domain>
+undefine <domain> [--managed-save] [--storage <string>] [--remove-all-storage] [--delete-snapshots] [--wipe-storage] [--snapshots-metadata] [--nvram] [--keep-nvram]
+update-device <domain> <file> [--persistent] [--config] [--live] [--current] [--force]
+vcpucount <domain> [--maximum] [--active] [--live] [--config] [--current] [--guest]
+vcpuinfo <domain> [--pretty]
+vcpupin <domain> [--vcpu <number>] [--cpulist <string>] [--config] [--live] [--current]
+emulatorpin <domain> [--cpulist <string>] [--config] [--live] [--current]
+guestvcpus <domain> [--cpulist <string>] [--enable] [--disable]
+setvcpu <domain> <vcpulist> [--enable] [--disable] [--config] [--live] [--current]
+domblkerror <domain>
+domblkinfo <domain> [--device <string>] [--human] [--all]
+domblkstat <domain> [--device <string>] [--human]
+domcontrol <domain>
+domif-getlink <domain> <interface> [--config]
+domifaddr <domain> [--interface <string>] [--full] [--source <string>]
+domifstat <domain> <interface>
+dominfo <domain>
+dommemstat <domain> [--period <number>] [--config] [--live] [--current]
+domstate <domain> [--reason]
+domtime <domain> [--now] [--pretty] [--sync] [--time <number>]
+iface-bridge <interface> <bridge> [--no-stp] [--delay <number>] [--no-start]
+iface-define <file>
+iface-destroy <interface>
+iface-dumpxml <interface> [--inactive]
+iface-edit <interface>
+iface-mac <interface>
+iface-name <interface>
+iface-start <interface>
+iface-unbridge <bridge> [--no-start]
+iface-undefine <interface>
+nwfilter-define <file>
+nwfilter-dumpxml <nwfilter>
+nwfilter-edit <nwfilter>
+nwfilter-undefine <nwfilter>
+nwfilter-binding-create <file>
+nwfilter-binding-delete <binding>
+nwfilter-binding-dumpxml <binding>
+net-autostart <network> [--disable]
+net-create <file>
+net-define <file>
+net-destroy <network>
+net-dhcp-leases <network> [--mac <string>]
+net-dumpxml <network> [--inactive]
+net-edit <network>
+net-info <network>
+net-name <network>
+net-start <network>
+net-undefine <network>
+net-update <network> <command> <section> <xml> [--parent-index <number>] [--config] [--live] [--current]
+net-uuid <network>
+nodedev-create <file>
+nodedev-destroy <device>
+nodedev-detach <device> [--driver <string>]
+nodedev-dumpxml <device>
+nodedev-reattach <device>
+nodedev-reset <device>
+secret-define <file>
+secret-dumpxml <secret>
+secret-get-value <secret>
+secret-set-value <secret> <base64>
+secret-undefine <secret>
+snapshot-create <domain> [--xmlfile <string>] [--redefine] [--current] [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce] [--atomic] [--live]
+snapshot-create-as <domain> [--name <string>] [--description <string>] [--print-xml] [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce] [--atomic] [--live] [--memspec <string>] [[--diskspec] <string>]...
+snapshot-current <domain> [--name] [--security-info] [--snapshotname <string>]
+snapshot-delete <domain> [--snapshotname <string>] [--current] [--children] [--children-only] [--metadata]
+snapshot-dumpxml <domain> <snapshotname> [--security-info]
+snapshot-edit <domain> [--snapshotname <string>] [--current] [--rename] [--clone]
+snapshot-info <domain> [--snapshotname <string>] [--current]
+snapshot-parent <domain> [--snapshotname <string>] [--current]
+snapshot-revert <domain> [--snapshotname <string>] [--current] [--running] [--paused] [--force]
+find-storage-pool-sources-as <type> [--host <string>] [--port <string>] [--initiator <string>]
+find-storage-pool-sources <type> [--srcSpec <string>]
+pool-autostart <pool> [--disable]
+pool-build <pool> [--no-overwrite] [--overwrite]
+pool-create-as <name> <type> [--print-xml] [--source-host <string>] [--source-path <string>] [--source-dev <string>] [--source-name <string>] [--target <string>] [--source-format <string>] [--auth-type <string>] [--auth-username <string>] [--secret-usage <string>] [--secret-uuid <string>] [--adapter-name <string>] [--adapter-wwnn <string>] [--adapter-wwpn <string>] [--adapter-parent <string>] [--adapter-parent-wwnn <string>] [--adapter-parent-wwpn <string>] [--adapter-parent-fabric-wwn <string>] [--build] [--no-overwrite] [--overwrite]
+pool-create <file> [--build] [--no-overwrite] [--overwrite]
+pool-define-as <name> <type> [--print-xml] [--source-host <string>] [--source-path <string>] [--source-dev <string>] [--source-name <string>] [--target <string>] [--source-format <string>] [--auth-type <string>] [--auth-username <string>] [--secret-usage <string>] [--secret-uuid <string>] [--adapter-name <string>] [--adapter-wwnn <string>] [--adapter-wwpn <string>] [--adapter-parent <string>] [--adapter-parent-wwnn <string>] [--adapter-parent-wwpn <string>] [--adapter-parent-fabric-wwn <string>]
+pool-define <file>
+pool-delete <pool>
+pool-destroy <pool>
+pool-dumpxml <pool> [--inactive]
+pool-edit <pool>
+pool-info <pool> [--bytes]
+pool-name <pool>
+pool-refresh <pool>
+pool-start <pool> [--build] [--no-overwrite] [--overwrite]
+pool-undefine <pool>
+pool-uuid <pool>
+vol-clone <vol> <newname> [--pool <string>] [--prealloc-metadata] [--reflink]
+vol-create-as <pool> <name> <capacity> [--allocation <string>] [--format <string>] [--backing-vol <string>] [--backing-vol-format <string>] [--prealloc-metadata] [--print-xml]
+vol-create <pool> <file> [--prealloc-metadata]
+vol-create-from <pool> <file> <vol> [--inputpool <string>] [--prealloc-metadata] [--reflink]
+vol-delete <vol> [--pool <string>] [--delete-snapshots]
+vol-download <vol> <file> [--pool <string>] [--offset <number>] [--length <number>] [--sparse]
+vol-dumpxml <vol> [--pool <string>]
+vol-info <vol> [--pool <string>] [--bytes] [--physical]
+vol-key <vol> [--pool <string>]
+vol-name <vol>
+vol-path <vol> [--pool <string>]
+vol-pool <vol> [--uuid]
+vol-resize <vol> <capacity> [--pool <string>] [--allocate] [--delta] [--shrink]
+vol-upload <vol> <file> [--pool <string>] [--offset <number>] [--length <number>] [--sparse]
+vol-wipe <vol> [--pool <string>] [--algorithm <string>]

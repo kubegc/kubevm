@@ -1,0 +1,20 @@
+cmd="ucli vol del --name"
+for str in $@
+do
+  if [[ $str == "--"*  ]]
+  then
+    if [[ -n $key ]]
+    then
+      cmd=${cmd/$key/$value}
+    fi
+    key=$str
+    value=""
+    continue
+  else
+    value=$value" "$str
+  fi
+done
+
+cmd=${cmd/$key/$value}
+echo $cmd
+

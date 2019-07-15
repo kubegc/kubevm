@@ -1,0 +1,22 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "os1"
+  },
+  "spec": {
+    "image": "CentOS7",
+    "lifecycle": {
+      "createAndStartVMFromISO": {
+        "virt_type": "kvm",
+        "memory": "1024",
+        "vcpus": "1",
+        "cdrom": "/var/lib/uus/CentOS-7-x86_64-DVD-1511.iso",
+        "disk": "path=/dev/os1/os1",
+        "network": "bridge=virbr0",
+        "graphics": "vnc,listen=0.0.0.0",
+        "noautoconsole": true
+      }
+    }
+  }
+}

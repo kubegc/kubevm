@@ -1,0 +1,15 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachineDisk",
+  "metadata": {
+    "name": "disk1"
+  },
+  "spec": {
+    "image": "CentOS7",
+    "lifecycle": {
+      "deleteDisk": {
+        "pool": "volumes1"
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<domainsnapshot>
+  <name>string</name>
+  <description>string</description>
+  <state>string</state>
+  <creationTime>string</creationTime>
+  <parent>
+    <name>string</name>
+  </parent>
+  <memory snapshot="string" file="string"/>
+  <disks>
+    <disk name="string" snapshot="string">
+      <driver type="string"/>
+      <source startupPolicy="string" index="string">
+        <encryption format="string">
+          <secret type="string" usage="string" uuid="string"/>
+        </encryption>
+        <reservations enabled="string" managed="string">
+          <source/>
+        </reservations>
+      </source>
+    </disk>
+    <disk name="string" snapshot="string">
+      <driver type="string"/>
+      <source startupPolicy="string" index="string">
+        <encryption format="string">
+          <secret type="string" usage="string" uuid="string"/>
+        </encryption>
+        <reservations enabled="string" managed="string">
+          <source/>
+        </reservations>
+      </source>
+    </disk>
+  </disks>
+  <domain type="string" id="string">
+  </domain>
+  <active>string</active>
+</domainsnapshot>

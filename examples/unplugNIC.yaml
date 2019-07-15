@@ -1,0 +1,25 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "ddd"
+  },
+  "spec": {
+    "domain": {
+       "name": {
+          "text": "Centos"
+        }
+    },
+    "image": "CentOS7",
+    "nodeName": "node22",
+    "lifecycle": {
+      "unplugNIC": {
+        "domain": "Centos",
+        "type": "bridge",
+        "mac": "52:54:00:de:32:fe",
+        "live": true,
+        "config": true
+      }
+    }
+  }
+}

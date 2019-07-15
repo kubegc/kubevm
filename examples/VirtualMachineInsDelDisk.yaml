@@ -1,0 +1,24 @@
+{
+  "apiVersion": "cloudplus.io/v1alpha3",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "ddd"
+  },
+  "spec": {
+    "domain": {
+       "name": {
+          "text": "Centos"
+        }
+    },
+    "image": "CentOS7",
+    "nodeName": "node22",
+    "lifecycle": {
+      "unplugDisk": {
+        "domain": "Centos",
+        "target": "vdb",
+        "live": true,
+        "config": true
+      }
+    }
+  }
+}

@@ -366,9 +366,9 @@ def deleteLifecycleInJson(jsondict):
                 del spec['lifecycle']
     return jsondict
 
-def addExceptionMessage(jsondict):
-    if jsondict:
-        
+# def addExceptionMessage(jsondict):
+#     if jsondict:
+#         
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']

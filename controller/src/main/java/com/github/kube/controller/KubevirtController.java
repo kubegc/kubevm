@@ -78,7 +78,11 @@ public class KubevirtController {
 		m_logger.log(Level.INFO, "Start VirtualMachineUITDiskWatcher");
 		m_logger.log(Level.INFO, "Start VirtualMachineSnapshotWatcher");
 		KubevirtController scheduler = new KubevirtController();
-		scheduler.start();
+		try {
+			scheduler.start();
+		} catch (Exception ex) {
+			m_logger.log(Level.SEVERE, "Fail to start controller:" + ex);
+		}
 	}
 
 }

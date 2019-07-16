@@ -36,14 +36,18 @@ public class KubevirtController {
 	
 	protected final static Logger m_logger = Logger.getLogger(KubevirtController.class.getName());
 
-	public final static String TOKEN              = "admin.conf";
+	public final static String TOKEN              = "/etc/kubernetes/admin.conf";
 	
 	protected final ExtendedKubernetesClient client;
 	
 	public KubevirtController() throws Exception {
+		this(TOKEN);
+	}
+	
+	public KubevirtController(String token) throws Exception {
 		super();
 		Map<String, Object> map = new Yaml().load(
-				new FileInputStream(new File(TOKEN)));
+				new FileInputStream(new File(token)));
 		@SuppressWarnings("unchecked")
 		Map<String, Map<String, Object>> clusdata = (Map<String, Map<String, Object>>)
 												((List) map.get("clusters")).get(0);

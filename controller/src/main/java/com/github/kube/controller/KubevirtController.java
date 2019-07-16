@@ -12,11 +12,10 @@ import java.util.logging.Logger;
 
 import org.yaml.snakeyaml.Yaml;
 
-import com.github.kube.controller.watcher.VirtualMachineDiskWatcher;
-import com.github.kube.controller.watcher.VirtualMachineImageWatcher;
-import com.github.kube.controller.watcher.VirtualMachineSnapshotWatcher;
-import com.github.kube.controller.watcher.VirtualMachineUITDiskWatcher;
-import com.github.kube.controller.watcher.VirtualMachineWatcher;
+import com.github.kube.controller.watchers.VirtualMachineDiskWatcher;
+import com.github.kube.controller.watchers.VirtualMachineImageWatcher;
+import com.github.kube.controller.watchers.VirtualMachineSnapshotWatcher;
+import com.github.kube.controller.watchers.VirtualMachineWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 
 import io.fabric8.kubernetes.client.Config;
@@ -37,7 +36,7 @@ public class KubevirtController {
 	
 	protected final static Logger m_logger = Logger.getLogger(KubevirtController.class.getName());
 
-	public final static String TOKEN              = "/etc/kubernetes/admin.conf";
+	public final static String TOKEN              = "admin.conf";
 	
 	protected final ExtendedKubernetesClient client;
 	
@@ -62,12 +61,10 @@ public class KubevirtController {
 	}
 	
 	public void start() {
-		client.watchVirtualMachine(new VirtualMachineWatcher(client));
-		client.watchVirtualMachineDisk(new VirtualMachineDiskWatcher(client));
-		client.watchVirtualMachineUITDisk(new VirtualMachineUITDiskWatcher(client));
-		client.watchVirtualMachineImage(new VirtualMachineImageWatcher(client));
-		client.watchVirtualMachineSnapshot(new VirtualMachineSnapshotWatcher(client));
-		
+		client.watchVirtualMachines(new VirtualMachineWatcher(client));
+		client.watchVirtualMachineImages(new VirtualMachineImageWatcher(client));
+		client.watchVirtualMachineDisks(new VirtualMachineDiskWatcher(client));
+		client.watchVirtualMachineSnapshots(new VirtualMachineSnapshotWatcher(client));
 	}
 	
 	public static void main(String[] args) throws Exception {

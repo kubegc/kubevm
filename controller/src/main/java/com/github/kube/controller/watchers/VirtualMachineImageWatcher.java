@@ -1,7 +1,7 @@
 /**
  * Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
  */
-package com.github.kube.controller.watcher;
+package com.github.kube.controller.watchers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 import com.alibaba.fastjson.JSON;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
-import com.github.kubesys.kubernetes.api.model.VirtualMachineUITDisk;
+import com.github.kubesys.kubernetes.api.model.VirtualMachineImage;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -34,15 +34,12 @@ import io.fabric8.kubernetes.client.Watcher;
  *        debug at runWatch method of
  *        io.fabric8.kubernetes.client.dsl.internal.WatchConnectionManager
  **/
-public class VirtualMachineUITDiskWatcher implements Watcher<VirtualMachineUITDisk> {
+public class VirtualMachineImageWatcher extends AbstractWatcher implements Watcher<VirtualMachineImage> {
 
-	protected final static Logger m_logger = Logger.getLogger(VirtualMachineUITDiskWatcher.class.getName());
+	protected final static Logger m_logger = Logger.getLogger(VirtualMachineImageWatcher.class.getName());
 
-	protected final ExtendedKubernetesClient client;
-
-	public VirtualMachineUITDiskWatcher(ExtendedKubernetesClient client) {
-		super();
-		this.client = client;
+	public VirtualMachineImageWatcher(ExtendedKubernetesClient client) {
+		super(client);
 	}
 
 	// actions
@@ -51,19 +48,19 @@ public class VirtualMachineUITDiskWatcher implements Watcher<VirtualMachineUITDi
 	public final static String ACTION_REMOVE = "DELETED";
 
 	// pod attributions
-	public final static String POD_PREFIX = "uit2pod";
+	public final static String POD_PREFIX = "image2pod";
 
 	public final static String POD_NAMESPACE = "default";
 	
-	public void eventReceived(Action action, VirtualMachineUITDisk disk) {
+	public void eventReceived(Action action, VirtualMachineImage image) {
 
-		String namespace = disk.getMetadata().getNamespace();
-		String podName = POD_PREFIX + "-" + disk.getMetadata().getName() + "-" + namespace;
+		String namespace = image.getMetadata().getNamespace();
+		String podName = POD_PREFIX + "-" + image.getMetadata().getName() + "-" + namespace;
 		
 		if (action.toString().equals(ACTION_CREATE)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(disk, podName);
+				pod = createPod(image, podName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -71,25 +68,25 @@ public class VirtualMachineUITDiskWatcher implements Watcher<VirtualMachineUITDi
 			if (client.pods().inNamespace(namespace).withName(podName).get() == null) {
 
 				client.pods().inNamespace(namespace).create(pod);
-				m_logger.log(Level.INFO, "Create Disk '" + disk.getMetadata().getName() + "' in namespace '"
-						+ disk.getMetadata().getNamespace() + "'");
+				m_logger.log(Level.INFO, "Create image '" + image.getMetadata().getName() + "' in namespace '"
+						+ image.getMetadata().getNamespace() + "'");
 				m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + namespace + "'");
 			}
 		} else if (action.toString().equals(ACTION_REMOVE)) {
 			if (client.pods().inNamespace(namespace).withName(podName).get() != null) {
 				client.pods().inNamespace(namespace).withName(podName).delete();
 				m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + namespace + "'");
-				m_logger.log(Level.INFO, "Delete Disk '" + disk.getMetadata().getName() + "' in namespace '"
-						+ disk.getMetadata().getNamespace() + "'");
+				m_logger.log(Level.INFO, "Delete image '" + image.getMetadata().getName() + "' in namespace '"
+						+ image.getMetadata().getNamespace() + "'");
 			}
 		}
 	}
 
-	private Pod createPod(VirtualMachineUITDisk disk, String podName) throws Exception {
+	private Pod createPod(VirtualMachineImage image, String podName) throws Exception {
 		Pod pod = new Pod();
 		// metadata and podSpec
-		pod.setMetadata(createMetadataFrom(disk, podName));
-		pod.setSpec(createPodSpecFrom(disk, podName));
+		pod.setMetadata(createMetadataFrom(image, podName));
+		pod.setSpec(createPodSpecFrom(image, podName));
 		return pod;
 	}
 
@@ -97,21 +94,21 @@ public class VirtualMachineUITDiskWatcher implements Watcher<VirtualMachineUITDi
 
 	public final static String DEFAULT_SCHEDULER = "kubevirt-scheduler";
 
-	private PodSpec createPodSpecFrom(VirtualMachineUITDisk disk, String podName) {
+	private PodSpec createPodSpecFrom(VirtualMachineImage image, String podName) {
 		PodSpec spec = new PodSpec();
-		spec.setContainers(createContainerFrom(disk, podName));
+		spec.setContainers(createContainerFrom(image, podName));
 		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
 		return spec;
 	}
 
 	public final static String DEFAULT_IMAGE = "fake";
 
-	private List<Container> createContainerFrom(VirtualMachineUITDisk disk, String podName) {
+	private List<Container> createContainerFrom(VirtualMachineImage image, String podName) {
 		List<Container> containers = new ArrayList<Container>();
 		Container container = new Container();
 		container.setName(podName);
 		container.setImage(DEFAULT_IMAGE);
-		container.setResources(createResourceDemands(disk));
+		container.setResources(createResourceDemands(image));
 		containers.add(container);
 		return containers;
 	}
@@ -121,7 +118,7 @@ public class VirtualMachineUITDiskWatcher implements Watcher<VirtualMachineUITDi
 
 	public final static String RAM_RESOURCE = "memory";
 
-	private ResourceRequirements createResourceDemands(VirtualMachineUITDisk disk) {
+	private ResourceRequirements createResourceDemands(VirtualMachineImage image) {
 		ResourceRequirements resources = new ResourceRequirements();
 		Map<String, Quantity> requests = new HashMap<String, Quantity>();
 		requests.put(CPU_RESOURCE, new Quantity("100m"));
@@ -130,10 +127,10 @@ public class VirtualMachineUITDiskWatcher implements Watcher<VirtualMachineUITDi
 		return resources;
 	}
 
-	private ObjectMeta createMetadataFrom(VirtualMachineUITDisk disk, String podName) throws Exception {
+	private ObjectMeta createMetadataFrom(VirtualMachineImage image, String podName) throws Exception {
 		ObjectMeta metadata = new ObjectMeta();
 		metadata.setName(podName);
-		metadata.setAnnotations(createAnnotations(disk));
+		metadata.setAnnotations(createAnnotations(image));
 		return metadata;
 	}
 
@@ -150,26 +147,26 @@ public class VirtualMachineUITDiskWatcher implements Watcher<VirtualMachineUITDi
 
 	public final static String CONTENT_ANNOTATION = "crdYaml";
 
-	public final static String PLURAL = "virtualmachineuitdisks";
+	public final static String PLURAL = "virtualmachineimages";
 
 	public final static String GROUP = "cloudplus.io";
 
 	public final static String VERSION = "v1alpha3";
 	
 
-	private Map<String, String> createAnnotations(VirtualMachineUITDisk disk) throws Exception {
+	private Map<String, String> createAnnotations(VirtualMachineImage vm) throws Exception {
 		Map<String, String> annotations = new HashMap<String, String>();
 		annotations.put(KIND_ANNOTATION, PLURAL);
 		annotations.put(GROUP_ANNOTATION, GROUP);
 		annotations.put(VERSION_ANNOTATION, VERSION);
-		annotations.put(NAME_ANNOTATION, disk.getMetadata().getName());
-		annotations.put(NS_ANNOTATION, disk.getMetadata().getNamespace());
-		annotations.put(CONTENT_ANNOTATION, JSON.toJSONString(disk.getSpec()));
+		annotations.put(NAME_ANNOTATION, vm.getMetadata().getName());
+		annotations.put(NS_ANNOTATION, vm.getMetadata().getNamespace());
+		annotations.put(CONTENT_ANNOTATION, JSON.toJSONString(vm.getSpec()));
 		return annotations;
 	}
 
 	public void onClose(KubernetesClientException cause) {
-		m_logger.log(Level.INFO, "Stop VirtualMachineUITDiskWatcher");
+		m_logger.log(Level.INFO, "Stop VirtualMachineImageWatcher");
 	}
 
 }

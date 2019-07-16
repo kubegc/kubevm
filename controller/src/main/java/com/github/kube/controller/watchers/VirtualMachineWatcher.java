@@ -1,7 +1,7 @@
 /**
  * Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
  */
-package com.github.kube.controller.watcher;
+package com.github.kube.controller.watchers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 import com.alibaba.fastjson.JSON;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
-import com.github.kubesys.kubernetes.api.model.VirtualMachineSnapshot;
+import com.github.kubesys.kubernetes.api.model.VirtualMachine;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -27,22 +27,19 @@ import io.fabric8.kubernetes.client.Watcher;
  * @author shizhonghao17@otcaix.iscas.ac.cn
  * @author yangchen18@otcaix.iscas.ac.cn
  * @author wuheng@otcaix.iscas.ac.cn
- * @since Wed July 08 17:26:22 CST 2019
+ * @since Wed May 01 17:26:22 CST 2019
  * 
  *        https://www.json2yaml.com/ http://www.bejson.com/xml2json/
  * 
  *        debug at runWatch method of
  *        io.fabric8.kubernetes.client.dsl.internal.WatchConnectionManager
  **/
-public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnapshot> {
+public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<VirtualMachine> {
 
-	protected final static Logger m_logger = Logger.getLogger(VirtualMachineSnapshotWatcher.class.getName());
+	protected final static Logger m_logger = Logger.getLogger(VirtualMachineWatcher.class.getName());
 
-	protected final ExtendedKubernetesClient client;
-
-	public VirtualMachineSnapshotWatcher(ExtendedKubernetesClient client) {
-		super();
-		this.client = client;
+	public VirtualMachineWatcher(ExtendedKubernetesClient client) {
+		super(client);
 	}
 
 	// actions
@@ -51,11 +48,11 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 	public final static String ACTION_REMOVE = "DELETED";
 
 	// pod attributions
-	public final static String POD_PREFIX = "snapshot2pod";
+	public final static String POD_PREFIX = "vm2pod";
 
 	public final static String POD_NAMESPACE = "default";
 	
-	public void eventReceived(Action action, VirtualMachineSnapshot vm) {
+	public void eventReceived(Action action, VirtualMachine vm) {
 
 		String namespace = vm.getMetadata().getNamespace();
 		String podName = POD_PREFIX + "-" + vm.getMetadata().getName() + "-" + namespace;
@@ -71,7 +68,7 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 			if (client.pods().inNamespace(namespace).withName(podName).get() == null) {
 
 				client.pods().inNamespace(namespace).create(pod);
-				m_logger.log(Level.INFO, "Create snapshot '" + vm.getMetadata().getName() + "' in namespace '"
+				m_logger.log(Level.INFO, "Create VM '" + vm.getMetadata().getName() + "' in namespace '"
 						+ vm.getMetadata().getNamespace() + "'");
 				m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + namespace + "'");
 			}
@@ -79,13 +76,13 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 			if (client.pods().inNamespace(namespace).withName(podName).get() != null) {
 				client.pods().inNamespace(namespace).withName(podName).delete();
 				m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + namespace + "'");
-				m_logger.log(Level.INFO, "Delete snapshot '" + vm.getMetadata().getName() + "' in namespace '"
+				m_logger.log(Level.INFO, "Delete VM '" + vm.getMetadata().getName() + "' in namespace '"
 						+ vm.getMetadata().getNamespace() + "'");
 			}
 		}
 	}
 
-	private Pod createPod(VirtualMachineSnapshot vm, String podName) throws Exception {
+	private Pod createPod(VirtualMachine vm, String podName) throws Exception {
 		Pod pod = new Pod();
 		// metadata and podSpec
 		pod.setMetadata(createMetadataFrom(vm, podName));
@@ -97,7 +94,7 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 
 	public final static String DEFAULT_SCHEDULER = "kubevirt-scheduler";
 
-	private PodSpec createPodSpecFrom(VirtualMachineSnapshot vm, String podName) {
+	private PodSpec createPodSpecFrom(VirtualMachine vm, String podName) {
 		PodSpec spec = new PodSpec();
 		spec.setContainers(createContainerFrom(vm, podName));
 		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
@@ -106,7 +103,7 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 
 	public final static String DEFAULT_IMAGE = "fake";
 
-	private List<Container> createContainerFrom(VirtualMachineSnapshot vm, String podName) {
+	private List<Container> createContainerFrom(VirtualMachine vm, String podName) {
 		List<Container> containers = new ArrayList<Container>();
 		Container container = new Container();
 		container.setName(podName);
@@ -121,16 +118,24 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 
 	public final static String RAM_RESOURCE = "memory";
 
-	private ResourceRequirements createResourceDemands(VirtualMachineSnapshot vm) {
+	private ResourceRequirements createResourceDemands(VirtualMachine vm) {
 		ResourceRequirements resources = new ResourceRequirements();
 		Map<String, Quantity> requests = new HashMap<String, Quantity>();
-		requests.put(CPU_RESOURCE, new Quantity("100m"));
-		requests.put(RAM_RESOURCE, new Quantity("64Mi"));
+		if (vm.getSpec().getLifecycle().getCreateAndStartVM() != null) {
+			requests.put(CPU_RESOURCE, new Quantity(vm.getSpec().getLifecycle().getCreateAndStartVM().getVcpus()));
+			requests.put(RAM_RESOURCE, new Quantity(vm.getSpec().getLifecycle().getCreateAndStartVM().getMemory()));
+		} else if (vm.getSpec().getLifecycle().getCreateAndStartVMFromISO() != null) {
+			requests.put(CPU_RESOURCE, new Quantity(vm.getSpec().getLifecycle().getCreateAndStartVMFromISO().getVcpus()));
+			requests.put(RAM_RESOURCE, new Quantity(vm.getSpec().getLifecycle().getCreateAndStartVMFromISO().getMemory()));
+		} else if (vm.getSpec().getLifecycle().getCreateAndStartVMFromImage() != null) {
+			requests.put(CPU_RESOURCE, new Quantity(vm.getSpec().getLifecycle().getCreateAndStartVMFromImage().getVcpus()));
+			requests.put(RAM_RESOURCE, new Quantity(vm.getSpec().getLifecycle().getCreateAndStartVMFromImage().getMemory()));
+		} 
 		resources.setRequests(requests);
 		return resources;
 	}
 
-	private ObjectMeta createMetadataFrom(VirtualMachineSnapshot vm, String podName) throws Exception {
+	private ObjectMeta createMetadataFrom(VirtualMachine vm, String podName) throws Exception {
 		ObjectMeta metadata = new ObjectMeta();
 		metadata.setName(podName);
 		metadata.setAnnotations(createAnnotations(vm));
@@ -150,14 +155,14 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 
 	public final static String CONTENT_ANNOTATION = "crdYaml";
 
-	public final static String PLURAL = "virtualmachinesnapshots";
+	public final static String PLURAL = "virtualmachines";
 
 	public final static String GROUP = "cloudplus.io";
 
 	public final static String VERSION = "v1alpha3";
 	
 
-	private Map<String, String> createAnnotations(VirtualMachineSnapshot vm) throws Exception {
+	private Map<String, String> createAnnotations(VirtualMachine vm) throws Exception {
 		Map<String, String> annotations = new HashMap<String, String>();
 		annotations.put(KIND_ANNOTATION, PLURAL);
 		annotations.put(GROUP_ANNOTATION, GROUP);
@@ -169,7 +174,7 @@ public class VirtualMachineSnapshotWatcher implements Watcher<VirtualMachineSnap
 	}
 
 	public void onClose(KubernetesClientException cause) {
-		m_logger.log(Level.INFO, "Stop VirtualMachineSnapshotWatcher");
+		m_logger.log(Level.INFO, "Stop VirtualMachineWatcher");
 	}
 
 }

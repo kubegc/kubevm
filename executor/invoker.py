@@ -202,7 +202,13 @@ def vMWatcher():
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
-                    undefine_with_snapshot(metadata_name)
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd: 
+                        runCmd(cmd)
+#                 if is_vm_exists(metadata_name):
+#                     if is_vm_active(metadata_name):
+#                         destroy(metadata_name)
+#                     undefine_with_snapshot(metadata_name)
         except:
             logger.error('Oops! ', exc_info=1)
         
@@ -359,6 +365,10 @@ def deleteLifecycleInJson(jsondict):
             if lifecycle:
                 del spec['lifecycle']
     return jsondict
+
+def addExceptionMessage(jsondict):
+    if jsondict:
+        
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']

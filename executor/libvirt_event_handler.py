@@ -123,8 +123,14 @@ def updateXmlStructureInJson(jsondict, body):
             lifecycle = spec.get('lifecycle')
             if lifecycle:
                 del spec['lifecycle']
-            spec.update(loads(body))
+            spec.update(body)
     return jsondict
+
+def updateListToSpecificField(data):
+    if isinstance(data, list):
+        return data
+    else:
+        return [data]
 
 # This example can use three different event loop impls. It defaults
 # to a portable pure-python impl based on poll that is implemented
@@ -636,11 +642,55 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             logger.debug('Callback domain changes to virtlet')
             vm_xml = get_xml(dom.name())
             vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
             body = updateXmlStructureInJson(jsondict, vm_json)
             modifyVM(dom.name(), body)
     except:
         logger.error('Oops! ', exc_info=1)
-
+        
+def updateDomain(vm_json):
+    domain = vm_json.get('domain')
+    if domain:
+        os = domain.get('os')
+        if os:
+            boot = os.get('boot')
+            if boot:
+                os['boot'] = updateListToSpecificField(boot)
+        domain['os'] = os
+        sec_label = domain.get('seclabel')
+        if sec_label:
+            domain['seclabel'] = updateListToSpecificField(sec_label)
+        devices = domain.get('devices')
+        if devices:
+            channel = devices.get('channel')
+            if channel:
+                devices['channel'] = updateListToSpecificField(channel)
+            graphics = devices.get('graphics')
+            if graphics:
+                devices['graphics'] = updateListToSpecificField(graphics)   
+            video = devices.get('video')
+            if video:
+                devices['video'] = updateListToSpecificField(video) 
+            _interface = devices.get('_interface')
+            if _interface:
+                devices['_interface'] = updateListToSpecificField(_interface)  
+            console = devices.get('console')
+            if console:
+                devices['console'] = updateListToSpecificField(console)  
+            controller = devices.get('controller')
+            if controller:
+                devices['controller'] = updateListToSpecificField(controller)  
+            rng = devices.get('rng')
+            if rng:
+                devices['rng'] = updateListToSpecificField(rng)  
+            serial = devices.get('serial')
+            if serial:
+                devices['serial'] = updateListToSpecificField(serial)  
+            disk = devices.get('disk')
+            if disk:
+                devices['disk'] = updateListToSpecificField(disk)
+        domain['devices'] = devices
+    return vm_json
 
 def myDomainEventCallback(conn, dom, event, detail, opaque):
     logger.debug("myDomainEventCallback%s EVENT: Domain %s(%s) %s %s" % (

@@ -32,6 +32,7 @@ Import third party libs
 '''
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
+from kubernetes.client import V1DeleteOptions
 from xmltodict import unparse
 from xmljson import badgerfish as bf
 from libvirt import libvirtError
@@ -40,7 +41,7 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
+from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
 
@@ -172,7 +173,7 @@ def vMWatcher():
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd:
                         runCmd(cmd)
-                    if not is_vm_active(metadata_name):
+                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                         create(metadata_name)
                 elif _isInstallVMFromImage(jsondict):
                     (jsondict, new_vm_vcpus, new_vm_memory) = _preprocessInCreateVMFromImage(jsondict)
@@ -201,7 +202,7 @@ def vMWatcher():
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
-                    undefine(metadata_name)
+                    undefine_with_snapshot(metadata_name)
         except:
             logger.error('Oops! ', exc_info=1)
         
@@ -334,9 +335,20 @@ def vMBlockDevWatcher():
                         runCmd(cmd)   
         except:
             logger.error('Oops! ', exc_info=1)
+#             deleteCustomObject(name, V1DeleteOptions(), GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
+            
+def deleteCustomObject(name, body, group=None, version=None, plural=None):
+    retv = client.CustomObjectsApi().delete_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    return retv
 
 def getMetadataName(jsondict):
-    return jsondict['raw_object']['metadata']['name']
+    metadata = jsondict['raw_object']['metadata']
+    metadata_name = metadata.get('name')
+    if metadata_name:
+        return metadata_name
+    else:
+        raise Exception('FATAL ERROR! No metadata name!') 
 
 def forceUsingMetadataName(metadata_name,jsondict):
     spec = jsondict['raw_object']['spec']

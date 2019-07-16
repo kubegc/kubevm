@@ -35,8 +35,8 @@ from xmljson import badgerfish as bf
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml
-from utils.utils import CDaemon
+from utils.libvirt_util import get_xml, vm_state
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -94,6 +94,88 @@ def daemonize():
     else:
         print 'invalid argument!'
         print help_msg
+        
+def myDomainEventHandler(conn, dom, *args, **kwargs):
+    vm_name = dom.name()
+    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+    try:
+    #     print(jsondict)
+        if kwargs.has_key('event') and kwargs.has_key('detail') and \
+        str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
+        str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
+            logger.debug('Callback domain deletion to virtlet')
+            deleteVM(vm_name, V1DeleteOptions())
+        else:
+            logger.debug('Callback domain changes to virtlet')
+            vm_xml = get_xml(vm_name)
+            vm_power_state = vm_state(vm_name).get(vm_name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+            modifyVM(vm_name, body)
+    except:
+        logger.error('Oops! ', exc_info=1)
+        info=sys.exc_info()
+        report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]))
+        
+def updateDomain(vm_json):
+    domain = vm_json.get('domain')
+    if domain:
+        os = domain.get('os')
+        if os:
+            boot = os.get('boot')
+            if boot:
+                os['boot'] = updateListToSpecificField(boot)
+        domain['os'] = os
+        sec_label = domain.get('seclabel')
+        if sec_label:
+            domain['seclabel'] = updateListToSpecificField(sec_label)
+        devices = domain.get('devices')
+        if devices:
+            channel = devices.get('channel')
+            if channel:
+                devices['channel'] = updateListToSpecificField(channel)
+            graphics = devices.get('graphics')
+            if graphics:
+                devices['graphics'] = updateListToSpecificField(graphics)   
+            video = devices.get('video')
+            if video:
+                devices['video'] = updateListToSpecificField(video) 
+            _interface = devices.get('_interface')
+            if _interface:
+                devices['_interface'] = updateListToSpecificField(_interface)  
+            console = devices.get('console')
+            if console:
+                devices['console'] = updateListToSpecificField(console)  
+            controller = devices.get('controller')
+            if controller:
+                devices['controller'] = updateListToSpecificField(controller)  
+            rng = devices.get('rng')
+            if rng:
+                devices['rng'] = updateListToSpecificField(rng)  
+            serial = devices.get('serial')
+            if serial:
+                devices['serial'] = updateListToSpecificField(serial)  
+            disk = devices.get('disk')
+            if disk:
+                devices['disk'] = updateListToSpecificField(disk)
+        domain['devices'] = devices
+    return vm_json
+
+def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        body = addExceptionMessage(jsondict, error_reason, error_message)
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+        return retv
+    except:
+        logger.error('Oops! ', exc_info=1)
 
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
@@ -628,69 +710,6 @@ AGENT_REASONS = Description("unknown", "domain started", "channel event")
 GRAPHICS_PHASES = Description("Connect", "Initialize", "Disconnect")
 DISK_EVENTS = Description("Change missing on start", "Drop missing on start")
 TRAY_EVENTS = Description("Opened", "Closed")
-
-def myDomainEventHandler(conn, dom, *args, **kwargs):
-    try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=dom.name())
-    #     print(jsondict)
-        if kwargs.has_key('event') and kwargs.has_key('detail') and \
-        str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
-        str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
-            logger.debug('Callback domain deletion to virtlet')
-            deleteVM(dom.name(), V1DeleteOptions())
-        else:
-            logger.debug('Callback domain changes to virtlet')
-            vm_xml = get_xml(dom.name())
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            vm_json = updateDomain(loads(vm_json))
-            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-            modifyVM(dom.name(), body)
-    except:
-        logger.error('Oops! ', exc_info=1)
-        
-def updateDomain(vm_json):
-    domain = vm_json.get('domain')
-    if domain:
-        os = domain.get('os')
-        if os:
-            boot = os.get('boot')
-            if boot:
-                os['boot'] = updateListToSpecificField(boot)
-        domain['os'] = os
-        sec_label = domain.get('seclabel')
-        if sec_label:
-            domain['seclabel'] = updateListToSpecificField(sec_label)
-        devices = domain.get('devices')
-        if devices:
-            channel = devices.get('channel')
-            if channel:
-                devices['channel'] = updateListToSpecificField(channel)
-            graphics = devices.get('graphics')
-            if graphics:
-                devices['graphics'] = updateListToSpecificField(graphics)   
-            video = devices.get('video')
-            if video:
-                devices['video'] = updateListToSpecificField(video) 
-            _interface = devices.get('_interface')
-            if _interface:
-                devices['_interface'] = updateListToSpecificField(_interface)  
-            console = devices.get('console')
-            if console:
-                devices['console'] = updateListToSpecificField(console)  
-            controller = devices.get('controller')
-            if controller:
-                devices['controller'] = updateListToSpecificField(controller)  
-            rng = devices.get('rng')
-            if rng:
-                devices['rng'] = updateListToSpecificField(rng)  
-            serial = devices.get('serial')
-            if serial:
-                devices['serial'] = updateListToSpecificField(serial)  
-            disk = devices.get('disk')
-            if disk:
-                devices['disk'] = updateListToSpecificField(disk)
-        domain['devices'] = devices
-    return vm_json
 
 def myDomainEventCallback(conn, dom, event, detail, opaque):
     logger.debug("myDomainEventCallback%s EVENT: Domain %s(%s) %s %s" % (

@@ -9,6 +9,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 Import python libs
 '''
 import os, sys, time, signal, atexit, subprocess
+import random
 import logger
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
@@ -33,6 +34,22 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
         
+def addPowerStatusMessage(jsondict, reason, message):
+    if jsondict:
+        status = {'conditions':{'state':{'failed':{'message':message, 'reason':reason}}}}
+        spec = jsondict['spec']
+        if spec:
+            spec['status'] = status
+    return jsondict
+
+def addExceptionMessage(jsondict, reason, message):
+    if jsondict:
+        status = {'conditions':{'state':{'failed':{'message':message, 'reason':reason}}}}
+        spec = jsondict['spec']
+        if spec:
+            spec['status'] = status
+    return jsondict
+        
 class ExecuteException(Exception):
     def __init__(self, reason, message):
         self.reason = reason
@@ -43,6 +60,19 @@ class KubevmmException(Exception):
         self.reason = reason
         self.message = message      
 
+def randomUUID():
+    u = [random.randint(0, 255) for ignore in range(0, 16)]
+    u[6] = (u[6] & 0x0F) | (4 << 4)
+    u[8] = (u[8] & 0x3F) | (2 << 6)
+    return "-".join(["%02x" * 4, "%02x" * 2, "%02x" * 2, "%02x" * 2,
+                     "%02x" * 6]) % tuple(u)
+
+def randomMAC():
+    mac = [ 0x52, 0x54, 0x00,
+        random.randint(0x00, 0x7f),
+        random.randint(0x00, 0xff),
+        random.randint(0x00, 0xff) ]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
 
 class CDaemon:
     '''

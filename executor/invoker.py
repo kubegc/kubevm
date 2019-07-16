@@ -15,7 +15,6 @@ import os
 import sys
 import subprocess
 import ConfigParser
-import xmltodict
 import socket
 import string
 import traceback
@@ -45,7 +44,7 @@ Import local libs
 from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import ExecuteException
+from utils.utils import ExecuteException, addExceptionMessage
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -115,23 +114,23 @@ def main():
     logger.debug("All support CMDs are:")
     logger.debug(ALL_SUPPORT_CMDS)
     try:
-        thread_1 = Thread(target=vMWatcher, args=(GROUP_VM, VERSION_VM, PLURAL_VM))
+        thread_1 = Thread(target=vMWatcher)
         thread_1.daemon = True
         thread_1.name = 'vm_watcher'
         thread_1.start()
-        thread_2 = Thread(target=vMDiskWatcher, args=(GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK))
+        thread_2 = Thread(target=vMDiskWatcher)
         thread_2.daemon = True
         thread_2.name = 'vm_disk_watcher'
         thread_2.start()
-        thread_3 = Thread(target=vMImageWatcher, args=(GROUP_VMI, VERSION_VMI, PLURAL_VMI))
+        thread_3 = Thread(target=vMImageWatcher)
         thread_3.daemon = True
         thread_3.name = 'vm_image_watcher'
         thread_3.start()
-        thread_4 = Thread(target=vMSnapshotWatcher, args=(GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT, PLURAL_VM_SNAPSHOT))
+        thread_4 = Thread(target=vMSnapshotWatcher)
         thread_4.daemon = True
         thread_4.name = 'vm_snapshot_watcher'
         thread_4.start()
-        thread_5 = Thread(target=vMBlockDevWatcher, args=(GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT))
+        thread_5 = Thread(target=vMBlockDevWatcher)
         thread_5.daemon = True
         thread_5.name = 'vm_block_dev_watcher'
         thread_5.start()
@@ -155,7 +154,7 @@ def test():
         traceback.print_exc()
         logger.error('Oops! ', exc_info=1)
     
-def vMWatcher(group, version, plural):
+def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
@@ -215,17 +214,17 @@ def vMWatcher(group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException:
+        except ExecuteException, e:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'ExecutionError', str(info[1]), group, version, plural)              
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
         
                 
-def vMDiskWatcher(group, version, plural):
+def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
@@ -258,17 +257,17 @@ def vMDiskWatcher(group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException:
+        except ExecuteException, e:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'ExecutionError', str(info[1]), group, version, plural)              
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                 
                 
-def vMImageWatcher(group, version, plural):
+def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
@@ -300,16 +299,16 @@ def vMImageWatcher(group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException:
+        except ExecuteException, e:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'ExecutionError', str(info[1]), group, version, plural)              
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
         
-def vMSnapshotWatcher(group, version, plural):
+def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
@@ -342,23 +341,21 @@ def vMSnapshotWatcher(group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException:
+        except ExecuteException, e:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'ExecutionError', str(info[1]), group, version, plural)              
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
 
-def vMBlockDevWatcher(group, version, plural):
+def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
     kwargs['watch'] = True
     kwargs['timeout_seconds'] = int(TIMEOUT)
-    logger.debug('UIT')
-    logger.debug(GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                    group=group, version=version, plural=plural, **kwargs):
         operation_type = jsondict.get('type')
@@ -385,16 +382,16 @@ def vMBlockDevWatcher(group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException:
+        except ExecuteException, e:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'ExecutionError', str(info[1]), group, version, plural)              
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
 
-def report_failure(name, jsondict, error_reason=None, error_message=None, group=None, version=None, plural=None):
+def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     try:
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 
@@ -403,7 +400,6 @@ def report_failure(name, jsondict, error_reason=None, error_message=None, group=
                                                                           name=name)
         jsondict = deleteLifecycleInJson(jsondict)
         body = addExceptionMessage(jsondict, error_reason, error_message)
-        logger.debug(body)
         retv = client.CustomObjectsApi().replace_namespaced_custom_object(
             group=group, version=version, namespace='default', plural=plural, name=name, body=body)
         return retv
@@ -421,15 +417,6 @@ def deleteLifecycleInJson(jsondict):
             if lifecycle:
                 del spec['lifecycle']
     return jsondict
-
-def addExceptionMessage(jsondict, reason, message):
-    if jsondict:
-        status = {'conditions':{'state':{'failed':{'message':message, 'reason':reason}}}}
-        spec = jsondict['spec']
-        if spec:
-            spec['status'] = status
-    return jsondict
-         
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']
@@ -624,7 +611,12 @@ def _convertCharsInJson(key, value):
     key, value = str(key), str(value)
     if value == 'True':
         value = ''
-    return ('--%s' % key.replace('_', '-'), value)
+        return ('--%s' % key.replace('_', '-'), value)
+    elif value == 'False':
+        return ('', '')
+    else:
+        return ('--%s' % key.replace('_', '-'), value)
+   
 
 '''
 Unpack the CMD that will be executed in Json format.
@@ -682,26 +674,12 @@ def runCmd(cmd):
             logger.debug(str.strip(std_out[0]))
         if std_err:
             logger.error(str.strip(std_err[0]))
-            raise ExecuteException('libvirtError', str.strip(std_err[0]))
+            raise ExecuteException('VirtctlError', str.strip(std_err[0]))
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
         return
     finally:
         p.stdout.close()
         p.stderr.close()
-
-# def randomUUID():
-#     u = [random.randint(0, 255) for ignore in range(0, 16)]
-#     u[6] = (u[6] & 0x0F) | (4 << 4)
-#     u[8] = (u[8] & 0x3F) | (2 << 6)
-#     return "-".join(["%02x" * 4, "%02x" * 2, "%02x" * 2, "%02x" * 2,
-#                      "%02x" * 6]) % tuple(u)
-#
-# def randomMAC():
-#     mac = [ 0x52, 0x54, 0x00,
-#         random.randint(0x00, 0x7f),
-#         random.randint(0x00, 0xff),
-#         random.randint(0x00, 0xff) ]
-#     return ':'.join(map(lambda x: "%02x" % x, mac))
 
 if __name__ == '__main__':
     config.load_kube_config(config_file=TOKEN)

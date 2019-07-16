@@ -26,13 +26,13 @@ except ImportError:
 # import yaml
 
 
-VIRT_STATE_NAME_MAP = {0: 'running',
-                       1: 'running',
-                       2: 'running',
-                       3: 'paused',
-                       4: 'shutdown',
-                       5: 'shutdown',
-                       6: 'crashed'}
+VIRT_STATE_NAME_MAP = {0: 'Running',
+                       1: 'Running',
+                       2: 'Running',
+                       3: 'Paused',
+                       4: 'Shutdown',
+                       5: 'Shutdown',
+                       6: 'Crashed'}
 
 
 '''

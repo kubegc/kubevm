@@ -32,6 +32,17 @@ def runCmd(cmd):
     finally:
         p.stdout.close()
         p.stderr.close()
+        
+class ExecuteException(Exception):
+    def __init__(self, reason, message):
+        self.reason = reason
+        self.message = message       
+
+class KubevmmException(Exception):
+    def __init__(self, reason, message):
+        self.reason = reason
+        self.message = message      
+
 
 class CDaemon:
     '''

@@ -113,7 +113,7 @@ def toKubeJson(json):
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
                     
-def updateXmlStructureInJson(jsondict, body):
+def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
     if jsondict:
         '''
         Get target VM name from Json.
@@ -643,7 +643,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             vm_xml = get_xml(dom.name())
             vm_json = toKubeJson(xmlToJson(vm_xml))
             vm_json = updateDomain(loads(vm_json))
-            body = updateXmlStructureInJson(jsondict, vm_json)
+            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
             modifyVM(dom.name(), body)
     except:
         logger.error('Oops! ', exc_info=1)

@@ -161,11 +161,11 @@ def vMWatcher():
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            print(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            print('metadata name: %s' % metadata_name)
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
     #             print(jsondict)
             if operation_type == 'ADDED':
@@ -336,11 +336,29 @@ def vMBlockDevWatcher():
         except:
             logger.error('Oops! ', exc_info=1)
 #             deleteCustomObject(name, V1DeleteOptions(), GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
-            
-def deleteCustomObject(name, body, group=None, version=None, plural=None):
-    retv = client.CustomObjectsApi().delete_namespaced_custom_object(
+
+def report_failure(name, body, group=None, version=None, plural=None):
+    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                      version=version, 
+                                                                      namespace='default', 
+                                                                      plural=plural, 
+                                                                      name=name)
+    deleteLifecycleInJson(jsondict)
+    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
+
+def deleteLifecycleInJson(jsondict):
+    if jsondict:
+        '''
+        Get target VM name from Json.
+        '''
+        spec = jsondict['spec']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+    return jsondict
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']
@@ -593,6 +611,7 @@ def runCmd(cmd):
             logger.debug(str.strip(std_out[0]))
         if std_err:
             logger.error(str.strip(std_err[0]))
+            raise Exception(str.strip(std_err[0]))
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
         return
     finally:

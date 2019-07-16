@@ -33,6 +33,7 @@ Import third party libs
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 from kubernetes.client import V1DeleteOptions
+from kubernetes.client.models.v1_namespace_status import V1NamespaceStatus
 from xmltodict import unparse
 from xmljson import badgerfish as bf
 from libvirt import libvirtError
@@ -211,6 +212,7 @@ def vMWatcher():
 #                     undefine_with_snapshot(metadata_name)
         except:
             logger.error('Oops! ', exc_info=1)
+            report_failure(name, jsondict, GROUP_VM, VERSION_VM, PLURAL_VM)
         
                 
 def vMDiskWatcher():
@@ -221,11 +223,11 @@ def vMDiskWatcher():
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                    group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
             pool_name = _get_field(jsondict, 'pool')
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
@@ -244,6 +246,7 @@ def vMDiskWatcher():
                         runCmd(cmd)   
         except:
             logger.error('Oops! ', exc_info=1)
+            report_failure(name, jsondict, GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
                 
                 
 def vMImageWatcher():
@@ -254,11 +257,11 @@ def vMImageWatcher():
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
                 cmd = unpackCmdFromJson(jsondict)
@@ -276,6 +279,7 @@ def vMImageWatcher():
                     undefine(metadata_name)
         except:
             logger.error('Oops! ', exc_info=1)
+            report_failure(name, jsondict, GROUP_VMI, VERSION_VMI, PLURAL_VMI)
         
 def vMSnapshotWatcher():
     watcher = watch.Watch()
@@ -285,11 +289,11 @@ def vMSnapshotWatcher():
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
             vm_name = _get_field(jsondict, 'domain')
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
@@ -308,6 +312,7 @@ def vMSnapshotWatcher():
                         runCmd(cmd)  
         except:
             logger.error('Oops! ', exc_info=1)
+            report_failure(name, jsondict, GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT, PLURAL_VM_SNAPSHOT)
 
 def vMBlockDevWatcher():
     watcher = watch.Watch()
@@ -319,11 +324,11 @@ def vMBlockDevWatcher():
     logger.debug(GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                    group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
                 cmd = unpackCmdFromJson(jsondict)
@@ -341,18 +346,22 @@ def vMBlockDevWatcher():
                         runCmd(cmd)   
         except:
             logger.error('Oops! ', exc_info=1)
-#             deleteCustomObject(name, V1DeleteOptions(), GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
+            report_failure(name, jsondict, GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
 
-def report_failure(name, body, group=None, version=None, plural=None):
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                      version=version, 
-                                                                      namespace='default', 
-                                                                      plural=plural, 
-                                                                      name=name)
-    deleteLifecycleInJson(jsondict)
-    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-    return retv
+def report_failure(name, jsondict, group=None, version=None, plural=None):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        jsondict = deleteLifecycleInJson(jsondict)
+        body = addExceptionMessage(jsondict)
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+        return retv
+    except:
+        logger.error('Oops! ', exc_info=1)
 
 def deleteLifecycleInJson(jsondict):
     if jsondict:
@@ -366,9 +375,14 @@ def deleteLifecycleInJson(jsondict):
                 del spec['lifecycle']
     return jsondict
 
-# def addExceptionMessage(jsondict):
-#     if jsondict:
-#         
+def addExceptionMessage(jsondict, reason, message):
+    if jsondict:
+        status = {'conditions':{'state':{'failed':{'message':message, 'reason':reason}}}}
+        spec = jsondict['spec']
+        if spec:
+            spec['status'] = status
+    return jsondict
+         
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']

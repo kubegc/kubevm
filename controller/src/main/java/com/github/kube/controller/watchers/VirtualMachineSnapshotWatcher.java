@@ -3,21 +3,15 @@
  */
 package com.github.kube.controller.watchers;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.alibaba.fastjson.JSON;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachineSnapshot;
 
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -42,25 +36,16 @@ public class VirtualMachineSnapshotWatcher extends AbstractWatcher implements Wa
 		super(client);
 	}
 
-	// actions
-	public final static String ACTION_CREATE = "ADDED";
 
-	public final static String ACTION_REMOVE = "DELETED";
+	public void eventReceived(Action action, VirtualMachineSnapshot snapshot) {
 
-	// pod attributions
-	public final static String POD_PREFIX = "snapshot2pod";
-
-	public final static String POD_NAMESPACE = "default";
-	
-	public void eventReceived(Action action, VirtualMachineSnapshot vm) {
-
-		String namespace = vm.getMetadata().getNamespace();
-		String podName = POD_PREFIX + "-" + vm.getMetadata().getName() + "-" + namespace;
+		String namespace = snapshot.getMetadata().getNamespace();
+		String podName = getPrefix() + "-" + snapshot.getMetadata().getName() + "-" + namespace;
 		
 		if (action.toString().equals(ACTION_CREATE)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(vm, podName);
+				pod = createPod(snapshot.getMetadata(), snapshot.getSpec(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -68,105 +53,44 @@ public class VirtualMachineSnapshotWatcher extends AbstractWatcher implements Wa
 			if (client.pods().inNamespace(namespace).withName(podName).get() == null) {
 
 				client.pods().inNamespace(namespace).create(pod);
-				m_logger.log(Level.INFO, "Create snapshot '" + vm.getMetadata().getName() + "' in namespace '"
-						+ vm.getMetadata().getNamespace() + "'");
+				m_logger.log(Level.INFO, "Create snapshot '" + snapshot.getMetadata().getName() + "' in namespace '"
+						+ snapshot.getMetadata().getNamespace() + "'");
 				m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + namespace + "'");
 			}
 		} else if (action.toString().equals(ACTION_REMOVE)) {
 			if (client.pods().inNamespace(namespace).withName(podName).get() != null) {
 				client.pods().inNamespace(namespace).withName(podName).delete();
 				m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + namespace + "'");
-				m_logger.log(Level.INFO, "Delete snapshot '" + vm.getMetadata().getName() + "' in namespace '"
-						+ vm.getMetadata().getNamespace() + "'");
+				m_logger.log(Level.INFO, "Delete snapshot '" + snapshot.getMetadata().getName() + "' in namespace '"
+						+ snapshot.getMetadata().getNamespace() + "'");
 			}
 		}
 	}
 
-	private Pod createPod(VirtualMachineSnapshot vm, String podName) throws Exception {
-		Pod pod = new Pod();
-		// metadata and podSpec
-		pod.setMetadata(createMetadataFrom(vm, podName));
-		pod.setSpec(createPodSpecFrom(vm, podName));
-		return pod;
+	public void onClose(KubernetesClientException cause) {
+		m_logger.log(Level.INFO, "Stop VirtualMachineSnapshotWatcher");
 	}
 
-	// default values
-
-	public final static String DEFAULT_SCHEDULER = "kubevirt-scheduler";
-
-	private PodSpec createPodSpecFrom(VirtualMachineSnapshot vm, String podName) {
-		PodSpec spec = new PodSpec();
-		spec.setContainers(createContainerFrom(vm, podName));
-		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
-		return spec;
+	@Override
+	public String getPrefix() {
+		return "snapshot2pod";
 	}
 
-	public final static String DEFAULT_IMAGE = "fake";
 
-	private List<Container> createContainerFrom(VirtualMachineSnapshot vm, String podName) {
-		List<Container> containers = new ArrayList<Container>();
-		Container container = new Container();
-		container.setName(podName);
-		container.setImage(DEFAULT_IMAGE);
-		container.setResources(createResourceDemands(vm));
-		containers.add(container);
-		return containers;
+	@Override
+	public String getPlural() {
+		return "virtualmachinesnapshots";
 	}
 
-	// resources
-	public final static String CPU_RESOURCE = "cpu";
 
-	public final static String RAM_RESOURCE = "memory";
-
-	private ResourceRequirements createResourceDemands(VirtualMachineSnapshot vm) {
+	@Override
+	public ResourceRequirements getResourceDemands(Object spec) {
 		ResourceRequirements resources = new ResourceRequirements();
 		Map<String, Quantity> requests = new HashMap<String, Quantity>();
 		requests.put(CPU_RESOURCE, new Quantity("100m"));
 		requests.put(RAM_RESOURCE, new Quantity("64Mi"));
 		resources.setRequests(requests);
 		return resources;
-	}
-
-	private ObjectMeta createMetadataFrom(VirtualMachineSnapshot vm, String podName) throws Exception {
-		ObjectMeta metadata = new ObjectMeta();
-		metadata.setName(podName);
-		metadata.setAnnotations(createAnnotations(vm));
-		return metadata;
-	}
-
-	// annotations
-	public final static String KIND_ANNOTATION = "crdKind";
-
-	public final static String NS_ANNOTATION = "crdNamespace";
-
-	public final static String VERSION_ANNOTATION = "crdVersion";
-
-	public final static String GROUP_ANNOTATION = "crdGroup";
-
-	public final static String NAME_ANNOTATION = "crdName";
-
-	public final static String CONTENT_ANNOTATION = "crdYaml";
-
-	public final static String PLURAL = "virtualmachinesnapshots";
-
-	public final static String GROUP = "cloudplus.io";
-
-	public final static String VERSION = "v1alpha3";
-	
-
-	private Map<String, String> createAnnotations(VirtualMachineSnapshot vm) throws Exception {
-		Map<String, String> annotations = new HashMap<String, String>();
-		annotations.put(KIND_ANNOTATION, PLURAL);
-		annotations.put(GROUP_ANNOTATION, GROUP);
-		annotations.put(VERSION_ANNOTATION, VERSION);
-		annotations.put(NAME_ANNOTATION, vm.getMetadata().getName());
-		annotations.put(NS_ANNOTATION, vm.getMetadata().getNamespace());
-		annotations.put(CONTENT_ANNOTATION, JSON.toJSONString(vm.getSpec()));
-		return annotations;
-	}
-
-	public void onClose(KubernetesClientException cause) {
-		m_logger.log(Level.INFO, "Stop VirtualMachineSnapshotWatcher");
 	}
 
 }

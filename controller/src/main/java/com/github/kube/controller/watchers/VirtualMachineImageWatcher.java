@@ -3,21 +3,15 @@
  */
 package com.github.kube.controller.watchers;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.alibaba.fastjson.JSON;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachineImage;
 
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -42,25 +36,15 @@ public class VirtualMachineImageWatcher extends AbstractWatcher implements Watch
 		super(client);
 	}
 
-	// actions
-	public final static String ACTION_CREATE = "ADDED";
-
-	public final static String ACTION_REMOVE = "DELETED";
-
-	// pod attributions
-	public final static String POD_PREFIX = "image2pod";
-
-	public final static String POD_NAMESPACE = "default";
-	
 	public void eventReceived(Action action, VirtualMachineImage image) {
 
 		String namespace = image.getMetadata().getNamespace();
-		String podName = POD_PREFIX + "-" + image.getMetadata().getName() + "-" + namespace;
+		String podName = getPrefix() + "-" + image.getMetadata().getName() + "-" + namespace;
 		
 		if (action.toString().equals(ACTION_CREATE)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(image, podName);
+				pod = createPod(image.getMetadata(), image.getSpec(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -82,91 +66,28 @@ public class VirtualMachineImageWatcher extends AbstractWatcher implements Watch
 		}
 	}
 
-	private Pod createPod(VirtualMachineImage image, String podName) throws Exception {
-		Pod pod = new Pod();
-		// metadata and podSpec
-		pod.setMetadata(createMetadataFrom(image, podName));
-		pod.setSpec(createPodSpecFrom(image, podName));
-		return pod;
+	public void onClose(KubernetesClientException cause) {
+		m_logger.log(Level.INFO, "Stop VirtualMachineImageWatcher");
 	}
 
-	// default values
-
-	public final static String DEFAULT_SCHEDULER = "kubevirt-scheduler";
-
-	private PodSpec createPodSpecFrom(VirtualMachineImage image, String podName) {
-		PodSpec spec = new PodSpec();
-		spec.setContainers(createContainerFrom(image, podName));
-		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
-		return spec;
+	@Override
+	public String getPrefix() {
+		return "image2pod";
 	}
 
-	public final static String DEFAULT_IMAGE = "fake";
-
-	private List<Container> createContainerFrom(VirtualMachineImage image, String podName) {
-		List<Container> containers = new ArrayList<Container>();
-		Container container = new Container();
-		container.setName(podName);
-		container.setImage(DEFAULT_IMAGE);
-		container.setResources(createResourceDemands(image));
-		containers.add(container);
-		return containers;
+	@Override
+	public String getPlural() {
+		return "virtualmachineimages";
 	}
 
-	// resources
-	public final static String CPU_RESOURCE = "cpu";
-
-	public final static String RAM_RESOURCE = "memory";
-
-	private ResourceRequirements createResourceDemands(VirtualMachineImage image) {
+	@Override
+	public ResourceRequirements getResourceDemands(Object spec) {
 		ResourceRequirements resources = new ResourceRequirements();
 		Map<String, Quantity> requests = new HashMap<String, Quantity>();
 		requests.put(CPU_RESOURCE, new Quantity("100m"));
 		requests.put(RAM_RESOURCE, new Quantity("64Mi"));
 		resources.setRequests(requests);
 		return resources;
-	}
-
-	private ObjectMeta createMetadataFrom(VirtualMachineImage image, String podName) throws Exception {
-		ObjectMeta metadata = new ObjectMeta();
-		metadata.setName(podName);
-		metadata.setAnnotations(createAnnotations(image));
-		return metadata;
-	}
-
-	// annotations
-	public final static String KIND_ANNOTATION = "crdKind";
-
-	public final static String NS_ANNOTATION = "crdNamespace";
-
-	public final static String VERSION_ANNOTATION = "crdVersion";
-
-	public final static String GROUP_ANNOTATION = "crdGroup";
-
-	public final static String NAME_ANNOTATION = "crdName";
-
-	public final static String CONTENT_ANNOTATION = "crdYaml";
-
-	public final static String PLURAL = "virtualmachineimages";
-
-	public final static String GROUP = "cloudplus.io";
-
-	public final static String VERSION = "v1alpha3";
-	
-
-	private Map<String, String> createAnnotations(VirtualMachineImage vm) throws Exception {
-		Map<String, String> annotations = new HashMap<String, String>();
-		annotations.put(KIND_ANNOTATION, PLURAL);
-		annotations.put(GROUP_ANNOTATION, GROUP);
-		annotations.put(VERSION_ANNOTATION, VERSION);
-		annotations.put(NAME_ANNOTATION, vm.getMetadata().getName());
-		annotations.put(NS_ANNOTATION, vm.getMetadata().getNamespace());
-		annotations.put(CONTENT_ANNOTATION, JSON.toJSONString(vm.getSpec()));
-		return annotations;
-	}
-
-	public void onClose(KubernetesClientException cause) {
-		m_logger.log(Level.INFO, "Stop VirtualMachineImageWatcher");
 	}
 
 }

@@ -213,7 +213,7 @@ def vMWatcher():
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(name, jsondict, info[0], info[1], GROUP_VM, VERSION_VM, PLURAL_VM)
+            report_failure(metadata_name, jsondict, info[0], info[1], GROUP_VM, VERSION_VM, PLURAL_VM)
         
                 
 def vMDiskWatcher():
@@ -248,7 +248,7 @@ def vMDiskWatcher():
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(name, jsondict, info[0], info[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+            report_failure(metadata_name, jsondict, info[0], info[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
                 
                 
 def vMImageWatcher():
@@ -282,7 +282,7 @@ def vMImageWatcher():
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(name, jsondict, info[0], info[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
+            report_failure(metadata_name, jsondict, info[0], info[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
         
 def vMSnapshotWatcher():
     watcher = watch.Watch()
@@ -316,7 +316,7 @@ def vMSnapshotWatcher():
         except Exception, e:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(name, jsondict, info[0], info[1], GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT, PLURAL_VM_SNAPSHOT)
+            report_failure(metadata_name, jsondict, info[0], info[1], GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT, PLURAL_VM_SNAPSHOT)
 
 def vMBlockDevWatcher():
     watcher = watch.Watch()
@@ -351,7 +351,7 @@ def vMBlockDevWatcher():
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(name, jsondict, info[0], info[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
+            report_failure(metadata_name, jsondict, info[0], info[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
 
 def report_failure(name, jsondict, error_reason=None, error_message=None, group=None, version=None, plural=None):
     try:

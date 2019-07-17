@@ -36,7 +36,7 @@ def runCmd(cmd):
         
 def addPowerStatusMessage(jsondict, reason, message):
     if jsondict:
-        status = {'conditions':{'state':{reason:{'message':message, 'reason':reason}}}}
+        status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
         spec = jsondict['spec']
         if spec:
             spec['status'] = status
@@ -44,12 +44,73 @@ def addPowerStatusMessage(jsondict, reason, message):
 
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:
-        status = {'conditions':{'state':{'Error':{'message':message, 'reason':reason}}}}
+        status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
         spec = jsondict['spec']
         if spec:
             spec['status'] = status
     return jsondict
-        
+
+def updateDomain(vm_json):
+    domain = vm_json.get('domain')
+    if domain:
+        os = domain.get('os')
+        if os:
+            boot = os.get('boot')
+            if boot:
+                os['boot'] = _addListToSpecificField(boot)
+        domain['os'] = os
+        sec_label = domain.get('seclabel')
+        if sec_label:
+            domain['seclabel'] = _addListToSpecificField(sec_label)
+        devices = domain.get('devices')
+        if devices:
+            channel = devices.get('channel')
+            if channel:
+                devices['channel'] = _addListToSpecificField(channel)
+            graphics = devices.get('graphics')
+            if graphics:
+                devices['graphics'] = _addListToSpecificField(graphics)   
+            video = devices.get('video')
+            if video:
+                devices['video'] = _addListToSpecificField(video) 
+            _interface = devices.get('_interface')
+            if _interface:
+                devices['_interface'] = _addListToSpecificField(_interface)  
+            console = devices.get('console')
+            if console:
+                devices['console'] = _addListToSpecificField(console)  
+            controller = devices.get('controller')
+            if controller:
+                devices['controller'] = _addListToSpecificField(controller)  
+            rng = devices.get('rng')
+            if rng:
+                devices['rng'] = _addListToSpecificField(rng)  
+            serial = devices.get('serial')
+            if serial:
+                devices['serial'] = _addListToSpecificField(serial)  
+            disk = devices.get('disk')
+            if disk:
+                devices['disk'] = _addListToSpecificField(disk)
+        domain['devices'] = devices
+    return vm_json
+
+
+def _addListToSpecificField(data):
+    if isinstance(data, list):
+        return data
+    else:
+        return [data]
+    
+def _userDefinedOperationInList(domain, alist):
+    tmp = domain
+    name = None
+    for index, value in enumerate(alist):
+        if index == len(alist) - 1:
+            name = value
+        tmp = tmp[value]
+    tmp[name] = _addListToSpecificField(name)
+    return tmp
+    
 class ExecuteException(Exception):
     def __init__(self, reason, message):
         self.reason = reason

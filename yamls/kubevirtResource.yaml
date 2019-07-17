@@ -19,7 +19,7 @@ spec:
   - JSONPath: .spec.domain.memory.text
     name: RAM(KB)
     type: string
-  - JSONPath: .spec.status.conditions.state."$$state$$".reason
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -53,7 +53,7 @@ spec:
   - JSONPath: .spec.domain.uuid.text
     name: UUID
     type: string
-  - JSONPath: .spec.status.conditions.state."$$state$$".reason
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -90,7 +90,7 @@ spec:
   - JSONPath: .spec.volume.target.path.text
     name: PATH
     type: string  
-  - JSONPath: .spec.status.conditions.state."$$state$$".reason
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -124,7 +124,7 @@ spec:
   - JSONPath: .spec.domainsnapshot.domain.name.text
     name: VM
     type: string  
-  - JSONPath: .spec.status.conditions.state."$$state$$".reason
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -167,7 +167,7 @@ spec:
   - JSONPath: .spec.UitVolume.data[0].size
     name: SIZE
     type: string 
-  - JSONPath: .spec.status.conditions.state."$$state$$".reason
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp

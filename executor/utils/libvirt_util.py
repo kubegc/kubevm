@@ -195,7 +195,7 @@ def vm_state(vm_=None):
         state = ''
         dom = _get_dom(vm_)
         raw = dom.info()
-        state = VIRT_STATE_NAME_MAP.get(raw[0], 'unknown')
+        state = VIRT_STATE_NAME_MAP.get(raw[0], 'Unknown')
         return state
     info = {}
     if vm_:

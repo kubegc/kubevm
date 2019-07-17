@@ -36,7 +36,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -119,50 +119,6 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         info=sys.exc_info()
         report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]))
         
-def updateDomain(vm_json):
-    domain = vm_json.get('domain')
-    if domain:
-        os = domain.get('os')
-        if os:
-            boot = os.get('boot')
-            if boot:
-                os['boot'] = updateListToSpecificField(boot)
-        domain['os'] = os
-        sec_label = domain.get('seclabel')
-        if sec_label:
-            domain['seclabel'] = updateListToSpecificField(sec_label)
-        devices = domain.get('devices')
-        if devices:
-            channel = devices.get('channel')
-            if channel:
-                devices['channel'] = updateListToSpecificField(channel)
-            graphics = devices.get('graphics')
-            if graphics:
-                devices['graphics'] = updateListToSpecificField(graphics)   
-            video = devices.get('video')
-            if video:
-                devices['video'] = updateListToSpecificField(video) 
-            _interface = devices.get('_interface')
-            if _interface:
-                devices['_interface'] = updateListToSpecificField(_interface)  
-            console = devices.get('console')
-            if console:
-                devices['console'] = updateListToSpecificField(console)  
-            controller = devices.get('controller')
-            if controller:
-                devices['controller'] = updateListToSpecificField(controller)  
-            rng = devices.get('rng')
-            if rng:
-                devices['rng'] = updateListToSpecificField(rng)  
-            serial = devices.get('serial')
-            if serial:
-                devices['serial'] = updateListToSpecificField(serial)  
-            disk = devices.get('disk')
-            if disk:
-                devices['disk'] = updateListToSpecificField(disk)
-        domain['devices'] = devices
-    return vm_json
-
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     try:
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
@@ -207,12 +163,6 @@ def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
                 del spec['lifecycle']
             spec.update(body)
     return jsondict
-
-def updateListToSpecificField(data):
-    if isinstance(data, list):
-        return data
-    else:
-        return [data]
 
 # This example can use three different event loop impls. It defaults
 # to a portable pure-python impl based on poll that is implemented

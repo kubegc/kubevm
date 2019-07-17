@@ -77,7 +77,9 @@ LABEL = 'host=%s' % (socket.gethostname())
 
 TIMEOUT = config_raw.get('WatcherTimeout', 'timeout')
 
-logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
+LOG = '/var/log/virtctl.log'
+
+logger = logger.set_logger(os.path.basename(__file__), LOG)
 
 '''
 Handle support CMDs settings in default.cfg.
@@ -671,10 +673,22 @@ def runCmd(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_out:
-            logger.debug(str.strip(std_out[0]))
+            msg = ''
+            for index,line in enumerate(std_out):
+                if index == len(std_out) - 1:
+                    msg = msg + str.strip(line) + '. '
+                else:
+                    msg = msg + str.strip(line) + ', '
+            logger.debug(str.strip(msg))
         if std_err:
-            logger.error(str.strip(std_err[0]))
-            raise ExecuteException('VirtctlError', str.strip(std_err[0]))
+            msg = ''
+            for index,line in enumerate(std_err):
+                if index == len(std_err) - 1:
+                    msg = msg + str.strip(line) + '. ' + '***Check more informations in %s***' % LOG
+                else:
+                    msg = msg + str.strip(line) + ', '
+            logger.error(str.strip(msg))
+            raise ExecuteException('VirtctlError', str.strip(msg))
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
         return
     finally:

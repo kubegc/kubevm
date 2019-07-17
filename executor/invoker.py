@@ -675,6 +675,8 @@ def runCmd(cmd):
         if std_out:
             msg = ''
             for index,line in enumerate(std_out):
+                if not str.strip(line):
+                    continue
                 if index == len(std_out) - 1:
                     msg = msg + str.strip(line) + '. '
                 else:
@@ -683,8 +685,10 @@ def runCmd(cmd):
         if std_err:
             msg = ''
             for index,line in enumerate(std_err):
+                if not str.strip(line):
+                    continue
                 if index == len(std_err) - 1:
-                    msg = msg + str.strip(line) + '. ' + '***Check more informations in %s***' % LOG
+                    msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
                 else:
                     msg = msg + str.strip(line) + ', '
             logger.error(str.strip(msg))

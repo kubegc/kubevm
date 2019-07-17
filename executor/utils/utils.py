@@ -95,7 +95,6 @@ def updateDomainBackup(vm_json):
     return vm_json
 
 def updateDomain(jsondict):
-    logger.debug('%s/../arraylist.cfg' % os.path.dirname(__file__))
     with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:
         for line in fr:
             l = str.strip(line)
@@ -104,7 +103,6 @@ def updateDomain(jsondict):
     return jsondict
 
 def updateDomainSnapshot(jsondict):
-    logger.debug('%s/../arraylist.cfg' % os.path.dirname(__file__))
     with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:
         for line in fr:
             l = str.strip(line)

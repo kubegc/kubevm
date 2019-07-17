@@ -36,7 +36,7 @@ def runCmd(cmd):
         
 def addPowerStatusMessage(jsondict, reason, message):
     if jsondict:
-        status = {'conditions':{'state':{'failed':{'message':message, 'reason':reason}}}}
+        status = {'conditions':{'state':{reason:{'message':message, 'reason':reason}}}}
         spec = jsondict['spec']
         if spec:
             spec['status'] = status
@@ -44,7 +44,7 @@ def addPowerStatusMessage(jsondict, reason, message):
 
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:
-        status = {'conditions':{'state':{'failed':{'message':message, 'reason':reason}}}}
+        status = {'conditions':{'state':{'Error':{'message':message, 'reason':reason}}}}
         spec = jsondict['spec']
         if spec:
             spec['status'] = status

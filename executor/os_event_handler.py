@@ -35,7 +35,7 @@ Import local libs
 '''
 from utils.libvirt_util import get_volume_xml, get_snapshot_xml
 from utils import logger
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -129,7 +129,7 @@ def updateJsonRemoveLifecycle(jsondict, body):
             lifecycle = spec.get('lifecycle')
             if lifecycle:
                 del spec['lifecycle']
-            spec.update(loads(body))
+            spec.update(body)
     return jsondict
 
 def myVmVolEventHandler(event, pool, name, group, version, plural):
@@ -147,7 +147,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             logger.debug('Callback volume changes to virtlet')
             vol_xml = get_volume_xml(pool, name)
             vol_json = toKubeJson(xmlToJson(vol_xml))
-            vol_json = updateJsonRemoveLifecycle(jsondict, vol_json)
+            vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
             body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
     except:
@@ -207,6 +207,7 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
             logger.debug('Callback snapshot changes to virtlet')
             snap_xml = get_snapshot_xml(vm, name)
             snap_json = toKubeJson(xmlToJson(snap_xml))
+            snap_json = updateDomainSnapshot(loads(snap_json))
             snap_json = updateJsonRemoveLifecycle(jsondict, snap_json)
             body = addPowerStatusMessage(snap_json, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
@@ -270,7 +271,7 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
         else:
             logger.debug('Callback block dev changes to virtlet')
             block_json = get_block_dev_json(name)
-            block_json = updateJsonRemoveLifecycle(jsondict, block_json)
+            block_json = updateJsonRemoveLifecycle(jsondict, loads(block_json))
             body = addPowerStatusMessage(block_json, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
     except:

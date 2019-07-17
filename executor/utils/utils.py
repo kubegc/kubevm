@@ -50,7 +50,7 @@ def addExceptionMessage(jsondict, reason, message):
             spec['status'] = status
     return jsondict
 
-def updateDomain(vm_json):
+def updateDomainBackup(vm_json):
     domain = vm_json.get('domain')
     if domain:
         os = domain.get('os')
@@ -94,22 +94,56 @@ def updateDomain(vm_json):
         domain['devices'] = devices
     return vm_json
 
+def updateDomain(jsondict):
+    logger.debug('%s/../arraylist.cfg' % os.path.dirname(__file__))
+    with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:
+        for line in fr:
+            l = str.strip(line)
+            alist = l.split('-')
+            _userDefinedOperationInList('domain', jsondict, alist)
+    return jsondict
+
+def updateDomainSnapshot(jsondict):
+    logger.debug('%s/../arraylist.cfg' % os.path.dirname(__file__))
+    with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:
+        for line in fr:
+            l = str.strip(line)
+            alist = l.split('-')
+            _userDefinedOperationInList('domainsnapshot', jsondict, alist)
+    return jsondict
 
 def _addListToSpecificField(data):
     if isinstance(data, list):
         return data
     else:
         return [data]
-    
-def _userDefinedOperationInList(domain, alist):
-    tmp = domain
-    name = None
+
+'''
+Cautions! Do not modify this function because it uses reflections!
+'''    
+def _userDefinedOperationInList(field, jsondict, alist):
+    jsondict = jsondict[field]
+    tmp = jsondict
+    do_it = False
     for index, value in enumerate(alist):
-        if index == len(alist) - 1:
-            name = value
-        tmp = tmp[value]
-    tmp[name] = _addListToSpecificField(name)
-    return tmp
+        if index == 0:
+            if value != field:
+                break;
+            continue
+        tmp = tmp.get(value)
+        if not tmp:
+            do_it = False
+            break;
+        do_it = True
+    if do_it:
+        tmp2 = None
+        for index, value in enumerate(alist):
+            if index == 0:
+                tmp2 = 'jsondict'
+            else:
+                tmp2 = '{}[\'{}\']'.format(tmp2, value)
+        exec('{} = {}').format(tmp2, _addListToSpecificField(tmp))
+    return
     
 class ExecuteException(Exception):
     def __init__(self, reason, message):

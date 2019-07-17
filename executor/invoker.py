@@ -246,12 +246,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 if cmd:
                     runCmd(cmd)
             elif operation_type == 'MODIFIED':
-                if is_volume_exists(metadata_name, pool_name):
+                if pool_name and is_volume_exists(metadata_name, pool_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)
             elif operation_type == 'DELETED':
-                if is_volume_exists(metadata_name, pool_name):
+                if pool_name and is_volume_exists(metadata_name, pool_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)   
@@ -330,12 +330,12 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 if cmd:
                     runCmd(cmd)
             elif operation_type == 'MODIFIED':
-                if is_snapshot_exists(metadata_name, vm_name):
+                if vm_name and is_snapshot_exists(metadata_name, vm_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)
             elif operation_type == 'DELETED':
-                if is_snapshot_exists(metadata_name, vm_name):
+                if vm_name and is_snapshot_exists(metadata_name, vm_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)  

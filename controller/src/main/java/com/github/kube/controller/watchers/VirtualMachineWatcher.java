@@ -45,7 +45,8 @@ public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<Vi
 		if (action.toString().equals(ACTION_CREATE)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(vm.getMetadata(), vm.getSpec(), podName);
+				pod = createPod(vm.getMetadata(), vm.getSpec(), 
+						vm.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

@@ -45,7 +45,8 @@ public class VirtualMachineSnapshotWatcher extends AbstractWatcher implements Wa
 		if (action.toString().equals(ACTION_CREATE)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(snapshot.getMetadata(), snapshot.getSpec(), podName);
+				pod = createPod(snapshot.getMetadata(), snapshot.getSpec(), 
+						snapshot.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

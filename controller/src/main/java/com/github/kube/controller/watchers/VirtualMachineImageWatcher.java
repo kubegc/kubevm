@@ -42,9 +42,10 @@ public class VirtualMachineImageWatcher extends AbstractWatcher implements Watch
 		String podName = getPrefix() + "-" + image.getMetadata().getName() + "-" + namespace;
 		
 		if (action.toString().equals(ACTION_CREATE)) {
-			Pod pod = null;;
+			Pod pod = null;
 			try {
-				pod = createPod(image.getMetadata(), image.getSpec(), podName);
+				pod = createPod(image.getMetadata(), image.getSpec(),
+						image.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

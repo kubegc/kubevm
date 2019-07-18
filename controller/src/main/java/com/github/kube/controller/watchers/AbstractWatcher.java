@@ -10,8 +10,6 @@ import java.util.Map;
 
 import com.alibaba.fastjson.JSON;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
-import com.github.kubesys.kubernetes.api.model.VirtualMachine;
-import com.github.kubesys.kubernetes.api.model.VirtualMachineDisk;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -57,11 +55,11 @@ public abstract class AbstractWatcher {
 		return "v1alpha3";
 	}
 	
-	protected Pod createPod(ObjectMeta om, Object spec, String podName) throws Exception {
+	protected Pod createPod(ObjectMeta om, Object spec, String nodeName, String podName) throws Exception {
 		Pod pod = new Pod();
 		// metadata and podSpec
-		pod.setMetadata(createMetadataFrom(om, om, podName));
-		pod.setSpec(createPodSpecFrom(spec, podName));
+		pod.setMetadata(createMetadataFrom(om, spec, podName));
+		pod.setSpec(createPodSpecFrom(spec, nodeName, podName));
 		return pod;
 	}
 	
@@ -98,8 +96,11 @@ public abstract class AbstractWatcher {
 	
 	public final static String DEFAULT_SCHEDULER = "kubevirt-scheduler";
 
-	protected PodSpec createPodSpecFrom(Object obj, String podName) {
+	protected PodSpec createPodSpecFrom(Object obj, String nodeName, String podName) {
 		PodSpec spec = new PodSpec();
+		if (nodeName != null) {
+			spec.setNodeName(nodeName);
+		}
 		spec.setContainers(createContainerFrom(obj, podName));
 		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
 		return spec;

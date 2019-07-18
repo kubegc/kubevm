@@ -45,7 +45,8 @@ public class VirtualMachineDiskWatcher extends AbstractWatcher implements Watche
 		if (action.toString().equals(ACTION_CREATE)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(disk.getMetadata(), disk.getSpec(), podName);
+				pod = createPod(disk.getMetadata(), disk.getSpec(), 
+								disk.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

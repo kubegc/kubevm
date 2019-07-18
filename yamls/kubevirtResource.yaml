@@ -19,7 +19,7 @@ spec:
   - JSONPath: .spec.domain.memory.text
     name: RAM(KB)
     type: string
-  - JSONPath: .spec.status
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -53,7 +53,7 @@ spec:
   - JSONPath: .spec.domain.uuid.text
     name: UUID
     type: string
-  - JSONPath: .spec.status
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -84,16 +84,13 @@ metadata:
   name: virtualmachinedisks.cloudplus.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.volume.name.text
-    name: NAME
-    type: string
   - JSONPath: .spec.volume.target.format._type
     name: TYPE
     type: string  
   - JSONPath: .spec.volume.target.path.text
     name: PATH
     type: string  
-  - JSONPath: .spec.status
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -127,7 +124,7 @@ spec:
   - JSONPath: .spec.domainsnapshot.domain.name.text
     name: VM
     type: string  
-  - JSONPath: .spec.status
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -170,7 +167,7 @@ spec:
   - JSONPath: .spec.UitVolume.data[0].size
     name: SIZE
     type: string 
-  - JSONPath: .spec.status
+  - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp

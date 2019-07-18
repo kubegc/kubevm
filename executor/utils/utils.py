@@ -9,6 +9,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 Import python libs
 '''
 import os, sys, time, signal, atexit, subprocess
+import random
 import logger
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
@@ -25,13 +26,145 @@ def runCmd(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_out:
-            logger.debug(std_out)
             return str.strip(std_out[0])
         else:
             return std_out
     finally:
         p.stdout.close()
         p.stderr.close()
+        
+def addPowerStatusMessage(jsondict, reason, message):
+    if jsondict:
+        status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
+        spec = jsondict['spec']
+        if spec:
+            spec['status'] = status
+    return jsondict
+
+def addExceptionMessage(jsondict, reason, message):
+    if jsondict:
+        status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
+        spec = jsondict['spec']
+        if spec:
+            spec['status'] = status
+    return jsondict
+
+def updateDomainBackup(vm_json):
+    domain = vm_json.get('domain')
+    if domain:
+        os = domain.get('os')
+        if os:
+            boot = os.get('boot')
+            if boot:
+                os['boot'] = _addListToSpecificField(boot)
+        domain['os'] = os
+        sec_label = domain.get('seclabel')
+        if sec_label:
+            domain['seclabel'] = _addListToSpecificField(sec_label)
+        devices = domain.get('devices')
+        if devices:
+            channel = devices.get('channel')
+            if channel:
+                devices['channel'] = _addListToSpecificField(channel)
+            graphics = devices.get('graphics')
+            if graphics:
+                devices['graphics'] = _addListToSpecificField(graphics)   
+            video = devices.get('video')
+            if video:
+                devices['video'] = _addListToSpecificField(video) 
+            _interface = devices.get('_interface')
+            if _interface:
+                devices['_interface'] = _addListToSpecificField(_interface)  
+            console = devices.get('console')
+            if console:
+                devices['console'] = _addListToSpecificField(console)  
+            controller = devices.get('controller')
+            if controller:
+                devices['controller'] = _addListToSpecificField(controller)  
+            rng = devices.get('rng')
+            if rng:
+                devices['rng'] = _addListToSpecificField(rng)  
+            serial = devices.get('serial')
+            if serial:
+                devices['serial'] = _addListToSpecificField(serial)  
+            disk = devices.get('disk')
+            if disk:
+                devices['disk'] = _addListToSpecificField(disk)
+        domain['devices'] = devices
+    return vm_json
+
+def updateDomain(jsondict):
+    with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:
+        for line in fr:
+            l = str.strip(line)
+            alist = l.split('-')
+            _userDefinedOperationInList('domain', jsondict, alist)
+    return jsondict
+
+def updateDomainSnapshot(jsondict):
+    with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:
+        for line in fr:
+            l = str.strip(line)
+            alist = l.split('-')
+            _userDefinedOperationInList('domainsnapshot', jsondict, alist)
+    return jsondict
+
+def _addListToSpecificField(data):
+    if isinstance(data, list):
+        return data
+    else:
+        return [data]
+
+'''
+Cautions! Do not modify this function because it uses reflections!
+'''    
+def _userDefinedOperationInList(field, jsondict, alist):
+    jsondict = jsondict[field]
+    tmp = jsondict
+    do_it = False
+    for index, value in enumerate(alist):
+        if index == 0:
+            if value != field:
+                break;
+            continue
+        tmp = tmp.get(value)
+        if not tmp:
+            do_it = False
+            break;
+        do_it = True
+    if do_it:
+        tmp2 = None
+        for index, value in enumerate(alist):
+            if index == 0:
+                tmp2 = 'jsondict'
+            else:
+                tmp2 = '{}[\'{}\']'.format(tmp2, value)
+        exec('{} = {}').format(tmp2, _addListToSpecificField(tmp))
+    return
+    
+class ExecuteException(Exception):
+    def __init__(self, reason, message):
+        self.reason = reason
+        self.message = message       
+
+class KubevmmException(Exception):
+    def __init__(self, reason, message):
+        self.reason = reason
+        self.message = message      
+
+def randomUUID():
+    u = [random.randint(0, 255) for ignore in range(0, 16)]
+    u[6] = (u[6] & 0x0F) | (4 << 4)
+    u[8] = (u[8] & 0x3F) | (2 << 6)
+    return "-".join(["%02x" * 4, "%02x" * 2, "%02x" * 2, "%02x" * 2,
+                     "%02x" * 6]) % tuple(u)
+
+def randomMAC():
+    mac = [ 0x52, 0x54, 0x00,
+        random.randint(0x00, 0x7f),
+        random.randint(0x00, 0xff),
+        random.randint(0x00, 0xff) ]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
 
 class CDaemon:
     '''

@@ -30,7 +30,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import freecpu, freemem, node_info
-from utils.utils import CDaemon
+from utils.utils import CDaemon, runCmd
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -114,22 +114,6 @@ class HostCycler:
     def _format_mem_to_mb(self, mem):
         return int(round(int(mem) / 1000))
     
-    '''
-    Run back-end command in subprocess.
-    '''
-    def runCmd(self, cmd):
-        std_err = None
-        if not cmd:
-            return
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        try:
-            std_out = p.stdout.readlines()
-            std_err = p.stderr.readlines()
-            return str.strip(std_out[0]) if std_out else ''
-        finally:
-            p.stdout.close()
-            p.stderr.close()
-
     def get_node_spec(self):
         return V1NodeSpec()
     
@@ -176,15 +160,15 @@ class HostCycler:
 #         client.CoreV1Api().replace_node_status(name="node11", body=self.node)
         
     def get_status_node_info(self):
-        ARCHITECTURE = self.runCmd('uname -m')
-        BOOT_ID = self.runCmd('cat /sys/class/dmi/id/product_uuid')
-        RUNTIME_VERSION = 'QEMU-KVM://%s' % (self.runCmd('/usr/libexec/qemu-kvm -version | awk \'NR==1 {print $4}\''))
-        KERNEL_VERSION = self.runCmd('cat /proc/sys/kernel/osrelease')
-        KUBE_PROXY_VERSION = self.runCmd('kubelet --version | awk \'{print $2}\'')
+        ARCHITECTURE = runCmd('uname -m')
+        BOOT_ID = runCmd('cat /sys/class/dmi/id/product_uuid')
+        RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/libexec/qemu-kvm -version | awk \'NR==1 {print $4}\''))
+        KERNEL_VERSION = runCmd('cat /proc/sys/kernel/osrelease')
+        KUBE_PROXY_VERSION = runCmd('kubelet --version | awk \'{print $2}\'')
         KUBELET_VERSION = KUBE_PROXY_VERSION
         MACHINE_ID = BOOT_ID
-        OPERATING_SYSTEM = self.runCmd('cat /proc/sys/kernel/ostype')
-        OS_IMAGE = self.runCmd('cat /etc/os-release | grep PRETTY_NAME | awk -F"\\"" \'{print$2}\'')
+        OPERATING_SYSTEM = runCmd('cat /proc/sys/kernel/ostype')
+        OS_IMAGE = runCmd('cat /etc/os-release | grep PRETTY_NAME | awk -F"\\"" \'{print$2}\'')
         SYSTEM_UUID = BOOT_ID
         return V1NodeSystemInfo(architecture=ARCHITECTURE, boot_id=BOOT_ID, container_runtime_version=RUNTIME_VERSION, \
                      kernel_version=KERNEL_VERSION, kube_proxy_version=KUBE_PROXY_VERSION, kubelet_version=KUBELET_VERSION, \

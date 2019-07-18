@@ -66,6 +66,7 @@ public abstract class AbstractWatcher {
 	protected ObjectMeta createMetadataFrom(ObjectMeta om, Object spec, String podName) throws Exception {
 		ObjectMeta metadata = new ObjectMeta();
 		metadata.setName(podName);
+		metadata.setLabels(om.getLabels());
 		metadata.setAnnotations(createAnnotations(om, spec));
 		return metadata;
 	}

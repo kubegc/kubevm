@@ -5,10 +5,31 @@
 
 from kubernetes import config, client
 from json import loads
-from utils import logger
 import sys
 import shutil
 import os
+
+
+import logging
+import logging.handlers
+
+def set_logger(header,fn):
+    logger = logging.getLogger(header)
+
+    handler1 = logging.StreamHandler()
+    handler2 = logging.handlers.RotatingFileHandler(filename=fn, maxBytes=10000000, backupCount=10)
+
+    logger.setLevel(logging.DEBUG)
+    handler1.setLevel(logging.DEBUG)
+    handler2.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter("%(asctime)s %(name)s %(lineno)s %(levelname)s %(message)s")
+    handler1.setFormatter(formatter)
+    handler2.setFormatter(formatter)
+
+    logger.addHandler(handler1)
+    logger.addHandler(handler2)
+    return logger
 
 config.load_kube_config(config_file="/root/.kube/config")
 
@@ -17,11 +38,13 @@ VERSION = 'cloudplus.io'
 VM_PLURAL = 'virtualmachines'
 VMI_PLURAL = 'virtualmachineimages'
 
-logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
+logger = set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 
 def toImage(name):
+    print(name)
     jsonString = client.CustomObjectsApi().get_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
+    print(jsonString)
     jsonDict = loads(jsonString)
     jsonDict['Metadata']['Kind'] = 'VirtualMachineImage'
     client.CustomObjectsApi().create_namespaced_custom_object(
@@ -60,7 +83,7 @@ def cmd():
         sys.exit(1) 
  
     params = {}
-    for i in range (2, len(sys.argv)):
+    for i in range (2, len(sys.argv) - 1):
         params[sys.argv[i]] = sys.argv[i+1]
         i = i+2
     

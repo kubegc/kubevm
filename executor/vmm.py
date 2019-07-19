@@ -10,7 +10,7 @@ import sys
 import shutil
 import os
 
-# config.load_kube_config(config_file="/root/.kube/config")
+config.load_kube_config(config_file="/root/.kube/config")
 
 GROUP= 'v1alpha3'
 VERSION = 'cloudplus.io'

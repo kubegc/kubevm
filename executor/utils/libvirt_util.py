@@ -398,7 +398,7 @@ def setmem(vm_, memory, config=False):
 
         salt '*' virt.setmem myvm 768
     '''
-    if vm_state(vm_).get(vm_) != 'shutdown':
+    if vm_state(vm_).get(vm_) != 'Shutdown':
         return False
 
     dom = _get_dom(vm_)
@@ -429,7 +429,7 @@ def setvcpus(vm_, vcpus, config=False):
 
         salt '*' virt.setvcpus myvm 2
     '''
-    if vm_state(vm_).get(vm_) != 'shutdown':
+    if vm_state(vm_).get(vm_) != 'Shutdown':
         return False
 
     dom = _get_dom(vm_)

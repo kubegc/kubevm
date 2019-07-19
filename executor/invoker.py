@@ -72,6 +72,7 @@ GROUP_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'group')
 PLURAL_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'plural')
 VERSION_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'version')
 GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
+FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 
 LABEL = 'host=%s' % (socket.gethostname())
 
@@ -296,7 +297,9 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
-                    undefine(metadata_name)
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd: 
+                        runCmd(cmd)
         except libvirtError:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
@@ -636,20 +639,26 @@ def unpackCmdFromJson(jsondict):
             Note that only the first CMD will be executed.
             '''
             cmd_head = ''
-            the_cmd_key = None
+            the_cmd_keys = []
             lifecycle = spec.get('lifecycle')
             if not lifecycle:
                 return
             keys = lifecycle.keys()
             for key in keys:
                 if key in ALL_SUPPORT_CMDS.keys():
-                    the_cmd_key = key
-                    cmd_head = ALL_SUPPORT_CMDS.get(key)
-                    break;
+                    '''
+                    Priority 1st -- Force shutdown out of control VM.
+                    '''
+                    if key == FORCE_SHUTDOWN_VM:
+                        the_cmd_keys.insert(0, key)
+                    else:
+                        the_cmd_keys.append(key)
             '''
             Get the CMD body from 'dict' structure.
             '''
-            if the_cmd_key:
+            if the_cmd_keys:
+                the_cmd_key = the_cmd_keys[0]
+                cmd_head = ALL_SUPPORT_CMDS.get(the_cmd_key)
                 cmd_body = ''
                 contents = lifecycle.get(the_cmd_key)
                 for k, v in contents.items():

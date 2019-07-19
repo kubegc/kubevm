@@ -77,7 +77,7 @@ def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
         group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
     jsonString = json.dumps(jsonDict)
-    if jsonString.find(source) >= 0 and os.path.exits(target):
+    if jsonString.find(source) >= 0 and os.path.exists(target):
         shutil.copyfile(target, source)
     else:
         raise Exception('Wrong source or target.')
@@ -103,7 +103,7 @@ def cmd():
     elif sys.argv[1] == 'to-vm':
         toVM(params['--name'])
     elif sys.argv[1] == 'update-os':
-        updateOS(params['--name'], params['--source'], params['--target'])
+        updateOS(params['--domain'], params['--source'], params['--target'])
     else:
         print ('invalid argument!')
         print (help_msg)    

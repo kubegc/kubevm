@@ -93,7 +93,6 @@ ALL_SUPPORT_CMDS_WITH_NAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_VOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = {}
-ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -106,8 +105,6 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_VOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_VOL_FIELD, **v)
         elif string.find(k, 'WithSnapNameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD, **v)
-        elif string.find(k, 'WithOriginalField') != -1:
-            ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD, **v)     
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -454,8 +451,6 @@ def forceUsingMetadataName(metadata_name,jsondict):
             lifecycle[the_key]['vol'] = metadata_name
         elif the_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
             lifecycle[the_key]['snapshotname'] = metadata_name
-        elif the_key in ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD:
-            lifecycle[the_key]['original'] = metadata_name
     return jsondict
 
 

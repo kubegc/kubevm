@@ -1,9 +1,10 @@
 '''
-
+Copyright (2019, ) Institute of Software, Chinese Academy of 
 @author: yk
 '''
 
 from kubernetes import config, client
+from kubernetes.client import V1DeleteOptions
 from json import loads
 import sys
 import shutil
@@ -33,35 +34,39 @@ def set_logger(header,fn):
 
 config.load_kube_config(config_file="/root/.kube/config")
 
-GROUP= 'v1alpha3'
-VERSION = 'cloudplus.io'
-VM_PLURAL = 'virtualmachines'
-VMI_PLURAL = 'virtualmachineimages'
+GROUP='v1alpha3'
+VERSION='cloudplus.io'
+VM_PLURAL='virtualmachines'
+VMI_PLURAL='virtualmachineimages'
 
 logger = set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 
 def toImage(name):
-    print(name)
-    jsonString = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
-    print(jsonString)
-    jsonDict = loads(jsonString)
-    jsonDict['Metadata']['Kind'] = 'VirtualMachineImage'
+    jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
+    jsonDict = jsonStr.copy()
+    jsonDict['kind'] = 'VirtualMachineImage'
+    jsonDict['metadata']['kind'] = 'VirtualMachineImage'
+    del jsonDict['metadata']['resourceVersion']
+    del jsonDict['spec']['lifecycle']
     client.CustomObjectsApi().create_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, body=jsonDict)
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', body=jsonDict)
     client.CustomObjectsApi().delete_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=V1DeleteOptions())
     logger.debug('convert VM to Image successful.')
     
 def toVM(name):
-    jsonString = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
-    jsonDict = loads(jsonString)
-    jsonDict['Metadata']['Kind'] = 'VirtualMachine'
+    jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name)
+    jsonDict = jsonStr.copy()
+    jsonDict['kind'] = 'VirtualMachine'
+    jsonDict['metadata']['kind'] = 'VirtualMachine'
+    del jsonDict['spec']['lifecycle']
+    del jsonDict['metadata']['resourceVersion']
     client.CustomObjectsApi().create_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, body=jsonDict)
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', body=jsonDict)
     client.CustomObjectsApi().delete_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name, body=V1DeleteOptions())
     logger.debug('convert Image to VM successful.')
 
 

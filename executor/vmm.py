@@ -1,6 +1,8 @@
 '''
 Copyright (2019, ) Institute of Software, Chinese Academy of 
-@author: yk
+
+@author: wuheng@otcaix.iscas.ac.cn
+@author: wuyuewen@otcaix.iscas.ac.cn
 '''
 
 from kubernetes import config, client
@@ -9,6 +11,7 @@ from json import loads
 import sys
 import shutil
 import os
+import json
 
 
 import logging
@@ -71,10 +74,13 @@ def toVM(name):
 
 
 def updateOS(name, source, target):
-    jsonString = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
-    if source in jsonString:
+    jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
+    jsonString = json.dumps(jsonDict)
+    if jsonString.find(source) >= 0 and os.path.exits(target):
         shutil.copyfile(target, source)
+    else:
+        raise Exception('Wrong source or target.')
     
 
 def cmd():

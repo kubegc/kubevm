@@ -13,6 +13,9 @@ import shutil
 import os
 import json
 
+from utils.libvirt_util import vm_state
+from utils.utils import addPowerStatusMessage
+
 
 import logging
 import logging.handlers
@@ -81,9 +84,23 @@ def updateOS(name, source, target):
         shutil.copyfile(target, source)
     else:
         raise Exception('Wrong source or target.')
+    jsonDict = deleteLifecycleInJson(jsonDict)
+    vm_power_state = vm_state(name).get(name)
+    body = addPowerStatusMessage(jsonDict, vm_power_state, 'The VM is %s' % vm_power_state)
     client.CustomObjectsApi().replace_namespaced_custom_object(
-        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=jsonDict)
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=body)
     
+def deleteLifecycleInJson(jsondict):
+    if jsondict:
+        '''
+        Get target VM name from Json.
+        '''
+        spec = jsondict['spec']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+    return jsondict
 
 def cmd():
     help_msg = 'Usage: python %s <to-image|to-vm|update-os|--help>' % sys.argv[0]

@@ -12,6 +12,7 @@ import sys
 import shutil
 import os
 import json
+import subprocess
 
 from utils.libvirt_util import vm_state
 from utils.utils import addPowerStatusMessage
@@ -19,6 +20,9 @@ from utils.utils import addPowerStatusMessage
 
 import logging
 import logging.handlers
+from utils.utils import ExecuteException
+
+LOG = '/var/log/virtctl.log'
 
 def set_logger(header,fn):
     logger = logging.getLogger(header)
@@ -60,6 +64,12 @@ def toImage(name):
     client.CustomObjectsApi().delete_namespaced_custom_object(
         group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=V1DeleteOptions())
     logger.debug('convert VM to Image successful.')
+
+    '''
+        execute the vm to image operation.
+    '''
+    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/mybackup.sh ' + name
+    runCmd(cmd)
     
 def toVM(name):
     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -125,7 +135,47 @@ def cmd():
         updateOS(params['--domain'], params['--source'], params['--target'])
     else:
         print ('invalid argument!')
-        print (help_msg)    
+        print (help_msg)
+
+
+'''
+Run back-end command in subprocess.
+'''
+def runCmd(cmd):
+    std_err = None
+    if not cmd:
+        #         logger.debug('No CMD to execute.')
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            msg = ''
+            for index,line in enumerate(std_out):
+                if not str.strip(line):
+                    continue
+                if index == len(std_out) - 1:
+                    msg = msg + str.strip(line) + '. '
+                else:
+                    msg = msg + str.strip(line) + ', '
+            logger.debug(str.strip(msg))
+        if std_err:
+            msg = ''
+            for index,line in enumerate(std_err):
+                if not str.strip(line):
+                    continue
+                if index == len(std_err) - 1:
+                    msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
+                else:
+                    msg = msg + str.strip(line) + ', '
+            logger.error(str.strip(msg))
+            raise ExecuteException('VirtctlError', str.strip(msg))
+        #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
+        return
+    finally:
+        p.stdout.close()
+        p.stderr.close()
 
 if __name__ == '__main__':
     cmd()

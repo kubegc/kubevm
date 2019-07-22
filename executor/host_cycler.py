@@ -89,10 +89,10 @@ def daemonize():
 
 def main():
     while True:
-        host = client.CoreV1Api().read_node_status(name='node12')
+        host = client.CoreV1Api().read_node_status(name=HOSTNAME)
         node_watcher = HostCycler()
         host.status = node_watcher.get_node_status()
-        client.CoreV1Api().replace_node_status(name='node12', body=host)
+        client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
         time.sleep(8)
 
 class HostCycler:
@@ -111,8 +111,8 @@ class HostCycler:
     def get_node_status(self):
         return self.__node_status
 
-    def _format_mem_to_Ki(self, mem):
-        return int(round(int(mem) * 1024))
+    def _format_mem_to_Mi(self, mem):
+        return int(round(int(mem)))
     
     def get_node_spec(self):
         return V1NodeSpec()
@@ -129,14 +129,14 @@ class HostCycler:
     
     def get_status_allocatable(self):
         cpu_allocatable = freecpu()
-        mem_allocatable = self._format_mem_to_Ki(freemem())
-        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)+'Ki'}
+        mem_allocatable = self._format_mem_to_Mi(freemem())
+        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)+'Mi', 'pods': '40'}
     
     def get_status_capacity(self):
         node_info_dict = node_info()
         cpu_capacity = node_info_dict.get('cpus')
-        mem_capacity = self._format_mem_to_Ki(node_info_dict.get('phymemory'))
-        return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)+'Ki'}
+        mem_capacity = self._format_mem_to_Mi(node_info_dict.get('phymemory'))
+        return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)+'Mi', 'pods': '40'}
     
     def get_status_daemon_endpoints(self):
         return V1NodeDaemonEndpoints(kubelet_endpoint={'port':0})

@@ -111,8 +111,8 @@ class HostCycler:
     def get_node_status(self):
         return self.__node_status
 
-    def _format_mem_to_mb(self, mem):
-        return int(round(int(mem) / 1000))
+    def _format_mem_to_Ki(self, mem):
+        return int(round(int(mem) * 1024))
     
     def get_node_spec(self):
         return V1NodeSpec()
@@ -129,14 +129,14 @@ class HostCycler:
     
     def get_status_allocatable(self):
         cpu_allocatable = freecpu()
-        mem_allocatable = self._format_mem_to_mb(freemem())
-        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)}
+        mem_allocatable = self._format_mem_to_Ki(freemem())
+        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)+'Ki'}
     
     def get_status_capacity(self):
         node_info_dict = node_info()
         cpu_capacity = node_info_dict.get('cpus')
-        mem_capacity = self._format_mem_to_mb(node_info_dict.get('phymemory'))
-        return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)}
+        mem_capacity = self._format_mem_to_Ki(node_info_dict.get('phymemory'))
+        return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)+'Ki'}
     
     def get_status_daemon_endpoints(self):
         return V1NodeDaemonEndpoints(kubelet_endpoint={'port':0})

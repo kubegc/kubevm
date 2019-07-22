@@ -33,9 +33,9 @@ from xmljson import badgerfish as bf
 '''
 Import local libs
 '''
-from utils.libvirt_util import get_volume_xml, get_snapshot_xml
+from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml
 from utils import logger
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -49,6 +49,9 @@ config_raw = parser()
 config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
+PLURAL_VM = config_raw.get('VirtualMachine', 'plural')
+VERSION_VM = config_raw.get('VirtualMachine', 'version')
+GROUP_VM = config_raw.get('VirtualMachine', 'group')
 PLURAL_VM_DISK = config_raw.get('VirtualMachineDisk', 'plural')
 VERSION_VM_DISK = config_raw.get('VirtualMachineDisk', 'version')
 GROUP_VM_DISK = config_raw.get('VirtualMachineDisk', 'group')
@@ -62,6 +65,7 @@ GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
 VOL_DIRS = config_raw.items('DefaultVolumeDirs')
 SNAP_DIRS = config_raw.items('DefaultSnapshotDir')
 BLOCK_DEV_DIRS = config_raw.items('DefaultBlockDevDir')
+LIBVIRT_XML_DIRS = config_raw.items('DefaultLibvirtXmlDir')
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
@@ -320,6 +324,84 @@ class VmBlockDevEventHandler(FileSystemEventHandler):
 #             logger.debug("file modified:{0}".format(event.src_path))
             pass
         
+def myVmLibvirtXmlEventHandler(event, name, group, version, plural):
+    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                      version=version, 
+                                                                      namespace='default', 
+                                                                      plural=plural, 
+                                                                      name=name)
+    try:
+    #     print(jsondict)
+        if  event == "Modify":
+            logger.debug('***Remove lifecycle in Libvirt Xml event handler for vm(%s)***' % name)
+            vm_xml = get_xml(name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            modifyStructure(name, body, group, version, plural)
+    except:
+        logger.error('Oops! ', exc_info=1)
+        info=sys.exc_info()
+        report_failure(name, jsondict, 'VirtletError', str(info[1]))
+
+def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
+    if jsondict:
+        '''
+        Get target VM name from Json.
+        '''
+        spec = jsondict['spec']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+            spec.update(body)
+    return jsondict
+
+class VmLibvirtXmlEventHandler(FileSystemEventHandler):
+    def __init__(self, field, target, group, version, plural):
+        FileSystemEventHandler.__init__(self)
+        self.field = field
+        self.target = target
+        self.group = group
+        self.version = version
+        self.plural = plural
+
+    def on_moved(self, event):
+        if event.is_directory:
+            logger.debug("directory moved from {0} to {1}".format(event.src_path,event.dest_path))
+        else:
+            logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
+
+    def on_created(self, event):
+        if event.is_directory:
+            logger.debug("directory created:{0}".format(event.src_path))
+        else:
+            logger.debug("file created:{0}".format(event.src_path))
+#             _,name = os.path.split(event.src_path)
+#             vm = os.path.splitext(os.path.splitext(name)[0])[0]
+#             myVmLibvirtXmlEventHandler('Create', vm, self.group, self.version, self.plural)
+
+    def on_deleted(self, event):
+        if event.is_directory:
+            logger.debug("directory deleted:{0}".format(event.src_path))
+        else:
+            logger.debug("file deleted:{0}".format(event.src_path))
+#             _,name = os.path.split(event.src_path)
+#             vm = os.path.splitext(os.path.splitext(name)[0])[0]
+#             if is_vm_exists(vm):
+#                 myVmLibvirtXmlEventHandler('Delete', vm, self.group, self.version, self.plural)
+
+    def on_modified(self, event):
+        if event.is_directory:
+#             logger.debug("directory modified:{0}".format(event.src_path))
+            pass
+        else:
+            logger.debug("file modified:{0}".format(event.src_path))
+            _,name = os.path.split(event.src_path)
+            vm = os.path.splitext(os.path.splitext(name)[0])[0]
+            if is_vm_exists(vm):
+                myVmLibvirtXmlEventHandler('Modify', vm, self.group, self.version, self.plural)
+        
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     try:
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
@@ -350,6 +432,11 @@ def main():
         if not os.path.exists(ob[1]):
             os.makedirs(ob[1])
         event_handler = VmBlockDevEventHandler(ob[0], ob[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
+        observer.schedule(event_handler,ob[1],True)
+    for ob in LIBVIRT_XML_DIRS:
+        if not os.path.exists(ob[1]):
+            os.makedirs(ob[1])
+        event_handler = VmLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VM, VERSION_VM, PLURAL_VM)
         observer.schedule(event_handler,ob[1],True)
     observer.start()
     try:

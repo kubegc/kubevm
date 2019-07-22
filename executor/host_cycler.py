@@ -89,11 +89,14 @@ def daemonize():
 
 def main():
     while True:
-        host = client.CoreV1Api().read_node_status(name=HOSTNAME)
-        node_watcher = HostCycler()
-        host.status = node_watcher.get_node_status()
-        client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
-        time.sleep(8)
+        try:
+            host = client.CoreV1Api().read_node_status(name=HOSTNAME)
+            node_watcher = HostCycler()
+            host.status = node_watcher.get_node_status()
+            client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
+            time.sleep(8)
+        except:
+            logger.error('Oops! ', exc_info=1)
 
 class HostCycler:
     

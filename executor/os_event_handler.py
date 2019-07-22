@@ -327,12 +327,15 @@ class VmBlockDevEventHandler(FileSystemEventHandler):
             logger.debug("directory deleted:{0}".format(event.src_path))
         else:
             logger.debug("file deleted:{0}".format(event.src_path))
-            _,block = os.path.split(event.src_path)
+            path, block = os.path.split(event.src_path)
 #             if is_block_dev_exists(event.src_path):
-            try:
-                myVmBlockDevEventHandler('Delete', block, self.group, self.version, self.plural)
-            except ApiException:
-                logger.error('Oops! ', exc_info=1)
+            if path == '/dev/pts':
+                logger.debug('Ignore devices %s' % event.src_path)
+            else:
+                try:
+                    myVmBlockDevEventHandler('Delete', block, self.group, self.version, self.plural)
+                except ApiException:
+                    logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
         if event.is_directory:

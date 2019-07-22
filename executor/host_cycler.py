@@ -29,7 +29,7 @@ from kubernetes.client.models.v1_node_address import V1NodeAddress
 Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import freecpu, freemem, node_info
+from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms
 from utils.utils import CDaemon, runCmd
 from utils import logger
 
@@ -130,7 +130,8 @@ class HostCycler:
     def get_status_allocatable(self):
         cpu_allocatable = freecpu()
         mem_allocatable = self._format_mem_to_Mi(freemem())
-        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)+'Mi', 'pods': '40'}
+        active_vms = list_active_vms()
+        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)+'Mi', 'pods': str(40 - len(active_vms)) if 40 - len(active_vms) >= 0 else 0}
     
     def get_status_capacity(self):
         node_info_dict = node_info()

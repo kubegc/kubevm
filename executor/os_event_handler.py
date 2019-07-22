@@ -180,7 +180,10 @@ class VmVolEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file created:{0}".format(event.src_path))
             _,vol = os.path.split(event.src_path)
-            myVmVolEventHandler('Create', self.pool, vol, self.group, self.version, self.plural)
+            try:
+                myVmVolEventHandler('Create', self.pool, vol, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -188,7 +191,10 @@ class VmVolEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file deleted:{0}".format(event.src_path))
             _,vol = os.path.split(event.src_path)
-            myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
+            try:
+                myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
         if event.is_directory:
@@ -243,7 +249,10 @@ class VmSnapshotEventHandler(FileSystemEventHandler):
             dirs,snap_file = os.path.split(event.src_path)
             _,vm = os.path.split(dirs)
             snap = os.path.splitext(os.path.splitext(snap_file)[0])[0]
-            myVmSnapshotEventHandler('Create', vm, snap, self.group, self.version, self.plural)
+            try:
+                myVmSnapshotEventHandler('Create', vm, snap, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -253,7 +262,10 @@ class VmSnapshotEventHandler(FileSystemEventHandler):
             dirs,snap_file = os.path.split(event.src_path)
             _,vm = os.path.split(dirs)
             snap = os.path.splitext(os.path.splitext(snap_file)[0])[0]
-            myVmSnapshotEventHandler('Delete', vm, snap, self.group, self.version, self.plural)
+            try:
+                myVmSnapshotEventHandler('Delete', vm, snap, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
         if event.is_directory:
@@ -305,7 +317,10 @@ class VmBlockDevEventHandler(FileSystemEventHandler):
             logger.debug("file created:{0}".format(event.src_path))
             path,block = os.path.split(event.src_path)
             if is_block_dev_exists(event.src_path) and path != "/dev/mapper":
-                myVmBlockDevEventHandler('Create', block, self.group, self.version, self.plural)
+                try:
+                    myVmBlockDevEventHandler('Create', block, self.group, self.version, self.plural)
+                except ApiException:
+                    logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -314,7 +329,10 @@ class VmBlockDevEventHandler(FileSystemEventHandler):
             logger.debug("file deleted:{0}".format(event.src_path))
             _,block = os.path.split(event.src_path)
 #             if is_block_dev_exists(event.src_path):
-            myVmBlockDevEventHandler('Delete', block, self.group, self.version, self.plural)
+            try:
+                myVmBlockDevEventHandler('Delete', block, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
         if event.is_directory:
@@ -400,7 +418,10 @@ class VmLibvirtXmlEventHandler(FileSystemEventHandler):
             _,name = os.path.split(event.src_path)
             vm = os.path.splitext(os.path.splitext(name)[0])[0]
             if is_vm_exists(vm):
-                myVmLibvirtXmlEventHandler('Modify', vm, self.group, self.version, self.plural)
+                try:
+                    myVmLibvirtXmlEventHandler('Modify', vm, self.group, self.version, self.plural)
+                except ApiException:
+                    logger.error('Oops! ', exc_info=1)
         
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     try:

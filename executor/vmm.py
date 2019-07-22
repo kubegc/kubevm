@@ -51,6 +51,13 @@ VMI_PLURAL='virtualmachineimages'
 
 logger = set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 
+def convert_to_Image(name):
+    '''
+        execute the vm to image operation.
+    '''
+    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/mybackup.sh ' + name
+    runCmdWithCallback(cmd, toImage, name)
+
 def toImage(name):
     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
         group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
@@ -64,12 +71,6 @@ def toImage(name):
     client.CustomObjectsApi().delete_namespaced_custom_object(
         group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=V1DeleteOptions())
     logger.debug('convert VM to Image successful.')
-
-    '''
-        execute the vm to image operation.
-    '''
-    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/mybackup.sh ' + name
-    runCmd(cmd)
     
 def toVM(name):
     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -141,7 +142,7 @@ def cmd():
 '''
 Run back-end command in subprocess.
 '''
-def runCmd(cmd):
+def runCmdWithCallback(cmd, callback, args):
     std_err = None
     if not cmd:
         #         logger.debug('No CMD to execute.')
@@ -152,17 +153,22 @@ def runCmd(cmd):
         std_err = p.stderr.readlines()
         if std_out:
             msg = ''
-            for index,line in enumerate(std_out):
+            isError = False
+            for index, line in enumerate(std_out):
                 if not str.strip(line):
                     continue
+                if str.find('error') > 0:
+                    isError = True
                 if index == len(std_out) - 1:
                     msg = msg + str.strip(line) + '. '
                 else:
                     msg = msg + str.strip(line) + ', '
+            if not isError and callback != None:
+                callback(args)  #TODO
             logger.debug(str.strip(msg))
         if std_err:
             msg = ''
-            for index,line in enumerate(std_err):
+            for index, line in enumerate(std_err):
                 if not str.strip(line):
                     continue
                 if index == len(std_err) - 1:

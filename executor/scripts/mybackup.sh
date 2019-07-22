@@ -5,7 +5,7 @@
 DEFAULT_PATH=/root/mybackup/ 
 
 if [ ! -d "$DEFAULT_PATH" ]; then
-        mkdir $DEFAULT_PATH
+    mkdir $DEFAULT_PATH
 fi
 
 # check is exist tje vm, and the vm is running or not
@@ -13,9 +13,9 @@ line1=`virsh list --all | grep $1 | wc -l`
 
 if [ $line1 -eq 1 ] 
 then
-    echo 'vm exist...'
+    echo 'log info: vm exist...\n'
 else
-    echo 'vm not exist...'
+    echo 'log error: vm not exist...\n'
     exit 1
 fi
 
@@ -24,26 +24,26 @@ line2=`virsh list --all | grep $1 | grep 'shut' | wc -l`
 
 if [ $line2 -eq 1 ]
 then
-    echo 'vm has shut down...'
+    echo 'log info: vm has shut down...'
 else
-    echo 'vm is running..., shutting down...'
-    virsh destroy $1
-    if [ $? -ne 0 ]; then
-        echo "occur error while shutting down vm..."
-        exit 1
-    else
-        echo "shut down vm successfully..."
-    fi
+    echo 'log error: vm is running..., please shut down firstly...\n'
+#    virsh destroy $1
+#    if [ $? -ne 0 ]; then
+#        echo "occur error while shutting down vm..."
+#        exit 1
+#    else
+#        echo "shut down vm successfully..."
+#    fi
 fi
 
 # step 1 dump  vm xml
 virsh dumpxml $1 > ${DEFAULT_PATH}${1}.xml
 
 if [ $? -ne 0 ]; then
-    echo "dump xml file fail..."
+    echo "log error: dump xml file fail...\n"
     exit 1
 else
-    echo "dump xml file successfully..."
+    echo "log info: dump xml file successfully...\n"
 fi
 
 # step 2 cop the file to default path
@@ -54,23 +54,23 @@ echo $IMAGEPATH
 cp ${IMAGEPATH} ${DEFAULT_PATH}
 
 if [ $? -ne 0 ]; then
-    echo "copy image file fail..."
+    echo "log error: copy image file fail...\n"
     # operation fial, roll back
     rm ${DEFAULT_PATH}${1}.xml
     exit 1
 else
-    echo "copy image file successfully..."
+    echo "log info: copy image file successfully...\n"
 fi
 
 # step 3
 virsh undefine $1
 if [ $? -ne 0 ]; then
-    echo "undefine vm fail..., deleting xml file and vm image copy"
+    echo "log error: undefine vm fail..., deleting xml file and vm image copy\n"
     # operation fial, roll back
     rm -f ${DEFAULT_PATH}${1}.xml ${DEFAULT_PATH}${IMAGEPATH} 
     exit 1
 else
-    echo "undifine vm successfully..."
+    echo "log info: undifine vm successfully...\n"
 fi
 
 

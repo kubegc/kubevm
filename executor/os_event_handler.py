@@ -157,7 +157,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
-        report_failure(name, jsondict, 'VirtletError', str(info[1]))
+        report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
 
 class VmVolEventHandler(FileSystemEventHandler):
     def __init__(self, pool, target, group, version, plural):
@@ -218,7 +218,7 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
-        report_failure(name, jsondict, 'VirtletError', str(info[1]))
+        report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
 
 class VmSnapshotEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):
@@ -281,7 +281,7 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
-        report_failure(name, jsondict, 'VirtletError', str(info[1]))
+        report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
 
 class VmBlockDevEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):
@@ -342,7 +342,7 @@ def myVmLibvirtXmlEventHandler(event, name, group, version, plural):
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
-        report_failure(name, jsondict, 'VirtletError', str(info[1]))
+        report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
 
 def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
     if jsondict:

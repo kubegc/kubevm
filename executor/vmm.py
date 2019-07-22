@@ -68,7 +68,7 @@ def toImage(name):
     '''
         execute the vm to image operation.
     '''
-    cmd = './scripts/mybackup.sh ' + name
+    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/mybackup.sh ' + name
     runCmd(cmd)
     
 def toVM(name):

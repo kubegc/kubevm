@@ -82,7 +82,7 @@ def updateOS(name, source, target):
     else:
         raise Exception('Wrong source or target.')
     client.CustomObjectsApi().replace_namespaced_custom_object(
-        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', body=jsonDict)
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=jsonDict)
     
 
 def cmd():

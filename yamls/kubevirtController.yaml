@@ -15,6 +15,11 @@ spec:
       labels:
         app: kubevirt-controller-manager
     spec:
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
       hostNetwork: true
       containers:
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-controller-manager:v1.14.1

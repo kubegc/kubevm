@@ -117,7 +117,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
-        report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]))
+        report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
         
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     try:

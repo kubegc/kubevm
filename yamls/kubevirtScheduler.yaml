@@ -17,6 +17,11 @@ spec:
       name: kubevirt-scheduler
       namespace: cloudplus
     spec:
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
       containers:
         - command:
           - /usr/local/bin/kubevirt-scheduler

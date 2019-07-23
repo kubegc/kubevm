@@ -1,9 +1,13 @@
 
-## 
+# Prepare environment
 
+1. Shutdown SELinux and reboot
 ```
-yum install python34-devel python34-pip
-pip3 install libvirt-python kubernetes xmltodict
+yum install virt-install libvirt 
+systemctl stop firewalld
+systemctl disable firewalld
+systemctl start libvirtd
+systemctl enable libvirtd
 ```
 
 # Start virtctl.

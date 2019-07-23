@@ -1,12 +1,11 @@
 import logging
 import logging.handlers
 
-
 def set_logger(header,fn):
     logger = logging.getLogger(header)
     
     handler1 = logging.StreamHandler()
-    handler2 = logging.FileHandler(filename=fn)
+    handler2 = logging.handlers.RotatingFileHandler(filename=fn, maxBytes=10000000, backupCount=10)
     
     logger.setLevel(logging.DEBUG)
     handler1.setLevel(logging.DEBUG)

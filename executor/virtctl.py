@@ -32,7 +32,7 @@ config_raw = parser()
 config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
-logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
+logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 
 class ClientDaemon(CDaemon):
     def __init__(self, name, save_path, stdin=os.devnull, stdout=os.devnull, stderr=os.devnull, home_dir='.', umask=022, verbose=1):

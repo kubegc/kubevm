@@ -7,4 +7,4 @@
 ################################################################
 
 
-python /home/virtlet/bin/virtlet.py start
+python virtlet.py start

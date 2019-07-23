@@ -55,45 +55,6 @@ VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
-
-class ClientDaemon(CDaemon):
-    def __init__(self, name, save_path, stdin=os.devnull, stdout=os.devnull, stderr=os.devnull, home_dir='.', umask=022, verbose=1):
-        CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
-        self.name = name
- 
-    def run(self, output_fn, **kwargs):
-        config.load_kube_config(config_file=TOKEN)
-        try:
-            main()
-        except:
-            traceback.print_exc()
-
-def daemonize():
-    help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]
-    if len(sys.argv) != 2:
-        print help_msg
-        sys.exit(1)
-    p_name = 'virtlet_libvirt_event_handler'
-    pid_fn = '/var/run/virtlet_libvirt_event_handler_daemon.pid'
-    log_fn = '/var/log/virtlet.log'
-    err_fn = '/var/log/virtlet_error.log'
-    cD1 = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
- 
-    if sys.argv[1] == 'start':
-        cD1.start(log_fn)
-    elif sys.argv[1] == 'stop':
-        cD1.stop()
-    elif sys.argv[1] == 'restart':
-        cD1.restart(log_fn)
-    elif sys.argv[1] == 'status':
-        alive = cD1.is_running()
-        if alive:
-            print 'process [%s] is running ......' % cD1.get_pid()
-        else:
-            print 'daemon process [%s] stopped' %cD1.name
-    else:
-        print 'invalid argument!'
-        print help_msg
         
 def myDomainEventHandler(conn, dom, *args, **kwargs):
     vm_name = dom.name()
@@ -1023,4 +984,5 @@ def main():
     time.sleep(2)
 
 if __name__ == "__main__":
-    daemonize()
+    config.load_kube_config(config_file=TOKEN)
+    main()

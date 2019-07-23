@@ -26,13 +26,13 @@ except ImportError:
 # import yaml
 
 
-VIRT_STATE_NAME_MAP = {0: 'running',
-                       1: 'running',
-                       2: 'running',
-                       3: 'paused',
-                       4: 'shutdown',
-                       5: 'shutdown',
-                       6: 'crashed'}
+VIRT_STATE_NAME_MAP = {0: 'Running',
+                       1: 'Running',
+                       2: 'Running',
+                       3: 'Paused',
+                       4: 'Shutdown',
+                       5: 'Shutdown',
+                       6: 'Crashed'}
 
 
 '''
@@ -195,7 +195,7 @@ def vm_state(vm_=None):
         state = ''
         dom = _get_dom(vm_)
         raw = dom.info()
-        state = VIRT_STATE_NAME_MAP.get(raw[0], 'unknown')
+        state = VIRT_STATE_NAME_MAP.get(raw[0], 'Unknown')
         return state
     info = {}
     if vm_:
@@ -398,7 +398,7 @@ def setmem(vm_, memory, config=False):
 
         salt '*' virt.setmem myvm 768
     '''
-    if vm_state(vm_).get(vm_) != 'shutdown':
+    if vm_state(vm_).get(vm_) != 'Shutdown':
         return False
 
     dom = _get_dom(vm_)
@@ -429,7 +429,7 @@ def setvcpus(vm_, vcpus, config=False):
 
         salt '*' virt.setvcpus myvm 2
     '''
-    if vm_state(vm_).get(vm_) != 'shutdown':
+    if vm_state(vm_).get(vm_) != 'Shutdown':
         return False
 
     dom = _get_dom(vm_)
@@ -633,6 +633,19 @@ def undefine(vm_):
     '''
     dom = _get_dom(vm_)
     return dom.undefine() == 0
+
+def undefine_with_snapshot(vm_):
+    '''
+    Remove a defined vm, this does not purge the virtual machine image, and
+    this only works if the vm is powered down
+   
+    CLI Example::
+   
+        salt '*' virt.undefine <vm name>
+    '''
+    dom = _get_dom(vm_)
+    flags = libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+    return dom.undefineFlags(flags) == 0
 
 def list_pools():
     conn = __get_conn()

@@ -108,11 +108,12 @@ for k,v in config_raw._sections.items():
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
-    logger.debug("------------------------Welcome to Virtctl Daemon.-------------------------------")
+    logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")
     logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
     logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn, wuheng@otcaix.iscas.ac.cn----------")
+    logger.debug("------------------------------liuhe18@otcaix.iscas.ac.cn-------------------------")
     logger.debug("---------------------------------------------------------------------------------")
-    
+
     logger.debug("Loading configurations in 'default.cfg' ...")
     logger.debug("All support CMDs are:")
     logger.debug(ALL_SUPPORT_CMDS)

@@ -18,7 +18,6 @@ from kubernetes import config
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-import invoker
 from utils.utils import CDaemon
 from utils import logger
 from libvirt_event_handler import main as libvirt_event_handler

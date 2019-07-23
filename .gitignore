@@ -114,6 +114,9 @@ venv.bak/
 .DS_Store
 
 # idea
-*.iml
+executor/executor.iml
+controller/controller.iml
+scheduler/scheduler.iml
+analyser/analyser.iml
 .idea
 executor/mytest.py

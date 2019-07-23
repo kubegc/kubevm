@@ -35,7 +35,8 @@ TOKEN = config_raw.get('Kubernetes', 'token_file')
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 
 def main():
-    config.load_kube_config(config_file=TOKEN)
+    if os.path.exists(TOKEN):
+        config.load_kube_config(config_file=TOKEN)
     try:
         invoker.main()
     except:

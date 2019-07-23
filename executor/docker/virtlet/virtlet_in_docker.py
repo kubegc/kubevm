@@ -44,7 +44,8 @@ def main():
     logger.debug("------------------------------liuhe18@otcaix.iscas.ac.cn-------------------------")
     logger.debug("---------------------------------------------------------------------------------")
     
-    config.load_kube_config(config_file=TOKEN)
+    if os.path.exists(TOKEN):
+        config.load_kube_config(config_file=TOKEN)
     try:
         thread_1 = Thread(target=libvirt_event_handler)
         thread_1.daemon = True

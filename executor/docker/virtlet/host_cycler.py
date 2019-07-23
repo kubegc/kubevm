@@ -127,7 +127,7 @@ class HostCycler:
     def get_status_node_info(self):
         ARCHITECTURE = runCmd('uname -m')
         BOOT_ID = runCmd('cat /sys/class/dmi/id/product_uuid')
-        RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/libexec/qemu-kvm -version | awk \'NR==1 {print $4}\''))
+        RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/bin/qemu-img -version | awk \'NR==1 {print $3}\''))
         KERNEL_VERSION = runCmd('cat /proc/sys/kernel/osrelease')
 #         KUBE_PROXY_VERSION = runCmd('kubelet --version | awk \'{print $2}\'')
         KUBE_PROXY_VERSION = 'v1.14.1'

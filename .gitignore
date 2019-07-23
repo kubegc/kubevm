@@ -112,3 +112,8 @@ venv.bak/
 .mypy_cache/
 
 .DS_Store
+
+# idea
+*.iml
+.idea
+executor/mytest.py

@@ -142,7 +142,7 @@ def cmd():
 '''
 Run back-end command in subprocess.
 '''
-def runCmdWithCallback(cmd, callback, args):
+def runCmdWithCallback(cmd, callback, *args):
     std_err = None
     if not cmd:
         #         logger.debug('No CMD to execute.')

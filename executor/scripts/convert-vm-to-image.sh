@@ -8,7 +8,7 @@ if [ ! -d "$DEFAULT_PATH" ]; then
     mkdir $DEFAULT_PATH
 fi
 
-# check is exist tje vm, and the vm is running or not
+# check is exist the vm, and the vm is running or not
 line1=`virsh list --all | grep $1 | wc -l`
 
 if [ $line1 -eq 1 ] 
@@ -27,6 +27,7 @@ then
     echo 'log info: vm has shut down...'
 else
     echo 'log error: vm is running..., please shut down firstly...\n'
+    exit 1
 #    virsh destroy $1
 #    if [ $? -ne 0 ]; then
 #        echo "occur error while shutting down vm..."

@@ -1,7 +1,7 @@
 
 # Prepare environment
 
-1. Shutdown SELinux and reboot.
+1. Shutdown **SELinux** and reboot.
 2. Execute following commands:
 ```
 yum install virt-install libvirt 

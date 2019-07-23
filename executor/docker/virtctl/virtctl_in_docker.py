@@ -37,10 +37,10 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 def main():
     if os.path.exists(TOKEN):
         config.load_kube_config(config_file=TOKEN)
-    try:
-        invoker.main()
-    except:
-        logger.error('Oops! ', exc_info=1)
+        try:
+            invoker.main()
+        except:
+            logger.error('Oops! ', exc_info=1)
             
 if __name__ == '__main__':
     main()

@@ -46,29 +46,29 @@ def main():
     
     if os.path.exists(TOKEN):
         config.load_kube_config(config_file=TOKEN)
-    try:
-        thread_1 = Thread(target=libvirt_event_handler)
-        thread_1.daemon = True
-        thread_1.name = 'libvirt_event_handler'
-        thread_1.start()
-        thread_2 = Thread(target=os_event_handler)
-        thread_2.daemon = True
-        thread_2.name = 'os_event_handler'
-        thread_2.start()
-        thread_3 = Thread(target=host_cycler)
-        thread_3.daemon = True
-        thread_3.name = 'host_cycler'
-        thread_3.start()
         try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            return
-        thread_1.join()
-        thread_2.join()
-        thread_3.join()
-    except:
-        logger.error('Oops! ', exc_info=1)
+            thread_1 = Thread(target=libvirt_event_handler)
+            thread_1.daemon = True
+            thread_1.name = 'libvirt_event_handler'
+            thread_1.start()
+            thread_2 = Thread(target=os_event_handler)
+            thread_2.daemon = True
+            thread_2.name = 'os_event_handler'
+            thread_2.start()
+            thread_3 = Thread(target=host_cycler)
+            thread_3.daemon = True
+            thread_3.name = 'host_cycler'
+            thread_3.start()
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                return
+            thread_1.join()
+            thread_2.join()
+            thread_3.join()
+        except:
+            logger.error('Oops! ', exc_info=1)
             
 if __name__ == '__main__':
     main()

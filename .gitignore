@@ -121,3 +121,6 @@ analyser/analyser.iml
 .idea
 executor/mytest.py
 executor/virtlet_backup.py
+executor/scripts/server.key
+executor/scripts/server.cert
+executor/scripts/ca.cert

@@ -51,11 +51,17 @@ VMI_PLURAL='virtualmachineimages'
 
 logger = set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 
-def convert_to_Image(name):
+def convert_vm_to_Image(name):
     '''
         execute the vm to image operation.
     '''
-    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/mybackup.sh ' + name
+    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
+    runCmdWithCallback(cmd, toImage, name)
+def convert_Image_to_vm(name):
+    '''
+        execute the vm to image operation.
+    '''
+    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-image-to-vm.sh ' + name
     runCmdWithCallback(cmd, toImage, name)
 
 def toImage(name):

@@ -1,0 +1,22 @@
+#!/bin/bash
+##############################################
+##
+##  Copyright (2019,) Institute of Software
+##       Chinese Academy of Sciences
+##           wuheng@iscas.ac.cn
+##
+##############################################
+
+num=$(head -n 20 /dev/urandom | cksum | cut -f1 -d ' ')
+
+vname=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+iname=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+
+kubectl get vm $vname -o yaml > $vname_$num.yaml
+
+sed -i "s/VirtualMachine/VirtualMachineImage/g" $vname_$num.yaml
+sed -i "s/name: $vname/name: $iname/g" $vname_$num.yaml
+
+kubectl apply -f $vname_$num.yaml
+kubectl delete vm $vname
+rm -rf $vname_$num.yaml

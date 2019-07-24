@@ -15,7 +15,6 @@ import os
 import sys
 import subprocess
 import ConfigParser
-import xmltodict
 import socket
 import string
 import traceback
@@ -32,6 +31,8 @@ Import third party libs
 '''
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
+from kubernetes.client import V1DeleteOptions
+from kubernetes.client.models.v1_namespace_status import V1NamespaceStatus
 from xmltodict import unparse
 from xmljson import badgerfish as bf
 from libvirt import libvirtError
@@ -40,8 +41,10 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
+from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
+from utils.uit_utils import is_block_dev_exists
+from utils.utils import ExecuteException, addExceptionMessage
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -66,10 +69,18 @@ GROUP_VM_DISK = config_raw.get('VirtualMachineDisk', 'group')
 PLURAL_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'plural')
 VERSION_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'version')
 GROUP_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'group')
+PLURAL_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'plural')
+VERSION_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'version')
+GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
+FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 
 LABEL = 'host=%s' % (socket.gethostname())
 
-logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
+TIMEOUT = config_raw.get('WatcherTimeout', 'timeout')
+
+LOG = '/var/log/virtctl.log'
+
+logger = logger.set_logger(os.path.basename(__file__), LOG)
 
 '''
 Handle support CMDs settings in default.cfg.
@@ -93,7 +104,7 @@ for k,v in config_raw._sections.items():
         elif string.find(k, 'WithVolField') != -1:
             ALL_SUPPORT_CMDS_WITH_VOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_VOL_FIELD, **v)
         elif string.find(k, 'WithSnapNameField') != -1:
-            ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD, **v)        
+            ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD, **v)
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -122,6 +133,10 @@ def main():
         thread_4.daemon = True
         thread_4.name = 'vm_snapshot_watcher'
         thread_4.start()
+        thread_5 = Thread(target=vMBlockDevWatcher)
+        thread_5.daemon = True
+        thread_5.name = 'vm_block_dev_watcher'
+        thread_5.start()
         try:
             while True:
                 time.sleep(1)
@@ -131,28 +146,30 @@ def main():
         thread_2.join()
         thread_3.join()
         thread_4.join()
+        thread_5.join()
     except:
         logger.error('Oops! ', exc_info=1)
         
 def test():
     try:
-        vMDiskWatcher()
+        vMBlockDevWatcher()
     except:
         traceback.print_exc()
         logger.error('Oops! ', exc_info=1)
     
-def vMWatcher():
+def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
     kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM, **kwargs):
+                                group=group, version=version, plural=plural, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            print(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            print('metadata name: %s' % metadata_name)
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
     #             print(jsondict)
             if operation_type == 'ADDED':
@@ -160,7 +177,7 @@ def vMWatcher():
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd:
                         runCmd(cmd)
-                    if not is_vm_active(metadata_name):
+                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                         create(metadata_name)
                 elif _isInstallVMFromImage(jsondict):
                     (jsondict, new_vm_vcpus, new_vm_memory) = _preprocessInCreateVMFromImage(jsondict)
@@ -189,23 +206,40 @@ def vMWatcher():
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
-                    undefine(metadata_name)
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd: 
+                        runCmd(cmd)
+#                 if is_vm_exists(metadata_name):
+#                     if is_vm_active(metadata_name):
+#                         destroy(metadata_name)
+#                     undefine_with_snapshot(metadata_name)
+        except libvirtError:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
         
                 
-def vMDiskWatcher():
+def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
     kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                   group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK, **kwargs):
+                                   group=group, version=version, plural=plural, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
             pool_name = _get_field(jsondict, 'pool')
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
@@ -213,31 +247,42 @@ def vMDiskWatcher():
                 if cmd:
                     runCmd(cmd)
             elif operation_type == 'MODIFIED':
-                if is_volume_exists(metadata_name, pool_name):
+                if pool_name and is_volume_exists(metadata_name, pool_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)
             elif operation_type == 'DELETED':
-                if is_volume_exists(metadata_name, pool_name):
+                if pool_name and is_volume_exists(metadata_name, pool_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)   
+        except libvirtError:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                 
                 
-def vMImageWatcher():
+def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
     kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI, **kwargs):
+                                group=group, version=version, plural=plural, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
                 cmd = unpackCmdFromJson(jsondict)
@@ -252,22 +297,35 @@ def vMImageWatcher():
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
-                    undefine(metadata_name)
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd: 
+                        runCmd(cmd)
+        except libvirtError:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
         
-def vMSnapshotWatcher():
+def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
     kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT, **kwargs):
+                                group=group, version=version, plural=plural, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
         try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
             vm_name = _get_field(jsondict, 'domain')
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
@@ -275,20 +333,103 @@ def vMSnapshotWatcher():
                 if cmd:
                     runCmd(cmd)
             elif operation_type == 'MODIFIED':
-                if is_snapshot_exists(metadata_name, vm_name):
+                if vm_name and is_snapshot_exists(metadata_name, vm_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)
             elif operation_type == 'DELETED':
-                if is_snapshot_exists(metadata_name, vm_name):
+                if vm_name and is_snapshot_exists(metadata_name, vm_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)  
+        except libvirtError:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+
+def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
+    watcher = watch.Watch()
+    kwargs = {}
+    kwargs['label_selector'] = LABEL
+    kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
+    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                   group=group, version=version, plural=plural, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
+        try:
+            jsondict = forceUsingMetadataName(metadata_name, jsondict)
+            if operation_type == 'ADDED':
+                cmd = unpackCmdFromJson(jsondict)
+                if cmd:
+                    runCmd(cmd)
+            elif operation_type == 'MODIFIED':
+                if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd: 
+                        runCmd(cmd)
+            elif operation_type == 'DELETED':
+                if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd: 
+                        runCmd(cmd)   
+        except libvirtError:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+
+def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        jsondict = deleteLifecycleInJson(jsondict)
+        body = addExceptionMessage(jsondict, error_reason, error_message)
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+        return retv
+    except:
+        logger.error('Oops! ', exc_info=1)
+
+def deleteLifecycleInJson(jsondict):
+    if jsondict:
+        '''
+        Get target VM name from Json.
+        '''
+        spec = jsondict['spec']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+    return jsondict
 
 def getMetadataName(jsondict):
-    return jsondict['raw_object']['metadata']['name']
+    metadata = jsondict['raw_object']['metadata']
+    metadata_name = metadata.get('name')
+    if metadata_name:
+        return metadata_name
+    else:
+        raise Exception('FATAL ERROR! No metadata name!') 
 
 def forceUsingMetadataName(metadata_name,jsondict):
     spec = jsondict['raw_object']['spec']
@@ -475,7 +616,12 @@ def _convertCharsInJson(key, value):
     key, value = str(key), str(value)
     if value == 'True':
         value = ''
-    return ('--%s' % key.replace('_', '-'), value)
+        return ('--%s' % key.replace('_', '-'), value)
+    elif value == 'False':
+        return ('', '')
+    else:
+        return ('--%s' % key.replace('_', '-'), value)
+   
 
 '''
 Unpack the CMD that will be executed in Json format.
@@ -493,20 +639,26 @@ def unpackCmdFromJson(jsondict):
             Note that only the first CMD will be executed.
             '''
             cmd_head = ''
-            the_cmd_key = None
+            the_cmd_keys = []
             lifecycle = spec.get('lifecycle')
             if not lifecycle:
                 return
             keys = lifecycle.keys()
             for key in keys:
                 if key in ALL_SUPPORT_CMDS.keys():
-                    the_cmd_key = key
-                    cmd_head = ALL_SUPPORT_CMDS.get(key)
-                    break;
+                    '''
+                    Priority 1st -- Force shutdown out of control VM.
+                    '''
+                    if key == FORCE_SHUTDOWN_VM:
+                        the_cmd_keys.insert(0, key)
+                    else:
+                        the_cmd_keys.append(key)
             '''
             Get the CMD body from 'dict' structure.
             '''
-            if the_cmd_key:
+            if the_cmd_keys:
+                the_cmd_key = the_cmd_keys[0]
+                cmd_head = ALL_SUPPORT_CMDS.get(the_cmd_key)
                 cmd_body = ''
                 contents = lifecycle.get(the_cmd_key)
                 for k, v in contents.items():
@@ -530,28 +682,31 @@ def runCmd(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_out:
-            logger.debug(str.strip(std_out[0]))
+            msg = ''
+            for index,line in enumerate(std_out):
+                if not str.strip(line):
+                    continue
+                if index == len(std_out) - 1:
+                    msg = msg + str.strip(line) + '. '
+                else:
+                    msg = msg + str.strip(line) + ', '
+            logger.debug(str.strip(msg))
         if std_err:
-            logger.error(str.strip(std_err[0]))
+            msg = ''
+            for index,line in enumerate(std_err):
+                if not str.strip(line):
+                    continue
+                if index == len(std_err) - 1:
+                    msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
+                else:
+                    msg = msg + str.strip(line) + ', '
+            logger.error(str.strip(msg))
+            raise ExecuteException('VirtctlError', str.strip(msg))
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
         return
     finally:
         p.stdout.close()
         p.stderr.close()
-
-# def randomUUID():
-#     u = [random.randint(0, 255) for ignore in range(0, 16)]
-#     u[6] = (u[6] & 0x0F) | (4 << 4)
-#     u[8] = (u[8] & 0x3F) | (2 << 6)
-#     return "-".join(["%02x" * 4, "%02x" * 2, "%02x" * 2, "%02x" * 2,
-#                      "%02x" * 6]) % tuple(u)
-#
-# def randomMAC():
-#     mac = [ 0x52, 0x54, 0x00,
-#         random.randint(0x00, 0x7f),
-#         random.randint(0x00, 0xff),
-#         random.randint(0x00, 0xff) ]
-#     return ':'.join(map(lambda x: "%02x" % x, mac))
 
 if __name__ == '__main__':
     config.load_kube_config(config_file=TOKEN)

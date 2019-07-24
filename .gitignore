@@ -122,5 +122,5 @@ analyser/analyser.iml
 executor/mytest.py
 executor/virtlet_backup.py
 executor/scripts/server.key
-executor/scripts/server.cert
-executor/scripts/ca.cert
+executor/scripts/server.crt
+executor/scripts/ca.crt

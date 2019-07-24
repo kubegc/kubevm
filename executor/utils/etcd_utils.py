@@ -27,3 +27,5 @@ client = etcd3.client(host='133.133.135.22',
 
 result = client.get('/registry/services/specs/kube-system/kube-dns')
 print(result) # bar
+
+# define

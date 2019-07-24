@@ -1,14 +1,16 @@
 #!/bin/bash
 # author: liu he
 
+# need args: VM-name
 
-DEFAULT_PATH=/root/mybackup/ 
+DEFAULT_IMAGE_PATH=/root/mybackup/
+DEFAULT_VM_PATH=/var/lib/libvirt/images/
 
-if [ ! -d "$DEFAULT_PATH" ]; then
-    mkdir $DEFAULT_PATH
+if [ ! -d "$DEFAULT_IMAGE_PATH" ]; then
+    mkdir $DEFAULT_IMAGE_PATH
 fi
 
-# check is exist the vm, and the vm is running or not
+# check is exist the vm or not, and the vm is running or not
 line1=`virsh list --all | grep $1 | wc -l`
 
 if [ $line1 -eq 1 ] 
@@ -19,7 +21,34 @@ else
     exit 1
 fi
 
+# check is exist the image or not
+if [ ! -f ${DEFAULT_IMAGE_PATH}${1}'.xml' ]
+then
+  echo "log info: image not exist, begin create image...\n"
+else
+  echo "log error: image has exist, exit...\n"
+  exit 1
+fi
 
+
+# check DEAFULT_PATH disk space support to create image or not
+DISK_FILE_PATH=`virsh domblklist $1 | grep 'vda'| awk '{ print $2 }'`
+NEED_SPACE=`du -m $DISK_FILE_PATH | awk '{print $1}'`
+DISK_SPACE=`df -m $DEFAULT_IMAGE_PATH | awk '{ print $4 }' | tail -n +2 |awk '{sum+=$1} END {print sum}'`
+if [ $DISK_SPACE -gt $NEED_SPACE ]
+then
+    echo $NEED_SPACE
+    echo $DISK_SPACE
+    echo "log info: space is enough..."
+else
+    echo $NEED_SPACE
+    echo $DISK_SPACE
+    echo "log error: space is not enough..."
+    exit 1
+fi
+
+
+# check the vm status shut down or not
 line2=`virsh list --all | grep $1 | grep 'shut' | wc -l`
 
 if [ $line2 -eq 1 ]
@@ -38,7 +67,7 @@ else
 fi
 
 # step 1 dump  vm xml
-virsh dumpxml $1 > ${DEFAULT_PATH}${1}.xml
+virsh dumpxml $1 > ${DEFAULT_IMAGE_PATH}${1}.xml
 
 if [ $? -ne 0 ]; then
     echo "log error: dump xml file fail...\n"
@@ -47,28 +76,51 @@ else
     echo "log info: dump xml file successfully...\n"
 fi
 
-# step 2 cop the file to default path
+# step 2 copy the file to default path, and change the file path in xml
 
-IMAGEPATH=`cat ${DEFAULT_PATH}${1}.xml | grep 'source file' | grep 'qcow2'| cut -d "'" -f 2`
-
-echo $IMAGEPATH
-cp ${IMAGEPATH} ${DEFAULT_PATH}
+#IMAGEPATH=`cat ${DEFAULT_PATH}${1}.xml | grep 'source file' | grep 'qcow2'| cut -d "'" -f 2`
+IMAGE_PATH=`virsh domblklist $1 | grep 'vda'| awk '{ print $2 }'`
+echo $IMAGE_PATH
+cp ${IMAGE_PATH} ${DEFAULT_IMAGE_PATH}
 
 if [ $? -ne 0 ]; then
     echo "log error: copy image file fail...\n"
     # operation fial, roll back
-    rm ${DEFAULT_PATH}${1}.xml
+    rm ${DEFAULT_IMAGE_PATH}${1}.xml
     exit 1
 else
+    sed -i 's#'${IMAGE_PATH}'#'${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/}'#g' ${DEFAULT_IMAGE_PATH}${1}.xml
+    if [ $? -ne 0 ]; then
+        echo "log error: change the image file path in xml file failed\n"
+        # operation fial, roll back
+        rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/}
+        exit 1
+    else
+        echo "log info: change the image file path in xml file successfully...\n"
+    fi
     echo "log info: copy image file successfully...\n"
+
+    # init image
+#    virt-sysprep -a ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/}
+#    if [ $? -ne 0 ]; then
+#        echo "log error: init image failed\n"
+#        # operation fial, roll back
+#        rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/}
+#        exit 1
+#    else
+#        echo "log info: init image successfully...\n"
+#    fi
+    # record old disk file path
+    FILE_NAME=`echo ${IMAGE_PATH##*/} | cut -d '.' -f 1`
+    echo ""${IMAGE_PATH} > ${DEFAULT_IMAGE_PATH}${FILE_NAME}'.path'
 fi
 
-# step 3
+# step 3 undefine the vm
 virsh undefine $1
 if [ $? -ne 0 ]; then
     echo "log error: undefine vm fail..., deleting xml file and vm image copy\n"
     # operation fial, roll back
-    rm -f ${DEFAULT_PATH}${1}.xml ${DEFAULT_PATH}${IMAGEPATH} 
+    rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/} ${IMAGE_PATH%%.*}'.path'
     exit 1
 else
     echo "log info: undifine vm successfully...\n"

@@ -196,8 +196,14 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     create(metadata_name)
                 else:
                     cmd = unpackCmdFromJson(jsondict)
-                    if cmd:     
-                        runCmd(cmd)
+                    # add support python file real path to exec
+
+                    if cmd:
+                        if cmd.find('python') >= 0:
+                            cmd_with_python = os.path.split(os.path.realpath(__file__))[0] +'/' + cmd.split()[1]
+                            runCmd(cmd_with_python)
+                        else:
+                            runCmd(cmd)
             elif operation_type == 'MODIFIED':
                 if is_vm_exists(metadata_name):
                     cmd = unpackCmdFromJson(jsondict)
@@ -279,6 +285,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=group, version=version, plural=plural, **kwargs):
+        # logger.debug(jsondict)
         operation_type = jsondict.get('type')
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
@@ -473,7 +480,7 @@ def _isInstallVMFromISO(jsondict):
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():
                 cmd_head = ALL_SUPPORT_CMDS.get(key)
-                break;
+                break
         if cmd_head and cmd_head.startswith('virt-install'):
             return True
     return False
@@ -496,7 +503,7 @@ def _isInstallVMFromImage(jsondict):
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():
                 cmd_head = ALL_SUPPORT_CMDS.get(key)
-                break;
+                break
         if cmd_head and cmd_head.startswith('virt-clone'):
             return True
     return False

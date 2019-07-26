@@ -31,7 +31,7 @@ fi
 OLD_PATH=`cat ${DEFAULT_IMAGE_PATH}${1}'.path'`
 echo $OLD_PATH
 echo ${DEFAULT_IMAGE_PATH}${OLD_PATH##*/}
-NEED_SPACE=`du -m ${DEFAULT_IMAGE_PATH}${OLD_PATH##*/} | awk '{print $1}'`
+NEED_SPACE=`du -m ${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.} | awk '{print $1}'`
 
 DISK_SPACE=`df -m ${OLD_PATH%/*} | awk '{ print $4 }' | tail -n +2 |awk '{sum+=$1} END {print sum}'`
 if [ $DISK_SPACE -gt $NEED_SPACE ]
@@ -46,7 +46,7 @@ else
     exit 1
 fi
 
-cp ${DEFAULT_IMAGE_PATH}${OLD_PATH##*/} ${OLD_PATH%/*}
+cp ${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.} ${OLD_PATH%/*}
 
 if [ $? -ne 0 ]; then
     echo "log error: copy image disk to old path fail...\n"  >&2

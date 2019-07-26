@@ -187,7 +187,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         raise Exception("Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
                     if os.path.exists(new_vm_path):
-                        raise Exception("File %s already exists, copy abolish!" % template_path)
+                        raise Exception("File %s already exists, copy abolish!" % new_vm_path)
                     shutil.copyfile(template_path, new_vm_path)
                     jsondict = _updateRootDiskInJson(jsondict, new_vm_path)
                     cmd = unpackCmdFromJson(jsondict)

@@ -52,22 +52,23 @@ VM_PLURAL='virtualmachines'
 VMI_PLURAL='virtualmachineimages'
 
 logger = set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
+PATH = os.path.dirname(__file__)
 
 def convert_vm_to_image(name):
     '''
         execute the vm to image operation.
     '''
     print "starting convert vm to image..."
-    jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
-    cmd = 'convert-vm-to-image.sh  ' + name
+    cmd = '%s/convert-vm-to-image.sh %s' %(PATH, name)
     try:
         print cmd
         run(cmd)
     except Exception:
         return
     try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
         jsonDict = jsonStr.copy()
         jsonDict['kind'] = 'VirtualMachineImage'
         jsonDict['metadata']['kind'] = 'VirtualMachineImage'
@@ -91,7 +92,7 @@ def convert_image_to_vm(name):
     #         group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
     # except Exception:
     #     pass
-    cmd = 'convert-image-to-vm.sh  ' + name
+    cmd = '%s/convert-image-to-vm.sh %s' %(PATH, name)
     try:
         print cmd
         run(cmd)

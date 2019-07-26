@@ -35,8 +35,8 @@ from xmljson import badgerfish as bf
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml
-from utils.utils import CDaemon
+from utils.libvirt_util import get_xml, vm_state
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -55,45 +55,44 @@ VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
-
-class ClientDaemon(CDaemon):
-    def __init__(self, name, save_path, stdin=os.devnull, stdout=os.devnull, stderr=os.devnull, home_dir='.', umask=022, verbose=1):
-        CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
-        self.name = name
- 
-    def run(self, output_fn, **kwargs):
-        config.load_kube_config(config_file=TOKEN)
-        try:
-            main()
-        except:
-            traceback.print_exc()
-
-def daemonize():
-    help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]
-    if len(sys.argv) != 2:
-        print help_msg
-        sys.exit(1)
-    p_name = 'virtlet_libvirt_event_handler'
-    pid_fn = '/var/run/virtlet_libvirt_event_handler_daemon.pid'
-    log_fn = '/var/log/virtlet.log'
-    err_fn = '/var/log/virtlet_error.log'
-    cD1 = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
- 
-    if sys.argv[1] == 'start':
-        cD1.start(log_fn)
-    elif sys.argv[1] == 'stop':
-        cD1.stop()
-    elif sys.argv[1] == 'restart':
-        cD1.restart(log_fn)
-    elif sys.argv[1] == 'status':
-        alive = cD1.is_running()
-        if alive:
-            print 'process [%s] is running ......' % cD1.get_pid()
+        
+def myDomainEventHandler(conn, dom, *args, **kwargs):
+    vm_name = dom.name()
+    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+    try:
+    #     print(jsondict)
+        if kwargs.has_key('event') and kwargs.has_key('detail') and \
+        str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
+        str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
+            logger.debug('Callback domain deletion to virtlet')
+            deleteVM(vm_name, V1DeleteOptions())
         else:
-            print 'daemon process [%s] stopped' %cD1.name
-    else:
-        print 'invalid argument!'
-        print help_msg
+            logger.debug('Callback domain changes to virtlet')
+            vm_xml = get_xml(vm_name)
+            vm_power_state = vm_state(vm_name).get(vm_name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+            modifyVM(vm_name, body)
+    except:
+        logger.error('Oops! ', exc_info=1)
+        info=sys.exc_info()
+        report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+        
+def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        body = addExceptionMessage(jsondict, error_reason, error_message)
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+        return retv
+    except:
+        logger.error('Oops! ', exc_info=1)
 
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
@@ -113,7 +112,7 @@ def toKubeJson(json):
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
                     
-def updateXmlStructureInJson(jsondict, body):
+def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
     if jsondict:
         '''
         Get target VM name from Json.
@@ -123,7 +122,7 @@ def updateXmlStructureInJson(jsondict, body):
             lifecycle = spec.get('lifecycle')
             if lifecycle:
                 del spec['lifecycle']
-            spec.update(loads(body))
+            spec.update(body)
     return jsondict
 
 # This example can use three different event loop impls. It defaults
@@ -623,25 +622,6 @@ GRAPHICS_PHASES = Description("Connect", "Initialize", "Disconnect")
 DISK_EVENTS = Description("Change missing on start", "Drop missing on start")
 TRAY_EVENTS = Description("Opened", "Closed")
 
-def myDomainEventHandler(conn, dom, *args, **kwargs):
-    try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=dom.name())
-    #     print(jsondict)
-        if kwargs.has_key('event') and kwargs.has_key('detail') and \
-        str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
-        str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
-            logger.debug('Callback domain deletion to virtlet')
-            deleteVM(dom.name(), V1DeleteOptions())
-        else:
-            logger.debug('Callback domain changes to virtlet')
-            vm_xml = get_xml(dom.name())
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            body = updateXmlStructureInJson(jsondict, vm_json)
-            modifyVM(dom.name(), body)
-    except:
-        logger.error('Oops! ', exc_info=1)
-
-
 def myDomainEventCallback(conn, dom, event, detail, opaque):
     logger.debug("myDomainEventCallback%s EVENT: Domain %s(%s) %s %s" % (
         opaque, dom.name(), dom.ID(), DOM_EVENTS[event], DOM_EVENTS[event][detail]))
@@ -1004,4 +984,5 @@ def main():
     time.sleep(2)
 
 if __name__ == "__main__":
-    daemonize()
+    config.load_kube_config(config_file=TOKEN)
+    main()

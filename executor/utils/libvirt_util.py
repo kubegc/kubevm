@@ -4,8 +4,6 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 
-https://pypi.org/project/json2xml/
-https://github.com/kubernetes/kubernetes/issues/51046
 '''
 
 '''
@@ -398,7 +396,7 @@ def setmem(vm_, memory, config=False):
 
         salt '*' virt.setmem myvm 768
     '''
-    if vm_state(vm_).get(vm_) != 'shutdown':
+    if vm_state(vm_).get(vm_) != 'Shutdown':
         return False
 
     dom = _get_dom(vm_)
@@ -429,7 +427,7 @@ def setvcpus(vm_, vcpus, config=False):
 
         salt '*' virt.setvcpus myvm 2
     '''
-    if vm_state(vm_).get(vm_) != 'shutdown':
+    if vm_state(vm_).get(vm_) != 'Shutdown':
         return False
 
     dom = _get_dom(vm_)

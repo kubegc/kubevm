@@ -112,3 +112,16 @@ venv.bak/
 .mypy_cache/
 
 .DS_Store
+
+# idea
+executor/executor.iml
+controller/controller.iml
+scheduler/scheduler.iml
+analyser/analyser.iml
+.idea
+executor/test.py
+executor/mytest.py
+executor/virtlet_backup.py
+executor/scripts/server.key
+executor/scripts/server.crt
+executor/scripts/ca.crt

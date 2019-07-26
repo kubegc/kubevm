@@ -29,7 +29,7 @@ from kubernetes.client.models.v1_node_address import V1NodeAddress
 Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import freecpu, freemem, node_info
+from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms
 from utils.utils import CDaemon, runCmd
 from utils import logger
 
@@ -48,52 +48,16 @@ HOSTNAME = socket.gethostname()
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
-class ClientDaemon(CDaemon):
-    def __init__(self, name, save_path, stdin=os.devnull, stdout=os.devnull, stderr=os.devnull, home_dir='.', umask=022, verbose=1):
-        CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
-        self.name = name
- 
-    def run(self, output_fn, **kwargs):
-        config.load_kube_config(config_file=TOKEN)
-        try:
-            main()
-        except:
-            traceback.print_exc()
-
-def daemonize():
-    help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]
-    if len(sys.argv) != 2:
-        print help_msg
-        sys.exit(1)
-    p_name = 'virtlet_host_cycler'
-    pid_fn = '/var/run/virtlet_host_cycler_daemon.pid'
-    log_fn = '/var/log/virtlet.log'
-    err_fn = '/var/log/virtlet_error.log'
-    cD1 = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
- 
-    if sys.argv[1] == 'start':
-        cD1.start(log_fn)
-    elif sys.argv[1] == 'stop':
-        cD1.stop()
-    elif sys.argv[1] == 'restart':
-        cD1.restart(log_fn)
-    elif sys.argv[1] == 'status':
-        alive = cD1.is_running()
-        if alive:
-            print 'process [%s] is running ......' % cD1.get_pid()
-        else:
-            print 'daemon process [%s] stopped' %cD1.name
-    else:
-        print 'invalid argument!'
-        print help_msg
-
 def main():
     while True:
-        host = client.CoreV1Api().read_node_status(name='node12')
-        node_watcher = HostCycler()
-        host.status = node_watcher.get_node_status()
-        client.CoreV1Api().replace_node_status(name='node12', body=host)
-        time.sleep(8)
+        try:
+            host = client.CoreV1Api().read_node_status(name=HOSTNAME)
+            node_watcher = HostCycler()
+            host.status = node_watcher.get_node_status()
+            client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
+            time.sleep(8)
+        except:
+            logger.error('Oops! ', exc_info=1)
 
 class HostCycler:
     
@@ -111,8 +75,8 @@ class HostCycler:
     def get_node_status(self):
         return self.__node_status
 
-    def _format_mem_to_mb(self, mem):
-        return int(round(int(mem) / 1000))
+    def _format_mem_to_Mi(self, mem):
+        return int(round(int(mem)))
     
     def get_node_spec(self):
         return V1NodeSpec()
@@ -129,14 +93,15 @@ class HostCycler:
     
     def get_status_allocatable(self):
         cpu_allocatable = freecpu()
-        mem_allocatable = self._format_mem_to_mb(freemem())
-        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)}
+        mem_allocatable = self._format_mem_to_Mi(freemem())
+        active_vms = list_active_vms()
+        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)+'Mi', 'pods': str(40 - len(active_vms)) if 40 - len(active_vms) >= 0 else 0}
     
     def get_status_capacity(self):
         node_info_dict = node_info()
         cpu_capacity = node_info_dict.get('cpus')
-        mem_capacity = self._format_mem_to_mb(node_info_dict.get('phymemory'))
-        return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)}
+        mem_capacity = self._format_mem_to_Mi(node_info_dict.get('phymemory'))
+        return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)+'Mi', 'pods': '40'}
     
     def get_status_daemon_endpoints(self):
         return V1NodeDaemonEndpoints(kubelet_endpoint={'port':0})
@@ -162,9 +127,10 @@ class HostCycler:
     def get_status_node_info(self):
         ARCHITECTURE = runCmd('uname -m')
         BOOT_ID = runCmd('cat /sys/class/dmi/id/product_uuid')
-        RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/libexec/qemu-kvm -version | awk \'NR==1 {print $4}\''))
+        RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/bin/qemu-img --version | awk \'NR==1 {print $3}\''))
         KERNEL_VERSION = runCmd('cat /proc/sys/kernel/osrelease')
-        KUBE_PROXY_VERSION = runCmd('kubelet --version | awk \'{print $2}\'')
+#         KUBE_PROXY_VERSION = runCmd('kubelet --version | awk \'{print $2}\'')
+        KUBE_PROXY_VERSION = 'v1.14.1'
         KUBELET_VERSION = KUBE_PROXY_VERSION
         MACHINE_ID = BOOT_ID
         OPERATING_SYSTEM = runCmd('cat /proc/sys/kernel/ostype')
@@ -178,4 +144,5 @@ class HostCycler:
     node_status = property(get_node_status, "node_status's docstring")
 
 if __name__ == "__main__":
-    daemonize()
+    config.load_kube_config(config_file=TOKEN)
+    main()

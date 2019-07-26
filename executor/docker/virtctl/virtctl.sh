@@ -7,4 +7,4 @@
 ################################################################
 
 
-python /home/virtctl/bin/virtctl.py start
+python virtctl_in_docker.py

@@ -44,6 +44,7 @@ public class KubevirtController {
 		this(TOKEN);
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public KubevirtController(String token) throws Exception {
 		super();
 		Map<String, Object> map = new Yaml().load(

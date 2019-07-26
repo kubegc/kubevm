@@ -13,6 +13,7 @@ import shutil
 import os
 import json
 import subprocess
+import traceback
 
 from utils.libvirt_util import vm_state
 from utils.utils import addPowerStatusMessage
@@ -52,7 +53,7 @@ VM_PLURAL='virtualmachines'
 VMI_PLURAL='virtualmachineimages'
 
 logger = set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
-PATH = os.path.dirname(__file__)
+PATH = os.path.split(os.path.realpath(__file__))[0]
 
 def convert_vm_to_image(name):
     '''
@@ -63,8 +64,9 @@ def convert_vm_to_image(name):
     try:
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
-        cmd = '%s/convert-vm-to-image.sh %s' %(PATH, name)
-        run(cmd)
+        #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
+        cmd = '/bin/bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
+        runCmd(cmd)
         jsonDict = jsonStr.copy()
         jsonDict['kind'] = 'VirtualMachineImage'
         jsonDict['metadata']['kind'] = 'VirtualMachineImage'
@@ -91,8 +93,8 @@ def convert_image_to_vm(name):
     try:
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name)
-        cmd = '%s/convert-image-to-vm.sh %s' %(PATH, name)
-        run(cmd)
+        cmd = '/bin/bash %s/convert-image-to-vm.sh %s' %(PATH, name)
+        runCmd(cmd)
         jsonDict = jsonStr.copy()
         jsonDict['kind'] = 'VirtualMachine'
         jsonDict['metadata']['kind'] = 'VirtualMachine'
@@ -216,15 +218,7 @@ Run back-end command in subprocess.
 def runCmd(cmd):
     std_err = None
     if not cmd:
-        #         logger.debug('No CMD to execute.')
         return
-    try:
-        output = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
-    except Exception, e:
-        output = str(e.output)
-    finished = output.split('\n')
-    for line in finished:
-        print line
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         std_out = p.stdout.readlines()
@@ -255,13 +249,15 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
 
-def run(cmd):
-    try:
-        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-        logger.debug(result)
-        print result
-    except Exception:
-        raise ExecuteException('vmmError', sys.exc_info()[1])
+# def run(cmd):
+#     try:
+#         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+#         logger.debug(result)
+#         print result
+#     except Exception:
+#         traceback.format_exc()
+#         print(sys.exc_info())
+#         raise ExecuteException('vmmError', sys.exc_info()[1])
 
 
 if __name__ == '__main__':

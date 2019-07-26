@@ -258,6 +258,7 @@ def runCmd(cmd):
 def run(cmd):
     try:
         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        logger.debug(result)
         print result
     except Exception:
         raise ExecuteException('vmmError', str.strip(result))

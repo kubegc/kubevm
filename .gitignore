@@ -125,3 +125,5 @@ executor/virtlet_backup.py
 executor/scripts/server.key
 executor/scripts/server.crt
 executor/scripts/ca.crt
+executor/dist
+executor/vmm.spec

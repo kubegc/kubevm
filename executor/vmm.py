@@ -9,7 +9,6 @@ from kubernetes import config, client
 from kubernetes.client import V1DeleteOptions
 from json import loads
 import sys
-import shutil
 import os
 import json
 import subprocess
@@ -142,7 +141,7 @@ def updateOS(name, source, target):
         group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
     jsonString = json.dumps(jsonDict)
     if jsonString.find(source) >= 0 and os.path.exists(target):
-        shutil.copyfile(target, source)
+        runCmd('cp %s %s' %(target, source))
     else:
         raise Exception('Wrong source or target.')
     jsonDict = deleteLifecycleInJson(jsonDict)

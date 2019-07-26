@@ -17,7 +17,6 @@ import string
 import traceback
 import pprint
 import time
-import shutil
 from threading import Thread
 from json import loads
 from json import dumps
@@ -186,9 +185,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     if not os.path.exists(template_path):
                         raise Exception("Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
-                    if os.path.exists(new_vm_path):
-                        raise Exception("File %s already exists, copy abolish!" % new_vm_path)
-                    shutil.copyfile(template_path, new_vm_path)
+#                     if os.path.exists(new_vm_path):
+#                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
+                    runCmd('cp %s %s' %(template_path, new_vm_path))
                     jsondict = _updateRootDiskInJson(jsondict, new_vm_path)
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
@@ -577,10 +576,8 @@ def _isInstallVMFromISO(jsondict):
         keys = lifecycle.keys()
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():
-                cmd_head = ALL_SUPPORT_CMDS.get(key)
-                break
-        if cmd_head and cmd_head.startswith('virt-install'):
-            return True
+                if key == "createAndStartVMFromISO":
+                    return True
     return False
 
 '''
@@ -600,10 +597,8 @@ def _isInstallVMFromImage(jsondict):
         keys = lifecycle.keys()
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():
-                cmd_head = ALL_SUPPORT_CMDS.get(key)
-                break
-        if cmd_head and cmd_head.startswith('virt-clone'):
-            return True
+                if key == "createAndStartVMFromImage":
+                    return True
     return False
 
 def _preprocessInCreateVMFromImage(jsondict):
@@ -739,11 +734,14 @@ def _updateRootDiskInJson(jsondict, new_vm_path):
             contents = lifecycle.get(the_cmd_key)
             for k, v in contents.items():
                 if k == "disk":
-                    v.replace('ROOTDISK', new_vm_path)
+                    tmp = v.replace('ROOTDISK', new_vm_path)
+                    logger.debug(tmp)
+                    jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = tmp
                 elif k == 'cdrom':
                     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
                 else:
                     continue
+        logger.debug(jsondict)
         return jsondict    
 
 '''

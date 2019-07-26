@@ -33,6 +33,11 @@ fi
 
 # check DEAFULT_PATH disk space support to create image or not
 DISK_FILE_PATH=`virsh domblklist ttt | awk 'NR==3 {print $2 }'`
+if [ ! -n "$DISK_FILE_PATH" ]; then
+  echo "log error: can't find vm disk file..."
+  exit 1
+fi
+
 NEED_SPACE=`du -m $DISK_FILE_PATH | awk '{print $1}'`
 DISK_SPACE=`df -m $DEFAULT_IMAGE_PATH | awk '{ print $4 }' | tail -n +2 |awk '{sum+=$1} END {print sum}'`
 if [ $DISK_SPACE -gt $NEED_SPACE ]

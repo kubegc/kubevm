@@ -39,6 +39,7 @@ public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<Vi
 
 	public void eventReceived(Action action, VirtualMachine vm) {
 
+		System.out.println(vm.getMetadata().getName());
 		String namespace = vm.getMetadata().getNamespace();
 		String podName = getPrefix() + "-" + vm.getMetadata().getName() + "-" + namespace;
 		
@@ -88,14 +89,18 @@ public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<Vi
 		Map<String, Quantity> requests = new HashMap<String, Quantity>();
 		VirtualMachineSpec vms = (VirtualMachineSpec) spec;
 		if (vms.getLifecycle().getCreateAndStartVMFromISO() != null) {
-			requests.put(CPU_RESOURCE, new Quantity(vms.getLifecycle().getCreateAndStartVMFromISO().getVcpus()));
+			requests.put(CPU_RESOURCE, new Quantity(getCPU(vms.getLifecycle().getCreateAndStartVMFromISO().getVcpus())));
 			requests.put(RAM_RESOURCE, new Quantity(vms.getLifecycle().getCreateAndStartVMFromISO().getMemory()));
 		} else if (vms.getLifecycle().getCreateAndStartVMFromImage() != null) {
-			requests.put(CPU_RESOURCE, new Quantity(vms.getLifecycle().getCreateAndStartVMFromImage().getVcpus()));
+			requests.put(CPU_RESOURCE, new Quantity(getCPU(vms.getLifecycle().getCreateAndStartVMFromImage().getVcpus())));
 			requests.put(RAM_RESOURCE, new Quantity(vms.getLifecycle().getCreateAndStartVMFromImage().getMemory()));
 		} 
 		resources.setRequests(requests);
 		return resources;
 	}
 
+	public String getCPU(String str) {
+		String[] values = str.split(",");
+		return values[0];
+	}
 }

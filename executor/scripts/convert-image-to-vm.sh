@@ -69,7 +69,7 @@ else
             exit 1
         else
             echo "log info: virsh define successfully...\n"
-            rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${OLD_PATH##*/} ${DEFAULT_IMAGE_PATH}${1}.path
+            rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.} ${DEFAULT_IMAGE_PATH}${1}.path
         fi
     fi
 fi

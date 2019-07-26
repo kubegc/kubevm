@@ -126,7 +126,7 @@ fi
 virsh undefine --remove-all-storage --delete-snapshots $1 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     # undefine error, check the vm exist or not
-    VM_IS_EXIST=`virsh list --all | awk '{ print $2 }' | grep -w $1 | wc -l`
+    VM_IS_EXIST=`virsh list --all | awk '{ print $2 }' | grep -w ${IMAGE_PATH##*/} | wc -l`
     if [ $VM_IS_EXIST -eq 1 ]
     then
         # undefine fail, delete the files
@@ -135,13 +135,13 @@ if [ $? -ne 0 ]; then
         exit 1
     else
         echo 'log info: undefine vm successfully, delete the disk file manually...\n'
-
-        if [ ! -d "${IMAGE_PATH}" ]; then
-            echo 'log info: delete the disk file successfully...\n'
-        else
-            rm -f ${IMAGE_PATH}
-            echo 'log info: delete the disk file successfully...\n'
-        fi
+        rm -f ${IMAGE_PATH}
+#        if [ ! -d "${IMAGE_PATH}" ]; then
+#            echo 'log info: delete the disk file successfully...\n'
+#        else
+#            rm -f ${IMAGE_PATH}
+#            echo 'log info: delete the disk file manually successful...\n'
+#        fi
         exit 0
     fi
 else

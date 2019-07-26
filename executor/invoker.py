@@ -194,7 +194,11 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 else:
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd:
-                        runCmd(cmd)
+                        if cmd:
+                            if cmd.find('vmm') >= 0:
+                                runCmdAndCheckReturnCode(cmd)
+                            else:
+                                runCmd(cmd)
             elif operation_type == 'MODIFIED':
                 if is_vm_exists(metadata_name):
                     cmd = unpackCmdFromJson(jsondict)
@@ -209,8 +213,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
                     cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)
+                    if cmd:
+                        if cmd:
+                            if cmd.find('vmm') >= 0:
+                                runCmdAndCheckReturnCode(cmd)
+                            else:
+                                runCmd(cmd)
 #                 if is_vm_exists(metadata_name):
 #                     if is_vm_active(metadata_name):
 #                         destroy(metadata_name)
@@ -299,14 +307,22 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 if is_vm_exists(metadata_name):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd:
-                        runCmd(cmd)
+                        logger.debug(cmd)
+                        if cmd.find('vmm') >= 0:
+                            runCmdAndCheckReturnCode(cmd)
+                        else:
+                            runCmd(cmd)
+
             elif operation_type == 'DELETED':
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
                     cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)
+                    if cmd:
+                        if cmd.find('vmm') >= 0:
+                            runCmdAndCheckReturnCode(cmd)
+                        else:
+                            runCmd(cmd)
         except libvirtError:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()

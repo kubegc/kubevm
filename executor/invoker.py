@@ -432,7 +432,6 @@ def report_failure(name, jsondict, error_reason, error_message, group, version, 
             group=group, version=version, namespace='default', plural=plural, name=name, body=body)
         return retv
     except ApiException:
-
         logger.error('Oops! ', exc_info=1)
 
 def deleteLifecycleInJson(jsondict):

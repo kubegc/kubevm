@@ -60,15 +60,16 @@ def convert_vm_to_image(name):
     '''
     print "starting convert vm to image..."
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
-    cmd = '%s/convert-vm-to-image.sh %s' %(PATH, name)
-    try:
-        print cmd
-        run(cmd)
-    except Exception:
-        return
     try:
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
+        cmd = '%s/convert-vm-to-image.sh %s' %(PATH, name)
+        try:
+            print cmd
+            run(cmd)
+        except Exception, e:
+            report_failure(name, jsonStr, e.reason, e.message, 'cloudplus.io', 'v1alpha3', 'virtualmachines')    
+            return
         jsonDict = jsonStr.copy()
         jsonDict['kind'] = 'VirtualMachineImage'
         jsonDict['metadata']['kind'] = 'VirtualMachineImage'
@@ -78,7 +79,7 @@ def convert_vm_to_image(name):
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', body=jsonDict)
         client.CustomObjectsApi().delete_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=V1DeleteOptions())
-    except Exception:
+    except ApiException:
         pass
     logger.debug('convert VM to Image successful.')
 
@@ -92,22 +93,23 @@ def convert_image_to_vm(name):
     #         group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
     # except Exception:
     #     pass
-    cmd = '%s/convert-image-to-vm.sh %s' %(PATH, name)
-    try:
-        print cmd
-        run(cmd)
-    except Exception:
-        return
     try:
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name)
+        cmd = '%s/convert-image-to-vm.sh %s' %(PATH, name)
+        try:
+            print cmd
+            run(cmd)
+        except Exception, e:
+            report_failure(name, jsonStr, e.reason, e.message, 'cloudplus.io', 'v1alpha3', 'virtualmachineimages')    
+            return
         jsonDict = jsonStr.copy()
-        jsonDict['kind'] = 'VirtualMachineImage'
-        jsonDict['metadata']['kind'] = 'VirtualMachineImage'
+        jsonDict['kind'] = 'VirtualMachine'
+        jsonDict['metadata']['kind'] = 'VirtualMachine'
         del jsonDict['metadata']['resourceVersion']
         del jsonDict['spec']['lifecycle']
         client.CustomObjectsApi().create_namespaced_custom_object(
-            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', body=jsonDict)
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', body=jsonDict)
         client.CustomObjectsApi().delete_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name, body=V1DeleteOptions())
     except ApiException:
@@ -167,6 +169,29 @@ def deleteLifecycleInJson(jsondict):
             lifecycle = spec.get('lifecycle')
             if lifecycle:
                 del spec['lifecycle']
+    return jsondict
+
+def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        jsondict = deleteLifecycleInJson(jsondict)
+        body = addExceptionMessage(jsondict, error_reason, error_message)
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+        return retv
+    except ApiException:
+        logger.error('Oops! ', exc_info=1)
+        
+def addExceptionMessage(jsondict, reason, message):
+    if jsondict:
+        status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
+        spec = jsondict['spec']
+        if spec:
+            spec['status'] = status
     return jsondict
 
 def cmd():

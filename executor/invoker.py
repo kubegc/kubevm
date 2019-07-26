@@ -304,25 +304,23 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                     else:
                         runCmd(cmd)
             elif operation_type == 'MODIFIED':
-                if is_vm_exists(metadata_name):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd:
-                        logger.debug(cmd)
-                        if cmd.find('vmm') >= 0:
-                            runCmdAndCheckReturnCode(cmd)
-                        else:
-                            runCmd(cmd)
+                cmd = unpackCmdFromJson(jsondict)
+                if cmd:
+                    logger.debug(cmd)
+                    if cmd.find('vmm') >= 0:
+                        runCmdAndCheckReturnCode(cmd)
+                    else:
+                        runCmd(cmd)
 
             elif operation_type == 'DELETED':
-                if is_vm_exists(metadata_name):
-                    if is_vm_active(metadata_name):
-                        destroy(metadata_name)
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd:
-                        if cmd.find('vmm') >= 0:
-                            runCmdAndCheckReturnCode(cmd)
-                        else:
-                            runCmd(cmd)
+                if is_vm_active(metadata_name):
+                    destroy(metadata_name)
+                cmd = unpackCmdFromJson(jsondict)
+                if cmd:
+                    if cmd.find('vmm') >= 0:
+                        runCmdAndCheckReturnCode(cmd)
+                    else:
+                        runCmd(cmd)
         except libvirtError:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
@@ -432,7 +430,6 @@ def report_failure(name, jsondict, error_reason, error_message, group, version, 
             group=group, version=version, namespace='default', plural=plural, name=name, body=body)
         return retv
     except ApiException:
-
         logger.error('Oops! ', exc_info=1)
 
 def deleteLifecycleInJson(jsondict):
@@ -744,7 +741,7 @@ def runCmdAndCheckReturnCode(cmd):
         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
         logger.debug(result)
     except Exception:
-        raise ExecuteException('vmmError: '+cmd+' fail!!!!!!!!!!!!!!!!!!!!')
+        raise ExecuteException('vmmError', "Cmd: %s failed!" %cmd)
         #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
 
 if __name__ == '__main__':

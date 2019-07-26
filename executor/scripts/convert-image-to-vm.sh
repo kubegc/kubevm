@@ -3,7 +3,7 @@
 
 # need args: VM-name
 
-DEFAULT_IMAGE_PATH=/root/mybackup/
+DEFAULT_IMAGE_PATH=/var/lib/libvirt/template/
 DEFAULT_VM_PATH=/var/lib/libvirt/images/
 
 # check the name is exist the vm or not

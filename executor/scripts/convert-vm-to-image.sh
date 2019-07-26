@@ -84,9 +84,10 @@ fi
 # step 2 copy the file to default path, and change the file path in xml
 
 #IMAGEPATH=`cat ${DEFAULT_PATH}${1}.xml | grep 'source file' | grep 'qcow2'| cut -d "'" -f 2`
-IMAGE_PATH=`virsh domblklist $1 | grep 'vda'| awk '{ print $2 }'`
+
+IMAGE_PATH=`virsh domblklist $1 | awk 'NR==3 {print $2 }'`
 echo $IMAGE_PATH
-cp ${IMAGE_PATH} ${DEFAULT_IMAGE_PATH}
+cp ${IMAGE_PATH} ${DEFAULT_IMAGE_PATH}${1}'.'${IMAGE_PATH#*.}
 
 if [ $? -ne 0 ]; then
     echo "log error: copy image file fail...\n"
@@ -94,11 +95,11 @@ if [ $? -ne 0 ]; then
     rm ${DEFAULT_IMAGE_PATH}${1}.xml
     exit 1
 else
-    sed -i 's#'${IMAGE_PATH}'#'${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/}'#g' ${DEFAULT_IMAGE_PATH}${1}.xml
+    sed -i 's#'${IMAGE_PATH}'#'${DEFAULT_IMAGE_PATH}${1}'.'${IMAGE_PATH#*.}'#g' ${DEFAULT_IMAGE_PATH}${1}.xml
     if [ $? -ne 0 ]; then
         echo "log error: change the image file path in xml file failed\n"
         # operation fial, roll back
-        rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/}
+        rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${1}'.'${IMAGE_PATH#*.}
         exit 1
     else
         echo "log info: change the image file path in xml file successfully...\n"
@@ -116,8 +117,8 @@ else
 #        echo "log info: init image successfully...\n"
 #    fi
     # record old disk file path
-    FILE_NAME=`echo ${IMAGE_PATH##*/} | cut -d '.' -f 1`
-    echo ""${IMAGE_PATH} > ${DEFAULT_IMAGE_PATH}${FILE_NAME}'.path'
+#    FILE_NAME=`echo ${IMAGE_PATH##*/} | cut -d '.' -f 1`
+    echo ""${IMAGE_PATH} > ${DEFAULT_IMAGE_PATH}${1}'.path'
 fi
 
 # step 3 undefine the vm
@@ -130,7 +131,7 @@ if [ $? -ne 0 ]; then
     then
         # undefine fail, delete the files
         echo "log error: undefine fail, delete the files...\n"
-        rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/} ${IMAGE_PATH%%.*}'.path'
+        rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${1}'.'${IMAGE_PATH#*.} ${DEFAULT_IMAGE_PATH}${1}'.path'
         exit 1
     else
         echo 'log info: undefine vm successfully, delete the disk file manually...\n'

@@ -7,7 +7,7 @@ DEFAULT_IMAGE_PATH=/root/mybackup/
 DEFAULT_VM_PATH=/var/lib/libvirt/images/
 
 # check the name is exist the vm or not
-line1=`virsh list --all | grep $1 | wc -l`
+line1=`virsh list --all | awk '{ print $2 }' | grep -w $1 | wc -l`
 
 if [ $line1 -eq 1 ]
 then

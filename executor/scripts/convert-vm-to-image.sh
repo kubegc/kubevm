@@ -11,7 +11,7 @@ if [ ! -d "$DEFAULT_IMAGE_PATH" ]; then
 fi
 
 # check is exist the vm or not, and the vm is running or not
-line1=`virsh list --all | grep $1 | wc -l`
+line1=`virsh list --all | awk '{ print $2 }' | grep -w $1 | wc -l`
 
 if [ $line1 -eq 1 ] 
 then
@@ -49,7 +49,7 @@ fi
 
 
 # check the vm status shut down or not
-line2=`virsh list --all | grep $1 | grep 'shut' | wc -l`
+line2=`virsh list --all | grep -w $1  | grep 'shut' | wc -l`
 
 if [ $line2 -eq 1 ]
 then
@@ -116,12 +116,28 @@ else
 fi
 
 # step 3 undefine the vm
-virsh undefine $1
+#virsh undefine --remove-all-storage --delete-snapshots $1 2>&1
+virsh undefine --remove-all-storage --delete-snapshots $1 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-    echo "log error: undefine vm fail..., deleting xml file and vm image copy\n"
-    # operation fial, roll back
-    rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/} ${IMAGE_PATH%%.*}'.path'
-    exit 1
+    # undefine error, check the vm exist or not
+    VM_IS_EXIST=`virsh list --all | awk '{ print $2 }' | grep -w $1 | wc -l`
+    if [ $VM_IS_EXIST -eq 1 ]
+    then
+        # undefine fail, delete the files
+        echo "log error: undefine fail, delete the files...\n"
+        rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${IMAGE_PATH##*/} ${IMAGE_PATH%%.*}'.path'
+        exit 1
+    else
+        echo 'log info: undefine vm successfully, delete the disk file manually...\n'
+
+        if [ ! -d "${IMAGE_PATH}" ]; then
+            echo 'log info: delete the disk file successfully...\n'
+        else
+            rm -f ${IMAGE_PATH}
+            echo 'log info: delete the disk file successfully...\n'
+        fi
+        exit 0
+    fi
 else
     echo "log info: undifine vm successfully...\n"
 fi

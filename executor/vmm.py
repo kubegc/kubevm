@@ -17,6 +17,8 @@ import subprocess
 from utils.libvirt_util import vm_state
 from utils.utils import addPowerStatusMessage
 
+from kubernetes.client.rest import ApiException
+
 
 import logging
 import logging.handlers
@@ -55,14 +57,59 @@ def convert_vm_to_image(name):
     '''
         execute the vm to image operation.
     '''
-    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
-    runCmdWithCallback(cmd, toImage, name)
+    print "starting convert vm to image..."
+    jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+        group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
+    # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
+    cmd = 'convert-vm-to-image.sh  ' + name
+    try:
+        print cmd
+        run(cmd)
+    except Exception:
+        return
+    try:
+        jsonDict = jsonStr.copy()
+        jsonDict['kind'] = 'VirtualMachineImage'
+        jsonDict['metadata']['kind'] = 'VirtualMachineImage'
+        del jsonDict['metadata']['resourceVersion']
+        del jsonDict['spec']['lifecycle']
+        client.CustomObjectsApi().create_namespaced_custom_object(
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', body=jsonDict)
+        client.CustomObjectsApi().delete_namespaced_custom_object(
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name, body=V1DeleteOptions())
+    except Exception:
+        pass
+    logger.debug('convert VM to Image successful.')
+
 def convert_image_to_vm(name):
     '''
-        execute the vm to image operation.
+        execute the iamge to vm operation.
     '''
-    cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-image-to-vm.sh ' + name
-    runCmdWithCallback(cmd, toImage, name)
+    jsonStr =  None
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
+    except Exception:
+        pass
+    cmd = 'convert-image-to-vm.sh  ' + name
+    try:
+        print cmd
+        run(cmd)
+    except Exception:
+        return
+    try:
+        jsonDict = jsonStr.copy()
+        jsonDict['kind'] = 'VirtualMachineImage'
+        jsonDict['metadata']['kind'] = 'VirtualMachineImage'
+        del jsonDict['metadata']['resourceVersion']
+        del jsonDict['spec']['lifecycle']
+        client.CustomObjectsApi().create_namespaced_custom_object(
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', body=jsonDict)
+        client.CustomObjectsApi().delete_namespaced_custom_object(
+            group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name, body=V1DeleteOptions())
+    except ApiException:
+        pass
+    logger.debug('convert Image to VM successful.')
 
 def toImage(name):
     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -120,24 +167,24 @@ def deleteLifecycleInJson(jsondict):
     return jsondict
 
 def cmd():
-    help_msg = 'Usage: python %s <to-image|to-vm|update-os|--help>' % sys.argv[0]
+    help_msg = 'Usage: python %s <convert_vm_to_image|convert_image_to_vm|update-os|--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
         print (help_msg)
         sys.exit(1)
-    
+    print sys.argv
     if len(sys.argv)%2 != 0:
         print ("wrong parameter number")
-        sys.exit(1) 
+        sys.exit(1)
  
     params = {}
-    for i in range (2, len(sys.argv) - 1):
+    for i in range(2, len(sys.argv) - 1):
         params[sys.argv[i]] = sys.argv[i+1]
         i = i+2
     
-    if sys.argv[1] == 'to-image':
-        toImage(params['--name'])
-    elif sys.argv[1] == 'to-vm':
-        toVM(params['--name'])
+    if sys.argv[1] == 'convert_vm_to_image':
+        convert_vm_to_image(params['--name'])
+    elif sys.argv[1] == 'convert_image_to_vm':
+        convert_image_to_vm(params['--name'])
     elif sys.argv[1] == 'update-os':
         updateOS(params['--domain'], params['--source'], params['--target'])
     else:
@@ -148,29 +195,31 @@ def cmd():
 '''
 Run back-end command in subprocess.
 '''
-def runCmdWithCallback(cmd, callback, *args):
+def runCmd(cmd):
     std_err = None
     if not cmd:
         #         logger.debug('No CMD to execute.')
         return
+    try:
+        output = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
+    except Exception, e:
+        output = str(e.output)
+    finished = output.split('\n')
+    for line in finished:
+        print line
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_out:
             msg = ''
-            isError = False
-            for index, line in enumerate(std_out):
+            for index,line in enumerate(std_out):
                 if not str.strip(line):
                     continue
-                if str.find('error') > 0:
-                    isError = True
                 if index == len(std_out) - 1:
                     msg = msg + str.strip(line) + '. '
                 else:
                     msg = msg + str.strip(line) + ', '
-            if not isError and callback != None:
-                callback(args)  #TODO
             logger.debug(str.strip(msg))
         if std_err:
             msg = ''
@@ -181,13 +230,20 @@ def runCmdWithCallback(cmd, callback, *args):
                     msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
                 else:
                     msg = msg + str.strip(line) + ', '
-            logger.error(str.strip(msg))
-            raise ExecuteException('VirtctlError', str.strip(msg))
+            logger.error(msg)
+            raise ExecuteException('vmmError', str.strip(msg))
         #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
-        return
     finally:
         p.stdout.close()
         p.stderr.close()
+
+def run(cmd):
+    try:
+        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        print result
+    except Exception:
+        raise ExecuteException('vmmError', str.strip(result))
+
 
 if __name__ == '__main__':
     cmd()

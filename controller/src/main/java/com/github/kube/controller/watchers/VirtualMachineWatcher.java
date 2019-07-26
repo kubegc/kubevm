@@ -39,7 +39,6 @@ public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<Vi
 
 	public void eventReceived(Action action, VirtualMachine vm) {
 
-		System.out.println(vm.getMetadata().getName());
 		String namespace = vm.getMetadata().getNamespace();
 		String podName = getPrefix() + "-" + vm.getMetadata().getName() + "-" + namespace;
 		

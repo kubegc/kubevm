@@ -11,19 +11,19 @@ line1=`virsh list --all | awk '{ print $2 }' | grep -w $1 | wc -l`
 
 if [ $line1 -eq 1 ]
 then
-    echo 'log error: vm name exist, create vm from image fail...\n'
+    echo 'log error: vm name exist, create vm from image fail...\n' >&2
     exit 1
 else
-    echo 'log error: vm name not exist, begin to create vm from image...\n'
+    echo 'log info: vm name not exist, begin to create vm from image...\n' >&2
 fi
 
 # check is exist the image or not
 if [ ! -f ${DEFAULT_IMAGE_PATH}${1}'.xml' ]
 then
-  echo "log error: image not exist, create vm from image fail...\n"
+  echo "log error: image not exist, create vm from image fail...\n" >&2
   exit 1
 else
-  echo "log info: image has exist, continue...\n"
+  echo "log info: image has exist, continue...\n"  >&1
 fi
 
 
@@ -38,37 +38,37 @@ if [ $DISK_SPACE -gt $NEED_SPACE ]
 then
     echo $NEED_SPACE
     echo $DISK_SPACE
-    echo "log info: space is enough, continue convert image to vm..."
+    echo "log info: space is enough, continue convert image to vm..."  >&1
 else
     echo $NEED_SPACE
     echo $DISK_SPACE
-    echo "log error: space is not enough, stop convert image to vm..."
+    echo "log error: space is not enough, stop convert image to vm..."  >&2
     exit 1
 fi
 
 cp ${DEFAULT_IMAGE_PATH}${OLD_PATH##*/} ${OLD_PATH%/*}
 
 if [ $? -ne 0 ]; then
-    echo "log error: copy image disk to old path fail...\n"
+    echo "log error: copy image disk to old path fail...\n"  >&2
     exit 1
 else
-    echo "log info: copy image disk to old path successfully...\n"
+    echo "log info: copy image disk to old path successfully...\n"  >&1
     sed -i 's#'${DEFAULT_IMAGE_PATH}${OLD_PATH##*/}'#'${OLD_PATH}'#g' ${DEFAULT_IMAGE_PATH}${1}.xml
     if [ $? -ne 0 ]; then
-        echo "log error: change the vm file path in xml file failed\n"
+        echo "log error: change the vm file path in xml file failed\n"  >&2
         # operation fial, roll back
         rm -f ${OLD_PATH}
         exit 1
     else
-        echo "log info: change the vm file path in xml file successfully...\n"
+        echo "log info: change the vm file path in xml file successfully...\n" >&1
         virsh define ${DEFAULT_IMAGE_PATH}${1}.xml
         if [ $? -ne 0 ]; then
-            echo "log error: virsh define failed\n"
+            echo "log error: virsh define failed\n" >&2
             # operation fial, roll back
             rm -f ${OLD_PATH}
             exit 1
         else
-            echo "log info: virsh define successfully...\n"
+            echo "log info: virsh define successfully...\n" >&1
             rm -f ${DEFAULT_IMAGE_PATH}${1}.xml ${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.} ${DEFAULT_IMAGE_PATH}${1}.path
         fi
     fi

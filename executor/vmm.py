@@ -93,7 +93,7 @@ def convert_image_to_vm(name):
     try:
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name)
-        cmd = '/bin/bash %s/convert-image-to-vm.sh %s' %(PATH, name)
+        cmd = '/bin/bash %s/scripts/convert-image-to-vm.sh %s' %(PATH, name)
         runCmd(cmd)
         jsonDict = jsonStr.copy()
         jsonDict['kind'] = 'VirtualMachine'

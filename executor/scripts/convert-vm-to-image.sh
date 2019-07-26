@@ -3,11 +3,11 @@
 
 # need args: VM-name
 
-DEFAULT_IMAGE_PATH=/root/mybackup/
+DEFAULT_IMAGE_PATH=/var/lib/libvirt/template/
 DEFAULT_VM_PATH=/var/lib/libvirt/images/
 
 if [ ! -d "$DEFAULT_IMAGE_PATH" ]; then
-    mkdir $DEFAULT_IMAGE_PATH
+    mkdir -p $DEFAULT_IMAGE_PATH
 fi
 
 # check is exist the vm or not, and the vm is running or not

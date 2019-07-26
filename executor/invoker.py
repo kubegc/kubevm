@@ -17,6 +17,7 @@ import string
 import traceback
 import pprint
 import time
+import shutil
 from threading import Thread
 from json import loads
 from json import dumps
@@ -70,6 +71,9 @@ PLURAL_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'plural')
 VERSION_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'version')
 GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
+RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
+
+DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 
 LABEL = 'host=%s' % (socket.gethostname())
 
@@ -154,8 +158,89 @@ def test():
     except:
         traceback.print_exc()
         logger.error('Oops! ', exc_info=1)
-    
+        
 def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
+    watcher = watch.Watch()
+    kwargs = {}
+    kwargs['label_selector'] = LABEL
+    kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
+    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                group=group, version=version, plural=plural, **kwargs):
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+        logger.debug('metadata name: %s' % metadata_name)
+        try:
+            jsondict = forceUsingMetadataName(metadata_name, jsondict)
+    #             print(jsondict)
+            if operation_type == 'ADDED':
+                if _isInstallVMFromISO(jsondict):
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd:
+                        runCmd(cmd)
+                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
+                        create(metadata_name)
+                elif _isInstallVMFromImage(jsondict):
+                    template_path = _get_field(jsondict, 'cdrom')
+                    if not os.path.exists(template_path):
+                        raise Exception("Template file %s not exists, cannot copy from it!" % template_path)
+                    new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
+                    if os.path.exists(new_vm_path):
+                        raise Exception("File %s already exists, copy abolish!" % template_path)
+                    shutil.copyfile(template_path, new_vm_path)
+                    jsondict = _updateRootDiskInJson(jsondict, new_vm_path)
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd: 
+                        runCmd(cmd)
+                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
+                        create(metadata_name)
+                else:
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd:
+                        if cmd:
+                            if cmd.find('vmm') >= 0:
+                                runCmdAndCheckReturnCode(cmd)
+                            else:
+                                runCmd(cmd)
+            elif operation_type == 'MODIFIED':
+                if is_vm_exists(metadata_name):
+                    cmd = unpackCmdFromJson(jsondict)
+                    # add support python file real path to exec
+                    if cmd:
+                        if cmd.find('vmm') >= 0:
+                            runCmdAndCheckReturnCode(cmd)
+                        else:
+                            runCmd(cmd)
+            elif operation_type == 'DELETED':
+                if is_vm_exists(metadata_name):
+                    if is_vm_active(metadata_name):
+                        destroy(metadata_name)
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd:
+                        if cmd:
+                            if cmd.find('vmm') >= 0:
+                                runCmdAndCheckReturnCode(cmd)
+                            else:
+                                runCmd(cmd)
+#                 if is_vm_exists(metadata_name):
+#                     if is_vm_active(metadata_name):
+#                         destroy(metadata_name)
+#                     undefine_with_snapshot(metadata_name)
+        except libvirtError:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+    
+def vMWatcherBackup(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
@@ -628,6 +713,39 @@ def updateDomainStructureInJsonBackup(jsondict, body):
             spec.update(loads(body))
     return jsondict['items'][0]
 
+def _updateRootDiskInJson(jsondict, new_vm_path):
+    '''
+    Get target VM name from Json.
+    '''
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        the_cmd_key = None
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return
+        keys = lifecycle.keys()
+        for key in keys:
+            if key in ALL_SUPPORT_CMDS.keys():
+                the_cmd_key = key
+                break;
+        '''
+        Get the CMD body from 'dict' structure.
+        '''
+        if the_cmd_key:
+            contents = lifecycle.get(the_cmd_key)
+            for k, v in contents.items():
+                if k == "disk":
+                    v.replace('ROOTDISK', new_vm_path)
+                elif k == 'cdrom':
+                    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
+                else:
+                    continue
+        return jsondict    
+
 '''
 Covert chars according to real CMD in back-end.
 '''
@@ -672,6 +790,10 @@ def unpackCmdFromJson(jsondict):
                     '''
                     if key == FORCE_SHUTDOWN_VM:
                         the_cmd_keys.insert(0, key)
+                        break;
+                    elif key == RESET_VM:
+                        the_cmd_keys.insert(0, key)
+                        break;
                     else:
                         the_cmd_keys.append(key)
             '''

@@ -743,7 +743,7 @@ def runCmdAndCheckReturnCode(cmd):
         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
         logger.debug(result)
     except Exception:
-        raise ExecuteException('vmmError: '+cmd+' fail!!!!!!!!!!!!!!!!!!!!')
+        raise ExecuteException('vmmError', "Cmd: %s failed!" %cmd)
         #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
 
 if __name__ == '__main__':

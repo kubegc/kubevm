@@ -64,12 +64,7 @@ def convert_vm_to_image(name):
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachines', name=name)
         cmd = '%s/convert-vm-to-image.sh %s' %(PATH, name)
-        try:
-            print cmd
-            run(cmd)
-        except Exception, e:
-            report_failure(name, jsonStr, e.reason, e.message, 'cloudplus.io', 'v1alpha3', 'virtualmachines')    
-            return
+        run(cmd)
         jsonDict = jsonStr.copy()
         jsonDict['kind'] = 'VirtualMachineImage'
         jsonDict['metadata']['kind'] = 'VirtualMachineImage'
@@ -97,12 +92,7 @@ def convert_image_to_vm(name):
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group='cloudplus.io', version='v1alpha3', namespace='default', plural='virtualmachineimages', name=name)
         cmd = '%s/convert-image-to-vm.sh %s' %(PATH, name)
-        try:
-            print cmd
-            run(cmd)
-        except Exception, e:
-            report_failure(name, jsonStr, e.reason, e.message, 'cloudplus.io', 'v1alpha3', 'virtualmachineimages')    
-            return
+        run(cmd)
         jsonDict = jsonStr.copy()
         jsonDict['kind'] = 'VirtualMachine'
         jsonDict['metadata']['kind'] = 'VirtualMachine'

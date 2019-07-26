@@ -32,7 +32,7 @@ fi
 
 
 # check DEAFULT_PATH disk space support to create image or not
-DISK_FILE_PATH=`virsh domblklist $1 | grep 'vda'| awk '{ print $2 }'`
+DISK_FILE_PATH=`virsh domblklist ttt | awk 'NR==3 {print $2 }'`
 NEED_SPACE=`du -m $DISK_FILE_PATH | awk '{print $1}'`
 DISK_SPACE=`df -m $DEFAULT_IMAGE_PATH | awk '{ print $4 }' | tail -n +2 |awk '{sum+=$1} END {print sum}'`
 if [ $DISK_SPACE -gt $NEED_SPACE ]

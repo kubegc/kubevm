@@ -261,7 +261,7 @@ def run(cmd):
         logger.debug(result)
         print result
     except Exception:
-        raise ExecuteException('vmmError', info=sys.exc_info()[1])
+        raise ExecuteException('vmmError', sys.exc_info()[1])
 
 
 if __name__ == '__main__':

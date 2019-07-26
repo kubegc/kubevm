@@ -14,7 +14,7 @@ then
     echo 'log error: vm name exist, create vm from image fail...\n' >&2
     exit 1
 else
-    echo 'log info: vm name not exist, begin to create vm from image...\n' >&2
+    echo 'log info: vm name not exist, begin to create vm from image...\n' >&1
 fi
 
 # check is exist the image or not
@@ -73,11 +73,4 @@ else
         fi
     fi
 fi
-
-
-
-#virsh start $1
-
-
-
 

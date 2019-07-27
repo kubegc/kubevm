@@ -46,14 +46,15 @@ else
     exit 1
 fi
 
-cp ${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.} ${OLD_PATH%/*}
+#cp ${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.} ${OLD_PATH%/*}
+cp ${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.} ${OLD_PATH}
 
 if [ $? -ne 0 ]; then
     echo "log error: copy image disk to old path fail...\n"  >&2
     exit 1
 else
     echo "log info: copy image disk to old path successfully...\n"  >&1
-    sed -i 's#'${DEFAULT_IMAGE_PATH}${OLD_PATH##*/}'#'${OLD_PATH}'#g' ${DEFAULT_IMAGE_PATH}${1}.xml
+    sed -i 's#'${DEFAULT_IMAGE_PATH}${1}'.'${OLD_PATH#*.}'#'${OLD_PATH}'#g' ${DEFAULT_IMAGE_PATH}${1}.xml
     if [ $? -ne 0 ]; then
         echo "log error: change the vm file path in xml file failed\n"  >&2
         # operation fial, roll back

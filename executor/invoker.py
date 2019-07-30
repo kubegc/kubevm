@@ -198,19 +198,13 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd:
                         if cmd:
-                            if cmd.find('vmm') >= 0:
-                                runCmdAndCheckReturnCode(cmd)
-                            else:
-                                runCmd(cmd)
+                            runCmd(cmd)
             elif operation_type == 'MODIFIED':
                 if is_vm_exists(metadata_name):
                     cmd = unpackCmdFromJson(jsondict)
                     # add support python file real path to exec
                     if cmd:
-                        if cmd.find('vmm') >= 0:
-                            runCmdAndCheckReturnCode(cmd)
-                        else:
-                            runCmd(cmd)
+                        runCmd(cmd)
             elif operation_type == 'DELETED':
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
@@ -218,10 +212,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd:
                         if cmd:
-                            if cmd.find('vmm') >= 0:
-                                runCmdAndCheckReturnCode(cmd)
-                            else:
-                                runCmd(cmd)
+                            runCmd(cmd)
 #                 if is_vm_exists(metadata_name):
 #                     if is_vm_active(metadata_name):
 #                         destroy(metadata_name)
@@ -383,28 +374,19 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 cmd = unpackCmdFromJson(jsondict)
                 if cmd:
                     logger.debug(cmd)
-                    if cmd.find('vmm') >= 0:
-                        runCmdAndCheckReturnCode(cmd)
-                    else:
-                        runCmd(cmd)
+                    runCmd(cmd)
             elif operation_type == 'MODIFIED':
                 cmd = unpackCmdFromJson(jsondict)
                 if cmd:
                     logger.debug(cmd)
-                    if cmd.find('vmm') >= 0:
-                        runCmdAndCheckReturnCode(cmd)
-                    else:
-                        runCmd(cmd)
+                    runCmd(cmd)
 
             elif operation_type == 'DELETED':
                 if is_vm_active(metadata_name):
                     destroy(metadata_name)
                 cmd = unpackCmdFromJson(jsondict)
                 if cmd:
-                    if cmd.find('vmm') >= 0:
-                        runCmdAndCheckReturnCode(cmd)
-                    else:
-                        runCmd(cmd)
+                    runCmd(cmd)
         except libvirtError:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
@@ -823,26 +805,28 @@ def runCmd(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_out:
-            msg = ''
-            for index,line in enumerate(std_out):
-                if not str.strip(line):
-                    continue
-                if index == len(std_out) - 1:
-                    msg = msg + str.strip(line) + '. '
-                else:
-                    msg = msg + str.strip(line) + ', '
-            logger.debug(str.strip(msg))
+#             msg = ''
+#             for index,line in enumerate(std_out):
+#                 if not str.strip(line):
+#                     continue
+#                 if index == len(std_out) - 1:
+#                     msg = msg + str.strip(line) + '. '
+#                 else:
+#                     msg = msg + str.strip(line) + ', '
+#             logger.debug(str.strip(msg))
+            logger.debug(std_out)
         if std_err:
-            msg = ''
-            for index, line in enumerate(std_err):
-                if not str.strip(line):
-                    continue
-                if index == len(std_err) - 1:
-                    msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
-                else:
-                    msg = msg + str.strip(line) + ', '
-            logger.error(msg)
-            raise ExecuteException('VirtctlError', str.strip(msg))
+#             msg = ''
+#             for index, line in enumerate(std_err):
+#                 if not str.strip(line):
+#                     continue
+#                 if index == len(std_err) - 1:
+#                     msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
+#                 else:
+#                     msg = msg + str.strip(line) + ', '
+#             logger.error(msg)
+#             raise ExecuteException('VirtctlError', str.strip(msg))
+            raise ExecuteException('VirtctlError', std_err)
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
         return
     finally:
@@ -861,7 +845,7 @@ def runCmdAndCheckReturnCode(cmd):
         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
         logger.debug(result)
     except Exception:
-        raise ExecuteException('vmmError', "Cmd: %s failed!" %cmd)
+        raise ExecuteException('VmmError', "Cmd: %s failed!" %cmd)
         #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
 
 if __name__ == '__main__':

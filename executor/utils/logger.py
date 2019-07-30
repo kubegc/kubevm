@@ -8,7 +8,7 @@ def set_logger(header,fn):
     handler2 = logging.handlers.RotatingFileHandler(filename=fn, maxBytes=10000000, backupCount=10)
     
     logger.setLevel(logging.DEBUG)
-    handler1.setLevel(logging.DEBUG)
+    handler1.setLevel(logging.ERROR)
     handler2.setLevel(logging.DEBUG)
     
     formatter = logging.Formatter("%(asctime)s %(name)s %(lineno)s %(levelname)s %(message)s")

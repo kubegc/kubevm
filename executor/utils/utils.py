@@ -14,6 +14,50 @@ import logger
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
+class RotatingOperation: 
+    def __init__(self):
+        pass
+    
+    def option(self):
+        pass
+    
+    def rotating_option(self):
+        pass
+
+'''
+Switch string in file
+Parameters:
+    x: target file.
+    y: replaced value.
+    z: replacement value.
+    s:
+        { 1: only replace 1th match.
+          'g': replace all matches.
+        }
+'''
+def string_switch(x,y,z,s=1):
+    with open(x, "r") as f:
+        lines = f.readlines()
+ 
+    with open(x, "w") as f_w:
+        n = 0
+        if s == 1:
+            for line in lines:
+                if y in line:
+                    line = line.replace(y,z)
+                    f_w.write(line)
+                    n += 1
+                    break
+                f_w.write(line)
+                n += 1
+            for i in range(n,len(lines)):
+                f_w.write(lines[i])
+        elif s == 'g':
+            for line in lines:
+                if y in line:
+                    line = line.replace(y,z)
+                f_w.write(line)
+
 '''
 Run back-end command in subprocess.
 '''

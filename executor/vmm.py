@@ -10,15 +10,17 @@ from kubernetes.client import V1DeleteOptions
 from json import loads
 import sys
 import os
+import time
 import json
 import subprocess
 import ConfigParser
 import traceback
+import shutil
 
 from kubernetes.client.rest import ApiException
 
 from utils.libvirt_util import vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch
+from utils.utils import addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, report_failure, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -58,12 +60,14 @@ def convert_vm_to_image(name):
         def __init__(self, vm, tag):
             self.tag = tag
             self.vm = vm
+            self.temp_path = '%s/%s.xml.new' % (DEFAULT_TEMPLATE_DIR, vm)
             self.path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
     
         def option(self):
             vm_xml = get_xml(self.vm)
-            with open(self.path, 'w') as fw:
+            with open(self.temp_path, 'w') as fw:
                 fw.write(vm_xml)
+            shutil.move(self.temp_path, self.path)
             done_operations.append(self.tag)
             return 
     
@@ -100,7 +104,7 @@ def convert_vm_to_image(name):
             '''
             Replate template's boot disk to dest path in .xml file.
             '''
-            string_switch(self.xml_path, self.source_path, self.dest_path, 'g')
+            string_switch(self.xml_path, self.source_path, self.dest_path, 1)
             done_operations.append(self.tag)
             return 
     
@@ -147,12 +151,14 @@ def convert_vm_to_image(name):
         def __init__(self, vm, tag):
             self.tag = tag
             self.vm = vm
-            self.source_path = get_boot_disk_path(vm)
+            self.store_source_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vm)
     
         def option(self):
             '''
             Remove source path of template's boot disk
             '''
+            with open(self.store_source_path, 'r') as fr:
+                self.source_path = fr.read()
             if os.path.exists(self.source_path):
                 os.remove(self.source_path)
             done_operations.append(self.tag)
@@ -162,26 +168,27 @@ def convert_vm_to_image(name):
             if self.tag in done_operations:
                 logger.debug('In final step, rotating noting.')
             return 
-
         
-    jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
+#     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+#         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
+    '''
+    #Preparations
+    '''
+    doing = 'Preparations'
+    if not is_vm_exists(name):
+        raise Exception('VM %s not exists!' % name)
+    if is_vm_active(name):
+        raise Exception('Cannot covert running vm to image.')
+    if not os.path.exists(DEFAULT_TEMPLATE_DIR):
+        os.makedirs(DEFAULT_TEMPLATE_DIR, 0711)
+    if not get_boot_disk_path(name):
+        raise Exception('VM %s has no boot disk.' % name)
     step1 = step_1_dumpxml_to_path(name, 'Step1: dumpxml')
     step2 = step_2_copy_template_to_path(name, 'Step2: copy template')
     step3 = step_3_undefine_vm(name, 'Step3: undefine vm')
     step_final = final_step_delete_source_file(name, 'Final step: remove source file')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
-        '''
-        #Preparations
-        '''
-        doing = 'Preparations'
-        if not is_vm_exists(name):
-            raise Exception('VM not exists!')
-        if is_vm_active(name):
-            raise Exception('Cannot covert running vm to image.')
-        if not os.path.exists(DEFAULT_TEMPLATE_DIR):
-            os.makedirs(DEFAULT_TEMPLATE_DIR, 0711)
         '''
         #Step 1: dump VM .xml file to template's path
         '''
@@ -197,59 +204,208 @@ def convert_vm_to_image(name):
         '''       
         doing = step3.tag
         step3.option()
+#         '''
+#         #Step 4: synchronize information to Kubernetes
+#         '''   
+#         doing = 'Synchronize to Kubernetes'       
+#         jsonDict = jsonStr.copy()
+#         jsonDict['kind'] = 'VirtualMachineImage'
+#         jsonDict['metadata']['kind'] = 'VirtualMachineImage'
+#         del jsonDict['metadata']['resourceVersion']
+#         del jsonDict['spec']['lifecycle']
+#         try:
+#             client.CustomObjectsApi().create_namespaced_custom_object(
+#                 group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, body=jsonDict)
+#             client.CustomObjectsApi().delete_namespaced_custom_object(
+#                 group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=V1DeleteOptions())
+#         except ApiException:
+#             logger.warning('Oops! ', exc_info=1)
         '''
-        #Step 4: synchronize information to Kubernetes
-        '''   
-        doing = 'Synchronize to Kubernetes'       
-        jsonDict = jsonStr.copy()
-        jsonDict['kind'] = 'VirtualMachineImage'
-        jsonDict['metadata']['kind'] = 'VirtualMachineImage'
-        del jsonDict['metadata']['resourceVersion']
-        del jsonDict['spec']['lifecycle']
-        try:
-            client.CustomObjectsApi().create_namespaced_custom_object(
-                group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, body=jsonDict)
-            client.CustomObjectsApi().delete_namespaced_custom_object(
-                group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=V1DeleteOptions())
-        except ApiException:
-            logger.warning('Oops! ', exc_info=1)
+        #Check sychronization in Virtlet.
+          timeout = 3s
+        '''
+        i = 0
+        success = False
+        while(i < 3):
+            try: 
+                client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
+            except:
+                success = False
+            finally:
+                i += 1
+            success = True
+            break;
+        if not success:
+            raise Exception('Synchronize information in Virtlet failed!')
         '''
         #Final step: delete source file
         '''       
         doing = step_final.tag
         step_final.option()
     except:
+        logger.debug(done_operations)
         error_reason = 'VmmError'
         error_message = '%s failed!' % doing
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
-        report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        step1.rotating_option()
-        step2.rotating_option()
-        step3.rotating_option()
+#         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
         step_final.rotating_option()
+        step3.rotating_option()
+        step2.rotating_option()
+        step1.rotating_option()
 
 '''
 A atomic operation: Convert image to vm.
 '''
 def convert_image_to_vm(name):
-    jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
+    '''
+    A list to record what we already done.
+    '''
+    done_operations = []
+    doing = ''
+    
+    class step_1_copy_template_to_path(RotatingOperation):
+        
+        def __init__(self, vm, tag, file_type='qcow2', full_copy=True):
+            self.tag = tag
+            self.vm = vm
+            self.file_type = file_type
+            self.full_copy = full_copy
+            self.source_path = '%s/%s.%s' % (DEFAULT_TEMPLATE_DIR, vm, file_type)
+            self.store_target_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vm)
+            self.xml_path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
+    
+        def option(self):
+            '''
+            Copy template's boot disk to destination dir.
+            '''
+            with open(self.store_target_path, 'r') as fr:
+                self.dest_path = fr.read()
+            if self.full_copy:
+                copy_template_cmd = 'cp %s %s' % (self.source_path, self.dest_path)
+            runCmd(copy_template_cmd)
+            '''
+            Replate template's boot disk to dest path in .xml file.
+            '''
+            string_switch(self.xml_path, self.source_path, self.dest_path, 1)
+            done_operations.append(self.tag)
+            return 
+    
+        def rotating_option(self):
+            if self.tag in done_operations:
+                with open(self.store_target_path, 'r') as fr:
+                    self.dest_path = fr.read()
+                if os.path.exists(self.dest_path):
+                    os.remove(self.dest_path)
+            return 
+        
+    class step_2_define_vm(RotatingOperation):
+        
+        def __init__(self, vm, tag):
+            self.tag = tag
+            self.vm = vm
+            self.xml_path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
+    
+        def option(self):
+            with open(self.xml_path, 'r') as fr:
+                vm_xml = fr.read()
+            define_xml_str(vm_xml)
+            done_operations.append(self.tag)
+            return 
+    
+        def rotating_option(self):
+            if self.tag in done_operations:
+                if is_vm_exists(self.vm):
+                    undefine(self.vm)
+            return 
+
+    class final_step_delete_source_file(RotatingOperation):
+        
+        def __init__(self, vm, tag, file_type='qcow2'):
+            self.tag = tag
+            self.vm = vm
+            self.source_path = '%s/%s.%s' % (DEFAULT_TEMPLATE_DIR, vm, file_type)
+            self.store_target_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vm)
+            self.xml_path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
+    
+        def option(self):
+            '''
+            Remove source path of template's boot disk
+            '''
+            for path in [self.source_path, self.store_target_path, self.xml_path]:
+                if os.path.exists(path):
+                    os.remove(path)
+            done_operations.append(self.tag)
+            return 
+    
+        def rotating_option(self):
+            if self.tag in done_operations:
+                logger.debug('In final step, rotating noting.')
+            return 
+        
+#     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+#         group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
+    step1 = step_1_copy_template_to_path(name, 'Step1: copy template')
+    step2 = step_2_define_vm(name, 'Step2: define vm')
+    step_final = final_step_delete_source_file(name, 'Final step: remove source file')
     try:
-#         cmd = '/bin/bash %s/scripts/convert-image-to-vm.sh %s' %(PATH, name)
-#         runCmd(cmd)
-        jsonDict = jsonStr.copy()
-        jsonDict['kind'] = 'VirtualMachine'
-        jsonDict['metadata']['kind'] = 'VirtualMachine'
-        del jsonDict['metadata']['resourceVersion']
-        del jsonDict['spec']['lifecycle']
-        client.CustomObjectsApi().create_namespaced_custom_object(
-            group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, body=jsonDict)
-        client.CustomObjectsApi().delete_namespaced_custom_object(
-            group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name, body=V1DeleteOptions())
-    except ApiException:
-        pass
-    logger.debug('convert Image to VM successful.')
+        '''
+        #Step 1: copy template to original path
+        '''
+        doing = step1.tag
+        step1.option()
+        '''
+        #Step 2: define VM
+        '''       
+        doing = step2.tag
+        step2.option()
+#         '''
+#         #Step 3: synchronize information to Kubernetes
+#         '''  
+#         jsonDict = jsonStr.copy()
+#         jsonDict['kind'] = 'VirtualMachine'
+#         jsonDict['metadata']['kind'] = 'VirtualMachine'
+#         del jsonDict['metadata']['resourceVersion']
+#         del jsonDict['spec']['lifecycle']
+#         try:
+#             client.CustomObjectsApi().create_namespaced_custom_object(
+#                 group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, body=jsonDict)
+#             client.CustomObjectsApi().delete_namespaced_custom_object(
+#                 group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name, body=V1DeleteOptions())
+#         except ApiException:
+#             logger.warning('Oops! ', exc_info=1)
+        '''
+        #Check sychronization in Virtlet.
+          timeout = 3s
+        '''
+        i = 0
+        success = False
+        while(i < 3):
+            try:
+                client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
+            except:
+                success = False
+            finally:
+                i += 1
+            success = True
+            break;
+        if not success:
+            raise Exception('Synchronize information in Virtlet failed!')
+        '''
+        #Final step: delete source file
+        '''       
+        doing = step_final.tag
+        step_final.option()
+    except:
+        logger.debug(done_operations)
+        error_reason = 'VmmError'
+        error_message = '%s failed!' % doing
+        logger.error(error_reason + ' ' + error_message)
+        logger.error('Oops! ', exc_info=1)
+#         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
+        step_final.rotating_option()
+        step2.rotating_option()
+        step1.rotating_option()
 
 # def toImage(name):
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -293,33 +449,6 @@ def updateOS(name, source, target):
     body = addPowerStatusMessage(jsonDict, vm_power_state, 'The VM is %s' % vm_power_state)
     client.CustomObjectsApi().replace_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=body)
-    
-def deleteLifecycleInJson(jsondict):
-    if jsondict:
-        '''
-        Get target VM name from Json.
-        '''
-        spec = jsondict['spec']
-        if spec:
-            lifecycle = spec.get('lifecycle')
-            if lifecycle:
-                del spec['lifecycle']
-    return jsondict
-
-def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
-    try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                          version=version, 
-                                                                          namespace='default', 
-                                                                          plural=plural, 
-                                                                          name=name)
-        jsondict = deleteLifecycleInJson(jsondict)
-        body = addExceptionMessage(jsondict, error_reason, error_message)
-        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-        return retv
-    except ApiException:
-        logger.error('Oops! ', exc_info=1)
         
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:
@@ -386,7 +515,7 @@ def runCmd(cmd):
 #                     msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
 #                 else:
 #                     msg = msg + str.strip(line) + ', '
-#             logger.error(msg)
+            logger.error(std_err)
 #             raise ExecuteException('VirtctlError', str.strip(msg))
             raise ExecuteException('VmmError', std_err)
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')

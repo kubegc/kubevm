@@ -10,8 +10,6 @@ ADD virtctl.sh /home/virtctl/bin/
 
 ADD utils /home/virtctl/bin/utils
 
-ADD scripts /home/virtctl/bin/scripts
-
 RUN rm -fr /tmp/*
 
 WORKDIR /home/virtctl/bin

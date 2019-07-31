@@ -12,6 +12,12 @@ import os, sys, time, signal, atexit, subprocess
 import random
 import logger
 
+'''
+Import third party libs
+'''
+from kubernetes import client
+from kubernetes.client.rest import ApiException
+
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 class RotatingOperation: 
@@ -76,6 +82,33 @@ def runCmd(cmd):
     finally:
         p.stdout.close()
         p.stderr.close()
+        
+def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        jsondict = deleteLifecycleInJson(jsondict)
+        body = addExceptionMessage(jsondict, error_reason, error_message)
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+        return retv
+    except ApiException:
+        logger.error('Oops! ', exc_info=1)
+
+def deleteLifecycleInJson(jsondict):
+    if jsondict:
+        '''
+        Get target VM name from Json.
+        '''
+        spec = jsondict['spec']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+    return jsondict
         
 def addPowerStatusMessage(jsondict, reason, message):
     if jsondict:

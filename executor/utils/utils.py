@@ -9,8 +9,12 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 Import python libs
 '''
 import os, sys, time, signal, atexit, subprocess
+import threading
 import random
 import logger
+import socket
+import datetime
+from dateutil.tz import gettz
 
 '''
 Import third party libs
@@ -19,6 +23,27 @@ from kubernetes import client
 from kubernetes.client.rest import ApiException
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
+
+def get_hostname_in_lower_case():
+    return socket.gethostname().lower()
+
+def normlize(s):
+    return s[:1].upper() + s[1:]
+
+def now_to_datetime():
+    time_zone = gettz('Asia/Shanghai')
+    return datetime.datetime.now(tz=time_zone)
+
+def now_to_micro_time():
+    time_zone = gettz('Asia/Shanghai')
+    dt = datetime.datetime.now(tz=time_zone)
+    return time.mktime(dt.timetuple()) + dt.microsecond / 1000000.0
+    
+def now_to_timestamp(digits = 10):
+    time_stamp = time.time()
+    digits = 10 ** (digits -10)
+    time_stamp = int(round(time_stamp*digits))
+    return time_stamp
 
 class RotatingOperation: 
     def __init__(self):
@@ -242,6 +267,30 @@ def randomMAC():
         random.randint(0x00, 0xff),
         random.randint(0x00, 0xff) ]
     return ':'.join(map(lambda x: "%02x" % x, mac))
+
+class Job(threading.Thread):
+
+    def __init__(self, *args, **kwargs):
+        super(Job, self).__init__(*args, **kwargs)
+        self.__flag = threading.Event()
+        self.__flag.set()
+        self.__running = threading.Event()
+        self.__running.set()
+        
+    def run(self):
+        while self.__running.isSet():
+            self.__flag.wait()
+            time.sleep(1)
+
+    def pause(self):
+        self.__flag.clear()
+
+    def resume(self):
+        self.__flag.set()
+
+    def stop(self):
+        self.__flag.set()
+        self.__running.clear()
 
 class CDaemon:
     '''

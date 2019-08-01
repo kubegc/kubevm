@@ -34,7 +34,7 @@ Import local libs
 '''
 from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state
 from utils import logger
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -73,7 +73,7 @@ BLOCK_DEV_DIRS = config_raw.items('DefaultBlockDevDir')
 LIBVIRT_XML_DIRS = config_raw.items('DefaultLibvirtXmlDir')
 TEMPLATE_DIRS = config_raw.items('DefaultTemplateDir')
 
-HOSTNAME = socket.gethostname()
+HOSTNAME = get_hostname_in_lower_case()
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
@@ -324,16 +324,16 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
         if  event == "Create":
             try:
                 logger.debug('***Create VM %s from back-end, report to virtlet***' % name)
-                jsondict = {'spec': {'domain': {}, 'nodeName': '', 'status': {}}, 
-                            'kind': VM_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
-                vm_xml = get_xml(name)
-                vm_power_state = vm_state(name).get(name)
-                vm_json = toKubeJson(xmlToJson(vm_xml))
-                vm_json = updateDomain(loads(vm_json))
-                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-                body = addNodeName(jsondict)
-                createStructure(body, group, version, plural)
+#                 jsondict = {'spec': {'domain': {}, 'nodeName': '', 'status': {}}, 
+#                             'kind': VM_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
+#                 vm_xml = get_xml(name)
+#                 vm_power_state = vm_state(name).get(name)
+#                 vm_json = toKubeJson(xmlToJson(vm_xml))
+#                 vm_json = updateDomain(loads(vm_json))
+#                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+#                 jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+#                 body = addNodeName(jsondict)
+#                 createStructure(body, group, version, plural)
             except:
                 logger.error('Oops! ', exc_info=1)
         elif event == "Modify":
@@ -361,7 +361,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
 #                                                                               name=name)
             try:
                 logger.debug('***Delete VM %s from back-end, report to virtlet***' % name)
-                deleteStructure(name, V1DeleteOptions(), group, version, plural)
+#                 deleteStructure(name, V1DeleteOptions(), group, version, plural)
 #                 vm_xml = get_xml(name)
 #                 vm_json = toKubeJson(xmlToJson(vm_xml))
 #                 vm_json = updateDomain(loads(vm_json))

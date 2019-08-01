@@ -15,6 +15,7 @@ import ConfigParser
 import socket
 import string
 import traceback
+from datetime import datetime
 import pprint
 import time
 from threading import Thread
@@ -41,7 +42,7 @@ Import local libs
 from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import ExecuteException, addExceptionMessage, report_failure
+from utils.utils import ExecuteException, addExceptionMessage, report_failure, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -74,7 +75,7 @@ RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
 
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 
-LABEL = 'host=%s' % (socket.gethostname())
+LABEL = 'host=%s' % (get_hostname_in_lower_case())
 
 TIMEOUT = config_raw.get('WatcherTimeout', 'timeout')
 
@@ -170,6 +171,17 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
+        reason = _getCmdKey(jsondict)
+        if reason:
+            logger.debug(reason)
+            involved_object_name = metadata_name
+            involved_object_kind = 'VirtualMachine'
+            event_metadata_name = randomUUID()
+            event_type = 'Normal'
+            event_id = _getEventId(jsondict)
+            time = now_to_datetime()
+            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
+            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
         try:
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
     #             print(jsondict)
@@ -183,7 +195,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 elif _isInstallVMFromImage(jsondict):
                     template_path = _get_field(jsondict, 'cdrom')
                     if not os.path.exists(template_path):
-                        raise Exception("Template file %s not exists, cannot copy from it!" % template_path)
+                        raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
 #                     if os.path.exists(new_vm_path):
 #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -227,6 +239,11 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+        finally:
+            if reason:
+                time_now = now_to_datetime()
+                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
+                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -240,6 +257,17 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
+        reason = _getCmdKey(jsondict)
+        if reason:
+            logger.debug(reason)
+            involved_object_name = metadata_name
+            involved_object_kind = 'VirtualMachineDisk'
+            event_metadata_name = randomUUID()
+            event_type = 'Normal'
+            event_id = _getEventId(jsondict)
+            time = now_to_datetime()
+            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
+            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
         try:
             pool_name = _get_field(jsondict, 'pool')
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
@@ -269,7 +297,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-                
+        finally:
+            if reason:
+                time_now = now_to_datetime()
+                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
+                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)                
                 
 def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     watcher = watch.Watch()
@@ -284,6 +316,17 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
+        reason = _getCmdKey(jsondict)
+        if reason:
+            logger.debug(reason)
+            involved_object_name = metadata_name
+            involved_object_kind = 'VirtualMachineImage'
+            event_metadata_name = randomUUID()
+            event_type = 'Normal'
+            event_id = _getEventId(jsondict)
+            time = now_to_datetime()
+            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
+            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
         try:
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
@@ -322,6 +365,11 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+        finally:
+            if reason:
+                time_now = now_to_datetime()
+                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
+                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
         
 def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
     watcher = watch.Watch()
@@ -335,6 +383,17 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
+        reason = _getCmdKey(jsondict)
+        if reason:
+            logger.debug(reason)
+            involved_object_name = metadata_name
+            involved_object_kind = 'VirtualMachineSnapshot'
+            event_metadata_name = randomUUID()
+            event_type = 'Normal'
+            event_id = _getEventId(jsondict)
+            time = now_to_datetime()
+            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
+            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
         try:
             vm_name = _get_field(jsondict, 'domain')
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
@@ -364,6 +423,11 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+        finally:
+            if reason:
+                time_now = now_to_datetime()
+                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
+                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
 
 def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
     watcher = watch.Watch()
@@ -377,6 +441,17 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
+        reason = _getCmdKey(jsondict)
+        if reason:
+            logger.debug(reason)
+            involved_object_name = metadata_name
+            involved_object_kind = 'VirtualMachineBlockDev'
+            event_metadata_name = randomUUID()
+            event_type = 'Normal'
+            event_id = _getEventId(jsondict)
+            time = now_to_datetime()
+            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
+            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
         try:
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
@@ -405,6 +480,39 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+        finally:
+            if reason:
+                time_now = now_to_datetime()
+                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
+                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
+
+'''
+More details please @See: 
+    https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Event.md
+'''
+def registerKubernetesEvent(metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type):
+    try:
+        involved_object = client.V1ObjectReference(name=involved_object_name, kind=involved_object_kind, namespace='default')
+        metadata = client.V1ObjectMeta(name=metadata_name, namespace='default')
+        body = client.V1Event(first_timestamp=time, metadata=metadata, involved_object=involved_object, message=message, reason=reason, type=event_type)
+        client.CoreV1Api().replace_namespaced_event(metadata_name, 'default', body, pretty='true')
+#         logger.debug(api_response)
+    except ApiException:
+        logger.error('Oops! ', exc_info=1)
+
+'''
+More details please @See: 
+    https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Event.md
+'''
+def updateKubernetesEvent(metadata_name, time_begin, time_now, involved_object_name, involved_object_kind, message, reason, event_type):
+    try:
+        involved_object = client.V1ObjectReference(name=involved_object_name, kind=involved_object_kind, namespace='default')
+        metadata = client.V1ObjectMeta(name=metadata_name, namespace='default')
+        body = client.V1Event(first_timestamp=time_begin, last_timestamp=time_now, metadata=metadata, involved_object=involved_object, message=message, reason=reason, type=event_type)
+        client.CoreV1Api().replace_namespaced_event(metadata_name, 'default', body, pretty='true')
+#         logger.debug(api_response)
+    except ApiException:
+        logger.error('Oops! ', exc_info=1)
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']
@@ -412,7 +520,7 @@ def getMetadataName(jsondict):
     if metadata_name:
         return metadata_name
     else:
-        raise Exception('FATAL ERROR! No metadata name!') 
+        raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!') 
 
 def forceUsingMetadataName(metadata_name,jsondict):
     spec = jsondict['raw_object']['spec']
@@ -456,6 +564,45 @@ def _isInstallVMFromISO(jsondict):
                 if key == "createAndStartVMFromISO":
                     return True
     return False
+
+'''
+Get event id.
+'''
+def _getEventId(jsondict):
+    metadata = jsondict['raw_object'].get('metadata')
+    labels = metadata.get('labels')
+    logger.debug(labels)
+    return labels.get('eventid') if labels.get('eventid') else '-1'
+
+'''
+Get the CMD key.
+'''
+def _getCmdKey(jsondict):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        the_cmd_keys = []
+        keys = lifecycle.keys()
+        for key in keys:
+            if key in ALL_SUPPORT_CMDS.keys():
+                '''
+                Priority 1st -- Force shutdown out of control VM.
+                '''
+                if key == FORCE_SHUTDOWN_VM:
+                    the_cmd_keys.insert(0, key)
+                    break;
+                elif key == RESET_VM:
+                    the_cmd_keys.insert(0, key)
+                    break;
+                else:
+                    the_cmd_keys.append(key)
+    return the_cmd_keys[0] if the_cmd_keys else None
 
 '''
 Install VM from image.

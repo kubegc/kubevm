@@ -64,7 +64,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
     str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
         try:
             logger.debug('Callback domain deletion to virtlet')
-            deleteVM(vm_name, V1DeleteOptions())
+#             deleteVM(vm_name, V1DeleteOptions())
         except:
             logger.error('Oops! ', exc_info=1)
     else:
@@ -81,7 +81,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+            report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
 
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(

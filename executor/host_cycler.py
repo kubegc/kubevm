@@ -30,7 +30,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms
-from utils.utils import CDaemon, runCmd
+from utils.utils import CDaemon, runCmd, get_hostname_in_lower_case
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -44,7 +44,7 @@ config_raw = parser()
 config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
-HOSTNAME = socket.gethostname()
+HOSTNAME = get_hostname_in_lower_case()
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
@@ -82,13 +82,12 @@ class HostCycler:
         return V1NodeSpec()
     
     def get_object_metadata(self):
-        return V1ObjectMeta(annotations=[], name=socket.gethostname(), uid='', labels=[], resource_version='', self_link='')
+        return V1ObjectMeta(annotations=[], name=HOSTNAME, uid='', labels=[], resource_version='', self_link='')
     
     def get_status_address(self):
-        hostname = socket.gethostname()
-        ip = socket.gethostbyname(hostname)
+        ip = socket.gethostbyname(HOSTNAME)
         node_status_address1 = V1NodeAddress(address=ip, type='InternalIP')
-        node_status_address2 = V1NodeAddress(address=hostname, type='Hostname')
+        node_status_address2 = V1NodeAddress(address=HOSTNAME, type='Hostname')
         return [node_status_address1, node_status_address2]
     
     def get_status_allocatable(self):
@@ -109,6 +108,7 @@ class HostCycler:
     def get_status_condition(self):
         time_zone = gettz('Asia/Shanghai')
         now = datetime.datetime.now(tz=time_zone)
+#         now = datetime.datetime
         condition1 = V1NodeCondition(last_heartbeat_time=now, last_transition_time=now, message="virtlet has sufficient memory available", \
                             reason="VirtletHasSufficientMemory", status="False", type="MemoryPressure")
         condition2 = V1NodeCondition(last_heartbeat_time=now, last_transition_time=now, message="virtlet has no disk pressure", \

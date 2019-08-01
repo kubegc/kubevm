@@ -46,8 +46,8 @@ class ClientDaemon(CDaemon):
         logger.debug("---------------------------------------------------------------------------------")
         logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")
         logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
-        logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn, wuheng@otcaix.iscas.ac.cn----------")
-        logger.debug("------------------------------liuhe18@otcaix.iscas.ac.cn-------------------------")
+        logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
+        logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
         logger.debug("---------------------------------------------------------------------------------")
         
         config.load_kube_config(config_file=TOKEN)
@@ -83,7 +83,7 @@ def daemonize():
     p_name = 'virtlet'
     pid_fn = '/var/run/virtlet_daemon.pid'
     log_fn = '/var/log/virtlet.log'
-    err_fn = '/var/log/virtlet_error.log'
+    err_fn = '/var/log/virtlet.log'
     cD = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
  
     if sys.argv[1] == 'start':

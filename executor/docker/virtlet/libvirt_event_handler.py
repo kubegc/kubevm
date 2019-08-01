@@ -36,7 +36,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -58,15 +58,18 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
         
 def myDomainEventHandler(conn, dom, *args, **kwargs):
     vm_name = dom.name()
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
-    try:
     #     print(jsondict)
-        if kwargs.has_key('event') and kwargs.has_key('detail') and \
-        str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
-        str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
+    if kwargs.has_key('event') and kwargs.has_key('detail') and \
+    str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
+    str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
+        try:
             logger.debug('Callback domain deletion to virtlet')
             deleteVM(vm_name, V1DeleteOptions())
-        else:
+        except:
+            logger.error('Oops! ', exc_info=1)
+    else:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+        try:
             logger.debug('Callback domain changes to virtlet')
             vm_xml = get_xml(vm_name)
             vm_power_state = vm_state(vm_name).get(vm_name)
@@ -75,24 +78,10 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
             body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
             modifyVM(vm_name, body)
-    except:
-        logger.error('Oops! ', exc_info=1)
-        info=sys.exc_info()
-        report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
-        
-def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
-    try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                          version=version, 
-                                                                          namespace='default', 
-                                                                          plural=plural, 
-                                                                          name=name)
-        body = addExceptionMessage(jsondict, error_reason, error_message)
-        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-        return retv
-    except:
-        logger.error('Oops! ', exc_info=1)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            report_failure(dom.name(), jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
 
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(

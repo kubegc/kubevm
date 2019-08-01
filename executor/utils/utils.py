@@ -12,7 +12,57 @@ import os, sys, time, signal, atexit, subprocess
 import random
 import logger
 
+'''
+Import third party libs
+'''
+from kubernetes import client
+from kubernetes.client.rest import ApiException
+
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
+
+class RotatingOperation: 
+    def __init__(self):
+        pass
+    
+    def option(self):
+        pass
+    
+    def rotating_option(self):
+        pass
+
+'''
+Switch string in file
+Parameters:
+    x: target file.
+    y: replaced value.
+    z: replacement value.
+    s:
+        { 1: only replace 1th match.
+          'g': replace all matches.
+        }
+'''
+def string_switch(x,y,z,s=1):
+    with open(x, "r") as f:
+        lines = f.readlines()
+ 
+    with open(x, "w") as f_w:
+        n = 0
+        if s == 1:
+            for line in lines:
+                if y in line:
+                    line = line.replace(y,z)
+                    f_w.write(line)
+                    n += 1
+                    break
+                f_w.write(line)
+                n += 1
+            for i in range(n,len(lines)):
+                f_w.write(lines[i])
+        elif s == 'g':
+            for line in lines:
+                if y in line:
+                    line = line.replace(y,z)
+                f_w.write(line)
 
 '''
 Run back-end command in subprocess.
@@ -32,6 +82,33 @@ def runCmd(cmd):
     finally:
         p.stdout.close()
         p.stderr.close()
+        
+def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        jsondict = deleteLifecycleInJson(jsondict)
+        body = addExceptionMessage(jsondict, error_reason, error_message)
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+        return retv
+    except ApiException:
+        logger.error('Oops! ', exc_info=1)
+
+def deleteLifecycleInJson(jsondict):
+    if jsondict:
+        '''
+        Get target VM name from Json.
+        '''
+        spec = jsondict['spec']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+    return jsondict
         
 def addPowerStatusMessage(jsondict, reason, message):
     if jsondict:

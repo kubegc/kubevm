@@ -3,9 +3,6 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
-
-https://pypi.org/project/json2xml/
-https://github.com/kubernetes/kubernetes/issues/51046
 '''
 
 '''
@@ -44,7 +41,7 @@ Import local libs
 from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import ExecuteException, addExceptionMessage
+from utils.utils import ExecuteException, addExceptionMessage, report_failure
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -73,6 +70,9 @@ PLURAL_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'plural')
 VERSION_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'version')
 GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
+RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
+
+DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 
 LABEL = 'host=%s' % (socket.gethostname())
 
@@ -108,11 +108,12 @@ for k,v in config_raw._sections.items():
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
-    logger.debug("------------------------Welcome to Virtctl Daemon.-------------------------------")
+    logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")
     logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
-    logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn, wuheng@otcaix.iscas.ac.cn----------")
+    logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
+    logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
     logger.debug("---------------------------------------------------------------------------------")
-    
+
     logger.debug("Loading configurations in 'default.cfg' ...")
     logger.debug("All support CMDs are:")
     logger.debug(ALL_SUPPORT_CMDS)
@@ -156,7 +157,7 @@ def test():
     except:
         traceback.print_exc()
         logger.error('Oops! ', exc_info=1)
-    
+        
 def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     watcher = watch.Watch()
     kwargs = {}
@@ -180,34 +181,35 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                         create(metadata_name)
                 elif _isInstallVMFromImage(jsondict):
-                    (jsondict, new_vm_vcpus, new_vm_memory) = _preprocessInCreateVMFromImage(jsondict)
+                    template_path = _get_field(jsondict, 'cdrom')
+                    if not os.path.exists(template_path):
+                        raise Exception("Template file %s not exists, cannot copy from it!" % template_path)
+                    new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
+#                     if os.path.exists(new_vm_path):
+#                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
+                    runCmd('cp %s %s' %(template_path, new_vm_path))
+                    jsondict = _updateRootDiskInJson(jsondict, new_vm_path)
                     cmd = unpackCmdFromJson(jsondict)
                     if cmd: 
                         runCmd(cmd)
-                    '''
-                    Set new VM's CPU and Memory
-                    '''
-                    setvcpus(metadata_name, int(new_vm_vcpus), config=True)
-                    setmem(metadata_name, int(new_vm_memory), config=True)
-                    '''
-                    Start VM
-                    '''
-                    create(metadata_name)
+                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
+                        create(metadata_name)
                 else:
                     cmd = unpackCmdFromJson(jsondict)
-                    if cmd:     
+                    if cmd:
                         runCmd(cmd)
             elif operation_type == 'MODIFIED':
                 if is_vm_exists(metadata_name):
                     cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
+                    # add support python file real path to exec
+                    if cmd:
                         runCmd(cmd)
             elif operation_type == 'DELETED':
                 if is_vm_exists(metadata_name):
                     if is_vm_active(metadata_name):
                         destroy(metadata_name)
                     cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
+                    if cmd:
                         runCmd(cmd)
 #                 if is_vm_exists(metadata_name):
 #                     if is_vm_active(metadata_name):
@@ -225,7 +227,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-        
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -278,6 +279,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=group, version=version, plural=plural, **kwargs):
+        # logger.debug(jsondict)
         operation_type = jsondict.get('type')
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
@@ -285,21 +287,29 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
         try:
             jsondict = forceUsingMetadataName(metadata_name, jsondict)
             if operation_type == 'ADDED':
+                if _isCreateImage(jsondict):
+                    jsondict = addDefaultSettings(jsondict, 'createImage')
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd:
+                        runCmd(cmd)
+                    if is_vm_exists(metadata_name):
+                        if is_vm_active(metadata_name):
+                            destroy(metadata_name)
+                        runCmd('/usr/bin/vmm convert_vm_to_image --name %s' % metadata_name)
+                else:
+                    cmd = unpackCmdFromJson(jsondict)
+                    if cmd:
+                        runCmd(cmd)
+            elif operation_type == 'MODIFIED':
                 cmd = unpackCmdFromJson(jsondict)
                 if cmd:
                     runCmd(cmd)
-            elif operation_type == 'MODIFIED':
-                if is_vm_exists(metadata_name):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)
             elif operation_type == 'DELETED':
-                if is_vm_exists(metadata_name):
-                    if is_vm_active(metadata_name):
-                        destroy(metadata_name)
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)
+                if is_vm_active(metadata_name):
+                    destroy(metadata_name)
+                cmd = unpackCmdFromJson(jsondict)
+                if cmd:
+                    runCmd(cmd)
         except libvirtError:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
@@ -396,33 +406,6 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
             info=sys.exc_info()
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
 
-def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
-    try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                          version=version, 
-                                                                          namespace='default', 
-                                                                          plural=plural, 
-                                                                          name=name)
-        jsondict = deleteLifecycleInJson(jsondict)
-        body = addExceptionMessage(jsondict, error_reason, error_message)
-        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-        return retv
-    except:
-        logger.error('Oops! ', exc_info=1)
-
-def deleteLifecycleInJson(jsondict):
-    if jsondict:
-        '''
-        Get target VM name from Json.
-        '''
-        spec = jsondict['spec']
-        if spec:
-            lifecycle = spec.get('lifecycle')
-            if lifecycle:
-                del spec['lifecycle']
-    return jsondict
-
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']
     metadata_name = metadata.get('name')
@@ -464,17 +447,14 @@ def _isInstallVMFromISO(jsondict):
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
         Note that only the first CMD will be executed.
         '''
-        cmd_head = ''
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
             return False
         keys = lifecycle.keys()
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():
-                cmd_head = ALL_SUPPORT_CMDS.get(key)
-                break;
-        if cmd_head and cmd_head.startswith('virt-install'):
-            return True
+                if key == "createAndStartVMFromISO":
+                    return True
     return False
 
 '''
@@ -487,17 +467,31 @@ def _isInstallVMFromImage(jsondict):
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
         Note that only the first CMD will be executed.
         '''
-        cmd_head = ''
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
             return False
         keys = lifecycle.keys()
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():
-                cmd_head = ALL_SUPPORT_CMDS.get(key)
-                break;
-        if cmd_head and cmd_head.startswith('virt-clone'):
-            return True
+                if key == "createAndStartVMFromImage":
+                    return True
+    return False
+
+def _isCreateImage(jsondict):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return False
+        keys = lifecycle.keys()
+        for key in keys:
+            if key in ALL_SUPPORT_CMDS.keys():
+                if key == "createImage":
+                    return True
     return False
 
 def _preprocessInCreateVMFromImage(jsondict):
@@ -584,28 +578,69 @@ def updateDomainStructureInJson(jsondict, body):
         '''
         spec = jsondict['raw_object']['spec']
         if spec:
-            print spec.keys()
             lifecycle = spec.get('lifecycle')
             if lifecycle:
                 del spec['lifecycle']
             spec.update(loads(body))
     return jsondict['raw_object']
 
-def updateDomainStructureInJsonBackup(jsondict, body):
-    if jsondict:
+def addDefaultSettings(jsondict, the_cmd_key):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
         '''
-        Get target VM name from Json.
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
         '''
-        vm_ = jsondict['items'][0].get('metadata').get('name')
-        if not vm_:
-            raise Exception('No target VM in Json')
-        spec = jsondict['items'][0].get('spec')
-        if spec:
-            lifecycle = spec.get('lifecycle')
-            if lifecycle:
-                del spec['lifecycle']
-            spec.update(loads(body))
-    return jsondict['items'][0]
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['virt_type'] = "kvm"
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['memory'] = "1024"
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['vcpus'] = "1"
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['graphics'] = "vnc,listen=0.0.0.0"
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['network'] = "default"
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['os_variant'] = "rhel7"
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['noautoconsole'] = "True"
+        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['boot'] = "hd"
+        logger.debug(jsondict)
+        return jsondict    
+        
+
+def _updateRootDiskInJson(jsondict, new_vm_path):
+    '''
+    Get target VM name from Json.
+    '''
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        the_cmd_key = None
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return
+        keys = lifecycle.keys()
+        for key in keys:
+            if key in ALL_SUPPORT_CMDS.keys():
+                the_cmd_key = key
+                break;
+        '''
+        Get the CMD body from 'dict' structure.
+        '''
+        if the_cmd_key:
+            contents = lifecycle.get(the_cmd_key)
+            for k, v in contents.items():
+                if k == "disk":
+                    tmp = v.replace('ROOTDISK', new_vm_path)
+                    logger.debug(tmp)
+                    jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = tmp
+                elif k == 'cdrom':
+                    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
+                else:
+                    continue
+        logger.debug(jsondict)
+        return jsondict    
 
 '''
 Covert chars according to real CMD in back-end.
@@ -651,6 +686,10 @@ def unpackCmdFromJson(jsondict):
                     '''
                     if key == FORCE_SHUTDOWN_VM:
                         the_cmd_keys.insert(0, key)
+                        break;
+                    elif key == RESET_VM:
+                        the_cmd_keys.insert(0, key)
+                        break;
                     else:
                         the_cmd_keys.append(key)
             '''
@@ -682,31 +721,48 @@ def runCmd(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_out:
-            msg = ''
-            for index,line in enumerate(std_out):
-                if not str.strip(line):
-                    continue
-                if index == len(std_out) - 1:
-                    msg = msg + str.strip(line) + '. '
-                else:
-                    msg = msg + str.strip(line) + ', '
-            logger.debug(str.strip(msg))
+#             msg = ''
+#             for index,line in enumerate(std_out):
+#                 if not str.strip(line):
+#                     continue
+#                 if index == len(std_out) - 1:
+#                     msg = msg + str.strip(line) + '. '
+#                 else:
+#                     msg = msg + str.strip(line) + ', '
+#             logger.debug(str.strip(msg))
+            logger.debug(std_out)
         if std_err:
-            msg = ''
-            for index,line in enumerate(std_err):
-                if not str.strip(line):
-                    continue
-                if index == len(std_err) - 1:
-                    msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
-                else:
-                    msg = msg + str.strip(line) + ', '
-            logger.error(str.strip(msg))
-            raise ExecuteException('VirtctlError', str.strip(msg))
+#             msg = ''
+#             for index, line in enumerate(std_err):
+#                 if not str.strip(line):
+#                     continue
+#                 if index == len(std_err) - 1:
+#                     msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
+#                 else:
+#                     msg = msg + str.strip(line) + ', '
+            logger.error(std_err)
+#             raise ExecuteException('VirtctlError', str.strip(msg))
+            raise ExecuteException('VirtctlError', std_err)
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
         return
     finally:
         p.stdout.close()
         p.stderr.close()
+
+# '''
+# Run back-end command in subprocess.
+# '''
+# def runCmdAndCheckReturnCode(cmd):
+#     std_err = None
+#     if not cmd:
+#         logger.debug('No CMD to execute.')
+#         return
+#     try:
+#         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+#         logger.debug(result)
+#     except Exception:
+#         raise ExecuteException('VmmError', "Cmd: %s failed!" %cmd)
+        #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
 
 if __name__ == '__main__':
     config.load_kube_config(config_file=TOKEN)

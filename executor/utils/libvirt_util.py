@@ -10,6 +10,9 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 Import python libs
 '''
 import re
+import subprocess
+import collections
+from pprint import pprint
 from xml.dom import minidom
 from StringIO import StringIO as _StringIO
 
@@ -21,7 +24,7 @@ try:
     HAS_LIBVIRT = True
 except ImportError:
     HAS_LIBVIRT = False
-# import yaml
+import yaml
 
 
 VIRT_STATE_NAME_MAP = {0: 'Running',
@@ -135,47 +138,47 @@ def list_inactive_vms():
         vms.append(id_)
     return vms
 
-# def vm_info(vm_=None):
-#     '''
-#     Return detailed information about the vms on this hyper in a
-#     list of dicts::
-# 
-#         [
-#             'your-vm': {
-#                 'cpu': <int>,
-#                 'maxMem': <int>,
-#                 'mem': <int>,
-#                 'state': '<state>',
-#                 'cputime' <int>
-#                 },
-#             ...
-#             ]
-# 
-#     If you pass a VM name in as an argument then it will return info
-#     for just the named VM, otherwise it will return all VMs.
-# 
-#     CLI Example::
-# 
-#         salt '*' virt.vm_info
-#     '''
-#     def _info(vm_):
-#         dom = _get_dom(vm_)
-#         raw = dom.info()
-#         return {'cpu': raw[3],
-#                 'cputime': int(raw[4]),
-#                 'disks': get_disks(vm_),
-#                 'graphics': get_graphics(vm_),
-#                 'nics': get_nics(vm_),
-#                 'maxMem': int(raw[1]),
-#                 'mem': int(raw[2]),
-#                 'state': VIRT_STATE_NAME_MAP.get(raw[0], 'unknown')}
-#     info = {}
-#     if vm_:
-#         info[vm_] = _info(vm_)
-#     else:
-#         for vm_ in list_vms():
-#             info[vm_] = _info(vm_)
-#     return info
+def vm_info(vm_=None):
+    '''
+    Return detailed information about the vms on this hyper in a
+    list of dicts::
+ 
+        [
+            'your-vm': {
+                'cpu': <int>,
+                'maxMem': <int>,
+                'mem': <int>,
+                'state': '<state>',
+                'cputime' <int>
+                },
+            ...
+            ]
+ 
+    If you pass a VM name in as an argument then it will return info
+    for just the named VM, otherwise it will return all VMs.
+ 
+    CLI Example::
+ 
+        salt '*' virt.vm_info
+    '''
+    def _info(vm_):
+        dom = _get_dom(vm_)
+        raw = dom.info()
+        return {'cpu': raw[3],
+                'cputime': int(raw[4]),
+                'disks': get_disks(vm_),
+                'graphics': get_graphics(vm_),
+                'nics': get_nics(vm_),
+                'maxMem': int(raw[1]),
+                'mem': int(raw[2]),
+                'state': VIRT_STATE_NAME_MAP.get(raw[0], 'unknown')}
+    info = {}
+    if vm_:
+        info[vm_] = _info(vm_)
+    else:
+        for vm_ in list_vms():
+            info[vm_] = _info(vm_)
+    return info
 
 
 def vm_state(vm_=None):
@@ -232,7 +235,7 @@ def get_nics(vm_):
 
         salt '*' virt.get_nics <vm name>
     '''
-    nics = {}
+    nics = collections.OrderedDict()
     doc = minidom.parse(_StringIO(get_xml(vm_)))
     for node in doc.getElementsByTagName('devices'):
         i_nodes = node.getElementsByTagName('interface')
@@ -308,80 +311,80 @@ def get_graphics(vm_):
     return out
 
 
-# def get_disks(vm_):
-#     '''
-#     Return the disks of a named vm
-# 
-#     CLI Example::
-# 
-#         salt '*' virt.get_disks <vm name>
-#     '''
-#     disks = {}
-#     doc = minidom.parse(_StringIO(get_xml(vm_)))
-#     for elem in doc.getElementsByTagName('disk'):
-#         sources = elem.getElementsByTagName('source')
-#         targets = elem.getElementsByTagName('target')
-#         if len(sources) > 0:
-#             source = sources[0]
-#         else:
-#             continue
-#         if len(targets) > 0:
-#             target = targets[0]
-#         else:
-#             continue
-#         if target.hasAttribute('dev'):
-#             qemu_target = ''
-#             if source.hasAttribute('file'):
-#                 qemu_target = source.getAttribute('file')
-#             elif source.hasAttribute('dev'):
-#                 qemu_target = source.getAttribute('dev')
-#             elif source.hasAttribute('protocol') and \
-#                     source.hasAttribute('name'): # For rbd network
-#                 qemu_target = '%s:%s' %(
-#                         source.getAttribute('protocol'),
-#                         source.getAttribute('name'))
-#             if qemu_target:
-#                 disks[target.getAttribute('dev')] = {\
-#                     'file': qemu_target}
-#     for dev in disks:
-#         try:
-#             output = []
-#             qemu_output = subprocess.Popen(['qemu-img', 'info', '-U',
-#                 disks[dev]['file']],
-#                 shell=False,
-#                 stdout=subprocess.PIPE).communicate()[0]
-#             snapshots = False
-#             columns = None
-#             lines = qemu_output.strip().split('\n')
-#             for line in lines:
-#                 if line.startswith('Snapshot list:'):
-#                     snapshots = True
-#                     continue
-#                 elif snapshots:
-#                     if line.startswith('ID'):  # Do not parse table headers
-#                         line = line.replace('VM SIZE', 'VMSIZE')
-#                         line = line.replace('VM CLOCK', 'TIME VMCLOCK')
-#                         columns = re.split('\s+', line)
-#                         columns = [c.lower() for c in columns]
-#                         output.append('snapshots:')
-#                         continue
-#                     fields = re.split('\s+', line)
-#                     for i, field in enumerate(fields):
-#                         sep = ' '
-#                         if i == 0:
-#                             sep = '-'
-#                         output.append(
-#                             '{0} {1}: "{2}"'.format(
-#                                 sep, columns[i], field
-#                             )
-#                         )
-#                     continue
-#                 output.append(line)
-#             output = '\n'.join(output)
-#             disks[dev].update(yaml.safe_load(output))
-#         except TypeError:
-#             disks[dev].update(yaml.safe_load('image: Does not exist'))
-#     return disks
+def get_disks(vm_):
+    '''
+    Return the disks of a named vm
+ 
+    CLI Example::
+ 
+        salt '*' virt.get_disks <vm name>
+    '''
+    disks = collections.OrderedDict()
+    doc = minidom.parse(_StringIO(get_xml(vm_)))
+    for elem in doc.getElementsByTagName('disk'):
+        sources = elem.getElementsByTagName('source')
+        targets = elem.getElementsByTagName('target')
+        if len(sources) > 0:
+            source = sources[0]
+        else:
+            continue
+        if len(targets) > 0:
+            target = targets[0]
+        else:
+            continue
+        if target.hasAttribute('dev'):
+            qemu_target = ''
+            if source.hasAttribute('file'):
+                qemu_target = source.getAttribute('file')
+            elif source.hasAttribute('dev'):
+                qemu_target = source.getAttribute('dev')
+            elif source.hasAttribute('protocol') and \
+                    source.hasAttribute('name'): # For rbd network
+                qemu_target = '%s:%s' %(
+                        source.getAttribute('protocol'),
+                        source.getAttribute('name'))
+            if qemu_target:
+                disks[target.getAttribute('dev')] = {\
+                    'file': qemu_target}
+    for dev in disks:
+        try:
+            output = []
+            qemu_output = subprocess.Popen(['qemu-img', 'info', '-U',
+                disks[dev]['file']],
+                shell=False,
+                stdout=subprocess.PIPE).communicate()[0]
+            snapshots = False
+            columns = None
+            lines = qemu_output.strip().split('\n')
+            for line in lines:
+                if line.startswith('Snapshot list:'):
+                    snapshots = True
+                    continue
+                elif snapshots:
+                    if line.startswith('ID'):  # Do not parse table headers
+                        line = line.replace('VM SIZE', 'VMSIZE')
+                        line = line.replace('VM CLOCK', 'TIME VMCLOCK')
+                        columns = re.split('\s+', line)
+                        columns = [c.lower() for c in columns]
+                        output.append('snapshots:')
+                        continue
+                    fields = re.split('\s+', line)
+                    for i, field in enumerate(fields):
+                        sep = ' '
+                        if i == 0:
+                            sep = '-'
+                        output.append(
+                            '{0} {1}: "{2}"'.format(
+                                sep, columns[i], field
+                            )
+                        )
+                    continue
+                output.append(line)
+            output = '\n'.join(output)
+            disks[dev].update(yaml.safe_load(output))
+        except TypeError:
+            disks[dev].update(yaml.safe_load('image: Does not exist'))
+    return disks
 
 
 def setmem(vm_, memory, config=False):
@@ -480,18 +483,18 @@ def freecpu():
             cpus -= dom.info()[3]
     return cpus
 
-# def full_info():
-#     '''
-#     Return the node_info, vm_info and freemem
-# 
-#     CLI Example::
-# 
-#         salt '*' virt.full_info
-#     '''
-#     return {'freecpu': freecpu(),
-#             'freemem': freemem(),
-#             'node_info': node_info(),
-#             'vm_info': vm_info()}
+def full_info():
+    '''
+    Return the node_info, vm_info and freemem
+ 
+    CLI Example::
+ 
+        salt '*' virt.full_info
+    '''
+    return {'freecpu': freecpu(),
+            'freemem': freemem(),
+            'node_info': node_info(),
+            'vm_info': vm_info()}
 
 
 def get_xml(vm_):
@@ -618,7 +621,17 @@ def destroy(vm_):
     '''
     dom = _get_dom(vm_)
     return dom.destroy() == 0
-   
+
+def define_xml_str(xml):  
+    ''''' 
+    Define a domain based on the xml passed to the function 
+    
+    CLI Example:: 
+    
+        salt '*' virt.define_xml_str <xml in string format> 
+    '''  
+    conn = __get_conn()  
+    return conn.defineXML(xml) is not None 
    
 def undefine(vm_):
     '''
@@ -698,8 +711,17 @@ def get_snapshot_xml(vm_, snap_):
     snap = _get_snapshot(vm_, snap_)
     return snap.getXMLDesc()
 
+def get_boot_disk_path(vm_):
+    disks = get_disks(vm_)
+    if disks:
+        for disk_value in disks.values():
+            return disk_value['file']
+    else:
+        raise Exception('VM %s has no disks.' % vm_)
+
 if __name__ == '__main__':
-    print(list_all_volumes())
+    pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
+    print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
 #     print(get_pool_xml('volumes'))
 #     print(list_volumes('volumes'))
 #     print(get_volume_xml('volumes', 'ddd.qcow2'))

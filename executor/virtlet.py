@@ -83,7 +83,7 @@ def daemonize():
     p_name = 'virtlet'
     pid_fn = '/var/run/virtlet_daemon.pid'
     log_fn = '/var/log/virtlet.log'
-    err_fn = '/var/log/virtlet_error.log'
+    err_fn = '/var/log/virtlet.log'
     cD = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
  
     if sys.argv[1] == 'start':

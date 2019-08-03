@@ -42,7 +42,7 @@ Import local libs
 from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import ExecuteException, addExceptionMessage, report_failure, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case
+from utils.utils import ExecuteException, addExceptionMessage, report_failure, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -171,79 +171,120 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
-        reason = _getCmdKey(jsondict)
-        if reason:
-            logger.debug(reason)
+        the_cmd_key = _getCmdKey(jsondict)
+        logger.debug('cmd key is: %s' % the_cmd_key)
+        if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachine'
             event_metadata_name = randomUUID()
             event_type = 'Normal'
+            status = 'Doing(Success)'
+            reporter = 'virtctl'
             event_id = _getEventId(jsondict)
-            time = now_to_datetime()
-            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
-            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
-        try:
-            jsondict = forceUsingMetadataName(metadata_name, jsondict)
-    #             print(jsondict)
-            if operation_type == 'ADDED':
-                if _isInstallVMFromISO(jsondict):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd:
-                        runCmd(cmd)
-                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
-                        create(metadata_name)
-                elif _isInstallVMFromImage(jsondict):
-                    template_path = _get_field(jsondict, 'cdrom')
-                    if not os.path.exists(template_path):
-                        raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
-                    new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
-#                     if os.path.exists(new_vm_path):
-#                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
-                    runCmd('cp %s %s' %(template_path, new_vm_path))
-                    jsondict = _updateRootDiskInJson(jsondict, new_vm_path)
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)
-                    if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
-                        create(metadata_name)
-                else:
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd:
-                        runCmd(cmd)
-            elif operation_type == 'MODIFIED':
-                if is_vm_exists(metadata_name):
-                    cmd = unpackCmdFromJson(jsondict)
-                    # add support python file real path to exec
-                    if cmd:
-                        runCmd(cmd)
-            elif operation_type == 'DELETED':
-                if is_vm_exists(metadata_name):
-                    if is_vm_active(metadata_name):
-                        destroy(metadata_name)
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd:
-                        runCmd(cmd)
-#                 if is_vm_exists(metadata_name):
-#                     if is_vm_active(metadata_name):
-#                         destroy(metadata_name)
-#                     undefine_with_snapshot(metadata_name)
-        except libvirtError:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException, e:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-        finally:
-            if reason:
-                time_now = now_to_datetime()
-                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
-                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
+            time_now = now_to_datetime()
+            time_start = time_now
+            time_end = time_now
+            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+            try:
+                event.registerKubernetesEvent()
+            except:
+                logger.error('Oops! ', exc_info=1)
+            jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+#             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+#             body = jsondict['raw_object']
+#             jsondict1 = client.CustomObjectsApi().get_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name)
+#             logger.debug(jsondict1)
+#             logger.debug(body)
+#             try:
+#                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+#             except:
+#                 logger.warning('Oops! ', exc_info=1)
+            try:
+        #             print(jsondict)
+                if operation_type == 'ADDED':
+                    if _isInstallVMFromISO(the_cmd_key):
+                        if cmd:
+                            runCmd(cmd)
+                        if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
+                            create(metadata_name)
+                    elif _isInstallVMFromImage(the_cmd_key):
+                        template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
+                        if not os.path.exists(template_path):
+                            raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
+                        new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
+    #                     if os.path.exists(new_vm_path):
+    #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
+                        runCmd('cp %s %s' %(template_path, new_vm_path))
+                        jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
+                        if cmd: 
+                            runCmd(cmd)
+                        if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
+                            create(metadata_name)
+                    else:
+                        if cmd:
+                            runCmd(cmd)
+                elif operation_type == 'MODIFIED':
+                    if is_vm_exists(metadata_name):
+                        if _isDeleteVM(the_cmd_key):
+                            if is_vm_active(metadata_name):
+                                destroy(metadata_name)   
+                            if cmd:
+                                runCmd(cmd)  
+                        # add support python file real path to exec
+                        else:
+                            if cmd:
+                                runCmd(cmd)
+                elif operation_type == 'DELETED':
+                    logger.debug('Delete custom object by client.')
+#                     if is_vm_exists(metadata_name):
+#                         if is_vm_active(metadata_name):
+#                             destroy(metadata_name)
+#                         cmd = unpackCmdFromJson(jsondict)
+#                         if cmd:
+#                             runCmd(cmd)
+                status = 'Done(Success)'
+            except libvirtError:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            except ExecuteException, e:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)         
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            finally:
+                if the_cmd_key and operation_type != 'DELETED':
+                    time_end = now_to_datetime()
+                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                    event.set_message(message)
+                    event.set_time_end(time_end)
+                    try:
+                        event.updateKubernetesEvent()
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -257,51 +298,91 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
-        reason = _getCmdKey(jsondict)
-        if reason:
-            logger.debug(reason)
+        the_cmd_key = _getCmdKey(jsondict)
+        logger.debug('cmd key is: %s' % the_cmd_key)
+        if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachineDisk'
             event_metadata_name = randomUUID()
             event_type = 'Normal'
+            status = 'Doing(Success)'
+            reporter = 'virtctl'
             event_id = _getEventId(jsondict)
-            time = now_to_datetime()
-            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
-            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
-        try:
-            pool_name = _get_field(jsondict, 'pool')
-            jsondict = forceUsingMetadataName(metadata_name, jsondict)
-            if operation_type == 'ADDED':
-                cmd = unpackCmdFromJson(jsondict)
-                if cmd:
-                    runCmd(cmd)
-            elif operation_type == 'MODIFIED':
-                if pool_name and is_volume_exists(metadata_name, pool_name):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
+            time_now = now_to_datetime()
+            time_start = time_now
+            time_end = time_now
+            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+            try:
+                event.registerKubernetesEvent()
+            except:
+                logger.error('Oops! ', exc_info=1)
+            pool_name = _get_field(jsondict, the_cmd_key, 'pool')
+            jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+#             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+#             body = jsondict['raw_object']
+#             try:
+#                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+#             except:
+#                 logger.warning('Oops! ', exc_info=1)
+            try:
+                if operation_type == 'ADDED':
+                    if cmd:
                         runCmd(cmd)
-            elif operation_type == 'DELETED':
-                if pool_name and is_volume_exists(metadata_name, pool_name):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)   
-        except libvirtError:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException, e:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-        finally:
-            if reason:
-                time_now = now_to_datetime()
-                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
-                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)                
+                elif operation_type == 'MODIFIED':
+                    if pool_name and is_volume_exists(metadata_name, pool_name):
+                        if cmd: 
+                            runCmd(cmd)
+                    else:
+                        logger.warning('No pool name found!')
+                elif operation_type == 'DELETED':
+                    if pool_name and is_volume_exists(metadata_name, pool_name):
+                        if cmd: 
+                            runCmd(cmd)   
+                    else:
+                        logger.warning('No pool name found!')
+                status = 'Done(Success)'
+            except libvirtError:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            except ExecuteException, e:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)    
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)          
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            finally:
+                if the_cmd_key and operation_type != 'DELETED':
+                    time_end = now_to_datetime()
+                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                    event.set_message(message)
+                    event.set_time_end(time_end)
+                    try:
+                        event.updateKubernetesEvent()
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
                 
 def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     watcher = watch.Watch()
@@ -316,60 +397,95 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
-        reason = _getCmdKey(jsondict)
-        if reason:
-            logger.debug(reason)
+        the_cmd_key = _getCmdKey(jsondict)
+        logger.debug('cmd key is: %s' % the_cmd_key)
+        if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachineImage'
             event_metadata_name = randomUUID()
             event_type = 'Normal'
+            status = 'Doing(Success)'
+            reporter = 'virtctl'
             event_id = _getEventId(jsondict)
-            time = now_to_datetime()
-            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
-            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
-        try:
-            jsondict = forceUsingMetadataName(metadata_name, jsondict)
-            if operation_type == 'ADDED':
-                if _isCreateImage(jsondict):
-                    jsondict = addDefaultSettings(jsondict, 'createImage')
-                    cmd = unpackCmdFromJson(jsondict)
+            time_now = now_to_datetime()
+            time_start = time_now
+            time_end = time_now
+            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+            try:
+                event.registerKubernetesEvent()
+            except:
+                logger.error('Oops! ', exc_info=1)
+            jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+#             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+#             body = jsondict['raw_object']
+#             try:
+#                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+#             except:
+#                 logger.warning('Oops! ', exc_info=1)
+            try:
+                if operation_type == 'ADDED':
+                    if _isCreateImage(the_cmd_key):
+                        jsondict = addDefaultSettings(jsondict, the_cmd_key)
+                        if cmd:
+                            runCmd(cmd)
+                        if is_vm_exists(metadata_name):
+                            if is_vm_active(metadata_name):
+                                destroy(metadata_name)
+                            runCmd('/usr/bin/vmm convert_vm_to_image --name %s' % metadata_name)
+                    else:
+                        if cmd:
+                            runCmd(cmd)
+                elif operation_type == 'MODIFIED':
                     if cmd:
                         runCmd(cmd)
-                    if is_vm_exists(metadata_name):
-                        if is_vm_active(metadata_name):
-                            destroy(metadata_name)
-                        runCmd('/usr/bin/vmm convert_vm_to_image --name %s' % metadata_name)
-                else:
-                    cmd = unpackCmdFromJson(jsondict)
+                elif operation_type == 'DELETED':
+                    if is_vm_active(metadata_name):
+                        destroy(metadata_name)
                     if cmd:
                         runCmd(cmd)
-            elif operation_type == 'MODIFIED':
-                cmd = unpackCmdFromJson(jsondict)
-                if cmd:
-                    runCmd(cmd)
-            elif operation_type == 'DELETED':
-                if is_vm_active(metadata_name):
-                    destroy(metadata_name)
-                cmd = unpackCmdFromJson(jsondict)
-                if cmd:
-                    runCmd(cmd)
-        except libvirtError:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException, e:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-        finally:
-            if reason:
-                time_now = now_to_datetime()
-                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
-                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
+                status = 'Done(Success)'
+            except libvirtError:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type) 
+            except ExecuteException, e:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)    
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)          
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            finally:
+                if the_cmd_key and operation_type != 'DELETED':
+                    time_end = now_to_datetime()
+                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                    event.set_message(message)
+                    event.set_time_end(time_end)
+                    try:
+                        event.updateKubernetesEvent()
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
         
 def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
     watcher = watch.Watch()
@@ -383,51 +499,87 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
-        reason = _getCmdKey(jsondict)
-        if reason:
-            logger.debug(reason)
+        the_cmd_key = _getCmdKey(jsondict)
+        logger.debug('cmd key is: %s' % the_cmd_key)
+        if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachineSnapshot'
             event_metadata_name = randomUUID()
             event_type = 'Normal'
+            status = 'Doing(Success)'
+            reporter = 'virtctl'
             event_id = _getEventId(jsondict)
-            time = now_to_datetime()
-            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
-            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
-        try:
-            vm_name = _get_field(jsondict, 'domain')
-            jsondict = forceUsingMetadataName(metadata_name, jsondict)
-            if operation_type == 'ADDED':
-                cmd = unpackCmdFromJson(jsondict)
-                if cmd:
-                    runCmd(cmd)
-            elif operation_type == 'MODIFIED':
-                if vm_name and is_snapshot_exists(metadata_name, vm_name):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
+            time_now = now_to_datetime()
+            time_start = time_now
+            time_end = time_now
+            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+            try:
+                event.registerKubernetesEvent()
+            except:
+                logger.error('Oops! ', exc_info=1)
+            vm_name = _get_field(jsondict, the_cmd_key, 'domain')
+            jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+#             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+#             body = jsondict['raw_object']
+#             try:
+#                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+#             except:
+#                 logger.warning('Oops! ', exc_info=1)
+            try:
+                if operation_type == 'ADDED':
+                    if cmd:
                         runCmd(cmd)
-            elif operation_type == 'DELETED':
-                if vm_name and is_snapshot_exists(metadata_name, vm_name):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)  
-        except libvirtError:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException, e:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-        finally:
-            if reason:
-                time_now = now_to_datetime()
-                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
-                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
+                elif operation_type == 'MODIFIED':
+                    if vm_name and is_snapshot_exists(metadata_name, vm_name):
+                        if cmd: 
+                            runCmd(cmd)
+                elif operation_type == 'DELETED':
+                    if vm_name and is_snapshot_exists(metadata_name, vm_name):
+                        if cmd: 
+                            runCmd(cmd)  
+                status = 'Done(Success)'
+            except libvirtError:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type) 
+            except ExecuteException, e:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)    
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)           
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            finally:
+                if the_cmd_key and operation_type != 'DELETED':
+                    time_end = now_to_datetime()
+                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                    event.set_message(message)
+                    event.set_time_end(time_end)
+                    try:
+                        event.updateKubernetesEvent()
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
 
 def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
     watcher = watch.Watch()
@@ -441,78 +593,86 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
         logger.debug('metadata name: %s' % metadata_name)
-        reason = _getCmdKey(jsondict)
-        if reason:
-            logger.debug(reason)
+        the_cmd_key = _getCmdKey(jsondict)
+        logger.debug('cmd key is: %s' % the_cmd_key)
+        if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachineBlockDev'
             event_metadata_name = randomUUID()
             event_type = 'Normal'
+            status = 'Doing(Success)'
+            reporter = 'virtctl'
             event_id = _getEventId(jsondict)
-            time = now_to_datetime()
-            message = '%s %s doing %s, event id: %s, timestamp: %d' % (involved_object_kind, involved_object_name, reason, event_id, now_to_timestamp())
-            registerKubernetesEvent(event_metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type)
-        try:
-            jsondict = forceUsingMetadataName(metadata_name, jsondict)
-            if operation_type == 'ADDED':
-                cmd = unpackCmdFromJson(jsondict)
-                if cmd:
-                    runCmd(cmd)
-            elif operation_type == 'MODIFIED':
-                if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
+            time_now = now_to_datetime()
+            time_start = time_now
+            time_end = time_now
+            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+            try:
+                event.registerKubernetesEvent()
+            except:
+                logger.error('Oops! ', exc_info=1)
+            jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+#             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+#             body = jsondict['raw_object']
+#             try:
+#                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+#             except:
+#                 logger.warning('Oops! ', exc_info=1)
+            try:
+                if operation_type == 'ADDED':
+                    if cmd:
                         runCmd(cmd)
-            elif operation_type == 'DELETED':
-                if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
-                    cmd = unpackCmdFromJson(jsondict)
-                    if cmd: 
-                        runCmd(cmd)   
-        except libvirtError:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural) 
-        except ExecuteException, e:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)              
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-        finally:
-            if reason:
-                time_now = now_to_datetime()
-                message = '%s %s done %s, event id: %s, duration: %f' % (involved_object_kind, involved_object_name, reason, event_id, (time_now - time).total_seconds())
-                updateKubernetesEvent(event_metadata_name, time, time_now, involved_object_name, involved_object_kind, message, reason, event_type)
-
-'''
-More details please @See: 
-    https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Event.md
-'''
-def registerKubernetesEvent(metadata_name, time, involved_object_name, involved_object_kind, message, reason, event_type):
-    try:
-        involved_object = client.V1ObjectReference(name=involved_object_name, kind=involved_object_kind, namespace='default')
-        metadata = client.V1ObjectMeta(name=metadata_name, namespace='default')
-        body = client.V1Event(first_timestamp=time, metadata=metadata, involved_object=involved_object, message=message, reason=reason, type=event_type)
-        client.CoreV1Api().replace_namespaced_event(metadata_name, 'default', body, pretty='true')
-#         logger.debug(api_response)
-    except ApiException:
-        logger.error('Oops! ', exc_info=1)
-
-'''
-More details please @See: 
-    https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Event.md
-'''
-def updateKubernetesEvent(metadata_name, time_begin, time_now, involved_object_name, involved_object_kind, message, reason, event_type):
-    try:
-        involved_object = client.V1ObjectReference(name=involved_object_name, kind=involved_object_kind, namespace='default')
-        metadata = client.V1ObjectMeta(name=metadata_name, namespace='default')
-        body = client.V1Event(first_timestamp=time_begin, last_timestamp=time_now, metadata=metadata, involved_object=involved_object, message=message, reason=reason, type=event_type)
-        client.CoreV1Api().replace_namespaced_event(metadata_name, 'default', body, pretty='true')
-#         logger.debug(api_response)
-    except ApiException:
-        logger.error('Oops! ', exc_info=1)
+                elif operation_type == 'MODIFIED':
+                    if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
+                        if cmd: 
+                            runCmd(cmd)
+                elif operation_type == 'DELETED':
+                    if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
+                        if cmd: 
+                            runCmd(cmd)   
+                status = 'Done(Success)'
+            except libvirtError:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            except ExecuteException, e:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)    
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)          
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning' 
+                event.set_event_type(event_type)
+            finally:
+                if the_cmd_key and operation_type != 'DELETED':
+                    time_end = now_to_datetime()
+                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                    event.set_message(message)
+                    event.set_time_end(time_end)
+                    try:
+                        event.updateKubernetesEvent()
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']
@@ -522,47 +682,44 @@ def getMetadataName(jsondict):
     else:
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!') 
 
-def forceUsingMetadataName(metadata_name,jsondict):
+def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']
     lifecycle = spec.get('lifecycle')
-    if lifecycle:
-        the_key = None
-        keys = lifecycle.keys()
-        for key in keys:
-            if key in ALL_SUPPORT_CMDS.keys():
-#                 cmd_head = ALL_SUPPORT_CMDS.get(key)
-                the_key = key
-                break;
-#         print(cmd_head)
-        if the_key in ALL_SUPPORT_CMDS_WITH_NAME_FIELD:
-            lifecycle[the_key]['name'] = metadata_name    
-        elif the_key in ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD:
-            lifecycle[the_key]['domain'] = metadata_name
-        elif the_key in ALL_SUPPORT_CMDS_WITH_VOL_FIELD:
-            lifecycle[the_key]['vol'] = metadata_name
-        elif the_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
-            lifecycle[the_key]['snapshotname'] = metadata_name
+    if the_cmd_key in ALL_SUPPORT_CMDS_WITH_NAME_FIELD:
+        lifecycle[the_cmd_key]['name'] = metadata_name    
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD:
+        lifecycle[the_cmd_key]['domain'] = metadata_name
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_VOL_FIELD:
+        lifecycle[the_cmd_key]['vol'] = metadata_name
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
+        lifecycle[the_cmd_key]['snapshotname'] = metadata_name
     return jsondict
 
+def _injectEventIntoLifecycle(jsondict, eventdict):
+    if jsondict:
+        spec = jsondict['raw_object']['spec']
+#         metadata = jsondict['raw_object']['metadata']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                spec['lifecycle']['event'] = eventdict
+#         if metadata:
+#             resource_version = metadata.get('resourceVersion')
+#             if resource_version:
+#                 del metadata['resourceVersion']
+    return jsondict
 
 '''
 Install VM from ISO.
 '''
-def _isInstallVMFromISO(jsondict):
-    spec = jsondict['raw_object'].get('spec')
-    if spec:
-        '''
-        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-        Note that only the first CMD will be executed.
-        '''
-        lifecycle = spec.get('lifecycle')
-        if not lifecycle:
-            return False
-        keys = lifecycle.keys()
-        for key in keys:
-            if key in ALL_SUPPORT_CMDS.keys():
-                if key == "createAndStartVMFromISO":
-                    return True
+def _isInstallVMFromISO(the_cmd_key):
+    if the_cmd_key == "createAndStartVMFromISO":
+        return True
+    return False
+
+def _isDeleteVM(the_cmd_key):
+    if the_cmd_key == "deleteVM":
+        return True
     return False
 
 '''
@@ -607,38 +764,14 @@ def _getCmdKey(jsondict):
 '''
 Install VM from image.
 '''
-def _isInstallVMFromImage(jsondict):
-    spec = jsondict['raw_object'].get('spec')
-    if spec:
-        '''
-        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-        Note that only the first CMD will be executed.
-        '''
-        lifecycle = spec.get('lifecycle')
-        if not lifecycle:
-            return False
-        keys = lifecycle.keys()
-        for key in keys:
-            if key in ALL_SUPPORT_CMDS.keys():
-                if key == "createAndStartVMFromImage":
-                    return True
+def _isInstallVMFromImage(the_cmd_key):
+    if the_cmd_key == "createAndStartVMFromImage":
+        return True
     return False
 
-def _isCreateImage(jsondict):
-    spec = jsondict['raw_object'].get('spec')
-    if spec:
-        '''
-        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-        Note that only the first CMD will be executed.
-        '''
-        lifecycle = spec.get('lifecycle')
-        if not lifecycle:
-            return False
-        keys = lifecycle.keys()
-        for key in keys:
-            if key in ALL_SUPPORT_CMDS.keys():
-                if key == "createImage":
-                    return True
+def _isCreateImage(the_cmd_key):
+    if the_cmd_key == "createImage":
+        return True
     return False
 
 def _preprocessInCreateVMFromImage(jsondict):
@@ -679,29 +812,23 @@ def _preprocessInCreateVMFromImage(jsondict):
         print jsondict
         return (jsondict, new_vm_vcpus, new_vm_memory)
     
-def _get_field(jsondict, field):
-    pool_name = None
+def _get_field(jsondict, the_cmd_key, field):
+    retv = None
     spec = jsondict['raw_object'].get('spec')
     if spec:
         '''
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
         Note that only the first CMD will be executed.
         '''
-        the_cmd_key = ''
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
             return None
-        keys = lifecycle.keys()
-        for key in keys:
-            if key in ALL_SUPPORT_CMDS.keys():
-                the_cmd_key = key
-                break;
         if the_cmd_key:
             contents = lifecycle.get(the_cmd_key)
             for k, v in contents.items():
                 if k == field:
-                    pool_name = v
-    return pool_name    
+                    retv = v
+    return retv    
         
 def jsontoxml(jsonstr):
     json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
@@ -717,19 +844,6 @@ def toKubeJson(json):
     return json.replace('@', '_').replace('$', 'text').replace(
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
-
-def updateDomainStructureInJson(jsondict, body):
-    if jsondict:
-        '''
-        Get target VM name from Json.
-        '''
-        spec = jsondict['raw_object']['spec']
-        if spec:
-            lifecycle = spec.get('lifecycle')
-            if lifecycle:
-                del spec['lifecycle']
-            spec.update(loads(body))
-    return jsondict['raw_object']
 
 def addDefaultSettings(jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
@@ -753,41 +867,27 @@ def addDefaultSettings(jsondict, the_cmd_key):
         return jsondict    
         
 
-def _updateRootDiskInJson(jsondict, new_vm_path):
+def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
     '''
     Get target VM name from Json.
     '''
     spec = jsondict['raw_object'].get('spec')
     if spec:
-        '''
-        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-        Note that only the first CMD will be executed.
-        '''
-        the_cmd_key = None
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
             return
-        keys = lifecycle.keys()
-        for key in keys:
-            if key in ALL_SUPPORT_CMDS.keys():
-                the_cmd_key = key
-                break;
-        '''
-        Get the CMD body from 'dict' structure.
-        '''
         if the_cmd_key:
             contents = lifecycle.get(the_cmd_key)
-            for k, v in contents.items():
-                if k == "disk":
-                    tmp = v.replace('ROOTDISK', new_vm_path)
-                    logger.debug(tmp)
-                    jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = tmp
-                elif k == 'cdrom':
-                    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
-                else:
-                    continue
-        logger.debug(jsondict)
-        return jsondict    
+            if contents:
+                for k, v in contents.items():
+                    if k == "disk":
+                        tmp = v.replace('ROOTDISK', new_vm_path)
+                        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = tmp
+                    elif k == 'cdrom':
+                        del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
+                    else:
+                        continue
+    return jsondict    
 
 '''
 Covert chars according to real CMD in back-end.
@@ -808,51 +908,26 @@ def _convertCharsInJson(key, value):
 '''
 Unpack the CMD that will be executed in Json format.
 '''
-def unpackCmdFromJson(jsondict):
+def unpackCmdFromJson(jsondict, the_cmd_key):
     cmd = None
     if jsondict:
-        '''
-        Get target VM name from Json.
-        '''
         spec = jsondict['raw_object'].get('spec')
-        if spec:
-            '''
-            Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-            Note that only the first CMD will be executed.
-            '''
-            cmd_head = ''
-            the_cmd_keys = []
-            lifecycle = spec.get('lifecycle')
-            if not lifecycle:
-                return
-            keys = lifecycle.keys()
-            for key in keys:
-                if key in ALL_SUPPORT_CMDS.keys():
-                    '''
-                    Priority 1st -- Force shutdown out of control VM.
-                    '''
-                    if key == FORCE_SHUTDOWN_VM:
-                        the_cmd_keys.insert(0, key)
-                        break;
-                    elif key == RESET_VM:
-                        the_cmd_keys.insert(0, key)
-                        break;
-                    else:
-                        the_cmd_keys.append(key)
-            '''
-            Get the CMD body from 'dict' structure.
-            '''
-            if the_cmd_keys:
-                the_cmd_key = the_cmd_keys[0]
-                cmd_head = ALL_SUPPORT_CMDS.get(the_cmd_key)
-                cmd_body = ''
-                contents = lifecycle.get(the_cmd_key)
-                for k, v in contents.items():
-                    (k, v) = _convertCharsInJson(k, v)
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return cmd
+        '''
+        Get the CMD body from 'dict' structure.
+        '''
+        if the_cmd_key:
+            cmd_head = ALL_SUPPORT_CMDS.get(the_cmd_key)
+            cmd_body = ''
+            contents = lifecycle.get(the_cmd_key)
+            for k, v in contents.items():
+                (k, v) = _convertCharsInJson(k, v)
 #                     print k, v
-                    cmd_body = '%s %s %s' % (cmd_body, k, v)
-                cmd = '%s %s' % (cmd_head, cmd_body)
-            logger.debug("The CMD is: %s" % cmd)
+                cmd_body = '%s %s %s' % (cmd_body, k, v)
+            cmd = '%s %s' % (cmd_head, cmd_body)
+        logger.debug("The CMD is: %s" % cmd)
     return cmd
 
 '''

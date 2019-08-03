@@ -81,7 +81,10 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         except:
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
-            report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+            try:
+                report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(

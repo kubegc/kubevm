@@ -11,18 +11,17 @@ Import python libs
 import os, sys, time, signal, atexit, subprocess
 import threading
 import random
-import logger
 import socket
 import datetime
 from dateutil.tz import gettz
+from pprint import pformat
+from six import iteritems
 
 '''
 Import third party libs
 '''
 from kubernetes import client
 from kubernetes.client.rest import ApiException
-
-logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 def get_hostname_in_lower_case():
     return socket.gethostname().lower()
@@ -109,26 +108,27 @@ def runCmd(cmd):
         p.stderr.close()
         
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
-    try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                          version=version, 
-                                                                          namespace='default', 
-                                                                          plural=plural, 
-                                                                          name=name)
-        jsondict = deleteLifecycleInJson(jsondict)
-        body = addExceptionMessage(jsondict, error_reason, error_message)
-        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-        return retv
-    except ApiException:
-        logger.error('Oops! ', exc_info=1)
+    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                      version=version, 
+                                                                      namespace='default', 
+                                                                      plural=plural, 
+                                                                      name=name)
+    jsondict = deleteLifecycleInJson(jsondict)
+    body = addExceptionMessage(jsondict, error_reason, error_message)
+    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    return retv
 
 def deleteLifecycleInJson(jsondict):
     if jsondict:
         '''
         Get target VM name from Json.
         '''
-        spec = jsondict['spec']
+        spec = jsondict.get('spec')
+        if not spec:
+            raw_object = jsondict.get('raw_object')
+            if raw_object:
+                spec = raw_object.get('spec')
         if spec:
             lifecycle = spec.get('lifecycle')
             if lifecycle:
@@ -267,6 +267,185 @@ def randomMAC():
         random.randint(0x00, 0xff),
         random.randint(0x00, 0xff) ]
     return ':'.join(map(lambda x: "%02x" % x, mac))
+
+class UserDefinedEvent(object):
+    
+    swagger_types = {
+        'event_metadata_name': 'str',
+        'time_start': 'datetime',
+        'time_end': 'datetime',
+        'involved_object_name': 'str',
+        'involved_object_kind': 'str',
+        'message': 'str',
+        'reason': 'str',
+        'event_type': 'str'
+    }
+    
+    def __init__(self, event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, reason, event_type):
+        self.event_metadata_name = event_metadata_name
+        self.time_start = time_start
+        self.time_end = time_end
+        self.involved_object_name = involved_object_name
+        self.involved_object_kind = involved_object_kind
+        self.message = message
+        self.reason = reason
+        self.event_type = event_type
+        
+    def registerKubernetesEvent(self):
+        '''
+        More details please @See: 
+            https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Event.md
+        '''
+        involved_object = client.V1ObjectReference(name=self.involved_object_name, kind=self.involved_object_kind, namespace='default')
+        metadata = client.V1ObjectMeta(name=self.event_metadata_name, namespace='default')
+        body = client.V1Event(first_timestamp=self.time_start, last_timestamp=self.time_end, metadata=metadata, involved_object=involved_object, message=self.message, reason=self.reason, type=self.event_type)
+        client.CoreV1Api().replace_namespaced_event(self.event_metadata_name, 'default', body, pretty='true')
+        
+    def updateKubernetesEvent(self):
+        '''
+        More details please @See: 
+            https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Event.md
+        '''
+        involved_object = client.V1ObjectReference(name=self.involved_object_name, kind=self.involved_object_kind, namespace='default')
+        metadata = client.V1ObjectMeta(name=self.event_metadata_name, namespace='default')
+        body = client.V1Event(first_timestamp=self.time_start, last_timestamp=self.time_end, metadata=metadata, involved_object=involved_object, message=self.message, reason=self.reason, type=self.event_type)
+        client.CoreV1Api().replace_namespaced_event(self.event_metadata_name, 'default', body, pretty='true')
+
+    def get_event_metadata_name(self):
+        return self.__event_metadata_name
+
+
+    def get_time_start(self):
+        return self.__time_start
+
+
+    def get_time_end(self):
+        return self.__time_end
+
+
+    def get_involved_object_name(self):
+        return self.__involved_object_name
+
+
+    def get_involved_object_kind(self):
+        return self.__involved_object_kind
+
+
+    def get_message(self):
+        return self.__message
+
+
+    def get_reason(self):
+        return self.__reason
+
+
+    def get_event_type(self):
+        return self.__event_type
+
+
+    def set_event_metadata_name(self, value):
+        self.__event_metadata_name = value
+
+
+    def set_time_start(self, value):
+        self.__time_start = value
+
+
+    def set_time_end(self, value):
+        self.__time_end = value
+
+
+    def set_involved_object_name(self, value):
+        self.__involved_object_name = value
+
+
+    def set_involved_object_kind(self, value):
+        self.__involved_object_kind = value
+
+
+    def set_message(self, value):
+        self.__message = value
+
+
+    def set_reason(self, value):
+        self.__reason = value
+
+
+    def set_event_type(self, value):
+        self.__event_type = value
+
+
+    def del_event_metadata_name(self):
+        del self.__event_metadata_name
+
+
+    def del_time_start(self):
+        del self.__time_start
+
+
+    def del_time_end(self):
+        del self.__time_end
+
+
+    def del_involved_object_name(self):
+        del self.__involved_object_name
+
+
+    def del_involved_object_kind(self):
+        del self.__involved_object_kind
+
+
+    def del_message(self):
+        del self.__message
+
+
+    def del_reason(self):
+        del self.__reason
+
+
+    def del_event_type(self):
+        del self.__event_type
+        
+    def to_dict(self):
+        """
+        Returns the model properties as a dict
+        """
+        result = {}
+
+        for attr, _ in iteritems(self.swagger_types):
+            value = getattr(self, attr)
+            if isinstance(value, list):
+                result[attr] = list(map(
+                    lambda x: x.to_dict() if hasattr(x, "to_dict") else x,
+                    value
+                ))
+            elif hasattr(value, "to_dict"):
+                result[attr] = value.to_dict()
+            elif isinstance(value, dict):
+                result[attr] = dict(map(
+                    lambda item: (item[0], item[1].to_dict())
+                    if hasattr(item[1], "to_dict") else item,
+                    value.items()
+                ))
+            else:
+                result[attr] = value
+
+        return result
+
+    def to_str(self):
+        """
+        Returns the string representation of the model
+        """
+        return pformat(self.to_dict())
+
+    event_metadata_name = property(get_event_metadata_name, set_event_metadata_name, del_event_metadata_name, "event_metadata_name's docstring")
+    time_start = property(get_time_start, set_time_start, del_time_start, "time_start's docstring")
+    time_end = property(get_time_end, set_time_end, del_time_end, "time_end's docstring")
+    involved_object_name = property(get_involved_object_name, set_involved_object_name, del_involved_object_name, "involved_object_name's docstring")
+    involved_object_kind = property(get_involved_object_kind, set_involved_object_kind, del_involved_object_kind, "involved_object_kind's docstring")
+    message = property(get_message, set_message, del_message, "message's docstring")
+    reason = property(get_reason, set_reason, del_reason, "reason's docstring")
+    event_type = property(get_event_type, set_event_type, del_event_type, "event_type's docstring")
 
 class Job(threading.Thread):
 

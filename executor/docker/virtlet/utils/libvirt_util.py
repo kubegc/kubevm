@@ -353,10 +353,16 @@ def get_disks(vm_):
     for dev in disks:
         try:
             output = []
-            qemu_output = subprocess.Popen(['qemu-img', 'info', '-U',
-                disks[dev]['file']],
-                shell=False,
-                stdout=subprocess.PIPE).communicate()[0]
+            try:
+                qemu_output = subprocess.Popen(['qemu-img', 'info', '-U',
+                    disks[dev]['file']],
+                    shell=False,
+                    stdout=subprocess.PIPE).communicate()[0]
+            except:
+                qemu_output = subprocess.Popen(['qemu-img', 'info',
+                    disks[dev]['file']],
+                    shell=False,
+                    stdout=subprocess.PIPE).communicate()[0]                
             snapshots = False
             columns = None
             lines = qemu_output.strip().split('\n')

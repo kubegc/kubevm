@@ -340,13 +340,13 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     else:
-                        raise ExecuteException('VirtctlError', 'No pool name found!')
+                        raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                 elif operation_type == 'DELETED':
                     if pool_name and is_volume_exists(metadata_name, pool_name):
                         if cmd: 
                             runCmd(cmd)   
                     else:
-                        raise ExecuteException('VirtctlError', 'No pool name found!')
+                        raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                 status = 'Done(Success)'
             except libvirtError:
                 logger.error('Oops! ', exc_info=1)

@@ -191,6 +191,13 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             except:
                 logger.error('Oops! ', exc_info=1)
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            if _isInstallVMFromImage(the_cmd_key):
+                template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
+                if not os.path.exists(template_path):
+                    raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
+                new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
+                runCmd('cp %s %s' %(template_path, new_vm_path))
+                jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)                
             cmd = unpackCmdFromJson(jsondict, the_cmd_key)
 #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
 #             body = jsondict['raw_object']
@@ -210,14 +217,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                             create(metadata_name)
                     elif _isInstallVMFromImage(the_cmd_key):
-                        template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
-                        if not os.path.exists(template_path):
-                            raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
-                        new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
-    #                     if os.path.exists(new_vm_path):
-    #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
-                        runCmd('cp %s %s' %(template_path, new_vm_path))
-                        jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
                         if cmd: 
                             runCmd(cmd)
                         if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
@@ -904,12 +903,15 @@ def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
             if contents:
                 for k, v in contents.items():
                     if k == "disk":
+                        logger.debug("In here")
                         tmp = v.replace('ROOTDISK', new_vm_path)
+                        logger.debug(tmp)
                         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = tmp
                     elif k == 'cdrom':
                         del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
                     else:
                         continue
+    logger.debug(jsondict)
     return jsondict    
 
 '''

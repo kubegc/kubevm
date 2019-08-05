@@ -34,7 +34,7 @@ Import local libs
 '''
 from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state
 from utils import logger
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure
+from utils.utils import runCmd, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -49,6 +49,9 @@ config_raw.read(cfg)
 
 VM_KIND = 'VirtualMachine'
 VMI_KIND = 'VirtualMachineImage'
+VMD_KIND = 'VirtualMachineDisk'
+VMSN_KIND = 'VirtualMachineSnapshot'
+VMDEV_KIND = 'VirtualMahcineBlockDevUit'
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
 PLURAL_VM = config_raw.get('VirtualMachine', 'plural')
@@ -68,12 +71,13 @@ VERSION_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'version')
 GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
 
 VOL_DIRS = config_raw.items('DefaultVolumeDirs')
+SYSTEM_VOL_DIRS = config_raw.items('DefaultStorageDir')
 SNAP_DIRS = config_raw.items('DefaultSnapshotDir')
 BLOCK_DEV_DIRS = config_raw.items('DefaultBlockDevDir')
 LIBVIRT_XML_DIRS = config_raw.items('DefaultLibvirtXmlDir')
 TEMPLATE_DIRS = config_raw.items('DefaultTemplateDir')
 
-HOSTNAME = socket.gethostname()
+HOSTNAME = get_hostname_in_lower_case()
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
@@ -111,27 +115,52 @@ def updateJsonRemoveLifecycle(jsondict, body):
     return jsondict
 
 def myVmVolEventHandler(event, pool, name, group, version, plural):
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                      version=version, 
-                                                                      namespace='default', 
-                                                                      plural=plural, 
-                                                                      name=name)
-    try:
     #     print(jsondict)
-        if  event == "Delete":
-            logger.debug('Callback volume deletion to virtlet')
+    if  event == "Delete":
+        try:
+            logger.debug('Delete vm disk %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
-        else:
-            logger.debug('Callback volume changes to virtlet')
+        except:
+            logger.error('Oops! ', exc_info=1)
+    elif event == "Create":
+        try:
+            logger.debug('Create vm disk %s, report to virtlet' % name)
+            jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}}, 
+                        'kind': VMD_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
             vol_xml = get_volume_xml(pool, name)
             vol_json = toKubeJson(xmlToJson(vol_xml))
-            vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
-            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
-            modifyStructure(name, body, group, version, plural)
-    except:
-        logger.error('Oops! ', exc_info=1)
-        info=sys.exc_info()
-        report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            jsondict = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            try:
+                createStructure(body, group, version, plural)
+            except ApiException, e:
+                logger.debug(e)
+                if e.reason == 'Conflict':
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                              version=version, 
+                                                                              namespace='default', 
+                                                                              plural=plural, 
+                                                                              name=name)
+                    jsondict = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                    modifyStructure(name, body, group, version, plural)
+        except:
+            logger.error('Oops! ', exc_info=1)
+    else:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                              version=version, 
+                                                                              namespace='default', 
+                                                                              plural=plural, 
+                                                                              name=name)
+        try:
+            pass
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 class VmVolEventHandler(FileSystemEventHandler):
     def __init__(self, pool, target, group, version, plural):
@@ -174,31 +203,56 @@ class VmVolEventHandler(FileSystemEventHandler):
         if event.is_directory:
             logger.debug("directory modified:{0}".format(event.src_path))
         else:
-            logger.debug("file modified:{0}".format(event.src_path))
+#            logger.debug("file modified:{0}".format(event.src_path))
+            pass
             
 def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                      version=version, 
-                                                                      namespace='default', 
-                                                                      plural=plural, 
-                                                                      name=name)
-    try:
     #     print(jsondict)
-        if  event == "Delete":
-            logger.debug('Callback snapshot deletion to virtlet')
+    if  event == "Delete":
+        try:
+            logger.debug('Delete vm snapshot %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
-        else:
-            logger.debug('Callback snapshot changes to virtlet')
+        except:
+            logger.error('Oops! ', exc_info=1)
+    elif event == "Create":
+        try:
+            logger.debug('Create vm snapshot %s, report to virtlet' % name)
+            jsondict = {'spec': {'domainsnapshot': {}, 'nodeName': HOSTNAME, 'status': {}}, 
+                        'kind': VMSN_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
             snap_xml = get_snapshot_xml(vm, name)
             snap_json = toKubeJson(xmlToJson(snap_xml))
             snap_json = updateDomainSnapshot(loads(snap_json))
-            snap_json = updateJsonRemoveLifecycle(jsondict, snap_json)
-            body = addPowerStatusMessage(snap_json, 'Ready', 'The resource is ready.')
-            modifyStructure(name, body, group, version, plural)
-    except:
-        logger.error('Oops! ', exc_info=1)
-        info=sys.exc_info()
-        report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            jsondict = updateJsonRemoveLifecycle(jsondict, snap_json)
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            try:
+                createStructure(body, group, version, plural)
+            except ApiException, e:
+                logger.debug(e)
+                if e.reason == 'Conflict':
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                              version=version, 
+                                                                              namespace='default', 
+                                                                              plural=plural, 
+                                                                              name=name)
+                    jsondict = updateJsonRemoveLifecycle(jsondict, snap_json)
+                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                    modifyStructure(name, body, group, version, plural)
+        except:
+            logger.error('Oops! ', exc_info=1)
+    else:
+        try:
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                              version=version, 
+                                                                              namespace='default', 
+                                                                              plural=plural, 
+                                                                              name=name)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 class VmSnapshotEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):
@@ -248,26 +302,50 @@ class VmSnapshotEventHandler(FileSystemEventHandler):
             logger.debug("file modified:{0}".format(event.src_path))
             
 def myVmBlockDevEventHandler(event, name, group, version, plural):
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                      version=version, 
-                                                                      namespace='default', 
-                                                                      plural=plural, 
-                                                                      name=name)
-    try:
     #     print(jsondict)
-        if  event == "Delete":
-            logger.debug('Delete block dev %s, report to virtlet' % name)
+    if  event == "Delete":
+        try:
+            logger.debug('Delete vm block %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
-        elif event == "Create":
-            logger.debug('Create block dev %s, report to virtlet' % name)
+        except:
+            logger.error('Oops! ', exc_info=1)
+    elif event == "Create":
+        try:
+            logger.debug('Create vm block %s, report to virtlet' % name)
+            jsondict = {'spec': {'REPLACE': {}, 'nodeName': HOSTNAME, 'status': {}}, 
+                        'kind': VMDEV_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
             block_json = get_block_dev_json(name)
-            block_json = updateJsonRemoveLifecycle(jsondict, loads(block_json))
-            body = addPowerStatusMessage(block_json, 'Ready', 'The resource is ready.')
-            modifyStructure(name, body, group, version, plural)
-    except:
-        logger.error('Oops! ', exc_info=1)
-        info=sys.exc_info()
-        report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            jsondict = updateJsonRemoveLifecycle(jsondict, loads(block_json))
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            try:
+                createStructure(body, group, version, plural)
+            except ApiException, e:
+                logger.debug(e)
+                if e.reason == 'Conflict':
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)     
+                    jsondict = updateJsonRemoveLifecycle(jsondict, loads(block_json))
+                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')               
+                    modifyStructure(name, body, group, version, plural)
+        except:
+            logger.error('Oops! ', exc_info=1)
+    else:
+        try:
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 class VmBlockDevEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):
@@ -321,55 +399,58 @@ class VmBlockDevEventHandler(FileSystemEventHandler):
         
 def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
     #     print(jsondict)
-        if  event == "Create":
+    if  event == "Create":
+        try:
+            logger.debug('***Create VM %s from back-end, report to virtlet***' % name)
+#                 jsondict = {'spec': {'domain': {}, 'nodeName': HOSTNAME, 'status': {}}, 
+#                             'kind': VM_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
+#                 vm_xml = get_xml(name)
+#                 vm_power_state = vm_state(name).get(name)
+#                 vm_json = toKubeJson(xmlToJson(vm_xml))
+#                 vm_json = updateDomain(loads(vm_json))
+#                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+#                 jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+#                 body = addNodeName(jsondict)
+#                 createStructure(body, group, version, plural)
+        except:
+            logger.error('Oops! ', exc_info=1)
+    elif event == "Modify":
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        try:
+            logger.debug('***Modify VM %s from back-end, report to virtlet***' % name)
+            vm_xml = get_xml(name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            modifyStructure(name, body, group, version, plural)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
             try:
-                logger.debug('***Create VM %s from back-end, report to virtlet***' % name)
-                jsondict = {'spec': {'domain': {}, 'nodeName': '', 'status': {}}, 
-                            'kind': VM_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
-                vm_xml = get_xml(name)
-                vm_power_state = vm_state(name).get(name)
-                vm_json = toKubeJson(xmlToJson(vm_xml))
-                vm_json = updateDomain(loads(vm_json))
-                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-                body = addNodeName(jsondict)
-                createStructure(body, group, version, plural)
-            except:
-                logger.error('Oops! ', exc_info=1)
-        elif event == "Modify":
-            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                              version=version, 
-                                                                              namespace='default', 
-                                                                              plural=plural, 
-                                                                              name=name)
-            try:
-                logger.debug('***Modify VM %s from back-end, report to virtlet***' % name)
-                vm_xml = get_xml(name)
-                vm_json = toKubeJson(xmlToJson(vm_xml))
-                vm_json = updateDomain(loads(vm_json))
-                body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                modifyStructure(name, body, group, version, plural)
-            except:
-                logger.error('Oops! ', exc_info=1)
-                info=sys.exc_info()
                 report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-        elif event == "Delete":
+            except:
+                logger.warning('Oops! ', exc_info=1)
+    elif event == "Delete":
 #             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
 #                                                                               version=version, 
 #                                                                               namespace='default', 
 #                                                                               plural=plural, 
 #                                                                               name=name)
-            try:
-                logger.debug('***Delete VM %s from back-end, report to virtlet***' % name)
-                deleteStructure(name, V1DeleteOptions(), group, version, plural)
+        try:
+            logger.debug('***Delete VM %s from back-end, report to virtlet***' % name)
+#                 deleteStructure(name, V1DeleteOptions(), group, version, plural)
 #                 vm_xml = get_xml(name)
 #                 vm_json = toKubeJson(xmlToJson(vm_xml))
 #                 vm_json = updateDomain(loads(vm_json))
 #                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
 #                 body = addExceptionMessage(jsondict, 'VirtletError', 'VM has been deleted in back-end.')
 #                 modifyStructure(name, body, group, version, plural)   
-            except:
-                logger.error('Oops! ', exc_info=1)
+        except:
+            logger.error('Oops! ', exc_info=1)
 
 class VmLibvirtXmlEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):
@@ -439,55 +520,71 @@ class VmLibvirtXmlEventHandler(FileSystemEventHandler):
                     
 def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
     #     print(jsondict)
-        if event == "Create":
+    if event == "Create":
+        try:
+            logger.debug('Create vm image %s, report to virtlet' % name)
+            jsondict = {'spec': {'domain': {}, 'nodeName': HOSTNAME, 'status': {}}, 
+                        'kind': VMI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
+            with open(xml_path, 'r') as fr:
+                vm_xml = fr.read()
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            body = addNodeName(jsondict)
             try:
-                logger.debug('Create vm image %s, report to virtlet' % name)
-                jsondict = {'spec': {'domain': {}, 'nodeName': '', 'status': {}}, 
-                            'kind': VMI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
-                with open(xml_path, 'r') as fr:
-                    vm_xml = fr.read()
-                vm_json = toKubeJson(xmlToJson(vm_xml))
-                vm_json = updateDomain(loads(vm_json))
-                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                body = addNodeName(jsondict)
-                createStructure(body, group, version, plural)  
-            except:
-                logger.error('Oops! ', exc_info=1)          
-        elif event == "Modify":
-            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                createStructure(body, group, version, plural)
+            except ApiException, e:
+                logger.debug(e)
+                if e.reason == 'Conflict':
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                               version=version, 
                                                                               namespace='default', 
                                                                               plural=plural, 
                                                                               name=name)
+                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                    jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                    body = addNodeName(jsondict)
+                    modifyStructure(name, body, group, version, plural)  
+        except:
+            logger.error('Oops! ', exc_info=1)          
+    elif event == "Modify":
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+        try:
+            logger.debug('Modify vm image %s, report to virtlet' % name)
+            with open(xml_path, 'r') as fr:
+                vm_xml = fr.read()
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            logger.debug(body)
+            modifyStructure(name, body, group, version, plural)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
             try:
-                logger.debug('Modify vm image %s, report to virtlet' % name)
-                with open(xml_path, 'r') as fr:
-                    vm_xml = fr.read()
-                vm_json = toKubeJson(xmlToJson(vm_xml))
-                vm_json = updateDomain(loads(vm_json))
-                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                logger.debug(body)
-                modifyStructure(name, body, group, version, plural)
-            except:
-                logger.error('Oops! ', exc_info=1)
-                info=sys.exc_info()
                 report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-        elif event == "Delete":
+            except:
+                logger.warning('Oops! ', exc_info=1)
+    elif event == "Delete":
 #             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
 #                                                                               version=version, 
 #                                                                               namespace='default', 
 #                                                                               plural=plural, 
 #                                                                               name=name)
-            try:
-                logger.debug('Delete vm image %s, report to virtlet' % name)
-                deleteStructure(name, V1DeleteOptions(), group, version, plural)
+        try:
+            logger.debug('Delete vm image %s, report to virtlet' % name)
+            deleteStructure(name, V1DeleteOptions(), group, version, plural)
 #                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
 #                 body = addExceptionMessage(jsondict, 'VirtletError', 'VM has been deleted in back-end.')
 #                 modifyStructure(name, body, group, version, plural)   
-            except:
-                logger.error('Oops! ', exc_info=1)
+        except:
+            logger.error('Oops! ', exc_info=1)
 
 class ImageLibvirtXmlEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):
@@ -581,6 +678,12 @@ def addNodeName(jsondict):
 def main():
     observer = Observer()
     for ob in VOL_DIRS:
+        if not os.path.exists(ob[1]):
+            os.makedirs(ob[1], 0711)
+            runCmd('virsh pool-create-as --name %s --type dir --source-path %s' % (ob[0], ob[1]))
+        event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+        observer.schedule(event_handler,ob[1],True)
+    for ob in SYSTEM_VOL_DIRS:
         if not os.path.exists(ob[1]):
             os.makedirs(ob[1], 0711)
         event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)

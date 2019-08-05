@@ -39,10 +39,10 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
+from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import ExecuteException, addExceptionMessage, report_failure, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
+from utils.utils import ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -334,6 +334,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     if pool_name and is_volume_exists(metadata_name, pool_name):
                         if cmd: 
                             runCmd(cmd)
+                        if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
+                            vol_xml = get_volume_xml(pool_name, metadata_name)
+                            vol_json = toKubeJson(xmlToJson(vol_xml))
+                            vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     else:
                         logger.warning('No pool name found!')
                 elif operation_type == 'DELETED':
@@ -709,6 +715,13 @@ def _injectEventIntoLifecycle(jsondict, eventdict):
 #                 del metadata['resourceVersion']
     return jsondict
 
+def _reportResutToVirtlet(metadata_name, body, group, version, plural):
+    body = body.get('raw_object')
+    try:
+        client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+    except:
+        logger.warning('Oops! ', exc_info=1)
+
 '''
 Install VM from ISO.
 '''
@@ -771,6 +784,16 @@ def _isInstallVMFromImage(the_cmd_key):
 
 def _isCreateImage(the_cmd_key):
     if the_cmd_key == "createImage":
+        return True
+    return False
+
+def _isCloneDisk(the_cmd_key):
+    if the_cmd_key == "cloneDisk":
+        return True
+    return False
+
+def _isResizeDisk(the_cmd_key):
+    if the_cmd_key == "resizeDisk":
         return True
     return False
 

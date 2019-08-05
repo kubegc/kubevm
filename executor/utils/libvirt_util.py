@@ -11,6 +11,7 @@ Import python libs
 '''
 import re
 import subprocess
+import time
 import collections
 from pprint import pprint
 from xml.dom import minidom
@@ -71,7 +72,10 @@ def _get_pool(pool_):
     if pool_ not in list_pools():
         raise Exception('The specified pool is not present(%s).' % pool_)
     pool = conn.storagePoolLookupByName(pool_)
-    pool.refresh()
+    try:
+        pool.refresh()
+    except:
+        pass
     return pool
 
 def _get_vol(pool_, vol_):

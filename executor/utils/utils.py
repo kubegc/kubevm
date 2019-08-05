@@ -119,26 +119,37 @@ def report_failure(name, jsondict, error_reason, error_message, group, version, 
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
 
+def _getSpec(jsondict):
+    spec = jsondict.get('spec')
+    if not spec:
+        raw_object = jsondict.get('raw_object')
+        if raw_object:
+            spec = raw_object.get('spec')
+    return spec    
+
 def deleteLifecycleInJson(jsondict):
     if jsondict:
-        '''
-        Get target VM name from Json.
-        '''
-        spec = jsondict.get('spec')
-        if not spec:
-            raw_object = jsondict.get('raw_object')
-            if raw_object:
-                spec = raw_object.get('spec')
+        spec = _getSpec(jsondict)
         if spec:
             lifecycle = spec.get('lifecycle')
             if lifecycle:
                 del spec['lifecycle']
     return jsondict
+
+def updateJsonRemoveLifecycle(jsondict, body):
+    if jsondict:
+        spec = _getSpec(jsondict)
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+            spec.update(body)
+    return jsondict
         
 def addPowerStatusMessage(jsondict, reason, message):
     if jsondict:
         status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
-        spec = jsondict['spec']
+        spec = _getSpec(jsondict)
         if spec:
             spec['status'] = status
     return jsondict
@@ -146,7 +157,7 @@ def addPowerStatusMessage(jsondict, reason, message):
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:
         status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
-        spec = jsondict['spec']
+        spec = _getSpec(jsondict)
         if spec:
             spec['status'] = status
     return jsondict

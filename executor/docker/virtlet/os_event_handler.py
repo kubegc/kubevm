@@ -442,7 +442,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
 #                                                                               name=name)
         try:
             logger.debug('***Delete VM %s from back-end, report to virtlet***' % name)
-#                 deleteStructure(name, V1DeleteOptions(), group, version, plural)
+            deleteStructure(name, V1DeleteOptions(), group, version, plural)
 #                 vm_xml = get_xml(name)
 #                 vm_json = toKubeJson(xmlToJson(vm_xml))
 #                 vm_json = updateDomain(loads(vm_json))
@@ -562,7 +562,7 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
             vm_json = updateDomain(loads(vm_json))
             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-            logger.debug(body)
+#             logger.debug(body)
             modifyStructure(name, body, group, version, plural)
         except:
             logger.error('Oops! ', exc_info=1)
@@ -642,7 +642,7 @@ class ImageLibvirtXmlEventHandler(FileSystemEventHandler):
 #             logger.debug("directory modified:{0}".format(event.src_path))
             pass
         else:
-            logger.debug("file modified:{0}".format(event.src_path))
+#             logger.debug("file modified:{0}".format(event.src_path))
             _,name = os.path.split(event.src_path)
             file_type = os.path.splitext(name)[1]
             vmi = os.path.splitext(os.path.splitext(name)[0])[0]
@@ -680,7 +680,7 @@ def main():
     for ob in VOL_DIRS:
         if not os.path.exists(ob[1]):
             os.makedirs(ob[1], 0711)
-            runCmd('virsh pool-create-as --name %s --type dir --source-path %s' % (ob[0], ob[1]))
+            runCmd('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
         event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
         observer.schedule(event_handler,ob[1],True)
     for ob in SYSTEM_VOL_DIRS:

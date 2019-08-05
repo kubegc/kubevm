@@ -903,15 +903,12 @@ def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
             if contents:
                 for k, v in contents.items():
                     if k == "disk":
-                        logger.debug("In here")
                         tmp = v.replace('ROOTDISK', new_vm_path)
-                        logger.debug(tmp)
                         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = tmp
                     elif k == 'cdrom':
                         del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
                     else:
                         continue
-    logger.debug(jsondict)
     return jsondict    
 
 '''

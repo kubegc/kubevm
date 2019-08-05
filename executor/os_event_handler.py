@@ -680,7 +680,7 @@ def main():
     for ob in VOL_DIRS:
         if not os.path.exists(ob[1]):
             os.makedirs(ob[1], 0711)
-            runCmd('virsh pool-create-as --name %s --type dir --source-path %s' % (ob[0], ob[1]))
+            runCmd('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
         event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
         observer.schedule(event_handler,ob[1],True)
     for ob in SYSTEM_VOL_DIRS:

@@ -207,7 +207,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
 #             try:
 #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
 #             except:
-#                 logger.warning('Oops! ', exc_info=1)
+#                 logger.error('Oops! ', exc_info=1)
             try:
         #             print(jsondict)
                 if operation_type == 'ADDED':
@@ -250,7 +250,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 try:
                     report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -260,7 +260,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 try:
                     report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)         
@@ -270,7 +270,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 try:
                     report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -283,7 +283,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     try:
                         event.updateKubernetesEvent()
                     except:
-                        logger.warning('Oops! ', exc_info=1)
+                        logger.error('Oops! ', exc_info=1)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -324,7 +324,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #             try:
 #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
 #             except:
-#                 logger.warning('Oops! ', exc_info=1)
+#                 logger.error('Oops! ', exc_info=1)
             try:
                 if operation_type == 'ADDED':
                     if cmd:
@@ -340,13 +340,13 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     else:
-                        logger.warning('No pool name found!')
+                        raise ExecuteException('VirtctlError', 'No pool name found!')
                 elif operation_type == 'DELETED':
                     if pool_name and is_volume_exists(metadata_name, pool_name):
                         if cmd: 
                             runCmd(cmd)   
                     else:
-                        logger.warning('No pool name found!')
+                        raise ExecuteException('VirtctlError', 'No pool name found!')
                 status = 'Done(Success)'
             except libvirtError:
                 logger.error('Oops! ', exc_info=1)
@@ -354,7 +354,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 try:
                     report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -364,7 +364,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 try:
                     report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)    
+                    logger.error('Oops! ', exc_info=1)    
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)          
@@ -374,7 +374,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 try:
                     report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -387,7 +387,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     try:
                         event.updateKubernetesEvent()
                     except:
-                        logger.warning('Oops! ', exc_info=1)
+                        logger.error('Oops! ', exc_info=1)
                 
 def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     watcher = watch.Watch()
@@ -428,7 +428,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
 #             try:
 #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
 #             except:
-#                 logger.warning('Oops! ', exc_info=1)
+#                 logger.error('Oops! ', exc_info=1)
             try:
                 if operation_type == 'ADDED':
                     if _isCreateImage(the_cmd_key):
@@ -457,7 +457,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 try:
                     report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type) 
@@ -467,7 +467,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 try:
                     report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)    
+                    logger.error('Oops! ', exc_info=1)    
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)          
@@ -477,7 +477,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 try:
                     report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -490,7 +490,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                     try:
                         event.updateKubernetesEvent()
                     except:
-                        logger.warning('Oops! ', exc_info=1)
+                        logger.error('Oops! ', exc_info=1)
         
 def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
     watcher = watch.Watch()
@@ -531,7 +531,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
 #             try:
 #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
 #             except:
-#                 logger.warning('Oops! ', exc_info=1)
+#                 logger.error('Oops! ', exc_info=1)
             try:
                 if operation_type == 'ADDED':
                     if cmd:
@@ -551,7 +551,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 try:
                     report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type) 
@@ -561,7 +561,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 try:
                     report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)    
+                    logger.error('Oops! ', exc_info=1)    
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)           
@@ -571,7 +571,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 try:
                     report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -584,7 +584,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                     try:
                         event.updateKubernetesEvent()
                     except:
-                        logger.warning('Oops! ', exc_info=1)
+                        logger.error('Oops! ', exc_info=1)
 
 def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
     watcher = watch.Watch()
@@ -624,7 +624,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
 #             try:
 #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
 #             except:
-#                 logger.warning('Oops! ', exc_info=1)
+#                 logger.error('Oops! ', exc_info=1)
             try:
                 if operation_type == 'ADDED':
                     if cmd:
@@ -644,7 +644,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                 try:
                     report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -654,7 +654,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                 try:
                     report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)    
+                    logger.error('Oops! ', exc_info=1)    
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)          
@@ -664,7 +664,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                 try:
                     report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
+                    logger.error('Oops! ', exc_info=1)
                 status = 'Done(Error)'
                 event_type = 'Warning' 
                 event.set_event_type(event_type)
@@ -677,7 +677,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                     try:
                         event.updateKubernetesEvent()
                     except:
-                        logger.warning('Oops! ', exc_info=1)
+                        logger.error('Oops! ', exc_info=1)
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']
@@ -719,7 +719,7 @@ def _reportResutToVirtlet(metadata_name, body, group, version, plural):
     try:
         client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
     except:
-        logger.warning('Oops! ', exc_info=1)
+        logger.error('Oops! ', exc_info=1)
 
 '''
 Install VM from ISO.

@@ -422,6 +422,8 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             except:
                 logger.error('Oops! ', exc_info=1)
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            if _isCreateImage(the_cmd_key):
+                jsondict = addDefaultSettings(jsondict, the_cmd_key)
             cmd = unpackCmdFromJson(jsondict, the_cmd_key)
 #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
 #             body = jsondict['raw_object']
@@ -432,7 +434,6 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             try:
                 if operation_type == 'ADDED':
                     if _isCreateImage(the_cmd_key):
-                        jsondict = addDefaultSettings(jsondict, the_cmd_key)
                         if cmd:
                             runCmd(cmd)
                         if is_vm_exists(metadata_name):

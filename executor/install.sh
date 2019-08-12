@@ -1,7 +1,34 @@
 #!/usr/bin/env bash
 
-VERSION=$1
-HOSTNAME=$2
+SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
+cd $SHELL_FOLDER
+
+##############################help###############################################
+if [ $1 -eq "--help" -o $1 -eq "-h" ]; then
+    echo "\
+              create a file named VERSION and write the docker image version you wanna to install to the file, \
+              then use patch.sh patch docker image
+         "
+fi
+
+##############################usuage###############################################
+if [ $1 -eq "--usuage" -o $1 -eq "-u" ]; then
+    echo "\
+              create a file named VERSION and write the docker image version you wanna to install to the file, \
+              then use patch.sh patch docker image
+         "
+fi
+
+
+echo "reading VERSION file...."
+if [ ! -d "VERSION" ]; then
+    echo "can't find version file."
+fi
+
+VERSION=$(cat VERSION)
+
+
+HOSTNAME=$(hostname)
 
 # step 1 install packages
 yum install epel-release -y

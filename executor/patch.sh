@@ -1,12 +1,38 @@
 #!/usr/bin/env bash
 
+SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
+cd $SHELL_FOLDER
+
+##############################help###############################################
+if [ $1 -eq "--help" -o $1 -eq "-h" ]; then
+    echo "\
+              create a file named VERSION and write the docker image version you wanna to patch to the file, \
+              then use patch.sh patch docker image
+         "
+fi
+
+##############################usuage###############################################
+if [ $1 -eq "--usuage" -o $1 -eq "-u" ]; then
+    echo "\
+              create a file named VERSION and write the docker image version you wanna to patch to the file, \
+              then use patch.sh patch docker image
+         "
+fi
+
 ##############################init###############################################
+
+echo "reading VERSION file...."
+if [ ! -d "VERSION" ]; then
+    echo "can't find version file."
+fi
+
+VERSION=$(cat VERSION)
+
 git pull
 rm -rf patch
 mkdir patch
 
 ##############################patch image#########################################
-VERSION=$1
 
 # step 1 copy file
 cp -rf utils arraylist.cfg default.cfg invoker.py virtctl.py docker/virtctl

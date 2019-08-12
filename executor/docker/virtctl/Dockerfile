@@ -1,4 +1,4 @@
-FROM registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:v1.14.1
+FROM registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
 
 RUN mkdir -p /home/virtctl/bin
 

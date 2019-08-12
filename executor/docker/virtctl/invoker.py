@@ -39,10 +39,10 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
+from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import ExecuteException, addExceptionMessage, report_failure, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
+from utils.utils import ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -184,6 +184,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
+                if _isInstallVMFromImage(the_cmd_key):
+                    template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
+                    if not os.path.exists(template_path):
+                        raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
+                    new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
+                    jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if _isDeleteVM(the_cmd_key):
@@ -224,14 +230,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
                         elif _isInstallVMFromImage(the_cmd_key):
-                            template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
-                            if not os.path.exists(template_path):
-                                raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
-                            new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
                             runCmd('cp %s %s' %(template_path, new_vm_path))
-                            jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
                             if cmd:
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
@@ -352,14 +353,20 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if pool_name and is_volume_exists(metadata_name, pool_name):
                             if cmd:
                                 runCmd(cmd)
+                            if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
+                                vol_xml = get_volume_xml(pool_name, metadata_name)
+                                vol_json = toKubeJson(xmlToJson(vol_xml))
+                                vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+                                body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
                         else:
-                            logger.warning('No pool name found!')
+                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     elif operation_type == 'DELETED':
                         if pool_name and is_volume_exists(metadata_name, pool_name):
                             if cmd:
                                 runCmd(cmd)
                         else:
-                            logger.warning('No pool name found!')
+                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -422,6 +429,10 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
+                if _isCreateImage(the_cmd_key):
+                    jsondict = addDefaultSettings(jsondict, the_cmd_key)
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
                 involved_object_kind = 'VirtualMachineImage'
                 event_metadata_name = randomUUID()
@@ -438,8 +449,6 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
     #             body = jsondict['raw_object']
     #             try:
@@ -449,7 +458,6 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 try:
                     if operation_type == 'ADDED':
                         if _isCreateImage(the_cmd_key):
-                            jsondict = addDefaultSettings(jsondict, the_cmd_key)
                             if cmd:
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name):
@@ -898,6 +906,13 @@ def _injectEventIntoLifecycle(jsondict, eventdict):
 #                 del metadata['resourceVersion']
     return jsondict
 
+def _reportResutToVirtlet(metadata_name, body, group, version, plural):
+    body = body.get('raw_object')
+    try:
+        client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+    except:
+        logger.error('Oops! ', exc_info=1)
+
 '''
 Install VM from ISO.
 '''
@@ -933,7 +948,6 @@ def _getCmdKey(jsondict):
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
             return None
-
         the_cmd_keys = []
         keys = lifecycle.keys()
         for key in keys:
@@ -961,6 +975,16 @@ def _isInstallVMFromImage(the_cmd_key):
 
 def _isCreateImage(the_cmd_key):
     if the_cmd_key == "createImage":
+        return True
+    return False
+
+def _isCloneDisk(the_cmd_key):
+    if the_cmd_key == "cloneDisk":
+        return True
+    return False
+
+def _isResizeDisk(the_cmd_key):
+    if the_cmd_key == "resizeDisk":
         return True
     return False
 

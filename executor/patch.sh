@@ -47,7 +47,7 @@ rm -rf dist/ build/ vmm.spec
 pyinstaller -F vmm.py -p ./
 chmod +x dist/vmm
 
-cp -f dist/vmm install.sh  patch/
+cp -f dist/vmm install.sh VERSION  patch/
 
 tar -zcvf patch-v${VERSION}.tar.gz patch/
 

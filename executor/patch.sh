@@ -21,8 +21,6 @@ if [ $? -ne 0 ]; then
 else
     echo "Success pull latest version."
 fi
-rm -rf patch
-mkdir patch
 
 ##############################patch image#########################################
 
@@ -61,10 +59,11 @@ rm -rf dist/ build/ vmm.spec
 pyinstaller -F vmm.py -p ./
 chmod +x dist/vmm
 
-mkdir kubevmm-install
-cp -rf ../yamls dist/vmm install.sh VERSION kubevmm-install/
+DIR=kubevmm-v${VERSION}
+mkdir ${DIR}
+cp -rf ../yamls dist/vmm install.sh VERSION ${DIR}
 
-tar -zcvf kubevmm-v${VERSION}.tar.gz kubevmm-install/
+tar -zcvf kubevmm-v${VERSION}.tar.gz ${DIR}
 
 # step 3 delete files
-rm -rf dist/ build/ vmm.spec kubevmm-install/
+rm -rf dist/ build/ vmm.spec ${DIR}

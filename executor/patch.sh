@@ -10,7 +10,7 @@ VERSION=$1
 
 # step 1 copy file
 cp -rf utils arraylist.cfg default.cfg invoker.py virtctl.py docker/virtctl
-cp -rf utils arraylist.cfg default.cfg invoker.py virtctl.py docker/virtlet
+cp -rf utils arraylist.cfg default.cfg host_cycler.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
 
 #step 2 docker build
 cd docker

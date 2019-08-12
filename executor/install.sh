@@ -13,6 +13,7 @@ yum clean all
 
 
 # step 2 move vmm to /usr/bin
+chmod +X vmm
 cp -f vmm /usr/bin
 
 # step 3 pull image and start

@@ -707,29 +707,6 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
             logger.debug("error occurred during processing json data from apiserver")
             logger.debug(dumps(jsondict))
 
-
-def get_cmd(jsondict, the_cmd_key):
-    cmd = None
-    if _isCreatePool(the_cmd_key) and 'poolType' in jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].keys():
-        poolType = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['poolType']
-        if poolType != None:
-            del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['poolType']
-            realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-' + poolType
-            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-            cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
-    if _isSnapshotDisk(the_cmd_key) and 'op' in jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].keys():
-        op = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
-        if op != None:
-            del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
-            realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-' + poolType
-            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-            cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
-    if cmd is None:
-        logger.debug(cmd)
-        raise Exception("error: can't get cmd")
-    return cmd
-
-
 def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, plural=PLURAL_STORAGE_POOL):
     watcher = watch.Watch()
     kwargs = {}
@@ -817,6 +794,27 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
         except:
             logger.debug("error occurred during processing json data from apiserver")
             logger.debug(dumps(jsondict))
+
+def get_cmd(jsondict, the_cmd_key):
+    cmd = None
+    if _isCreatePool(the_cmd_key) and 'poolType' in jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].keys():
+        poolType = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['poolType']
+        if poolType != None:
+            del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['poolType']
+            realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-' + poolType
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+            cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
+    if _isSnapshotDisk(the_cmd_key) and 'op' in jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].keys():
+        op = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
+        if op != None:
+            del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
+            realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-' + poolType
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+            cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
+    if cmd is None:
+        logger.debug(cmd)
+        raise Exception("error: can't get cmd")
+    return cmd
 
 def write_result_to_server(name, result, data):
     logger.debug(result)
@@ -920,7 +918,7 @@ def _getEventId(jsondict):
     metadata = jsondict['raw_object'].get('metadata')
     labels = metadata.get('labels')
     logger.debug(labels)
-    return labels.get('eventId') if labels.get('eventId') else '-1'
+    return labels.get('eventid') if labels.get('eventid') else '-1'
 
 '''
 Get the CMD key.

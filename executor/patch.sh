@@ -3,34 +3,24 @@
 SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
 cd $SHELL_FOLDER
 
-if [ ! -n "$1" ] ;then
-    ##############################help###############################################
-    if [ $1 -eq "--help" -o $1 -eq "-h" ]; then
-        echo "\
-                  create a file named VERSION and write the docker image version you wanna to patch to the file, \
-                  then use patch.sh patch docker image
-             "
-    fi
-
-    ##############################usuage###############################################
-    if [ $1 -eq "--usuage" -o $1 -eq "-u" ]; then
-        echo "\
-                  create a file named VERSION and write the docker image version you wanna to patch to the file, \
-                  then use patch.sh patch docker image
-             "
-    fi
-fi
-
 ##############################init###############################################
-echo "reading VERSION file...."
+echo "Reading VERSION file...."
 if [ ! -f "VERSION" ]; then
     echo "can't find VERSION file."
-    exit
+    exit 1
 fi
 
 VERSION=$(cat VERSION)
 
+echo "#######################################################"
+echo "Pull latest version from Github."
 git pull
+if [ $? -ne 0 ]; then
+    echo "Failed to pull latest version from Github!"
+    exit 1
+else
+    echo "Success pull latest version."
+fi
 rm -rf patch
 mkdir patch
 
@@ -47,7 +37,16 @@ docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt
 docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v${VERSION}
 
 #step 3 docker push
+echo "#######################################################"
+echo "Login docker image repository in aliyun."
+echo "Username: bigtree0613@126.com"
 docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
+if [ $? -ne 0 ]; then
+    echo "Failed to login aliyun repository!"
+    exit 1
+else
+    echo "Success login...Pushing images!"
+fi
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:v${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v${VERSION}
@@ -62,9 +61,10 @@ rm -rf dist/ build/ vmm.spec
 pyinstaller -F vmm.py -p ./
 chmod +x dist/vmm
 
-cp -f dist/vmm install.sh VERSION  patch/
+mkdir kubevmm-install
+cp -rf ../yamls dist/vmm install.sh VERSION kubevmm-install/
 
-tar -zcvf patch-v${VERSION}.tar.gz patch/
+tar -zcvf kubevmm-v${VERSION}.tar.gz kubevmm-install/
 
 # step 3 delete files
-rm -rf dist/ build/ vmm.spec patch/
+rm -rf dist/ build/ vmm.spec kubevmm-install/

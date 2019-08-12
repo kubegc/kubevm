@@ -3,29 +3,10 @@
 SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
 cd $SHELL_FOLDER
 
-if [ ! -n "$1" ] ;then
-    ##############################help###############################################
-    if [ $1 -eq "--help" -o $1 -eq "-h" ]; then
-        echo "\
-                  create a file named VERSION and write the docker image version you wanna to install to the file, \
-                  then use patch.sh patch docker image
-             "
-    fi
-
-    ##############################usuage###############################################
-    if [ $1 -eq "--usuage" -o $1 -eq "-u" ]; then
-        echo "\
-                  create a file named VERSION and write the docker image version you wanna to install to the file, \
-                  then use patch.sh patch docker image
-             "
-    fi
-fi
-
-
 echo "reading VERSION file...."
 if [ ! -f "VERSION" ]; then
     echo "can't find VERSION file."
-    exit
+    exit 1
 fi
 
 VERSION=$(cat VERSION)

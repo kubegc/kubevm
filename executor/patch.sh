@@ -24,6 +24,7 @@ fi
 echo "reading VERSION file...."
 if [ ! -d "VERSION" ]; then
     echo "can't find VERSION file."
+    exit
 fi
 
 VERSION=$(cat VERSION)

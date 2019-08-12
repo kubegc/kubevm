@@ -47,7 +47,9 @@ docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt
 
 #step 3 docker push
 docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com --password=net613net613
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:v${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v${VERSION}
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v${VERSION}
 
 ###############################patch vmm######################################################
 cd ..

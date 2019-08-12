@@ -22,7 +22,7 @@ fi
 
 echo "reading VERSION file...."
 if [ ! -d "VERSION" ]; then
-    echo "can't find version file."
+    echo "can't find VERSION file."
 fi
 
 VERSION=$(cat VERSION)

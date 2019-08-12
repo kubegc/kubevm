@@ -30,7 +30,7 @@ cp -rf utils arraylist.cfg default.cfg host_cycler.py libvirt_event_handler.py o
 
 #step 2 docker build
 cd docker
-docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:v${VERSION}
+docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
 docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v${VERSION}
 docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v${VERSION}
 
@@ -45,7 +45,7 @@ if [ $? -ne 0 ]; then
 else
     echo "Success login...Pushing images!"
 fi
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:v${VERSION}
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v${VERSION}
 

@@ -119,6 +119,8 @@ controller/controller.iml
 scheduler/scheduler.iml
 analyser/analyser.iml
 .idea
+
+# executor
 executor/test.py
 executor/mytest.py
 executor/virtlet_backup.py
@@ -127,3 +129,4 @@ executor/scripts/server.crt
 executor/scripts/ca.crt
 executor/dist
 executor/vmm.spec
+executor/*.tar.gz

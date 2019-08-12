@@ -21,7 +21,7 @@ fi
 
 
 echo "reading VERSION file...."
-if [ ! -d "VERSION" ]; then
+if [ ! -f "VERSION" ]; then
     echo "can't find VERSION file."
     exit
 fi

@@ -184,6 +184,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+                if _isDeleteVM(the_cmd_key):
+                    if not is_vm_exists(metadata_name):
+                        logger.debug('***VM %s already deleted!***' % metadata_name)
+                        continue
                 involved_object_name = metadata_name
                 involved_object_kind = 'VirtualMachine'
                 event_metadata_name = randomUUID()
@@ -194,14 +200,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 time_now = now_to_datetime()
                 time_start = time_now
                 time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                 event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
                 try:
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
     #             body = jsondict['raw_object']
     #             jsondict1 = client.CustomObjectsApi().get_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name)
@@ -288,7 +292,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 finally:
                     if the_cmd_key and operation_type != 'DELETED':
                         time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                         event.set_message(message)
                         event.set_time_end(time_end)
                         try:
@@ -325,7 +329,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 time_now = now_to_datetime()
                 time_start = time_now
                 time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                 event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
                 try:
                     event.registerKubernetesEvent()
@@ -390,7 +394,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 finally:
                     if the_cmd_key and operation_type != 'DELETED':
                         time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                         event.set_message(message)
                         event.set_time_end(time_end)
                         try:
@@ -428,7 +432,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 time_now = now_to_datetime()
                 time_start = time_now
                 time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                 event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
                 try:
                     event.registerKubernetesEvent()
@@ -497,7 +501,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 finally:
                     if the_cmd_key and operation_type != 'DELETED':
                         time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                         event.set_message(message)
                         event.set_time_end(time_end)
                         try:
@@ -534,7 +538,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 time_now = now_to_datetime()
                 time_start = time_now
                 time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                 event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
                 try:
                     event.registerKubernetesEvent()
@@ -595,7 +599,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 finally:
                     if the_cmd_key and operation_type != 'DELETED':
                         time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                         event.set_message(message)
                         event.set_time_end(time_end)
                         try:
@@ -632,7 +636,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                 time_now = now_to_datetime()
                 time_start = time_now
                 time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                 event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
                 try:
                     event.registerKubernetesEvent()
@@ -692,7 +696,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                 finally:
                     if the_cmd_key and operation_type != 'DELETED':
                         time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                         event.set_message(message)
                         event.set_time_end(time_end)
                         try:
@@ -757,7 +761,7 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                 time_now = now_to_datetime()
                 time_start = time_now
                 time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                 event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
                 try:
                     event.registerKubernetesEvent()
@@ -780,7 +784,7 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                         status = 'Done(Success)'
                         if operation_type != 'DELETED':
                             time_end = now_to_datetime()
-                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventid:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
                             event.set_message(message)
                             event.set_time_end(time_end)
                             try:
@@ -916,7 +920,7 @@ def _getEventId(jsondict):
     metadata = jsondict['raw_object'].get('metadata')
     labels = metadata.get('labels')
     logger.debug(labels)
-    return labels.get('eventid') if labels.get('eventid') else '-1'
+    return labels.get('eventId') if labels.get('eventId') else '-1'
 
 '''
 Get the CMD key.

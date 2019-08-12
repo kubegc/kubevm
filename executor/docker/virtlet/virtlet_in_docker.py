@@ -17,7 +17,7 @@ from kubernetes import config
 '''
 Import local libs
 '''
-# sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
+from utils.utils import singleton
 from utils import logger
 from libvirt_event_handler import main as libvirt_event_handler
 from os_event_handler import main as os_event_handler
@@ -36,6 +36,7 @@ config_raw.read(cfg)
 TOKEN = config_raw.get('Kubernetes', 'token_file')
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
+@singleton('/var/run/virtlet_in_docker.pid')
 def main():
     logger.debug("---------------------------------------------------------------------------------")
     logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")

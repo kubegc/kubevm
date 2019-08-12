@@ -8,6 +8,8 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 '''
 Import python libs
 '''
+import fcntl
+from functools import wraps
 import os, sys, time, signal, atexit, subprocess
 import threading
 import random
@@ -22,6 +24,34 @@ Import third party libs
 '''
 from kubernetes import client
 from kubernetes.client.rest import ApiException
+
+def singleton(pid_filename):
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            pid = str(os.getpid())
+            pidfile = open(pid_filename, 'a+')
+            try:
+                fcntl.flock(pidfile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except IOError:
+                return
+            pidfile.seek(0)
+            pidfile.truncate()
+            pidfile.write(pid)
+            pidfile.flush()
+            pidfile.seek(0)
+
+            ret = f(*args, **kwargs)
+
+            try:
+                pidfile.close()
+            except IOError, err:
+                if err.errno != 9:
+                    return
+            os.remove(pid_filename)
+            return ret
+        return decorated
+    return decorator
 
 def get_hostname_in_lower_case():
     return socket.gethostname().lower()

@@ -18,7 +18,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 import invoker
-from utils.utils import CDaemon
+from utils.utils import singleton
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -34,6 +34,7 @@ config_raw.read(cfg)
 TOKEN = config_raw.get('Kubernetes', 'token_file')
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtctl.log')
 
+@singleton('/var/run/virtctl_in_docker.pid')
 def main():
     if os.path.exists(TOKEN):
         config.load_kube_config(config_file=TOKEN)

@@ -459,7 +459,7 @@ def addExceptionMessage(jsondict, reason, message):
     return jsondict
 
 def main():
-    help_msg = 'Usage: python %s <convert_vm_to_image|convert_image_to_vm|update-os|--help>' % sys.argv[0]
+    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|update-os|--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
         print (help_msg)
         sys.exit(1)

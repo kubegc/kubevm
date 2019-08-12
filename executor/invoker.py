@@ -185,6 +185,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
                 if _isInstallVMFromImage(the_cmd_key):
+                    template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
+                    if not os.path.exists(template_path):
+                        raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
                     jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -227,9 +230,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
                         elif _isInstallVMFromImage(the_cmd_key):
-                            template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
-                            if not os.path.exists(template_path):
-                                raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
                             runCmd('cp %s %s' %(template_path, new_vm_path))

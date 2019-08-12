@@ -11,36 +11,17 @@ import time
 import json
 import subprocess
 import traceback
-import shutil
 import socket
-import signal
-
-from utils.utils import pid_exists
 
 HOSTNAME = socket.gethostname()
 
 try:
-    with open('VERSION', 'r') as fr:
+    version_file = '/etc/kubevmm/VERSION'
+    with open(version_file, 'r') as fr:
         VERSION = fr.read().strip()
 except:
-    print('error: upload \'VERSION\' file failed!')
+    print('error: can not read \'VERSION\' file %s!' % version_file)
     sys.exit(1)
-    
-try:
-    with open('/var/run/virtctl_in_docker.pid', 'r') as fr:
-        virtctl_pid = int(fr.read().strip())
-    if not pid_exists(virtctl_pid):
-        virtctl_pid = -1
-except:
-    virtctl_pid = -1
-    
-try:
-    with open('/var/run/virtlet_in_docker.pid', 'r') as fr:
-        virtlet_pid = int(fr.read().strip())
-    if not pid_exists(virtlet_pid):
-        virtlet_pid = -1
-except:
-    virtlet_pid = -1
     
 def run_virtctl():
     return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v%s bash virtctl.sh' % (HOSTNAME, VERSION))
@@ -49,44 +30,98 @@ def run_virtlet():
     return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v%s bash virtlet.sh' % (HOSTNAME, VERSION))
 
 def start():
-    if virtctl_pid == -1:
-        run_virtctl()
+    print('starting services...')
+    (virtctl_container_id, virtlet_container_id) = status()
+    if not virtctl_container_id:
+        (_, virtctl_err) = run_virtctl()
+        if virtctl_err:
+            print('warning: %s' % (virtctl_err))
     else:
-        print('service \'virtctl\' is running in pid <%s>' % str(virtctl_pid))
-    if virtlet_pid == -1:
-        run_virtlet()
+        print('do noting: service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
+    if not virtlet_container_id:
+        (_, virtlet_err) = run_virtlet()
+        if virtlet_err:
+            print('warning: %s' % (virtlet_err))
     else:
-        print('service \'virtlet\' is running in pid <%s>' % str(virtlet_pid))
+        print('do noting: service \'virtlet\' is running in container \'%s\'' % str(virtlet_container_id))
 
 def stop():
-    if virtctl_pid == -1:
-        print('service \'virtctl\' is not running')
+    print('stopping services...')
+    (virtctl_container_id, virtlet_container_id) = status()
+    if not virtctl_container_id:
+        print('do noting: service \'virtctl\' is not running')
     else:
-        os.kill(virtctl_pid, signal.SIGINT)
-    if virtlet_pid == -1:
-        print('service \'virtlet\' is not running') 
+        (_, virtctl_err) = runCmd('docker stop %s; docker rm %s' % (virtctl_container_id, virtctl_container_id))
+        if virtctl_err:
+            print('warning: %s' % (virtctl_err))
+    if not virtlet_container_id:
+        print('do noting: service \'virtlet\' is not running') 
     else:
-        os.kill(virtlet_pid, signal.SIGINT)   
+        (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
+        if virtlet_err:
+            print('warning: %s' % (virtlet_err))
 
 def restart():
     stop()
     start()
 
-def status():
-    if virtctl_pid == -1:    
-        print('service \'virtctl\' is not running')
-    else:
-        print('service \'virtctl\' is running in pid <%s>' % str(virtctl_pid))
-    if virtlet_pid == -1:
-        print('service \'virtlet\' is not running')
-    else:
-        print('service \'virtlet\' is running in pid <%s>' % str(virtlet_pid))
+def status(print_result=False):
+    (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v%s | awk \'NR==1{print $1}\'" % VERSION)
+    (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v%s | awk \'NR==1{print $1}\'" % VERSION)
+    if virtctl_err:
+        print('warning: %s' % (virtctl_err))
+    if virtlet_err:
+        print('warning: %s' % (virtlet_err))
+    if print_result:
+        if not virtctl_container_id:    
+            print('service \'virtctl\' is not running')
+        else:
+            print('service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
+        if not virtlet_container_id:
+            print('service \'virtlet\' is not running')
+        else:
+            print('service \'virtlet\' is running in container \'%s\'' % str(virtlet_container_id))
+    return (virtctl_container_id, virtlet_container_id)
 
 def update(pack):
-    pass
+    print('updating from package \'%s\'' % pack)
+    print('*step 1: checking package file')
+    time.sleep(2)
+    is_ready = os.path.isfile(pack)
+    if not is_ready:
+        print('error: wrong pack file')
+        print('error: please check the path %s - not exists' % pack)
+        sys.exit(1)
+    print('    package file is ready, continue...')
+    print('*step 2: unpacking .tar.gz file to /tmp dir')
+    time.sleep(3)
+    (_, step2_err) = runCmd('tar -zxvf %s -C %s' % (pack, '/tmp'))
+    if step2_err:
+        print('error: %s' % step2_err)
+        print('error: unpack failed, aborting...')
+        sys.exit(1)
+    print('    unpack done, continue...')
+    print('*step 3: checking package dir in /tmp')
+    time.sleep(2)
+    check_unpack_dir = os.path.isdir('/tmp/kubevmm-v%s' % VERSION)
+    if not check_unpack_dir:
+        print('error: wrong directory')
+        print('error: please check the path %s - not exists' % check_unpack_dir)
+        sys.exit(1)
+    print('    package dir is ready, continue...')
+    print('*step 4: updating kubevmm')
+    time.sleep(2)
+    runCmd('bash /tmp/kubevmm-v%s/install.sh --skip-adm' % VERSION, True)
+    print('    update complete.')
 
 def version():
     print(VERSION)
+    
+def view_bar(num, total):
+    r = '\r[%s%s]' % ("#"*num, " "*(100-num))
+    sys.stdout.write(r)
+    sys.stdout.write(str(num)+'%')
+    sys.stdout.flush()
 
 def main():
     usage_msg = 'Usage: %s <start|stop|restart|status|update|--version|--help>\n' % sys.argv[0]
@@ -101,7 +136,7 @@ def main():
     help_update = 'Name:\n' + \
                 '    %s update [--target <package>]\n' % sys.argv[0] + \
                 'Options:\n' + \
-                '    --target <package>  update package file\n\n'
+                '    --target <package>  absolute path of package file\n\n'
     if len(sys.argv) < 2:
         print(usage_msg)
         sys.exit(1)
@@ -137,23 +172,23 @@ def main():
             print('error: invalid arguments!')
             print(usage_msg)
             sys.exit(1)   
-        status()
+        status(True)
     elif sys.argv[1] == 'update':
         if len(params) == 1:
             if params[0] == '--help':
                 print(help_update)
                 sys.exit(1)
             else:
-                print('error: command \'update\' requires [--target <package>] option')
+                print('error: command \'update\' requires [--target <package absolute path>] option')
                 sys.exit(1)
         elif len(params) == 2:
             if params[0] != '--target':
-                print('error: command \'update\' requires [--target <package>] option')
+                print('error: command \'update\' requires [--target <package absolute path>] option')
                 sys.exit(1)
             pack = params[1]
             update(pack)
         else:
-            print('error: command \'update\' requires [--target <package>] option')
+            print('error: command \'update\' requires [--target <package absolute path>] option')
             sys.exit(1)   
     elif sys.argv[1] == '--version':
         version()
@@ -165,55 +200,20 @@ def main():
 '''
 Run back-end command in subprocess.
 '''
-def runCmd(cmd):
-    std_err = None
-    if not cmd:
-        return
+def runCmd(cmd, show_stdout=False):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
+        if show_stdout:
+            while p.poll() is None: 
+                r = p.stdout.readline().decode('utf-8')
+                sys.stdout.write(r)
+            return
         std_out = p.stdout.read()
         std_err = p.stderr.read()
-        if std_out:
-#             msg = ''
-#             for index,line in enumerate(std_out):
-#                 if not str.strip(line):
-#                     continue
-#                 if index == len(std_out) - 1:
-#                     msg = msg + str.strip(line) + '. '
-#                 else:
-#                     msg = msg + str.strip(line) + ', '
-#             logger.debug(str.strip(msg))
-            print(std_out)
-        if std_err:
-#             msg = ''
-#             for index, line in enumerate(std_err):
-#                 if not str.strip(line):
-#                     continue
-#                 if index == len(std_err) - 1:
-#                     msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
-#                 else:
-#                     msg = msg + str.strip(line) + ', '
-#             raise ExecuteException('VirtctlError', str.strip(msg))
-            print(std_err)
-#             sys.exit(1)
-#         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
-#         sys.exit(0)
-        return
+        return (std_out.strip() if std_out else None, std_err.strip() if std_err else None)
     finally:
         p.stdout.close()
         p.stderr.close()
-
-
-# def run(cmd):
-#     try:
-#         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-#         logger.debug(result)
-#         print result
-#     except Exception:
-#         traceback.format_exc()
-#         print(sys.exc_info())
-#         raise ExecuteException('vmmError', sys.exc_info()[1])
-
 
 if __name__ == '__main__':
     main()

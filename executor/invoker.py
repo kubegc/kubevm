@@ -184,6 +184,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
+                if _isInstallVMFromImage(the_cmd_key):
+                    new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
+                    jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if _isDeleteVM(the_cmd_key):
@@ -227,11 +230,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
                             if not os.path.exists(template_path):
                                 raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
-                            new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
                             runCmd('cp %s %s' %(template_path, new_vm_path))
-                            jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
                             if cmd:
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
@@ -422,6 +423,10 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
+                if _isCreateImage(the_cmd_key):
+                    jsondict = addDefaultSettings(jsondict, the_cmd_key)
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
                 involved_object_kind = 'VirtualMachineImage'
                 event_metadata_name = randomUUID()
@@ -438,8 +443,6 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
     #             body = jsondict['raw_object']
     #             try:
@@ -449,7 +452,6 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                 try:
                     if operation_type == 'ADDED':
                         if _isCreateImage(the_cmd_key):
-                            jsondict = addDefaultSettings(jsondict, the_cmd_key)
                             if cmd:
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name):

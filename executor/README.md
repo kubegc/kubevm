@@ -94,8 +94,6 @@ RPMs:
     ```
 
 * Pull docker images.
-
-   **Note!** Need same `version` of docker images in remote repository.
     ```
     export KUBEVMM_VERSION=`kubevmm-adm --version`
     docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:$KUBEVMM_VERSION

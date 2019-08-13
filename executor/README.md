@@ -1,7 +1,7 @@
 
 # Prepare
 
-* Install dependencies(rhel7):
+* Install dependencies (rhel7):
     ```
     sudo yum install epel-release -y
     sudo yum install virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install -y

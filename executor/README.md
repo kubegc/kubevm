@@ -91,10 +91,6 @@ Some steps to do to install and run kubevmm services.
 
 ## Step1: Prepare
 
-* Install `kubevmm` rpm.
-    ```
-    rpm -Uvh <kubevmm-version.rpm>
-    ```
 
 * (First time only) Install dependencies (rhel7):
     ```
@@ -111,7 +107,12 @@ Some steps to do to install and run kubevmm services.
 
 ## Step2: Install
 
-* Verify `kubevmm`.
+* Install `kubevmm` rpm.
+    ```
+    rpm -Uvh <kubevmm-version.rpm>
+    ```
+
+* Verify `kubevmm` rpm.
 
   There are two commands: `kubevmm-adm` and `vmm`
     ```

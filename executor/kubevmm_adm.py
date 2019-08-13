@@ -124,15 +124,19 @@ def view_bar(num, total):
     sys.stdout.flush()
 
 def main():
-    usage_msg = 'Usage: %s <start|stop|restart|status|update|--version|--help>\n' % sys.argv[0]
-    help_msg = 'All support commands: \n' + \
-                '    start                           start kubevmm services\n' + \
-                '    stop                            stop kubevmm services\n' + \
-                '    restart                         restart kubevmm services\n' + \
-                '    status                          show kubevmm services\n' + \
-                '    update                          update kubevmm services\n' + \
-                '    --version                         show kubevmm version\n' + \
-                '    --help                            print help\n\n'
+    usage_msg = 'Usage: %s <service|--version|--help>\n' % sys.argv[0] + \
+                '       %s service <start|stop|restart|status|update>\n\n' % sys.argv[0]
+    help_subcommands = 'All support sub commands: \n' + \
+                        '    service                           service management\n' + \
+                        '    --version                         show kubevmm version\n' + \
+                        '    --help                            print help\n\n'
+    help_service = 'All support options in \'service\': \n' + \
+                '    service  start                           start kubevmm services\n' + \
+                '    service  stop                            stop kubevmm services\n' + \
+                '    service  restart                         restart kubevmm services\n' + \
+                '    service  status                          show kubevmm services\n' + \
+                '    service  update                          update kubevmm services\n\n'
+    help_msg = usage_msg + help_subcommands + help_service
     help_update = 'Name:\n' + \
                 '    %s update [--target <package>]\n' % sys.argv[0] + \
                 'Options:\n' + \
@@ -140,61 +144,68 @@ def main():
     if len(sys.argv) < 2:
         print(usage_msg)
         sys.exit(1)
+        
     if sys.argv[1] == '--help':
         print(help_msg)
         sys.exit(1)
- 
-    params = []
-    for i in range(2, len(sys.argv)):
-        params.append(sys.argv[i])
-        i = i+i
-    
-    if sys.argv[1] == 'start':
-        if len(params) != 0:
-            print('error: invalid arguments!')
-            print(usage_msg)
-            sys.exit(1)            
-        start()
-    elif sys.argv[1] == 'stop':
-        if len(params) != 0:
-            print('error: invalid arguments!')
-            print(usage_msg)
-            sys.exit(1)   
-        stop()
-    elif sys.argv[1] == 'restart':
-        if len(params) != 0:
-            print('error: invalid arguments!')
-            print(usage_msg)
-            sys.exit(1)   
-        restart()
-    elif sys.argv[1] == 'status':
-        if len(params) != 0:
-            print('error: invalid arguments!')
-            print(usage_msg)
-            sys.exit(1)   
-        status(True)
-    elif sys.argv[1] == 'update':
-        if len(params) == 1:
-            if params[0] == '--help':
-                print(help_update)
-                sys.exit(1)
-            else:
-                print('error: command \'update\' requires [--target <package absolute path>] option')
-                sys.exit(1)
-        elif len(params) == 2:
-            if params[0] != '--target':
-                print('error: command \'update\' requires [--target <package absolute path>] option')
-                sys.exit(1)
-            pack = params[1]
-            update(pack)
-        else:
-            print('error: command \'update\' requires [--target <package absolute path>] option')
-            sys.exit(1)   
     elif sys.argv[1] == '--version':
         version()
+    elif sys.argv[1] == 'service':
+        if len(sys.argv) < 3:
+            print('error: invalid options!\n')
+            print(help_service)
+            sys.exit(1)
+        params = []
+        for i in range(3, len(sys.argv)):
+            params.append(sys.argv[i])
+            i = i+i
+        if sys.argv[2] == 'start':
+            if len(params) != 0:
+                print('error: invalid arguments!\n')
+                print(help_service)
+                sys.exit(1)            
+            start()
+        elif sys.argv[2] == 'stop':
+            if len(params) != 0:
+                print('error: invalid arguments!\n')
+                print(help_service)
+                sys.exit(1)   
+            stop()
+        elif sys.argv[2] == 'restart':
+            if len(params) != 0:
+                print('error: invalid arguments!\n')
+                print(help_service)
+                sys.exit(1)   
+            restart()
+        elif sys.argv[2] == 'status':
+            if len(params) != 0:
+                print('error: invalid arguments!\n')
+                print(help_service)
+                sys.exit(1)   
+            status(True)
+        elif sys.argv[2] == 'update':
+            if len(params) == 1:
+                if params[0] == '--help':
+                    print(help_update)
+                    sys.exit(1)
+                else:
+                    print('error: command \'update\' requires [--target <package absolute path>] option')
+                    sys.exit(1)
+            elif len(params) == 2:
+                if params[0] != '--target':
+                    print('error: command \'update\' requires [--target <package absolute path>] option')
+                    sys.exit(1)
+                pack = params[1]
+                update(pack)
+            else:
+                print('error: command \'update\' requires [--target <package absolute path>] option')
+                sys.exit(1) 
+        else:
+            print('error: invalid options!\n')
+            print(help_service)            
     else:
-        print('error: invalid arguments!')
-        print(usage_msg)
+        print('error: invalid sub commands!\n')
+        print(help_subcommands)
 
 
 '''

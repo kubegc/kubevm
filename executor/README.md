@@ -29,8 +29,6 @@
 
 # Build
 
-## Manual
-
 Build the RPM as a non-root user from your home directory:
 
 * Install `rpmdevtools`.

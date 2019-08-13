@@ -24,10 +24,10 @@ except:
     sys.exit(1)
     
 def run_virtctl():
-    return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v%s bash virtctl.sh' % (HOSTNAME, VERSION))
+    return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash virtctl.sh' % (HOSTNAME, VERSION))
 
 def run_virtlet():
-    return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v%s bash virtlet.sh' % (HOSTNAME, VERSION))
+    return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash virtlet.sh' % (HOSTNAME, VERSION))
 
 def start():
     print('starting services...')
@@ -36,12 +36,14 @@ def start():
         (_, virtctl_err) = run_virtctl()
         if virtctl_err:
             print('warning: %s' % (virtctl_err))
+            sys.exit(1)
     else:
         print('do noting: service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
     if not virtlet_container_id:
         (_, virtlet_err) = run_virtlet()
         if virtlet_err:
             print('warning: %s' % (virtlet_err))
+            sys.exit(1)
     else:
         print('do noting: service \'virtlet\' is running in container \'%s\'' % str(virtlet_container_id))
 
@@ -54,24 +56,28 @@ def stop():
         (_, virtctl_err) = runCmd('docker stop %s; docker rm %s' % (virtctl_container_id, virtctl_container_id))
         if virtctl_err:
             print('warning: %s' % (virtctl_err))
+            sys.exit(1)
     if not virtlet_container_id:
         print('do noting: service \'virtlet\' is not running') 
     else:
         (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
         if virtlet_err:
             print('warning: %s' % (virtlet_err))
+            sys.exit(1)
 
 def restart():
     stop()
     start()
 
 def status(print_result=False):
-    (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v%s | awk \'NR==1{print $1}\'" % VERSION)
-    (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v%s | awk \'NR==1{print $1}\'" % VERSION)
+    (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s | awk \'NR==1{print $1}\'" % VERSION)
+    (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s | awk \'NR==1{print $1}\'" % VERSION)
     if virtctl_err:
         print('warning: %s' % (virtctl_err))
+        sys.exit(1)
     if virtlet_err:
         print('warning: %s' % (virtlet_err))
+        sys.exit(1)
     if print_result:
         if not virtctl_container_id:    
             print('service \'virtctl\' is not running')
@@ -103,7 +109,7 @@ def update(pack):
     print('    unpack done, continue...')
     print('*step 3: checking package dir in /tmp')
     time.sleep(2)
-    check_unpack_dir = os.path.isdir('/tmp/kubevmm-v%s' % VERSION)
+    check_unpack_dir = os.path.isdir('/tmp/kubevmm-%s' % VERSION)
     if not check_unpack_dir:
         print('error: wrong directory')
         print('error: please check the path %s - not exists' % check_unpack_dir)
@@ -111,7 +117,7 @@ def update(pack):
     print('    package dir is ready, continue...')
     print('*step 4: updating kubevmm')
     time.sleep(2)
-    runCmd('bash /tmp/kubevmm-v%s/install.sh --skip-adm' % VERSION, True)
+    runCmd('bash /tmp/kubevmm-%s/install.sh --skip-adm' % VERSION, True)
     print('    update complete.')
 
 def version():

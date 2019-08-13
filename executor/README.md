@@ -1,14 +1,24 @@
 
-# Prepare environment
+# Prepare
 
 * Softwares needed for kubevmm commands:
     ```
     docker
     ```
-
-*  Same `version` of docker images in remote repository.
+    
+* Check out this repo. Seriously - check it out. Nice.
     ```
-    registry.cn-hangzhou.aliyuncs.com/cloudplus-lab
+    cd $HOME
+    git clone <this_repo_url>
+    ```
+
+# Release
+
+## Release a new version
+
+* Release a new version and push new images to aliyun repository.
+    ```
+    bash $HOME/kubevmm/executor/release-version.sh <new version>
     ```
 
 # Build
@@ -16,12 +26,6 @@
 ## Manual
 
 Build the RPM as a non-root user from your home directory:
-
-* Check out this repo. Seriously - check it out. Nice.
-    ```
-    cd $HOME
-    git clone <this_repo_url>
-    ```
 
 * Install `rpmdevtools`.
     ```
@@ -54,10 +58,17 @@ Build the RPM as a non-root user from your home directory:
     
 * Build the RPM.
 
-    #### Version
+    #### Normally
+    
+
+    ```
+    rpmbuild -ba $HOME/rpmbuild/SPECS/kubevmm.spec
+    ```
+
+    #### Choose version to build
     
     The version number is hardcoded into the SPEC, however should you so choose, it can be set explicitly by passing an argument to `rpmbuild` directly:
-
+    
     ```
     rpmbuild -ba $HOME/rpmbuild/SPECS/kubevmm.spec --define "_version v0.9.0"
     ```

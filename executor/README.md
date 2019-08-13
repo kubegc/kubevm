@@ -49,7 +49,6 @@ Some steps to do to release a new version of kubevmm.
     cd $HOME/kubevmm/executor
     pyinstaller -F kubevmm_adm.py -n kubevmm-adm
     pyinstaller -F vmm.py
-    
     ```
 
 * Link the spec file and sources.
@@ -107,7 +106,7 @@ Some steps to do to install and run kubevmm services.
 
 * Install `kubevmm` rpm.
     ```
-    rpm -Uvh <kubevmm-version.rpm>
+    rpm -Uvh --force <kubevmm-version.rpm>
     ```
 
 * Verify `kubevmm` rpm.

@@ -9,6 +9,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 Import python libs
 '''
 import fcntl
+import errno
 from functools import wraps
 import os, sys, time, signal, atexit, subprocess
 import threading
@@ -52,6 +53,34 @@ def singleton(pid_filename):
             return ret
         return decorated
     return decorator
+
+def pid_exists(pid):
+    """Check whether pid exists in the current process table.
+    UNIX only.
+    """
+    if pid < 0:
+        return False
+    if pid == 0:
+        # According to "man 2 kill" PID 0 refers to every process
+        # in the process group of the calling process.
+        # On certain systems 0 is a valid PID but we have no way
+        # to know that in a portable fashion.
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError as err:
+        if err.errno == errno.ESRCH:
+            # ESRCH == No such process
+            return False
+        elif err.errno == errno.EPERM:
+            # EPERM clearly means there's a process to deny access to
+            return True
+        else:
+            # According to "man 2 kill" possible error values are
+            # (EINVAL, EPERM, ESRCH)
+            return False
+    else:
+        return True
 
 def get_hostname_in_lower_case():
     return socket.gethostname().lower()

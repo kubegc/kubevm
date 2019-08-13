@@ -131,7 +131,7 @@ Some steps to do to install and run kubevmm services.
 
 * Run services.
     ```
-    kubevmm-adm service start
+    kubevmm-adm service update --online
     ```
     
 ## Step4: Result

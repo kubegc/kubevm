@@ -22,8 +22,6 @@
 
 # Release
 
-## Release a new version
-
 * Release a new version and push new images to aliyun repository.
     ```
     bash $HOME/kubevmm/executor/release-version.sh <new version>

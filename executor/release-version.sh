@@ -65,9 +65,10 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success patch version number to SPECS/kubevmm.spec."
 fi
-echo "*** Push new SPECS/kubevmm.spec to Github."
+
 git add -A SPECS/kubevmm.spec
 git commit -a -m "new release version ${VERSION}"
+echo "*** Push new SPECS/kubevmm.spec to Github."
 git push
 if [ $? -ne 0 ]; then
     echo "    Failed to push SPECS/kubevmm.spec to Github!"

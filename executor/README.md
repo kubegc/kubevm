@@ -1,35 +1,97 @@
 
 # Prepare environment
 
-1. Shutdown **SELinux** and reboot.
-2. Execute following commands:
-```
-yum install virt-install libvirt 
-systemctl stop firewalld
-systemctl disable firewalld
-systemctl start libvirtd
-systemctl enable libvirtd
-```
+Softwares needed for kubevmm commands:
 
-# How to run.
-## Pull docker images.
-```
-docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.14.1
-docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.14.1
-```
-## Start virtctl.
+1. docker
+
+# Build
+
+### Version
+
+The version number is hardcoded into the SPEC, however should you so choose, it can be set explicitly by passing an argument to `rpmbuild` directly:
 
 ```
-docker run -itd -h <hostname> --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.14.1 bash virtctl.sh
+$ rpmbuild --define "_version v0.9.0"
 ```
+## Manual
 
-## Start virtlet.
+Build the RPM as a non-root user from your home directory:
 
-```
-docker run -itd -h <hostname> --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.14.1 bash virtlet.sh
-```
+* Check out this repo. Seriously - check it out. Nice.
+    ```
+    cd $HOME
+    git clone <this_repo_url>
+    ```
 
-## Verify services.
-```
-docker ps | grep kubevirt
-```
+* Install `rpmdevtools`.
+    ```
+    sudo yum install rpmdevtools
+    ```
+
+* Install `pyinstaller`.
+    ```
+    sudo pip install pyinstaller
+    ```
+
+* Set up your `rpmbuild` directory tree.
+    ```
+    rpmdev-setuptree
+    ```
+
+* Execute `pyinstaller` to build `SOURCES`.
+    ```
+    cd $HOME/kubevmm/executor
+    pyinstaller -F $HOME/kubevmm/executor/kubevmm_adm.py -n kubevmm-adm
+    pyinstaller -F $HOME/kubevmm/executor/vmm.py
+    
+    ```
+
+* Link the spec file and sources.
+    ```
+    ln -s $HOME/kubevmm/executor/SPECS/kubevmm.spec $HOME/rpmbuild/SPECS/
+    find $HOME/kubevmm/executor/dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
+    ```
+    
+* Build the RPM.
+    ```
+    rpmbuild -ba $HOME/rpmbuild/SPECS/kubevmm.spec
+    ```
+
+# Result
+
+RPMs:
+- kubevmm
+
+# Install
+
+## Install online
+
+* Install `kubevmm` rpm.
+
+* Verify `kubevmm`.
+
+  There are two commands: `kubevmm-adm` and `vmm`
+    ```
+    kubevmm-adm --version
+    vmm
+    ```
+
+* Pull docker images.
+    ```
+    export KUBEVMM_VERSION=`kubevmm-adm --version`
+    docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:$KUBEVMM_VERSION
+    docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:$KUBEVMM_VERSION
+    ```
+    
+# Run
+
+* Run services.
+    ```
+    kubevmm-adm service start
+    ```
+
+* Check services status.
+    ```
+    kubevmm-adm service status
+    ```

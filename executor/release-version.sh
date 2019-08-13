@@ -9,10 +9,10 @@ if [ ! -n "$1" ] ;then
     echo "Usage $0 <version number>"
     exit 1
 else
-    if [[ "$1" =~ [a-zA-Z][0-9][.] ]] ;then
+    if [[ "$1" =~ ^[A-Za-z0-9.]*$ ]] ;then
         echo "Building a new release version $1"
     else
-        echo "error: wrong syntax in release version number, support chars=[0-9a-Z.]"
+        echo "error: wrong syntax in release version number, support chars=[A-Za-z0-9.]"
         exit 1
     fi
 fi

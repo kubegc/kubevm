@@ -29,8 +29,6 @@ Some steps to do to release a new version of kubevmm.
 
 ## Step3: Build
 
-Build the RPM as a non-root user from your home directory:
-
 * Install `rpmdevtools`.
     ```
     sudo yum install rpmdevtools

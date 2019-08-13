@@ -47,8 +47,8 @@ Some steps to do to release a new version of kubevmm.
 * Execute `pyinstaller` to build `SOURCES`.
     ```
     cd $HOME/kubevmm/executor
-    pyinstaller -F $HOME/kubevmm/executor/kubevmm_adm.py -n kubevmm-adm
-    pyinstaller -F $HOME/kubevmm/executor/vmm.py
+    pyinstaller -F kubevmm_adm.py -n kubevmm-adm
+    pyinstaller -F vmm.py
     
     ```
 

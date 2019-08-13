@@ -62,6 +62,19 @@ echo "Patch release version number to SPECS/kubevmm.spec"
 cd ..
 sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
 mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
+if [ $? -ne 0 ]; then
+    echo "Failed to patch version number to SPECS/kubevmm.spec!"
+    exit 1
+else
+    echo "Success patch version number to SPECS/kubevmm.spec."
+fi
+echo "Push new SPECS/kubevmm.spec to Github."
 git add -A SPECS/kubevmm.spec
 git commit -a -m "new release version ${VERSION}"
 git push
+if [ $? -ne 0 ]; then
+    echo "Failed to push SPECS/kubevmm.spec to Github!"
+    exit 1
+else
+    echo "Success push SPECS/kubevmm.spec to Github."
+fi

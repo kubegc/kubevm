@@ -1,34 +1,35 @@
 
-# Prepare environment
+------------------------------------------------------------
+# Developers
 
-* Softwares needed for kubevmm commands:
+Some steps to do to release a new version of kubevmm.
+
+## Step1: Prepare
+
+* (First time only) Install dependencies (rhel7):
     ```
-    docker
+    sudo yum install epel-release -y
+    sudo yum install virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install -y
+    sudo pip install --upgrade pip
+    sudo pip install kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller
     ```
-
-*  Same `version` of docker images in remote repository.
-    ```
-    registry.cn-hangzhou.aliyuncs.com/cloudplus-lab
-    ```
-
-# Build
-
-### Version
-
-The version number is hardcoded into the SPEC, however should you so choose, it can be set explicitly by passing an argument to `rpmbuild` directly:
-
-```
-$ rpmbuild --define "_version v0.9.0"
-```
-## Manual
-
-Build the RPM as a non-root user from your home directory:
-
+    
 * Check out this repo. Seriously - check it out. Nice.
     ```
     cd $HOME
     git clone <this_repo_url>
     ```
+
+## Step2: Release
+
+* Release a new version and push new images to aliyun repository.
+    ```
+    bash $HOME/kubevmm/executor/release-version.sh <new version>
+    ```
+
+## Step3: Build
+
+Build the RPM as a non-root user from your home directory:
 
 * Install `rpmdevtools`.
     ```
@@ -60,22 +61,58 @@ Build the RPM as a non-root user from your home directory:
     ```
     
 * Build the RPM.
+
+    #### Normally
+    
+
     ```
     rpmbuild -ba $HOME/rpmbuild/SPECS/kubevmm.spec
     ```
 
-# Result
+    #### Choose version to build
+    
+    The version number is hardcoded into the SPEC, however should you so choose, it can be set explicitly by passing an argument to `rpmbuild` directly:
+    
+    ```
+    rpmbuild -ba $HOME/rpmbuild/SPECS/kubevmm.spec --define "_version v0.9.0"
+    ```
+    
+
+## Step4: Result
 
 RPMs:
 - kubevmm
 
-# Install
+------------------------------------------------------------
 
-## Install online
+# Users
+
+Some steps to do to install and run kubevmm services.
+
+## Step1: Prepare
+
+
+* (First time only) Install dependencies (rhel7):
+    ```
+    sudo yum install epel-release -y
+    sudo yum install virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install -y
+    sudo pip install --upgrade pip
+    sudo pip install kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller
+    ```
+
+* Softwares needed for kubevmm commands:
+    ```
+    docker
+    ```
+
+## Step2: Install
 
 * Install `kubevmm` rpm.
+    ```
+    rpm -Uvh <kubevmm-version.rpm>
+    ```
 
-* Verify `kubevmm`.
+* Verify `kubevmm` rpm.
 
   There are two commands: `kubevmm-adm` and `vmm`
     ```
@@ -84,20 +121,20 @@ RPMs:
     ```
 
 * Pull docker images.
-
-   **Note!** Need same `version` of docker images in remote repository.
     ```
     export KUBEVMM_VERSION=`kubevmm-adm --version`
     docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:$KUBEVMM_VERSION
     docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:$KUBEVMM_VERSION
     ```
     
-# Run
+## Step3: Run
 
 * Run services.
     ```
     kubevmm-adm service start
     ```
+    
+## Step4: Result
 
 * Check services status.
     ```

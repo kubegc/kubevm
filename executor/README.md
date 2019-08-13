@@ -13,13 +13,6 @@
 
 # Build
 
-### Version
-
-The version number is hardcoded into the SPEC, however should you so choose, it can be set explicitly by passing an argument to `rpmbuild` directly:
-
-```
-$ rpmbuild --define "_version v0.9.0"
-```
 ## Manual
 
 Build the RPM as a non-root user from your home directory:
@@ -60,9 +53,15 @@ Build the RPM as a non-root user from your home directory:
     ```
     
 * Build the RPM.
+
+    #### Version
+    
+    The version number is hardcoded into the SPEC, however should you so choose, it can be set explicitly by passing an argument to `rpmbuild` directly:
+
     ```
-    rpmbuild -ba $HOME/rpmbuild/SPECS/kubevmm.spec
+    rpmbuild -ba $HOME/rpmbuild/SPECS/kubevmm.spec --define "_version v0.9.0"
     ```
+    
 
 # Result
 

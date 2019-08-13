@@ -1,9 +1,15 @@
 
 # Prepare environment
 
-Softwares needed for kubevmm commands:
+* Softwares needed for kubevmm commands:
+    ```
+    docker
+    ```
 
-1. docker
+*  Same `version` of docker images in remote repository.
+    ```
+    registry.cn-hangzhou.aliyuncs.com/cloudplus-lab
+    ```
 
 # Build
 

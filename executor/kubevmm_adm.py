@@ -23,60 +23,75 @@ except:
     print('error: can not read \'VERSION\' file %s!' % version_file)
     sys.exit(1)
     
+def check_version(ignore_warning=False):
+    (virtctl_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
+    (virtlet_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
+    if not ignore_warning and virtctl_running_version and virtctl_running_version != VERSION:
+        print('warning: mismatch version detected!') 
+        print('warning: \'kubevmm-adm(%s)\' mismatch with \'virtctl(%s)\' & \'virtlet(%s)\'' % (VERSION, virtctl_running_version, virtlet_running_version))
+        print('\033[1;46m*strongly suggest do: %s service update\033[0m \n' % sys.argv[0])
+        return
+    if not ignore_warning and virtlet_running_version and virtlet_running_version != VERSION:
+        print('warning: mismatch version detected!') 
+        print('warning: \'kubevmm-adm(%s)\' mismatch with \'virtctl(%s)\' & \'virtlet(%s)\'' % (VERSION, virtctl_running_version, virtlet_running_version))
+        print('\033[1;46m*strongly suggest do: %s service update\033[0m \n' % sys.argv[0])
+        return
+    
 def run_virtctl():
     return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash virtctl.sh' % (HOSTNAME, VERSION))
 
 def run_virtlet():
     return runCmd('docker run -itd -h %s --net=host -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash virtlet.sh' % (HOSTNAME, VERSION))
 
-def start():
+def start(ignore_warning=False):
+    (virtctl_container_id, virtlet_container_id) = status(ignore_warning=ignore_warning)
     print('starting services...')
-    (virtctl_container_id, virtlet_container_id) = status()
     if not virtctl_container_id:
         (_, virtctl_err) = run_virtctl()
         if virtctl_err:
-            print('warning: %s' % (virtctl_err))
+            print('warning: %s\n' % (virtctl_err))
             sys.exit(1)
     else:
         print('do noting: service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
     if not virtlet_container_id:
         (_, virtlet_err) = run_virtlet()
         if virtlet_err:
-            print('warning: %s' % (virtlet_err))
+            print('warning: %s\n' % (virtlet_err))
             sys.exit(1)
     else:
         print('do noting: service \'virtlet\' is running in container \'%s\'' % str(virtlet_container_id))
 
-def stop():
+def stop(ignore_warning=False):
+    (virtctl_container_id, virtlet_container_id) = status(ignore_warning=ignore_warning)
     print('stopping services...')
-    (virtctl_container_id, virtlet_container_id) = status()
     if not virtctl_container_id:
         print('do noting: service \'virtctl\' is not running')
     else:
         (_, virtctl_err) = runCmd('docker stop %s; docker rm %s' % (virtctl_container_id, virtctl_container_id))
         if virtctl_err:
-            print('warning: %s' % (virtctl_err))
+            print('warning: %s\n' % (virtctl_err))
             sys.exit(1)
     if not virtlet_container_id:
         print('do noting: service \'virtlet\' is not running') 
     else:
         (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
         if virtlet_err:
-            print('warning: %s' % (virtlet_err))
+            print('warning: %s\n' % (virtlet_err))
             sys.exit(1)
 
-def restart():
-    stop()
-    start()
+def restart(ignore_warning=False):
+    stop(ignore_warning=ignore_warning)
+    start(ignore_warning=ignore_warning)
 
-def status(print_result=False):
-    (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s | awk \'NR==1{print $1}\'" % VERSION)
-    (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s | awk \'NR==1{print $1}\'" % VERSION)
+def status(print_result=False, ignore_warning=False):
+    check_version(ignore_warning=ignore_warning)
+    (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl | awk \'NR==1{print $1}\'")
+    (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet | awk \'NR==1{print $1}\'")
     if virtctl_err:
-        print('warning: %s' % (virtctl_err))
+        print('warning: %s\n' % (virtctl_err))
         sys.exit(1)
     if virtlet_err:
-        print('warning: %s' % (virtlet_err))
+        print('warning: %s\n' % (virtlet_err))
         sys.exit(1)
     if print_result:
         if not virtctl_container_id:    
@@ -88,6 +103,10 @@ def status(print_result=False):
         else:
             print('service \'virtlet\' is running in container \'%s\'' % str(virtlet_container_id))
     return (virtctl_container_id, virtlet_container_id)
+
+def update_online():
+    print('updating online')
+    restart(ignore_warning=True)
 
 def update(pack):
     print('updating from package \'%s\'' % pack)
@@ -144,9 +163,10 @@ def main():
                 '    service  update                          update kubevmm services\n\n'
     help_msg = usage_msg + help_subcommands + help_service
     help_update = 'Name:\n' + \
-                '    %s update [--target <package>]\n' % sys.argv[0] + \
+                '    %s update [--online|--offline <package>|--help]\n' % sys.argv[0] + \
                 'Options:\n' + \
-                '    --target <package>  absolute path of package file\n\n'
+                '    --online            update online\n' + \
+                '    --offline <package>  absolute path of package file\n\n'
     if len(sys.argv) < 2:
         print(usage_msg)
         sys.exit(1)
@@ -194,17 +214,19 @@ def main():
                 if params[0] == '--help':
                     print(help_update)
                     sys.exit(1)
+                elif params[0] == '--online':
+                    update_online()
                 else:
-                    print('error: command \'update\' requires [--target <package absolute path>] option')
+                    print('error: command \'update\' requires [--online|--offline <package absolute path>] option')
                     sys.exit(1)
             elif len(params) == 2:
-                if params[0] != '--target':
-                    print('error: command \'update\' requires [--target <package absolute path>] option')
+                if params[0] != '--offline':
+                    print('error: command \'update\' requires [--online|--offline <package absolute path>] option')
                     sys.exit(1)
                 pack = params[1]
                 update(pack)
             else:
-                print('error: command \'update\' requires [--target <package absolute path>] option')
+                print('error: command \'update\' requires [--online|--offline <package absolute path>] option')
                 sys.exit(1) 
         else:
             print('error: invalid options!\n')

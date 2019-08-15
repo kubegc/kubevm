@@ -121,6 +121,7 @@ analyser/analyser.iml
 .idea
 
 # executor
+executor/.idea
 executor/test.py
 executor/mytest.py
 executor/virtlet_backup.py

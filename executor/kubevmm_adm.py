@@ -174,8 +174,12 @@ def update_offline(pack):
     runCmd('bash /tmp/kubevmm-%s/install.sh --skip-adm' % VERSION, True)
     print('    update complete.')
 
-def version():
-    print(VERSION)
+def version(service=False, ignore_warning=False):
+    if service:
+        (virtctl_running_version, virtlet_running_version) = check_version(ignore_warning=ignore_warning)
+        print('virtctl(%s) & virtlet(%s)' % (virtctl_running_version if virtctl_running_version else 'UNKNOWN', virtlet_running_version if virtlet_running_version else 'UNKNOWN'))
+    else:
+        print(VERSION)
     
 def view_bar(num, total):
     r = '\r[%s%s]' % ("#"*num, " "*(100-num))
@@ -185,7 +189,7 @@ def view_bar(num, total):
 
 def main():
     usage_msg = 'Usage: %s <service|--version|--help>\n' % sys.argv[0] + \
-                '       %s service <start|stop|restart|status|update>\n\n' % sys.argv[0]
+                '       %s service <start|stop|restart|status|update|--version>\n\n' % sys.argv[0]
     help_subcommands = 'All support sub commands: \n' + \
                         '    service                           service management\n' + \
                         '    --version                         show kubevmm version\n' + \
@@ -195,7 +199,8 @@ def main():
                 '    service  stop                            stop kubevmm services\n' + \
                 '    service  restart                         restart kubevmm services\n' + \
                 '    service  status                          show kubevmm services\n' + \
-                '    service  update                          update kubevmm services\n\n'
+                '    service  update                          update kubevmm services\n' + \
+                '    service  --version                       show services version\n\n'
     help_msg = usage_msg + help_subcommands + help_service
     help_update = 'Name:\n' + \
                 '    %s update [--online|--offline <package>|--help]\n' % sys.argv[0] + \
@@ -263,6 +268,12 @@ def main():
             else:
                 print('error: command \'update\' requires [--online|--offline <package absolute path>] arguments!\n')
                 sys.exit(1) 
+        elif sys.argv[2] == '--version':
+            if len(params) != 0:
+                print('error: invalid arguments!\n')
+                print(help_service)
+                sys.exit(1) 
+            version(service=True)
         else:
             print('error: invalid arguments!\n')
             print(help_service)            

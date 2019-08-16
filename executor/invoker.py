@@ -1395,6 +1395,7 @@ def runCmdWithResult(cmd):
                         continue
                     error_msg = error_msg + str.strip(line)
                 error_msg = str.strip(error_msg)
+                logger.error(error_msg)
                 raise ExecuteException('cmd exec failure', error_msg)
         if std_err:
             logger.error(std_err)

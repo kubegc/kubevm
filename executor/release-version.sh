@@ -10,7 +10,8 @@ if [ ! -n "$1" ] ;then
     exit 1
 else
     if [[ "$1" =~ ^[A-Za-z0-9.]*$ ]] ;then
-        echo "*** Build a new release version $1"
+        echo -e "\033[3;30;47m*** Build a new release version: \033[5;36;47m($1)\033[0m)"
+        echo -e "Copyright (2019) Institute of Software, Chinese Academy of Sciences\n"
     else
         echo "error: wrong syntax in release version number, support chars=[A-Za-z0-9.]"
         exit 1
@@ -19,7 +20,7 @@ fi
 
 VERSION=$1
 
-echo "*** Pull latest version from Github."
+echo -e "\033[3;30;47m*** Pull latest version from Github.\033[0m"
 git pull
 if [ $? -ne 0 ]; then
     echo "    Failed to pull latest version from Github!"
@@ -41,7 +42,7 @@ docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt
 docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${VERSION}
 
 #step 3 docker push
-echo "*** Login docker image repository in aliyun."
+echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
 echo "Username: bigtree0613@126.com"
 docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
 if [ $? -ne 0 ]; then
@@ -55,7 +56,7 @@ docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${V
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${VERSION}
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
-echo "*** Patch release version number to SPECS/kubevmm.spec"
+echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"
 cd ..
 sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
 mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
@@ -66,7 +67,7 @@ else
     echo "    Success patch version number to SPECS/kubevmm.spec."
 fi
 
-echo "*** Push new SPECS/kubevmm.spec to Github."
+echo -e "\033[3;30;47m*** Push new SPECS/kubevmm.spec to Github.\033[0m"
 git add -A SPECS/kubevmm.spec
 git commit -a -m "new release version ${VERSION}"
 git push

@@ -165,6 +165,23 @@ def runCmd(cmd):
     finally:
         p.stdout.close()
         p.stderr.close()
+
+def runCmdRaiseException(cmd):
+    std_err = None
+    if not cmd:
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            pass
+        if std_err:
+            raise ExecuteException('VirtctlError', std_err)
+        return
+    finally:
+        p.stdout.close()
+        p.stderr.close()
         
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 

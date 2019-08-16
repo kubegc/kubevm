@@ -724,6 +724,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
             logger.debug("error occurred during processing json data from apiserver")
             logger.debug(dumps(jsondict))
 
+
 def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, plural=PLURAL_STORAGE_POOL):
     watcher = watch.Watch()
     kwargs = {}
@@ -732,92 +733,95 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                    group=group, version=version, plural=plural, **kwargs):
-        # try:
-        logger.debug(dumps(jsondict))
+        try:
+            logger.debug(dumps(jsondict))
 
-        operation_type = jsondict.get('type')
-        logger.debug(operation_type)
+            operation_type = jsondict.get('type')
+            logger.debug(operation_type)
 
-        metadata_name = getMetadataName(jsondict)
-        logger.debug('metadata name: %s' % metadata_name)
+            metadata_name = getMetadataName(jsondict)
+            logger.debug('metadata name: %s' % metadata_name)
 
-        the_cmd_key = _getCmdKey(jsondict)
-        logger.debug('cmd key is: %s' % the_cmd_key)
+            the_cmd_key = _getCmdKey(jsondict)
+            logger.debug('cmd key is: %s' % the_cmd_key)
 
-        if the_cmd_key and operation_type != 'DELETED':
-            involved_object_name = metadata_name
-            involved_object_kind = 'NodeStoragePool'
-            event_metadata_name = randomUUID()
-            event_type = 'Normal'
-            status = 'Doing(Success)'
-            reporter = 'virtctl'
-            event_id = _getEventId(jsondict)
-            time_now = now_to_datetime()
-            time_start = time_now
-            time_end = time_now
-            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-            involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-            (time_end - time_start).total_seconds())
-            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name,
-                                     involved_object_kind, message, the_cmd_key, event_type)
-            try:
-                event.registerKubernetesEvent()
-            except:
-                logger.error('Oops! ', exc_info=1)
-
-            cmd = get_cmd(jsondict, the_cmd_key)
-            try:
-                if cmd is None:
-                    break
-                result, data = None, None
-                if operation_type == 'ADDED':
-                    result, data = runCmdWithResult(cmd)
-
-                elif operation_type == 'MODIFIED':
-                    result, data = runCmdWithResult(cmd)
-                write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
-                                       involved_object_name, result, data)
-
-                if result['code'] == 0:
-                    status = 'Done(Success)'
-                    if operation_type != 'DELETED':
-                        time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                        involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                        (time_end - time_start).total_seconds())
-                        event.set_message(message)
-                        event.set_time_end(time_end)
-                        try:
-                            event.updateKubernetesEvent()
-                        except:
-                            logger.warning('Oops! ', exc_info=1)
-                else:
-                    raise ExecuteException(the_cmd_key+" exec error", result['msg'])
-            except ExecuteException, e:
-                logger.error('Oops! ', exc_info=1)
-                info = sys.exc_info()
+            if the_cmd_key and operation_type != 'DELETED':
+                involved_object_name = metadata_name
+                involved_object_kind = 'NodeStoragePool'
+                event_metadata_name = randomUUID()
+                event_type = 'Normal'
+                status = 'Doing(Success)'
+                reporter = 'virtctl'
+                event_id = _getEventId(jsondict)
+                time_now = now_to_datetime()
+                time_start = time_now
+                time_end = time_now
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
+                involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
+                (time_end - time_start).total_seconds())
+                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name,
+                                         involved_object_kind, message, the_cmd_key, event_type)
                 try:
-                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    event.registerKubernetesEvent()
                 except:
-                    logger.warning('Oops! ', exc_info=1)
-                status = 'Done(Error)'
-                event_type = 'Warning'
-                event.set_event_type(event_type)
-            except:
-                logger.error('Oops! ', exc_info=1)
-                info = sys.exc_info()
+                    logger.error('Oops! ', exc_info=1)
+
+                cmd = get_cmd(jsondict, the_cmd_key)
                 try:
-                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    if cmd is None:
+                        break
+                    result, data = None, None
+                    if operation_type == 'ADDED':
+                        result, data = runCmdWithResult(cmd)
+
+                    elif operation_type == 'MODIFIED':
+                        result, data = runCmdWithResult(cmd)
+                    write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
+                                           involved_object_name, result, data)
+
+                    if result['code'] == 0:
+                        # Verify successful operation, if success countinue, else raise exception
+                        verifyUITStoragePoolOperation(the_cmd_key, cmd)
+
+                        status = 'Done(Success)'
+                        if operation_type != 'DELETED':
+                            time_end = now_to_datetime()
+                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
+                            involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
+                            (time_end - time_start).total_seconds())
+                            event.set_message(message)
+                            event.set_time_end(time_end)
+                            try:
+                                event.updateKubernetesEvent()
+                            except:
+                                logger.warning('Oops! ', exc_info=1)
+                    else:
+                        raise ExecuteException(the_cmd_key+" exec error", result['msg'])
+                except ExecuteException, e:
+                    logger.error('Oops! ', exc_info=1)
+                    info = sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
-                status = 'Done(Error)'
-                event_type = 'Warning'
-                event.set_event_type(event_type)
+                    logger.error('Oops! ', exc_info=1)
+                    info = sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
 
 
-        # except:
-        #     logger.debug("error occurred during processing json data from apiserver")
-        #     logger.debug(dumps(jsondict))
+        except:
+            logger.debug("error occurred during processing json data from apiserver")
+            logger.debug(dumps(jsondict))
 
 
 def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL_UIT_DISK):
@@ -828,92 +832,93 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
     kwargs['timeout_seconds'] = int(TIMEOUT)
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                    group=group, version=version, plural=plural, **kwargs):
-        # try:
-        logger.debug(dumps(jsondict))
+        try:
+            logger.debug(dumps(jsondict))
 
-        operation_type = jsondict.get('type')
-        logger.debug(operation_type)
+            operation_type = jsondict.get('type')
+            logger.debug(operation_type)
 
-        metadata_name = getMetadataName(jsondict)
-        logger.debug('metadata name: %s' % metadata_name)
+            metadata_name = getMetadataName(jsondict)
+            logger.debug('metadata name: %s' % metadata_name)
 
-        the_cmd_key = _getCmdKey(jsondict)
-        logger.debug('cmd key is: %s' % the_cmd_key)
+            the_cmd_key = _getCmdKey(jsondict)
+            logger.debug('cmd key is: %s' % the_cmd_key)
 
-        if the_cmd_key and operation_type != 'DELETED':
-            involved_object_name = metadata_name
-            involved_object_kind = 'NodeStoragePool'
-            event_metadata_name = randomUUID()
-            event_type = 'Normal'
-            status = 'Doing(Success)'
-            reporter = 'virtctl'
-            event_id = _getEventId(jsondict)
-            time_now = now_to_datetime()
-            time_start = time_now
-            time_end = time_now
-            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                (time_end - time_start).total_seconds())
-            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name,
-                                     involved_object_kind, message, the_cmd_key, event_type)
-            try:
-                event.registerKubernetesEvent()
-            except:
-                logger.error('Oops! ', exc_info=1)
-
-            cmd = get_cmd(jsondict, the_cmd_key)
-            try:
-                if cmd is None:
-                    break
-                result, data = None, None
-                if operation_type == 'ADDED':
-                    result, data = runCmdWithResult(cmd)
-
-                elif operation_type == 'MODIFIED':
-                    result, data = runCmdWithResult(cmd)
-                write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
-                                       involved_object_name, result, data)
-
-                if result['code'] == 0:
-                    status = 'Done(Success)'
-                    if operation_type != 'DELETED':
-                        time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                            involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                            (time_end - time_start).total_seconds())
-                        event.set_message(message)
-                        event.set_time_end(time_end)
-                        try:
-                            event.updateKubernetesEvent()
-                        except:
-                            logger.warning('Oops! ', exc_info=1)
-                else:
-                    raise ExecuteException(result['code'], result['msg'])
-            except ExecuteException, e:
-                logger.error('Oops! ', exc_info=1)
-                info = sys.exc_info()
+            if the_cmd_key and operation_type != 'DELETED':
+                involved_object_name = metadata_name
+                involved_object_kind = 'NodeStoragePool'
+                event_metadata_name = randomUUID()
+                event_type = 'Normal'
+                status = 'Doing(Success)'
+                reporter = 'virtctl'
+                event_id = _getEventId(jsondict)
+                time_now = now_to_datetime()
+                time_start = time_now
+                time_end = time_now
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
+                    involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
+                    (time_end - time_start).total_seconds())
+                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name,
+                                         involved_object_kind, message, the_cmd_key, event_type)
                 try:
-                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    event.registerKubernetesEvent()
                 except:
-                    logger.warning('Oops! ', exc_info=1)
-                status = 'Done(Error)'
-                event_type = 'Warning'
-                event.set_event_type(event_type)
-            except:
-                logger.error('Oops! ', exc_info=1)
-                info = sys.exc_info()
+                    logger.error('Oops! ', exc_info=1)
+
+                cmd = get_cmd(jsondict, the_cmd_key)
                 try:
-                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    if cmd is None:
+                        break
+                    result, data = None, None
+                    if operation_type == 'ADDED':
+                        result, data = runCmdWithResult(cmd)
+
+                    elif operation_type == 'MODIFIED':
+                        result, data = runCmdWithResult(cmd)
+                    write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
+                                           involved_object_name, result, data)
+
+                    if result['code'] == 0:
+                        verifyUITDiskOperation(the_cmd_key, cmd)
+                        status = 'Done(Success)'
+                        if operation_type != 'DELETED':
+                            time_end = now_to_datetime()
+                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
+                                involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
+                                (time_end - time_start).total_seconds())
+                            event.set_message(message)
+                            event.set_time_end(time_end)
+                            try:
+                                event.updateKubernetesEvent()
+                            except:
+                                logger.warning('Oops! ', exc_info=1)
+                    else:
+                        raise ExecuteException(result['code'], result['msg'])
+                except ExecuteException, e:
+                    logger.error('Oops! ', exc_info=1)
+                    info = sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
                 except:
-                    logger.warning('Oops! ', exc_info=1)
-                status = 'Done(Error)'
-                event_type = 'Warning'
-                event.set_event_type(event_type)
+                    logger.error('Oops! ', exc_info=1)
+                    info = sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
 
 
-        # except:
-        #     logger.debug("error occurred during processing json data from apiserver")
-        #     logger.debug(dumps(jsondict))
+        except:
+            logger.debug("error occurred during processing json data from apiserver")
+            logger.debug(dumps(jsondict))
 
 def get_cmd(jsondict, the_cmd_key):
     cmd = None
@@ -924,46 +929,120 @@ def get_cmd(jsondict, the_cmd_key):
             realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-' + poolType
             cmd = unpackCmdFromJson(jsondict, the_cmd_key)
             cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
+            logger.debug(cmd)
     elif _isSnapshotDisk(the_cmd_key) and 'op' in jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].keys():
         op = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
         if op != None:
             del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
-            realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-' + op
-            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-            cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
-            logger.debug(cmd)
-            if cmd is None:
+            realCmd = None
+            if op == 'create':
+                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-add-ss'
+            elif op == 'recovery':
+                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-rr-ss'
+            elif op == 'show':
+                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-show-ss'
+            elif op == 'remove':
+                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-rm-ss'
+            if realCmd != None:
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+                cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
+            else:
                 raise Exception("error: can't get cmd")
+            logger.debug(cmd)
     else:
         cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+    if cmd is None:
+        raise Exception("error: can't get cmd")
+    logger.debug(cmd)
     return cmd
 
 def write_result_to_server(group, version, namespace, plural, name, result, data):
     logger.debug(result)
     logger.debug(data)
     jsonDict = None
-    # try:
-    # involved_object_name actually is nodeerror occurred during processing json data from apiserver
-    jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=group, version=version, namespace=namespace, plural=plural, name=name)
-    # logger.debug(dumps(jsonStr))
-    logger.debug("node name is: " + name)
-    jsonDict = jsonStr.copy()
-    logger.debug(dumps(jsonDict))
+    try:
+        # involved_object_name actually is nodeerror occurred during processing json data from apiserver
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=name)
+        # logger.debug(dumps(jsonStr))
+        logger.debug("node name is: " + name)
+        jsonDict = jsonStr.copy()
+        logger.debug(dumps(jsonDict))
 
-    if group == GROUP_STORAGE_POOL:
-        jsonDict['spec']['uitstoragepool'] = {'result': result, 'data': data}
-    elif group == GROUP_UIT_DISK:
-        jsonDict['spec']['uitdisk'] = {'result': result, 'data': data}
-    jsonDict = addPowerStatusMessage(jsonDict, result['code'], result['msg'])
-    del jsonDict['spec']['lifecycle']
-    client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
+        if group == GROUP_STORAGE_POOL:
+            jsonDict['spec']['uitstoragepool'] = {'result': result, 'data': data}
+        elif group == GROUP_UIT_DISK:
+            jsonDict['spec']['uitdisk'] = {'result': result, 'data': data}
+        jsonDict = addPowerStatusMessage(jsonDict, result['code'], result['msg'])
+        del jsonDict['spec']['lifecycle']
+        client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
 
-    # except:
-    #     logger.debug("error occurred during write result to apiserver")
-    #     logger.debug(jsonDict)
+    except:
+        logger.debug("error occurred during write result to apiserver")
+        logger.debug(jsonDict)
+        raise ExecuteException('write result to apiserver failure', 'write result to apiserver failure')
 
+def verifyUITStoragePoolOperation(the_cmd_key, cmd):
+    success = False
+    kv = {}
+    for i in range(len(cmd.split()) / 2):
+        kv[cmd.split()[i * 2].replace('--', '')] = cmd.split()[i * 2 + 1]
+
+    result, data = runCmdWithResult('cstor-cli pool-list')
+    if result['code'] != 0:
+        raise ExecuteException(the_cmd_key + " exec error", 'verifyUITStoragePoolOperation failure')
+
+    if the_cmd_key == 'createPool':
+        # cstor-cli pooladd-localfs --poolname test --url localfs:///dev/sdb:/pool
+        for pooldata in result['data']:
+            if pooldata['poolname'] == kv['poolname']:
+                success = True
+                break
+    elif the_cmd_key == 'deletePool':
+        success = True
+        for pooldata in data:
+            if pooldata['poolname'] == kv['poolname']:
+                success = False
+    else:
+        success = True
+    if not success:
+        raise ExecuteException(the_cmd_key + " exec error", 'UITStoragePoolOperation not really successful,'
+                                                            ' '+the_cmd_key + ' operation has bug!!!')
+
+def verifyUITDiskOperation(the_cmd_key, cmd):
+    success = False
+    kv = {}
+    for i in range(len(cmd.split()) / 2):
+        kv[cmd.split()[i * 2].replace('--', '')] = cmd.split()[i * 2 + 1]
+
+    result, data = runCmdWithResult('cstor-cli vdisk-show --poolname '+kv['poolname']+' --name '+kv['name'])
+    if result['code'] != 0 and the_cmd_key != 'deleteUITDisk':
+        raise ExecuteException(the_cmd_key + " exec error", 'verifyUITDiskOperation failure')
+
+    if the_cmd_key == 'createUITDisk' or the_cmd_key == 'expandUITDisk':
+        if data['name'] == kv['name'] and data['poolname'] == kv['poolname'] and data['size'] == kv['size']:
+            success = True
+    elif the_cmd_key == 'deleteUITDisk':
+        if result['code'] == 0:
+            raise ExecuteException(the_cmd_key + " exec error", 'verifyUITDiskOperation failure')
+    elif the_cmd_key == 'snapshotUITDisk':
+        result, data = runCmdWithResult('cstor-cli vdisk-show-ss --poolname '+kv['poolname']+
+                                        ' --name '+kv['name']+' --sname '+kv['sname'])
+        if kv['cstor-cli'] == 'vdisk-add-ss':
+            if result['code'] == 0 and data['name'] == kv['name'] and data['poolname'] == kv['poolname'] and data['sname'] == kv['sname']:
+                success = True
+        elif kv['cstor-cli'] == 'vdisk-rr-ss':
+            if result['code'] == 0:
+                success = True
+        elif kv['cstor-cli'] == 'vdisk-rm-ss':
+            if result['code'] != 0:
+                success = True
+    else:
+        success = True
+    if not success:
+        raise ExecuteException(the_cmd_key + " exec error", 'UITDiskOperation not really successful,'
+                                                            ' ' + the_cmd_key + ' operation has bug!!!')
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createPool":
@@ -974,23 +1053,6 @@ def _isSnapshotDisk(the_cmd_key):
     if the_cmd_key == "snapshotUITDisk":
         return True
     return False
-
-'''
-virtual run cmd 
-'''
-def virtualRunCmd(cmd):
-    std_err = None
-    if not cmd:
-        logger.debug('No CMD to execute.')
-        return
-    result = {}
-    result['code'] = 0
-    result['msg'] = cmd+" exec result"
-    data = []
-    data.append(cmd+" exec data")
-    logger.debug(data)
-    logger.debug(result)
-    return result , data
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']

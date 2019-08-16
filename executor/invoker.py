@@ -267,20 +267,20 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 if cmd:
                                     runCmd(cmd)
                             # add support python file real path to exec
-                            elif _isPlugNIC(the_cmd_key):
+                            elif _isPlugDevice(the_cmd_key):
                                 if cmd:
                                     try:
                                         runCmd(cmd)
                                     except ExecuteException, e:
-                                        if network_type == 'ovsbridge':
-                                            if 'file_path' in dir():
+                                        if 'file_path' in dir():
+                                            if 'network_type' in dir() and network_type == 'ovsbridge':
                                                 mvNICXmlToTmpDir(file_path)
                                         raise e            
-                            elif _isUnplugNIC(the_cmd_key):
+                            elif _isUnplugDevice(the_cmd_key):
                                 if cmd:
                                     runCmd(cmd)
-                                if network_type == 'ovsbridge':
-                                    if 'file_path' in dir():
+                                if 'file_path' in dir():
+                                    if 'network_type' in dir() and network_type == 'ovsbridge':
                                         mvNICXmlToTmpDir(file_path)
                             else:
                                 if cmd:
@@ -1140,6 +1140,15 @@ def _isUnplugNIC(the_cmd_key):
         return True
     return False
 
+def _isPlugDevice(the_cmd_key):
+    if the_cmd_key == "plugDevice":
+        return True
+    return False
+
+def _isUnplugDevice(the_cmd_key):
+    if the_cmd_key == "unplugDevice":
+        return True
+    return False
 
 '''
 Get event id.

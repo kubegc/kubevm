@@ -84,14 +84,14 @@ def stop(ignore_warning=False):
     if not virtctl_container_id:
         print('do noting: service \'virtctl\' is not running')
     else:
-        print('>>> stopping \'virtctl(%s)\' in container \'%s\'...' % (virtctl_running_version, str(virtctl_container_id)))
+        print('>>> stopping \'virtctl\' in container \'%s\'...' % (str(virtctl_container_id)))
         (_, virtctl_err) = runCmd('docker stop %s; docker rm %s' % (virtctl_container_id, virtctl_container_id))
         if virtctl_err:
             print('warning: %s\n' % (virtctl_err))
     if not virtlet_container_id:
         print('do noting: service \'virtlet\' is not running\n') 
     else:
-        print('>>> stopping \'virtlet(%s)\' in container \'%s\'...\n' % (virtlet_running_version, str(virtlet_container_id)))
+        print('>>> stopping \'virtlet\' in container \'%s\'...\n' % (str(virtlet_container_id)))
         (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
         if virtlet_err:
             print('warning: %s\n' % (virtlet_err))

@@ -327,7 +327,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             logger.warning('Oops! ', exc_info=1)
         except:
             logger.debug("error occurred during processing json data from apiserver")
-            logger.debug(dumps(jsondict))
+            logger.warning('Oops! ', exc_info=1)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -435,7 +435,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             logger.warning('Oops! ', exc_info=1)
         except:
             logger.debug("error occurred during processing json data from apiserver")
-            logger.debug(dumps(jsondict))
+            logger.warning('Oops! ', exc_info=1)
                 
 def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     watcher = watch.Watch()
@@ -543,7 +543,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                             logger.warning('Oops! ', exc_info=1)
         except:
             logger.debug("error occurred during processing json data from apiserver")
-            logger.debug(dumps(jsondict))
+            logger.warning('Oops! ', exc_info=1)
         
 def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
     watcher = watch.Watch()
@@ -641,7 +641,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                             logger.warning('Oops! ', exc_info=1)
         except:
             logger.debug("error occurred during processing json data from apiserver")
-            logger.debug(dumps(jsondict))
+            logger.warning('Oops! ', exc_info=1)
 
 def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
     watcher = watch.Watch()
@@ -738,7 +738,7 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                             logger.warning('Oops! ', exc_info=1)
         except:
             logger.debug("error occurred during processing json data from apiserver")
-            logger.debug(dumps(jsondict))
+            logger.warning('Oops! ', exc_info=1)
 
 
 def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, plural=PLURAL_STORAGE_POOL):
@@ -835,7 +835,7 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
 
         except:
             logger.debug("error occurred during processing json data from apiserver")
-            logger.debug(dumps(jsondict))
+            logger.warning('Oops! ', exc_info=1)
 
 
 def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL_UIT_DISK):
@@ -930,7 +930,7 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
 
         except:
             logger.debug("error occurred during processing json data from apiserver")
-            logger.debug(dumps(jsondict))
+            logger.warning('Oops! ', exc_info=1)
 
 def get_cmd(jsondict, the_cmd_key):
     cmd = None

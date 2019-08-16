@@ -1386,10 +1386,17 @@ def runCmdWithResult(cmd):
             logger.debug(msg)
             try:
                 result = loads(msg)
-                print result
+                # print result
                 return result['result'], result['data']
             except Exception:
-                raise ExecuteException('cmd exec failure', std_err)
+                error_msg = ''
+                for index, line in enumerate(std_err):
+                    if not str.strip(line):
+                        continue
+                    error_msg = error_msg + str.strip(line)
+                error_msg = str.strip(error_msg)
+                logger.error(error_msg)
+                raise ExecuteException('cmd exec failure', error_msg)
         if std_err:
             logger.error(std_err)
             raise ExecuteException('VirtctlError', std_err)

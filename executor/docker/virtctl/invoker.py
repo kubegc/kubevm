@@ -208,11 +208,11 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 if _isPlugNIC(the_cmd_key):
                     network_type = _get_field(jsondict, the_cmd_key, 'type')
                     if network_type == 'ovsbridge':
-                        jsondict = createNICFromXml(metadata_name, jsondict, the_cmd_key)
+                        (jsondict, the_cmd_key) = createNICFromXml(metadata_name, jsondict, the_cmd_key)
                 if _isUnplugNIC(the_cmd_key):
                     network_type = _get_field(jsondict, the_cmd_key, 'type')
                     if network_type == 'ovsbridge':
-                        (jsondict, file_path) = deleteNICFromXml(metadata_name, jsondict, the_cmd_key)
+                        (jsondict, the_cmd_key, file_path) = deleteNICFromXml(metadata_name, jsondict, the_cmd_key)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
@@ -1325,8 +1325,9 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     except:
         raise ExecuteException('VirtctlError', 'Execute plugNIC error: cannot create NIC XML file \'%s\'' % file_path)
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
-    jsondict['raw_object']['spec']['lifecycle']['plugDevice'] = {'file': file_path}
-    return jsondict
+    new_cmd_key = 'plugDevice'
+    jsondict['raw_object']['spec']['lifecycle'][new_cmd_key] = {'file': file_path}
+    return(jsondict, new_cmd_key)
 
 def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
@@ -1343,8 +1344,9 @@ def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
     
     file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
-    jsondict['raw_object']['spec']['lifecycle']['unplugDevice'] = {'file': file_path}
-    return (jsondict, file_path)
+    new_cmd_key = 'unplugDevice'
+    jsondict['raw_object']['spec']['lifecycle'][new_cmd_key] = {'file': file_path}
+    return (jsondict, new_cmd_key, file_path)
 
 def mvNICXmlToTmpDir(file_path):
     if file_path:

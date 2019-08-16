@@ -92,9 +92,7 @@ Some steps to do to install and run kubevmm services.
 * (First time only) Install dependencies (rhel7):
     ```
     sudo yum install epel-release -y
-    sudo yum install virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install -y
-    sudo pip install --upgrade pip
-    sudo pip install kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller
+    sudo yum install virt-manager libvirt virt-install qemu-kvm -y
     ```
 
 * Softwares needed for kubevmm commands:
@@ -115,13 +113,6 @@ Some steps to do to install and run kubevmm services.
     ```
     kubevmm-adm --version
     vmm
-    ```
-
-* Pull docker images.
-    ```
-    export KUBEVMM_VERSION=`kubevmm-adm --version`
-    docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:$KUBEVMM_VERSION
-    docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:$KUBEVMM_VERSION
     ```
     
 ## Step3: Run

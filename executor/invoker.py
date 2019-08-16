@@ -781,20 +781,9 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
 
                     if result['code'] == 0:
                         # Verify successful operation, if success countinue, else raise exception
-                        verifyUITStoragePoolOperation(the_cmd_key, cmd)
-
+#                         verifyUITStoragePoolOperation(the_cmd_key, cmd)
                         status = 'Done(Success)'
-                        if operation_type != 'DELETED':
-                            time_end = now_to_datetime()
-                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                            involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                            (time_end - time_start).total_seconds())
-                            event.set_message(message)
-                            event.set_time_end(time_end)
-                            try:
-                                event.updateKubernetesEvent()
-                            except:
-                                logger.warning('Oops! ', exc_info=1)
+
                     else:
                         raise ExecuteException(the_cmd_key+" exec error", result['msg'])
                 except ExecuteException, e:
@@ -817,7 +806,16 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                     status = 'Done(Error)'
                     event_type = 'Warning'
                     event.set_event_type(event_type)
-
+                finally:
+                    if the_cmd_key and operation_type != 'DELETED':
+                        time_end = now_to_datetime()
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        event.set_message(message)
+                        event.set_time_end(time_end)
+                        try:
+                            event.updateKubernetesEvent()
+                        except:
+                            logger.warning('Oops! ', exc_info=1)
 
         except:
             logger.debug("error occurred during processing json data from apiserver")
@@ -879,19 +877,8 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
                                            involved_object_name, result, data)
 
                     if result['code'] == 0:
-                        verifyUITDiskOperation(the_cmd_key, cmd)
+#                         verifyUITDiskOperation(the_cmd_key, cmd)
                         status = 'Done(Success)'
-                        if operation_type != 'DELETED':
-                            time_end = now_to_datetime()
-                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                                involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                                (time_end - time_start).total_seconds())
-                            event.set_message(message)
-                            event.set_time_end(time_end)
-                            try:
-                                event.updateKubernetesEvent()
-                            except:
-                                logger.warning('Oops! ', exc_info=1)
                     else:
                         raise ExecuteException(result['code'], result['msg'])
                 except ExecuteException, e:
@@ -914,7 +901,16 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
                     status = 'Done(Error)'
                     event_type = 'Warning'
                     event.set_event_type(event_type)
-
+                finally:
+                    if the_cmd_key and operation_type != 'DELETED':
+                        time_end = now_to_datetime()
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        event.set_message(message)
+                        event.set_time_end(time_end)
+                        try:
+                            event.updateKubernetesEvent()
+                        except:
+                            logger.warning('Oops! ', exc_info=1)
 
         except:
             logger.debug("error occurred during processing json data from apiserver")

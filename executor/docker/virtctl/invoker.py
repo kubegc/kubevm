@@ -208,7 +208,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 if _isPlugNIC(the_cmd_key):
                     network_type = _get_field(jsondict, the_cmd_key, 'type')
                     if network_type == 'ovsbridge':
-                        (jsondict, the_cmd_key) = createNICFromXml(metadata_name, jsondict, the_cmd_key)
+                        (jsondict, the_cmd_key, file_path) = createNICFromXml(metadata_name, jsondict, the_cmd_key)
                 if _isUnplugNIC(the_cmd_key):
                     network_type = _get_field(jsondict, the_cmd_key, 'type')
                     if network_type == 'ovsbridge':
@@ -267,6 +267,15 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 if cmd:
                                     runCmd(cmd)
                             # add support python file real path to exec
+                            elif _isPlugNIC(the_cmd_key):
+                                if cmd:
+                                    try:
+                                        runCmd(cmd)
+                                    except ExecuteException, e:
+                                        if network_type == 'ovsbridge':
+                                            if 'file_path' in dir():
+                                                mvNICXmlToTmpDir(file_path)
+                                        raise e            
                             elif _isUnplugNIC(the_cmd_key):
                                 if cmd:
                                     runCmd(cmd)
@@ -1327,7 +1336,7 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
     new_cmd_key = 'plugDevice'
     jsondict['raw_object']['spec']['lifecycle'][new_cmd_key] = {'file': file_path}
-    return(jsondict, new_cmd_key)
+    return(jsondict, new_cmd_key, file_path)
 
 def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')

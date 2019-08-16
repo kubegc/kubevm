@@ -21,6 +21,7 @@ import time
 from threading import Thread
 from json import loads
 from json import dumps
+from xml.dom.minidom import Document
 from StringIO import StringIO as _StringIO
 from xml.etree.ElementTree import fromstring
 
@@ -42,7 +43,7 @@ Import local libs
 from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
+from utils.utils import randomMAC, ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -82,6 +83,7 @@ VERSION_UIT_DISK = config_raw.get('UITDisk', 'version')
 GROUP_UIT_DISK = config_raw.get('UITDisk', 'group')
 
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
+DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 
 LABEL = 'host=%s' % (get_hostname_in_lower_case())
 
@@ -199,12 +201,20 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
                     jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
                         logger.debug('***VM %s already deleted!***' % metadata_name)
                         continue
+                if _isPlugNIC(the_cmd_key):
+                    network_type = _get_field(jsondict, the_cmd_key, 'type')
+                    if network_type == 'ovsbridge':
+                        jsondict = createNICFromXml(metadata_name, jsondict, the_cmd_key)
+                if _isUnplugNIC(the_cmd_key):
+                    network_type = _get_field(jsondict, the_cmd_key, 'type')
+                    if network_type == 'ovsbridge':
+                        (jsondict, file_path) = deleteNICFromXml(metadata_name, jsondict, the_cmd_key)
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
                 involved_object_kind = 'VirtualMachine'
                 event_metadata_name = randomUUID()
@@ -257,6 +267,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 if cmd:
                                     runCmd(cmd)
                             # add support python file real path to exec
+                            elif _isUnplugNIC(the_cmd_key):
+                                if cmd:
+                                    runCmd(cmd)
+                                if network_type == 'ovsbridge':
+                                    if 'file_path' in dir():
+                                        mvNICXmlToTmpDir(file_path)
                             else:
                                 if cmd:
                                     runCmd(cmd)
@@ -1105,6 +1121,17 @@ def _isDeleteVM(the_cmd_key):
         return True
     return False
 
+def _isPlugNIC(the_cmd_key):
+    if the_cmd_key == "plugNIC":
+        return True
+    return False
+
+def _isUnplugNIC(the_cmd_key):
+    if the_cmd_key == "unplugNIC":
+        return True
+    return False
+
+
 '''
 Get event id.
 '''
@@ -1237,6 +1264,91 @@ def toKubeJson(json):
     return json.replace('@', '_').replace('$', 'text').replace(
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
+                    
+def createNICFromXml(metadata_name, jsondict, the_cmd_key):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:    
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return
+        '''
+        Read parameters from lifecycle, add default value to some parameters.
+        '''
+        mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
+        source = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('source')
+        model = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('model')
+        if not source:
+            raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'source\'!')
+        if not mac:
+            mac = randomMAC()
+        if not model:
+            model = 'virtio'
+        lines = {}
+        lines['mac'] = mac
+        lines['source'] = source
+        lines['virtualport'] = 'openvswitch'
+        lines['model'] = model
+    
+    '''
+    Write NIC Xml file to DEFAULT_DEVICE_DIR dir.
+    '''
+    doc = Document()
+    root = doc.createElement('interface')
+    root.setAttribute('type', 'bridge')
+    doc.appendChild(root)
+    for k, v in lines.items():
+        if k == 'mac':
+            node = doc.createElement(k)
+            node.setAttribute('address', v)
+            root.appendChild(node)
+        elif k == 'source':
+            node = doc.createElement(k)
+            node.setAttribute('bridge', v)
+            root.appendChild(node)
+        elif k == 'virtualport':
+            node = doc.createElement(k)
+            node.setAttribute('type', v)
+            root.appendChild(node)
+        elif k == 'model':
+            node = doc.createElement(k)
+            node.setAttribute('type', v)
+            root.appendChild(node)
+    '''
+    If DEFAULT_DEVICE_DIR not exists, create it.
+    '''
+    if not os.path.exists(DEFAULT_DEVICE_DIR):
+        os.makedirs(DEFAULT_DEVICE_DIR, 0711)
+    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
+    try:
+        with open(file_path, 'w') as f:
+            f.write(doc.toprettyxml(indent='\t'))
+    except:
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: cannot create NIC XML file \'%s\'' % file_path)
+    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
+    jsondict['raw_object']['spec']['lifecycle']['plugDevice'] = {'file': file_path}
+    return jsondict
+
+def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:    
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return
+        '''
+        Read parameters from lifecycle, add default value to some parameters.
+        '''
+        mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
+        if not mac:
+            raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'mac\'!')
+    
+    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
+    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
+    jsondict['raw_object']['spec']['lifecycle']['unplugDevice'] = {'file': file_path}
+    return (jsondict, file_path)
+
+def mvNICXmlToTmpDir(file_path):
+    if file_path:
+        runCmd('mv %s /tmp' % file_path)
 
 def addDefaultSettings(jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')

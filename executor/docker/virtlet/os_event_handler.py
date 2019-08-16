@@ -34,7 +34,7 @@ Import local libs
 '''
 from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state
 from utils import logger
-from utils.utils import runCmd, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
+from utils.utils import runCmdRaiseException, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -680,7 +680,11 @@ def main():
     for ob in VOL_DIRS:
         if not os.path.exists(ob[1]):
             os.makedirs(ob[1], 0711)
-            runCmd('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
+            try:
+                runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
+            except:
+                os.removedirs(ob[1])
+                logger.error('Oops! ', exc_info=1)
         event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
         observer.schedule(event_handler,ob[1],True)
     for ob in SYSTEM_VOL_DIRS:

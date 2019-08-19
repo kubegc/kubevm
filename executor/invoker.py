@@ -881,7 +881,7 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
 
             if the_cmd_key and operation_type != 'DELETED':
                 involved_object_name = metadata_name
-                involved_object_kind = 'NodeStoragePool'
+                involved_object_kind = 'UITStoragePool'
                 event_metadata_name = randomUUID()
                 event_type = 'Normal'
                 status = 'Doing(Success)'
@@ -1074,7 +1074,7 @@ def uitSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_UIT_SNAPSHOT, pl
 
             if the_cmd_key and operation_type != 'DELETED':
                 involved_object_name = metadata_name
-                involved_object_kind = 'NodeStoragePool'
+                involved_object_kind = 'UITSnapshot'
                 event_metadata_name = randomUUID()
                 event_type = 'Normal'
                 status = 'Doing(Success)'
@@ -1104,7 +1104,7 @@ def uitSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_UIT_SNAPSHOT, pl
 
                     elif operation_type == 'MODIFIED':
                         result, data = runCmdWithResult(cmd)
-                    write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
+                    write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
                                            involved_object_name, result, data)
 
                     if result['code'] == 0:

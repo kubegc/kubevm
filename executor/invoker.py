@@ -104,6 +104,8 @@ ALL_SUPPORT_CMDS_WITH_NAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_VOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -116,6 +118,10 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_VOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_VOL_FIELD, **v)
         elif string.find(k, 'WithSnapNameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD, **v)
+        elif string.find(k, 'WithPoolNameField') != -1:
+            ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
+        elif string.find(k, 'WithSnameField') != -1:
+            ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAME_FIELD, **v)
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -791,6 +797,7 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                 except:
                     logger.error('Oops! ', exc_info=1)
 
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = get_cmd(jsondict, the_cmd_key)
                 try:
                     if cmd is None:
@@ -888,6 +895,7 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
                 except:
                     logger.error('Oops! ', exc_info=1)
 
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = get_cmd(jsondict, the_cmd_key)
                 try:
                     if cmd is None:
@@ -1094,6 +1102,10 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
         lifecycle[the_cmd_key]['vol'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
         lifecycle[the_cmd_key]['snapshotname'] = metadata_name
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
+        lifecycle[the_cmd_key]['poolname'] = metadata_name
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
+        lifecycle[the_cmd_key]['sname'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):

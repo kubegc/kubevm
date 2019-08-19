@@ -15,6 +15,7 @@ import os, sys, time, signal, atexit, subprocess
 import threading
 import random
 import socket
+import pprint
 import datetime
 from dateutil.tz import gettz
 from pprint import pformat
@@ -25,6 +26,74 @@ Import third party libs
 '''
 from kubernetes import client
 from kubernetes.client.rest import ApiException
+
+def get_l3_network_info(name):
+    data = {'switchInfo': '', 'routerInfo': '', 'gatewayInfo': ''}
+    '''
+    Get switch informations.
+    '''
+    switchInfo = {'id': '', 'name': '', 'ports': []}
+    lines = runCmdRaiseException('ovn-nbctl show %s' % name)
+    if not (len(lines) -1) % 4 == 0:
+        raise Exception('ovn-nbctl show %s error: wrong return value %s' % (name, lines))
+    (_, switchInfo['id'], switchInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
+    ports = lines[1:]
+    portsInfo = []
+    if len(ports) > 3:
+        for i in range(4, len(ports)+1):
+            portInfo = {}
+            (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
+            (_, portInfo['type']) = str.strip(ports[i-3]).split(': ')
+            (_, portInfo['addresses']) = str.strip(ports[i-2]).split(': ')
+            (_, portInfo['router_port']) = str.strip(ports[i-1]).split(': ')
+            portsInfo.append(portInfo)
+            i += 4
+    switchInfo['ports'] = portsInfo
+    data['switchInfo'] = switchInfo
+    '''
+    Get router informations.
+    '''
+    routerInfo = {'id': '', 'name': '', 'ports': []}
+    lines = runCmdRaiseException('ovn-nbctl show r4%s' % name)
+    if not (len(lines) -1) % 3 == 0:
+        raise Exception('ovn-nbctl show r4%s error: wrong return value %s' % (name, lines))
+    (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
+    ports = lines[1:]
+    portsInfo = []
+    if len(ports) > 3:
+        for i in range(3, len(ports)+1):
+            portInfo = {}
+            (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
+            (_, portInfo['mac']) = str.strip(ports[i-2]).split(': ')
+            (_, portInfo['networks']) = str.strip(ports[i-1]).split(': ')
+            portsInfo.append(portInfo)
+            i += 3
+    routerInfo['ports'] = portsInfo
+    data['routerInfo'] = routerInfo
+    '''
+    Get gateway informations.
+    '''
+    gatewayInfo = {'id': '', 'server_mac': '', 'router': '', 'server_id': '', 'lease_time': ''}
+    switchId = switchInfo.get('id')
+    if not switchId:
+        raise Exception('ovn-nbctl show %s error: no id found!' % (name))
+    lines = runCmdRaiseException('ovn-nbctl list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % switchId)
+    if not lines:
+        raise Exception('error occurred: ovn-nbctl list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % switchId)
+    gatewayInfo['id'] = lines[0].strip()
+    lines = runCmdRaiseException('ovn-nbctl dhcp-options-get-options %s' % gatewayInfo['id'])
+    for line in lines:
+        if line.find('server_mac') != -1:
+            (_, gatewayInfo['server_mac']) = line.strip().split('=')
+        elif line.find('router') != -1:
+            (_, gatewayInfo['router']) = line.strip().split('=')
+        elif line.find('server_id') != -1:
+            (_, gatewayInfo['server_id']) = line.strip().split('=')
+        elif line.find('lease_time') != -1:
+            (_, gatewayInfo['lease_time']) = line.strip().split('=')
+    data['gatewayInfo'] = gatewayInfo
+    return data
+    
 
 def singleton(pid_filename):
     def decorator(f):
@@ -174,11 +243,9 @@ def runCmdRaiseException(cmd):
     try:
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
-        if std_out:
-            pass
         if std_err:
             raise ExecuteException('VirtctlError', std_err)
-        return
+        return std_out
     finally:
         p.stdout.close()
         p.stderr.close()
@@ -693,3 +760,6 @@ class CDaemon:
     def run(self, *args, **kwargs):
         'NOTE: override the method in subclass'
         print 'base class run()'
+
+if __name__ == '__main__':
+    get_l3_network_info('ttt')

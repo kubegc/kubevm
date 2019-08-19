@@ -114,6 +114,7 @@ ALL_SUPPORT_CMDS_WITH_VOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -130,6 +131,8 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
         elif string.find(k, 'WithSnameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAME_FIELD, **v)
+        elif string.find(k, 'WithSwitchField') != -1:
+            ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD, **v)
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -1307,6 +1310,8 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
         lifecycle[the_cmd_key]['poolname'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
         lifecycle[the_cmd_key]['sname'] = metadata_name
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
+        lifecycle[the_cmd_key]['switch'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):

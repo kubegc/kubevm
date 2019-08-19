@@ -175,6 +175,11 @@ def main():
         thread_8.daemon = True
         thread_8.name = 'uit_snapshot_watcher'
         thread_8.start()
+        thread_9 = Thread(target=vMNetworkWatcher())
+        thread_9.daemon = True
+        thread_9.name = 'vm_network_watcher'
+        thread_9.start()
+        
         try:
             while True:
                 time.sleep(1)
@@ -188,6 +193,7 @@ def main():
         thread_6.join()
         thread_7.join()
         thread_8.join()
+        thread_9.join()
     except:
         logger.error('Oops! ', exc_info=1)
         

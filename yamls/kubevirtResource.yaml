@@ -206,8 +206,8 @@ spec:
     kind: UITStoragePool
     plural: uitstoragepools
     shortNames:
-      - sp
-      - sps
+      - usp
+      - usps
     singular: uitstoragepool
   scope: Namespaced
   version: v1alpha3

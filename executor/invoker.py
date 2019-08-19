@@ -294,6 +294,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     destroy(metadata_name)
                                 if cmd:
                                     runCmd(cmd)
+                                file_path = '%s/%s-*.xml' % (DEFAULT_DEVICE_DIR, metadata_name)
+                                mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
                             elif _isPlugDevice(the_cmd_key):
                                 if cmd:

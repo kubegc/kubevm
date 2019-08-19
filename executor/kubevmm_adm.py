@@ -188,8 +188,8 @@ def view_bar(num, total):
     sys.stdout.flush()
 
 def main():
-    usage_msg = 'Usage: %s <service|--version|--help>\n' % sys.argv[0] + \
-                '       %s service <start|stop|restart|status|update|--version>\n\n' % sys.argv[0]
+    usage_msg = 'Usage: %s <service|--version|--help>\n' % sys.argv[0]
+    usage_service = 'Usage: %s service <start|stop|restart|status|update|--version|--help>\n\n' % sys.argv[0]
     help_subcommands = 'All support sub commands: \n' + \
                         '    service                           service management\n' + \
                         '    --version                         show kubevmm version\n' + \
@@ -200,8 +200,9 @@ def main():
                 '    service  restart                         restart kubevmm services\n' + \
                 '    service  status                          show kubevmm services\n' + \
                 '    service  update                          update kubevmm services\n' + \
-                '    service  --version                       show services version\n\n'
-    help_msg = usage_msg + help_subcommands + help_service
+                '    service  --version                       show services version\n' + \
+                '    service  --help                          print help\n\n'
+    help_msg = usage_msg + help_subcommands
     help_update = 'Name:\n' + \
                 '    %s update [--online|--offline <package>|--help]\n' % sys.argv[0] + \
                 'Options:\n' + \
@@ -219,7 +220,7 @@ def main():
     elif sys.argv[1] == 'service':
         if len(sys.argv) < 3:
             print('error: invalid options!\n')
-            print(help_service)
+            print(usage_service)
             sys.exit(1)
         params = []
         for i in range(3, len(sys.argv)):
@@ -228,25 +229,25 @@ def main():
         if sys.argv[2] == 'start':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
-                print(help_service)
+                print(usage_service)
                 sys.exit(1)            
             start()
         elif sys.argv[2] == 'stop':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
-                print(help_service)
+                print(usage_service)
                 sys.exit(1)   
             stop()
         elif sys.argv[2] == 'restart':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
-                print(help_service)
+                print(usage_service)
                 sys.exit(1)   
             restart()
         elif sys.argv[2] == 'status':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
-                print(help_service)
+                print(usage_service)
                 sys.exit(1)   
             status(True)
         elif sys.argv[2] == 'update':
@@ -271,9 +272,15 @@ def main():
         elif sys.argv[2] == '--version':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
-                print(help_service)
+                print(usage_service)
                 sys.exit(1) 
             version(service=True)
+        elif sys.argv[2] == '--help':
+            if len(params) != 0:
+                print('error: invalid arguments!\n')
+                print(usage_service)
+                sys.exit(1) 
+            print(help_service)
         else:
             print('error: invalid arguments!\n')
             print(help_service)            

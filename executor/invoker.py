@@ -171,11 +171,11 @@ def main():
         thread_7.daemon = True
         thread_7.name = 'uit_disk_watcher'
         thread_7.start()
-        thread_8 = Thread(target=uitSnapshotWatcher())
+        thread_8 = Thread(target=uitSnapshotWatcher)
         thread_8.daemon = True
         thread_8.name = 'uit_snapshot_watcher'
         thread_8.start()
-        thread_9 = Thread(target=vMNetworkWatcher())
+        thread_9 = Thread(target=vMNetworkWatcher)
         thread_9.daemon = True
         thread_9.name = 'vm_network_watcher'
         thread_9.start()

@@ -6,7 +6,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 
 '''
  
-import os, sys, ConfigParser, traceback, time
+import os, sys, ConfigParser, traceback, time, socket
 from threading import Thread
 
 '''
@@ -18,7 +18,7 @@ from kubernetes import config
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.utils import CDaemon
+from utils.utils import CDaemon, runCmd
 from utils import logger
 from libvirt_event_handler import main as libvirt_event_handler
 from os_event_handler import main as os_event_handler
@@ -35,6 +35,7 @@ config_raw = parser()
 config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
+HOSTNAME = socket.gethostname()
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 class ClientDaemon(CDaemon):
@@ -60,10 +61,11 @@ class ClientDaemon(CDaemon):
             thread_2.daemon = True
             thread_2.name = 'os_event_handler'
             thread_2.start()
-            thread_3 = Thread(target=host_cycler)
-            thread_3.daemon = True
-            thread_3.name = 'host_cycler'
-            thread_3.start()
+            if not is_kubernetes_master():
+                thread_3 = Thread(target=host_cycler)
+                thread_3.daemon = True
+                thread_3.name = 'host_cycler'
+                thread_3.start()
             try:
                 while True:
                     time.sleep(1)
@@ -71,9 +73,16 @@ class ClientDaemon(CDaemon):
                 return
             thread_1.join()
             thread_2.join()
-            thread_3.join()
+            if not is_kubernetes_master():
+                thread_3.join()
         except:
             logger.error('Oops! ', exc_info=1)
+            
+def is_kubernetes_master():
+    if runCmd('kubectl get node | grep %s | grep master' % HOSTNAME):
+        return True
+    else:
+        return False
             
 def daemonize():
     help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]

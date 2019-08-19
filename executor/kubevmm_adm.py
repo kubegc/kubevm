@@ -283,7 +283,7 @@ def main():
             print(help_service)
         else:
             print('error: invalid arguments!\n')
-            print(help_service)            
+            print(usage_service)            
     else:
         print('error: invalid sub commands!\n')
         print(help_subcommands)

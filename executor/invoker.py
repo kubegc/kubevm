@@ -171,6 +171,10 @@ def main():
         thread_7.daemon = True
         thread_7.name = 'uit_disk_watcher'
         thread_7.start()
+        thread_8 = Thread(target=uitSnapshotWatcher())
+        thread_8.daemon = True
+        thread_8.name = 'uit_snapshot_watcher'
+        thread_8.start()
         try:
             while True:
                 time.sleep(1)
@@ -183,6 +187,7 @@ def main():
         thread_5.join()
         thread_6.join()
         thread_7.join()
+        thread_8.join()
     except:
         logger.error('Oops! ', exc_info=1)
         

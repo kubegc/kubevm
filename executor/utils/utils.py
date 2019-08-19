@@ -39,14 +39,15 @@ def get_l3_network_info(name):
     (_, switchInfo['id'], switchInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []
-    for i in range(4, len(ports)+1):
-        portInfo = {}
-        (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
-        (_, portInfo['type']) = str.strip(ports[i-3]).split(': ')
-        (_, portInfo['addresses']) = str.strip(ports[i-2]).split(': ')
-        (_, portInfo['router_port']) = str.strip(ports[i-1]).split(': ')
-        portsInfo.append(portInfo)
-        i += 4
+    if len(ports) > 3:
+        for i in range(4, len(ports)+1):
+            portInfo = {}
+            (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
+            (_, portInfo['type']) = str.strip(ports[i-3]).split(': ')
+            (_, portInfo['addresses']) = str.strip(ports[i-2]).split(': ')
+            (_, portInfo['router_port']) = str.strip(ports[i-1]).split(': ')
+            portsInfo.append(portInfo)
+            i += 4
     switchInfo['ports'] = portsInfo
     data['switchInfo'] = switchInfo
     '''
@@ -59,13 +60,14 @@ def get_l3_network_info(name):
     (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []
-    for i in range(3, len(ports)+1):
-        portInfo = {}
-        (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
-        (_, portInfo['mac']) = str.strip(ports[i-2]).split(': ')
-        (_, portInfo['networks']) = str.strip(ports[i-1]).split(': ')
-        portsInfo.append(portInfo)
-        i += 3
+    if len(ports) > 3:
+        for i in range(3, len(ports)+1):
+            portInfo = {}
+            (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
+            (_, portInfo['mac']) = str.strip(ports[i-2]).split(': ')
+            (_, portInfo['networks']) = str.strip(ports[i-1]).split(': ')
+            portsInfo.append(portInfo)
+            i += 3
     routerInfo['ports'] = portsInfo
     data['routerInfo'] = routerInfo
     '''

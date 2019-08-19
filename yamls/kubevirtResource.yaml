@@ -198,7 +198,7 @@ spec:
   - JSONPath: .spec.nodeName
     name: NODE
     type: string
-  - JSONPath: .spec.uitstoragepool.result.msg
+  - JSONPath: .spec.virtualMachineUITPool.result.msg
     name: STATUS
     type: string
   group: cloudplus.io
@@ -223,10 +223,10 @@ spec:
   - JSONPath: .spec.nodeName
     name: NODE
     type: string
-  - JSONPath: .spec.uitdisk.data.poolname
+  - JSONPath: .spec.virtualMachineUITDisk.data.poolname
     name: POOLNAME
     type: string
-  - JSONPath: .spec.uitdisk.result.msg
+  - JSONPath: .spec.virtualMachineUITDisk.result.msg
     name: STATUS
     type: string
   group: cloudplus.io
@@ -251,10 +251,10 @@ spec:
   - JSONPath: .spec.nodeName
     name: NODE
     type: string
-  - JSONPath: .spec.uitsnapshot.data.poolname
+  - JSONPath: .spec.virtualMachineUITSnapshot.data.poolname
     name: POOLNAME
     type: string
-  - JSONPath: .spec.uitsnapshot.result.msg
+  - JSONPath: .spec.virtualMachineUITSnapshot.result.msg
     name: STATUS
     type: string
   group: cloudplus.io

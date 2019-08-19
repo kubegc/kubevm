@@ -1182,6 +1182,8 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
         if result:
             jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))
+        else:
+            jsonDict = addPowerStatusMessage(jsonDict, 'Ready', 'The resource is ready.')
         del jsonDict['spec']['lifecycle']
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)

@@ -258,16 +258,16 @@ def main():
                 elif params[0] == '--online':
                     update_online()
                 else:
-                    print('error: command \'update\' requires [--online|--offline <package absolute path>] arguments!\n')
+                    print('error: command \'update\' requires [--online|--offline <package absolute path>|--help] arguments!\n')
                     sys.exit(1)
             elif len(params) == 2:
                 if params[0] != '--offline':
-                    print('error: command \'update\' requires [--online|--offline <package absolute path>] arguments!\n')
+                    print('error: command \'update\' requires [--online|--offline <package absolute path>|--help] arguments!\n')
                     sys.exit(1)
                 pack = params[1]
                 update_offline(pack)
             else:
-                print('error: command \'update\' requires [--online|--offline <package absolute path>] arguments!\n')
+                print('error: command \'update\' requires [--online|--offline <package absolute path>|--help] arguments!\n')
                 sys.exit(1) 
         elif sys.argv[2] == '--version':
             if len(params) != 0:

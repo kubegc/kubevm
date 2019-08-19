@@ -43,7 +43,7 @@ Import local libs
 from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import randomMAC, ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
+from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -71,6 +71,10 @@ GROUP_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'group')
 PLURAL_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'plural')
 VERSION_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'version')
 GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
+PLURAL_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'plural')
+VERSION_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'version')
+GROUP_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'group')
+
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
 
@@ -754,7 +758,102 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
         except:
             logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
-
+            
+def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK):
+    watcher = watch.Watch()
+    kwargs = {}
+    kwargs['label_selector'] = LABEL
+    kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
+    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                   group=group, version=version, plural=plural, **kwargs):
+        try:
+            operation_type = jsondict.get('type')
+            logger.debug(operation_type)
+            metadata_name = getMetadataName(jsondict)
+            logger.debug('metadata name: %s' % metadata_name)
+            the_cmd_key = _getCmdKey(jsondict)
+            logger.debug('cmd key is: %s' % the_cmd_key)
+            if the_cmd_key and operation_type != 'DELETED':
+                involved_object_name = metadata_name
+                involved_object_kind = 'VirtualMachineNetwork'
+                event_metadata_name = randomUUID()
+                event_type = 'Normal'
+                status = 'Doing(Success)'
+                reporter = 'virtctl'
+                event_id = _getEventId(jsondict)
+                time_now = now_to_datetime()
+                time_start = time_now
+                time_end = time_now
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+                try:
+                    event.registerKubernetesEvent()
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+    #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+    #             body = jsondict['raw_object']
+    #             try:
+    #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+    #             except:
+    #                 logger.warning('Oops! ', exc_info=1)
+                try:
+                    if operation_type == 'ADDED':
+                        if cmd:
+                            runCmd(cmd)
+                    elif operation_type == 'MODIFIED':
+                        if cmd:
+                            runCmd(cmd)
+                    elif operation_type == 'DELETED':
+                        if cmd:
+                            runCmd(cmd)
+                    status = 'Done(Success)'
+                    write_result_to_server(GROUP_VM_NETWORK, VERSION_VM_NETWORK, 'default', PLURAL_VM_NETWORK, metadata_name)
+                except libvirtError:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except ExecuteException, e:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                finally:
+                    if the_cmd_key and operation_type != 'DELETED':
+                        time_end = now_to_datetime()
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        event.set_message(message)
+                        event.set_time_end(time_end)
+                        try:
+                            event.updateKubernetesEvent()
+                        except:
+                            logger.warning('Oops! ', exc_info=1)
+        except:
+            logger.debug("error occurred during processing json data from apiserver")
+            logger.warning('Oops! ', exc_info=1)
 
 def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, plural=PLURAL_STORAGE_POOL):
     watcher = watch.Watch()
@@ -966,9 +1065,7 @@ def get_cmd(jsondict, the_cmd_key):
     logger.debug(cmd)
     return cmd
 
-def write_result_to_server(group, version, namespace, plural, name, result, data):
-    logger.debug(result)
-    logger.debug(data)
+def write_result_to_server(group, version, namespace, plural, name, result=None, data=None):
     jsonDict = None
     try:
         # involved_object_name actually is nodeerror occurred during processing json data from apiserver
@@ -977,21 +1074,23 @@ def write_result_to_server(group, version, namespace, plural, name, result, data
         # logger.debug(dumps(jsonStr))
         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
-        logger.debug(dumps(jsonDict))
 
         if group == GROUP_STORAGE_POOL:
             jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
         elif group == GROUP_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
-        jsonDict = addPowerStatusMessage(jsonDict, result['code'], result['msg'])
+        elif group == GROUP_VM_NETWORK:
+            jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
+        if result:
+            jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))
         del jsonDict['spec']['lifecycle']
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
 
     except:
         logger.debug("error occurred during write result to apiserver")
-        logger.debug(jsonDict)
-        raise ExecuteException('write result to apiserver failure', 'write result to apiserver failure')
+        logger.error('Oops! ', exc_info=1)
+        raise ExecuteException('VirtctlError', 'write result to apiserver failure')
 
 def verifyUITStoragePoolOperation(the_cmd_key, cmd):
     success = False

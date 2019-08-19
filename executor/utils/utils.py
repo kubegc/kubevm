@@ -15,6 +15,7 @@ import os, sys, time, signal, atexit, subprocess
 import threading
 import random
 import socket
+import pprint
 import datetime
 from dateutil.tz import gettz
 from pprint import pformat
@@ -74,8 +75,22 @@ def get_l3_network_info(name):
     switchId = switchInfo.get('id')
     if not switchId:
         raise Exception('ovn-nbctl show %s error: no id found!' % (name))
-    gatewayId = runCmdRaiseException('ovn-nbctl list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % switchId)[0].strip()
-    print(data)
+    lines = runCmdRaiseException('ovn-nbctl list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % switchId)
+    if not lines:
+        raise Exception('error occurred: ovn-nbctl list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % switchId)
+    gatewayInfo['id'] = lines[0].strip()
+    lines = runCmdRaiseException('ovn-nbctl dhcp-options-get-options %s' % gatewayInfo['id'])
+    for line in lines:
+        if line.find('server_mac') != -1:
+            (_, gatewayInfo['server_mac']) = line.strip().split('=')
+        elif line.find('router') != -1:
+            (_, gatewayInfo['router']) = line.strip().split('=')
+        elif line.find('server_id') != -1:
+            (_, gatewayInfo['server_id']) = line.strip().split('=')
+        elif line.find('lease_time') != -1:
+            (_, gatewayInfo['lease_time']) = line.strip().split('=')
+    data['gatewayInfo'] = gatewayInfo
+    return data
     
 
 def singleton(pid_filename):

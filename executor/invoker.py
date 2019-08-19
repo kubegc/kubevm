@@ -959,25 +959,6 @@ def get_cmd(jsondict, the_cmd_key):
             cmd = unpackCmdFromJson(jsondict, the_cmd_key)
             cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
             logger.debug(cmd)
-    elif _isSnapshotDisk(the_cmd_key) and 'op' in jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].keys():
-        op = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
-        if op != None:
-            del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['op']
-            realCmd = None
-            if op == 'create':
-                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-add-ss'
-            elif op == 'recovery':
-                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-rr-ss'
-            elif op == 'show':
-                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-show-ss'
-            elif op == 'remove':
-                realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-rm-ss'
-            if realCmd != None:
-                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-                cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
-            else:
-                raise Exception("error: can't get cmd")
-            logger.debug(cmd)
     else:
         cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     if cmd is None:
@@ -1074,12 +1055,21 @@ def verifyUITDiskOperation(the_cmd_key, cmd):
                                                             ' ' + the_cmd_key + ' operation has bug!!!')
 
 def _isCreatePool(the_cmd_key):
-    if the_cmd_key == "createPool":
+    if the_cmd_key == "createUITPool":
         return True
     return False
 
-def _isSnapshotDisk(the_cmd_key):
-    if the_cmd_key == "snapshotUITDisk":
+def _isCreateUITSnapshot(the_cmd_key):
+    if the_cmd_key == "createUITSnapshot":
+        return True
+    return False
+
+def _isDeleteUITSnapshot(the_cmd_key):
+    if the_cmd_key == "deleteUITSnapshot":
+        return True
+    return False
+def _isRecoveryUITSnapshot(the_cmd_key):
+    if the_cmd_key == "recoveryUITSnapshot":
         return True
     return False
 

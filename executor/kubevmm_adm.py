@@ -188,7 +188,7 @@ def view_bar(num, total):
     sys.stdout.flush()
 
 def main():
-    usage_msg = 'Usage: %s <service|--version|--help>\n' % sys.argv[0]
+    usage_msg = 'Usage: %s <service|--version|--help>\n\n' % sys.argv[0]
     usage_service = 'Usage: %s service <start|stop|restart|status|update|--version|--help>\n\n' % sys.argv[0]
     help_subcommands = 'All support sub commands: \n' + \
                         '    service                           service management\n' + \
@@ -202,9 +202,9 @@ def main():
                 '    service  update                          update kubevmm services\n' + \
                 '    service  --version                       show services version\n' + \
                 '    service  --help                          print help\n\n'
-    help_msg = usage_msg + help_subcommands
+    help_msg = help_subcommands + help_service
     help_update = 'Name:\n' + \
-                '    %s update [--online|--offline <package>|--help]\n' % sys.argv[0] + \
+                '    %s service update [--online|--offline <package>|--help]\n' % sys.argv[0] + \
                 'Options:\n' + \
                 '    --online            update online\n' + \
                 '    --offline <package>  absolute path of package file\n\n'

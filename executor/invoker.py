@@ -991,9 +991,9 @@ def write_result_to_server(group, version, namespace, plural, name, result, data
         logger.debug(dumps(jsonDict))
 
         if group == GROUP_STORAGE_POOL:
-            jsonDict['spec']['uitstoragepool'] = {'result': result, 'data': data}
+            jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
         elif group == GROUP_UIT_DISK:
-            jsonDict['spec']['uitdisk'] = {'result': result, 'data': data}
+            jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
         jsonDict = addPowerStatusMessage(jsonDict, result['code'], result['msg'])
         del jsonDict['spec']['lifecycle']
         client.CustomObjectsApi().replace_namespaced_custom_object(

@@ -11,7 +11,9 @@ if [ ! -n "$1" ] ;then
 else
     if [[ "$1" =~ ^[A-Za-z0-9.]*$ ]] ;then
         echo -e "\033[3;30;47m*** Build a new release version: \033[5;36;47m($1)\033[0m)"
-        echo -e "Copyright (2019) Institute of Software, Chinese Academy of Sciences\n"
+        echo -e "Institute of Software, Chinese Academy of Sciences"
+        echo -e "        wuyuewen@otcaix.iscas.ac.cn"
+        echo -e "              Copyright (2019)\n"
     else
         echo "error: wrong syntax in release version number, support chars=[A-Za-z0-9.]"
         exit 1

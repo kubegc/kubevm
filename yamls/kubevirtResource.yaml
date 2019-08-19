@@ -47,6 +47,31 @@ kind: CustomResourceDefinition
 metadata:
   labels:
     kubevirt.io: ""
+  name: virtualmachinenetworks.cloudplus.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.type
+    name: TYPE
+    type: string
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachineNetwork
+    plural: virtualmachinenetworks
+    shortNames:
+    - vmn
+    - vmns
+    singular: virtualmachinenetwork
+  scope: Namespaced
+  version: v1alpha3
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
   name: virtualmachineimages.cloudplus.io
 spec:
   additionalPrinterColumns:
@@ -237,33 +262,5 @@ spec:
       - ud
       - uds
     singular: uitdisk
-  scope: Namespaced
-  version: v1alpha3
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: uitsnapshots.cloudplus.io
-spec:
-  additionalPrinterColumns:
-  - JSONPath: .spec.nodeName
-    name: NODE
-    type: string
-  - JSONPath: .spec.virtualMachineUITSnapshot.data.poolname
-    name: POOLNAME
-    type: string
-  - JSONPath: .spec.virtualMachineUITSnapshot.result.msg
-    name: STATUS
-    type: string
-  group: cloudplus.io
-  names:
-    kind: UITSnapshot
-    plural: uitsnapshots
-    shortNames:
-      - us
-      - uss
-    singular: uitsnapshot
   scope: Namespaced
   version: v1alpha3

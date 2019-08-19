@@ -1185,11 +1185,11 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
 
-        if group == GROUP_STORAGE_POOL:
+        if group == PLURAL_STORAGE_POOL:
             jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
-        elif group == GROUP_UIT_DISK:
+        elif group == PLURAL_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
-        elif group == GROUP_VM_NETWORK:
+        elif group == PLURAL_VM_NETWORK:
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
         if result:
             jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))

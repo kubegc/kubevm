@@ -35,7 +35,7 @@ config_raw = parser()
 config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
-HOSTNAME = socket.socket.gethostname()
+HOSTNAME = socket.gethostname()
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 class ClientDaemon(CDaemon):

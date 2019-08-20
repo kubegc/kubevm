@@ -114,6 +114,7 @@ ALL_SUPPORT_CMDS_WITH_VOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -130,6 +131,8 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
         elif string.find(k, 'WithSnameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAME_FIELD, **v)
+        elif string.find(k, 'WithSwitchField') != -1:
+            ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD, **v)
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -291,6 +294,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     destroy(metadata_name)
                                 if cmd:
                                     runCmd(cmd)
+                                file_path = '%s/%s-*.xml' % (DEFAULT_DEVICE_DIR, metadata_name)
+                                mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
                             elif _isPlugDevice(the_cmd_key):
                                 if cmd:
@@ -1185,11 +1190,11 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
 
-        if group == GROUP_STORAGE_POOL:
+        if plural == PLURAL_STORAGE_POOL:
             jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
-        elif group == GROUP_UIT_DISK:
+        elif plural == PLURAL_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
-        elif group == GROUP_VM_NETWORK:
+        elif plural == PLURAL_VM_NETWORK:
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
         if result:
             jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))
@@ -1307,6 +1312,8 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
         lifecycle[the_cmd_key]['poolname'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
         lifecycle[the_cmd_key]['sname'] = metadata_name
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
+        lifecycle[the_cmd_key]['swName'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):

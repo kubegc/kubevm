@@ -17,6 +17,7 @@ import random
 import socket
 import pprint
 import datetime
+import ConfigParser
 from dateutil.tz import gettz
 from pprint import pformat
 from six import iteritems
@@ -27,15 +28,30 @@ Import third party libs
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 
+class parser(ConfigParser.ConfigParser):  
+    def __init__(self,defaults=None):  
+        ConfigParser.ConfigParser.__init__(self,defaults=None)  
+    def optionxform(self, optionstr):  
+        return optionstr 
+
+cfg = "%s/../default.cfg" % os.path.dirname(os.path.realpath(__file__))
+config_raw = parser()
+config_raw.read(cfg)
+
+TOKEN = config_raw.get('Kubernetes', 'token_file')
+
 def get_l3_network_info(name):
+    master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % TOKEN)[0].strip()
+    nb_port = '6641'
+    sb_port = '6642'
     data = {'switchInfo': '', 'routerInfo': '', 'gatewayInfo': ''}
     '''
     Get switch informations.
     '''
     switchInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl show %s' % name)
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s' % (master_ip, nb_port, name))
     if not (len(lines) -1) % 4 == 0:
-        raise Exception('ovn-nbctl show %s error: wrong return value %s' % (name, lines))
+        raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     (_, switchInfo['id'], switchInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []
@@ -54,9 +70,9 @@ def get_l3_network_info(name):
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl show r4%s' % name)
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show r4%s' % (master_ip, nb_port, name))
     if not (len(lines) -1) % 3 == 0:
-        raise Exception('ovn-nbctl show r4%s error: wrong return value %s' % (name, lines))
+        raise Exception('ovn-nbctl --db=tcp:%s:%s show r4%s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []
@@ -76,12 +92,12 @@ def get_l3_network_info(name):
     gatewayInfo = {'id': '', 'server_mac': '', 'router': '', 'server_id': '', 'lease_time': ''}
     switchId = switchInfo.get('id')
     if not switchId:
-        raise Exception('ovn-nbctl show %s error: no id found!' % (name))
-    lines = runCmdRaiseException('ovn-nbctl list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % switchId)
+        raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
     if not lines:
-        raise Exception('error occurred: ovn-nbctl list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % switchId)
+        raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
     gatewayInfo['id'] = lines[0].strip()
-    lines = runCmdRaiseException('ovn-nbctl dhcp-options-get-options %s' % gatewayInfo['id'])
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id']))
     for line in lines:
         if line.find('server_mac') != -1:
             (_, gatewayInfo['server_mac']) = line.strip().split('=')

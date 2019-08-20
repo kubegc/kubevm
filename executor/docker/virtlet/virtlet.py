@@ -79,7 +79,7 @@ class ClientDaemon(CDaemon):
             logger.error('Oops! ', exc_info=1)
             
 def is_kubernetes_master():
-    if runCmd('kubectl get node | grep %s | grep master' % HOSTNAME):
+    if runCmd('kubectl get node %s | grep master' % HOSTNAME):
         return True
     else:
         return False

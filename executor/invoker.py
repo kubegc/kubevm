@@ -1313,7 +1313,7 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
         lifecycle[the_cmd_key]['sname'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
-        lifecycle[the_cmd_key]['switch'] = metadata_name
+        lifecycle[the_cmd_key]['swName'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):

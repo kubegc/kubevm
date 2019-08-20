@@ -50,20 +50,39 @@ def get_l3_network_info(name):
     '''
     switchInfo = {'id': '', 'name': '', 'ports': []}
     lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s' % (master_ip, nb_port, name))
-    if not (len(lines) -1) % 4 == 0:
-        raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
+#     if not (len(lines) -1) % 4 == 0:
+#         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     (_, switchInfo['id'], switchInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []
-    if len(ports) > 3:
-        for i in range(4, len(ports)+1):
-            portInfo = {}
-            (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
-            (_, portInfo['type']) = str.strip(ports[i-3]).split(': ')
-            (_, portInfo['addresses']) = str.strip(ports[i-2]).split(': ')
-            (_, portInfo['router_port']) = str.strip(ports[i-1]).split(': ')
-            portsInfo.append(portInfo)
-            i += 4
+    list_ports = []
+    a_port = []
+    _start = False
+    for i in ports:
+        if i.find('port ') != -1 and not _start:
+            _start = True
+            a_port.append(i)
+        elif i.find('port ') != -1 and _start:
+            list_ports.append(a_port)
+            a_port = []
+            a_port.append(i)
+        elif i == ports[-1]:
+            a_port.append(i)
+            list_ports.append(a_port)
+        else:
+            a_port.append(i)
+    for a_port in list_ports:
+        portInfo = {'name': '', 'addresses': [], 'type': '', 'router_port':''}
+        for line in a_port:
+            if line.find('port ') != -1:
+                (_, portInfo['name']) = str.strip(line).split(' ')
+            elif line.find('type:') != -1:
+                (_, portInfo['type']) = str.strip(line).split(': ')
+            elif line.find('addresses:') != -1:
+                (_, portInfo['addresses']) = str.strip(line).split(': ')
+            elif line.find('router-port:') != -1:
+                (_, portInfo['router_port']) = str.strip(line).split(': ')
+        portsInfo.append(portInfo)
     switchInfo['ports'] = portsInfo
     data['switchInfo'] = switchInfo
     '''
@@ -71,19 +90,35 @@ def get_l3_network_info(name):
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
     lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show r4%s' % (master_ip, nb_port, name))
-    if not (len(lines) -1) % 3 == 0:
-        raise Exception('ovn-nbctl --db=tcp:%s:%s show r4%s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []
-    if len(ports) > 3:
-        for i in range(3, len(ports)+1):
-            portInfo = {}
-            (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
-            (_, portInfo['mac']) = str.strip(ports[i-2]).split(': ')
-            (_, portInfo['networks']) = str.strip(ports[i-1]).split(': ')
-            portsInfo.append(portInfo)
-            i += 3
+    list_ports = []
+    a_port = []
+    _start = False
+    for i in ports:
+        if i.find('port ') != -1 and not _start:
+            _start = True
+            a_port.append(i)
+        elif i.find('port ') != -1 and _start:
+            list_ports.append(a_port)
+            a_port = []
+            a_port.append(i)
+        elif i == ports[-1]:
+            a_port.append(i)
+            list_ports.append(a_port)
+        else:
+            a_port.append(i)
+    for a_port in list_ports:
+        portInfo = {'name': '', 'mac': '', 'networks': []}
+        for line in a_port:
+            if line.find('port ') != -1:
+                (_, portInfo['name']) = str.strip(line).split(' ')
+            elif line.find('mac:') != -1:
+                (_, portInfo['mac']) = str.strip(line).split(': ')
+            elif line.find('networks:') != -1:
+                (_, portInfo['networks']) = str.strip(line).split(': ')
+        portsInfo.append(portInfo)
     routerInfo['ports'] = portsInfo
     data['routerInfo'] = routerInfo
     '''
@@ -778,4 +813,4 @@ class CDaemon:
         print 'base class run()'
 
 if __name__ == '__main__':
-    get_l3_network_info('ttt')
+    print(get_l3_network_info('nettt'))

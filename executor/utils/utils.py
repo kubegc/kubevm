@@ -50,20 +50,36 @@ def get_l3_network_info(name):
     '''
     switchInfo = {'id': '', 'name': '', 'ports': []}
     lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s' % (master_ip, nb_port, name))
-    if not (len(lines) -1) % 4 == 0:
-        raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
+#     if not (len(lines) -1) % 4 == 0:
+#         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     (_, switchInfo['id'], switchInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
-    ports = lines[1:]
+    ports = lines[1:].copy()
     portsInfo = []
-    if len(ports) > 3:
-        for i in range(4, len(ports)+1):
-            portInfo = {}
-            (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
-            (_, portInfo['type']) = str.strip(ports[i-3]).split(': ')
-            (_, portInfo['addresses']) = str.strip(ports[i-2]).split(': ')
-            (_, portInfo['router_port']) = str.strip(ports[i-1]).split(': ')
-            portsInfo.append(portInfo)
-            i += 4
+#     if len(ports) > 3:
+    list_ports = []
+    a_port = []
+    _start = False
+    for i in range(0, len(ports)):
+        if i.find('port ') != -1:
+            _start = True
+            a_port = []
+            a_port.append(i)
+        elif i.find('port ') != -1 and _start:
+            list_ports.append(a_port)
+            _start = False
+            continue
+        else:
+            a_port.append(i)
+        ports.remove(i)
+    print(list_ports)
+        
+#         portInfo = {}
+#         (_, portInfo['name']) = str.strip(ports[i-4]).split(' ')
+#         (_, portInfo['type']) = str.strip(ports[i-3]).split(': ')
+#         (_, portInfo['addresses']) = str.strip(ports[i-2]).split(': ')
+#         (_, portInfo['router_port']) = str.strip(ports[i-1]).split(': ')
+#         portsInfo.append(portInfo)
+#         i += 4
     switchInfo['ports'] = portsInfo
     data['switchInfo'] = switchInfo
     '''

@@ -21,10 +21,10 @@ def main(*argv):
 
     sub_parser = parser.add_subparsers(title='subcommands' ,description='subcommands help use subcommands -h', help='')
     ###########################
-    devlist_parser = sub_parser.add_parser('dev-list',help='list storage phy-pool')
-    devlist_parser.add_argument('--type', required=True, help='localfs/nfs/glusterfs/uus')
-    devlist_parser.add_argument('--url', required=True, help='localfs:available or all \n nfs:ip/sharename \nglusterfs:ip/volname \nuus:ip:port/poolname')
-    devlist_parser.set_defaults(func=dev_list)
+    #devlist_parser = sub_parser.add_parser('dev-list',help='list storage phy-pool')
+    #devlist_parser.add_argument('--type', required=True, help='localfs/nfs/glusterfs/uus')
+    #devlist_parser.add_argument('--url', required=True, help='localfs:available or all \n nfs:ip/sharename \nglusterfs:ip/volname \nuus:ip:port/poolname')
+    #devlist_parser.set_defaults(func=dev_list)
     
     pooladd_local_parser = sub_parser.add_parser('pooladd-localfs',help='add local storage pool')
     pooladd_local_parser.add_argument('--poolname', required=True, help='poolname')
@@ -47,12 +47,17 @@ def main(*argv):
     
     pooladd_uus_parser = sub_parser.add_parser('pooladd-uus',help='add uus storage pool')
     pooladd_uus_parser.add_argument('--poolname', required=True, help='poolname')
-    pooladd_uus_parser.add_argument('--url', required=True, help='url from dev-list')
+    pooladd_uus_parser.add_argument('--url', required=True, help='url')
     pooladd_uus_parser.add_argument('--user', required=True, help='username')
     pooladd_uus_parser.add_argument('--pwd', required=True, help='password')
     pooladd_uus_parser.set_defaults(func=pooladd_uus)
     
     poollist_parser = sub_parser.add_parser('pool-list',help='list storage pool')
+    #poollist_parser.add_argument('--type', required=False, help='localfs/nfs/glusterfs/uus')
+    poollist_parser.add_argument('--url', required=False, help='''localfs:available or localfs:all
+    nfs:ip/sharename 
+    glusterfs:ip/volname 
+    uus:user:pwd@ip:port/poolname''')
     poollist_parser.set_defaults(func=pool_list)
     
     poolshow_parser = sub_parser.add_parser('pool-show',help='show storage pool')
@@ -122,7 +127,7 @@ def main(*argv):
     rm_ss_parser.set_defaults(func=remove_volume_snapshot)
     
     ################clone##################
-    clone_parser = sub_parser.add_parser('vdisk-clone',help='remove volume snapshot')
+    clone_parser = sub_parser.add_parser('vdisk-clone',help='clone volume')
     clone_parser.add_argument('--poolname', required=True, help='storage pool')
     clone_parser.add_argument('--name', required=True, help='volume name')
     clone_parser.add_argument('--clonename', required=True, help='clone name')
@@ -133,6 +138,7 @@ def main(*argv):
     prep_vol_parser = sub_parser.add_parser('vdisk-prepare',help='connect volume')
     prep_vol_parser.add_argument('--poolname', required=True, help='storage pool')
     prep_vol_parser.add_argument('--name', required=True, help='volume name')
+    prep_vol_parser.add_argument('--uni', required=True, help='volume or snapshot uni')
     prep_vol_parser.add_argument('--sname', required=False, help='snapshot name')
     prep_vol_parser.set_defaults(func=prepare_volume)
     
@@ -158,6 +164,7 @@ def main(*argv):
     release_vol_parser = sub_parser.add_parser('vdisk-release',help='connect volume')
     release_vol_parser.add_argument('--poolname', required=True, help='storage pool')
     release_vol_parser.add_argument('--name', required=True, help='volume name')
+    release_vol_parser.add_argument('--uni', required=True, help='volume or snapshot uni')
     release_vol_parser.add_argument('--sname', required=False, help='snapshot name')
     release_vol_parser.set_defaults(func=release_volume)
     ##########################################################
@@ -187,6 +194,20 @@ def json_dump_file(path, filename, new_dict):
     with open(fullname, "w") as f:
         json.dump(new_dict,f)
     return 0
+
+def file_read_str(path, filename):
+    fullname = '%s/%s' % (path, filename)
+    f = open(fullname, "r")
+    str1 = f.read()
+    f.close()
+    return str1
+
+def file_write_str(path, filename, str1):
+    fullname = '%s/%s' % (path, filename)
+    f = open(fullname, "w")
+    f.write(str1)
+    f.close()
+    
     
 def path_exist(p):
     return os.path.exists(p)
@@ -403,7 +424,7 @@ def get_tmpmount_used(proto, url):
         del use['status']
     return used
     
-def dev_list(args):
+'''def dev_list(args):
     #localfs/nfs/glusterfs/uus
     args_dict = vars(args)
     t = args_dict['type']
@@ -433,6 +454,7 @@ def dev_list(args):
     
     #print retarray
     return print_datajson(0, 'success', 'dev-list', retarray)
+'''
 
 def check_pool(pool_desc):
     proto = pool_desc['proto']
@@ -463,16 +485,24 @@ def pool_add(poolname, data):
         err = check_pool(data)
         if err:
             return
+        
+        mountpath = data['mountpath']
+        
+        if not path_exist(mountpath):
+             return print_resultjson(2, 'mount path not exist', poolname)
+        
+        cmd = 'touch %s/.cstor-tag.%s >/dev/null 2>/dev/null' % (mountpath, poolname)
+        err = exec_system(cmd)
+        if err:
+            return print_resultjson(3, 'pool create failed', poolname)
             
-        cmd = 'touch %s/.cstor-tag.%s >/dev/null' % (data['mountpath'], poolname)
-        exec_system(cmd)
-        pooldatadir = '%s/%s' % (data['mountpath'], poolname)
+        pooldatadir = '%s/%s' % (mountpath, poolname)
         mkdir_p(pooldatadir)
         
     json_dump_file(CSTOR_POOL, poolname, data)
     
     pooljson = pool_get_json(poolname)
-    return print_datajson(0, 'success', 'poolshow', pooljson)
+    return print_datajson(0, 'success', 'pooladd', pooljson)
     
 def pooladd_local(args):
     args_dict = vars(args)
@@ -485,6 +515,9 @@ def pooladd_local(args):
     data['proto'] = LOCAL_FS
     data['disktype'] = 'file'
     data['mountpath'] = url[1]
+    
+    if not path_exist(url[0]):
+        return print_resultjson(4, 'dev not exist', poolname)
     
     return pool_add(poolname, data)
     
@@ -567,12 +600,45 @@ def pool_get_json(poolname):
     return pooljson     
     
 def pool_list(args):
-    pool_exist = []
-    poollist = os.listdir(CSTOR_POOL)
-    for pool in poollist:       
-        pool_exist.append(pool_get_json(pool))
+    args_dict = vars(args)
+    fullurl = args_dict['url']
     
-    return print_datajson(0, 'success', 'poollist', pool_exist) 
+    if not fullurl:     
+        pool_exist = []
+        poollist = os.listdir(CSTOR_POOL)
+        for pool in poollist:       
+            pool_exist.append(pool_get_json(pool))
+        
+        return print_datajson(0, 'success', 'poollist', pool_exist) 
+    else:
+        retarray = []
+        pos = fullurl.find(':')
+        
+        t = fullurl[0:pos]
+        url = fullurl[pos + 1:]
+        
+        if t == LOCAL_FS: 
+            showall = 0
+            if url == 'all':
+                showall = 1     
+            retarray = localfs_mount(showall)
+        elif t == NFS:      
+            used = get_tmpmount_used(NFS, url) 
+            used['url'] = 'nfs://%s' % url
+            used['tag'] = url
+            retarray.append(used)
+        elif t == GLUSTERFS:
+            used = get_tmpmount_used(GLUSTERFS, url) 
+            used['url'] = 'glusterfs://%s' % url
+            used['tag'] = url
+            retarray.append(used)
+        elif t == UUS:
+            retarray = uus_dev_pool(url)
+        else:
+            pass
+        
+        #print retarray
+        return print_datajson(0, 'success', 'poollist', retarray)
 
 def pool_show(args):
     args_dict = vars(args)
@@ -585,19 +651,23 @@ def pool_remove(args):
     poolname = args_dict['poolname']
     pooljson = pool_get_json(poolname)
     
-    if pooljson and pooljson.has_key('disktype') and pooljson['disktype'] == 'file':
+    if not pooljson:
+        return print_resultjson(2, 'pool not exist', poolname)
+    
+    if pooljson.has_key('disktype') and pooljson['disktype'] == 'file':
         err = check_pool(pooljson)
         if err:
             return
         
         pooldatadir = '%s/%s' % (pooljson['mountpath'], poolname)
-        if len(os.listdir(pooldatadir)):
-            return print_resultjson(1, 'vdisk exist', poolname)
-            
-        rm_file_empty_dir(pooldatadir)
-    
-        fullname = '%s/.cstor-tag.%s' % (pooljson['mountpath'], poolname)
-        rm_file_empty_dir(fullname)
+        if path_exist(pooldatadir):
+            if len(os.listdir(pooldatadir)):
+                return print_resultjson(1, 'vdisk exist', poolname)
+                
+            rm_file_empty_dir(pooldatadir)
+        
+            fullname = '%s/.cstor-tag.%s' % (pooljson['mountpath'], poolname)
+            rm_file_empty_dir(fullname)
      
      
     fullname = '%s/%s' % (CSTOR_POOL, poolname)
@@ -770,8 +840,9 @@ def file_create_vol(pool_desc, disk_desc):
         data['name'] = name
         data['poolname'] = poolname
         data['filetype'] = 'qcow2'
-        data['size'] = size
+        data['size'] = int(size)
         data['path'] = fullname
+        data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
     
     return print_datajson(err, msg, 'create', data)
     
@@ -852,8 +923,10 @@ def file_expand_vol(pool_desc, disk_desc):
     msg = 'success'
     if err:
         msg = 'failed'
+        return print_resultjson(err, msg, 'expand')
         
-    return print_resultjson(err, msg, 'expand')
+    return file_show_vol(pool_desc, disk_desc)
+        
 
 def file_snapshot(fullname, sname):
     cmd = 'qemu-img snapshot -l %s|grep "%s "' % (fullname, sname)
@@ -864,11 +937,11 @@ def file_snapshot(fullname, sname):
     if len(strarr) > 4:
         err = 0
         #data['id'] = strarr[0]
-        data['vmsize'] = strarr[2]
+        data['vmsize'] = int(strarr[2])
         data['date'] = '%s %s' % (strarr[3], strarr[4])
     else:
         #data['id'] = ''
-        data['vmsize'] = '0'
+        data['vmsize'] = 0
         data['date'] = ''
     
     return err, data
@@ -905,6 +978,7 @@ def file_snapshot_fun(pool_desc, disk_desc, op, tag):
             data['filetype'] = 'qcow2'
             data['sname'] = sname
             data['path'] = fullname
+            data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
             data.update(ss)
         
         
@@ -972,6 +1046,7 @@ def file_clone_vol(pool_desc, disk_desc):
     data['filetype'] = filetype
     data['size'] = size
     data['path'] = clone_fullname
+    data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
     
     return print_datajson(0, 'success', 'clone', data)  
     
@@ -1040,8 +1115,9 @@ def uus_dev_create_vol(pool_desc, disk_desc):
         data['name'] = name
         data['poolname'] = poolname
         data['filetype'] = 'block'
-        data['size'] = size
+        data['size'] = int(size)
         data['path'] = fullname
+        data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
         
         return print_datajson(err, 'create uus vol success', 'create', data)
 
@@ -1094,8 +1170,9 @@ def uus_dev_expand_vol(pool_desc, disk_desc):
     msg = 'success'
     if err:
         msg = 'failed'
+        return print_resultjson(err, msg, 'expand')
         
-    return print_resultjson(err, msg, 'expand')
+    return uus_dev_show_vol(pool_desc, disk_desc)
 
 def uus_dev_add_vol_snapshot(pool_desc, disk_desc):
     err = uus_check_snapshot_support(pool_desc, 'add snapshot')
@@ -1129,12 +1206,13 @@ def uus_dev_add_vol_snapshot(pool_desc, disk_desc):
         data['path'] = '/dev/%s/%s' % (name, sname)
         size = float(dataobj['size'].replace('M', '')) * float(dataobj['snap_percent'])
         #data['id'] = ''
-        data['vmsize'] = ''
+        data['vmsize'] = size
         data['date'] = '%s %s' % (dt[1], dt[2])
+        data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
     else:
         data['path'] = ''
         #data['id'] = ''
-        data['vmsize'] = '%fM' % size
+        data['vmsize'] = 0
         data['date'] = ''
         
     return print_datajson(err, 'success', 'add snapshot', data) 
@@ -1162,12 +1240,12 @@ def uus_dev_show_vol_snapshot(pool_desc, disk_desc):
             data['path'] = '/dev/%s/%s' % (name, sname)
             size = float(dataobj['size'].replace('M', '')) * float(dataobj['snap_percent'])
             #data['id'] = ''
-            data['vmsize'] = ''
+            data['vmsize'] = size
             data['date'] = '%s %s' % (dt[1], dt[2])
         else:
             data['path'] = ''
             #data['id'] = ''
-            data['vmsize'] = '%fM' % size
+            data['vmsize'] = 0
             data['date'] = ''
         
     return print_datajson(err, 'success', 'show snapshot', data)    
@@ -1252,9 +1330,14 @@ def uus_make_http_request(pool_desc, cmd, op, param, is_json, nodeid):
     import base64
     p1 = ''
     if param:
-        p1 = param.replace(' ', '%20')
+        p1 = '&p1=%s' % param.replace(' ', '%20')
+    
+    auto_node = '&node=%s' % nodeid
+    if nodeid == '-1':
+        auto_node = '&uvol_auto_node=yes'
         
-    cmd_url = 'curl http://%s/uraidapi/%s/%s?tmptoken=%s@@%s&p1=%s&node=%s' % (pool_desc['ip'], cmd, op, pool_desc['user'], base64.b64encode(pool_desc['pwd']), p1, nodeid)
+        
+    cmd_url = 'curl http://%s/uraidapi/%s/%s?tmptoken=%s@@%s&p1=%s%s' % (pool_desc['ip'], cmd, op, pool_desc['user'], base64.b64encode(pool_desc['pwd']), p1, auto_node)
     outdata = ''
     if is_json:
         outdata = execcmd_json(cmd_url)
@@ -1279,44 +1362,190 @@ def uus_iscsi_create_vol(pool_desc, disk_desc):
     nmk_strip = pool_desc['nmk_strip']
     blocktype = pool_desc['blocktype']
     prealloc = pool_desc['prealloc']
-    #create block
+    #create disk
     nodeid = uus_calc_nodeid(pool_desc)
     param = 'multi-create-uraid %s 1 -1 0 0 undefined %s 0 %sG %s %s %s' % (name, prealloc, size, blocktype, nmk_strip, poolname)
     jsonobj = uus_make_http_request(pool_desc, 'vol', 'uvol', param, 1, nodeid)
     err = get_resultjson_errcode(jsonobj)
     if err:
-        return print_resultjson(err, 'create uus vol failed', 'uus_iscsi_create_vol')
-        
-    param = "0 0 %s" %  uus_iscsi_export_mode(pool_desc)
+        return print_resultjson(err, 'create uus vol failed', 'create')
+    #export disk
+    param = "%s 0 0 %s" %  (name, uus_iscsi_export_mode(pool_desc))
     jsonobj = uus_make_http_request(pool_desc, 'uvol', 'add', param, 1, nodeid)
+    err = get_resultjson_errcode(jsonobj)
+    if err:
+        return print_resultjson(err, 'export uus vol failed', 'create')
+    
+    fullname = '%s/%s'  % (jsonobj['portal'], jsonobj['tname'])
+    data = {}
+    data['name'] = name
+    data['poolname'] = poolname
+    data['filetype'] = 'block'
+    data['size'] = int(size)
+    data['path'] = fullname
+    data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
+    return print_datajson(0, 'success', 'create', data)
 
 def uus_iscsi_show_vol(pool_desc, disk_desc):
+    name = disk_desc['name']
+    param = name
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'show', param, 1, nodeid)
+    err = get_resultjson_errcode(jsonobj)
+    if err:
+        return print_resultjson(err, 'show uus vol failed', 'show')
     
-    pass
+    fullname = '%s/%s'  % (jsonobj['portal'], jsonobj['tname'])
+    data = {}
+    data['name'] = name
+    data['poolname'] = poolname
+    data['filetype'] = 'block'
+    data['size'] = int(jsonobj['size'].replace('M', '')) / 1000
+    data['path'] = fullname
+    data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
+    return print_datajson(0, 'success', 'show', data)
 
 def uus_iscsi_remove_vol(pool_desc, disk_desc):
-    pass
+    name = disk_desc['name']
+    param = '%s 1' % name
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'del', param, 1, '-1')
+    if err:
+        return print_resultjson(err, 'remove uus target failed', 'remove')
+        
+    nodeid = jsonobj['node']
+    param = name
+    jsonobj = uus_make_http_request(pool_desc, 'vol', 'del', param, 1, nodeid)  
+    if err:
+        return print_resultjson(err, 'remove uus vol failed', 'remove')
+        
+    return print_resultjson(0, 'remove uus vol success', 'remove')
     
 def uus_iscsi_expand_vol(pool_desc, disk_desc):
-    pass
-
+    err = uus_check_snapshot_support(pool_desc, 'expand')
+    if err:
+        return err
+        
+    name = disk_desc['name']
+    size = disk_desc['size']
+    param = '%s %s' % (name, size)
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'expand', param, 1, '-1')
+    err = get_resultjson_errcode(jsonobj)
+    msg = 'success'
+    if err:
+        msg = 'failed'
+        return print_resultjson(err, msg, 'expand')
+        
+    return uus_iscsi_show_vol(pool_desc, disk_desc)
+    
 def uus_iscsi_add_vol_snapshot(pool_desc, disk_desc):
-    pass
+    err = uus_check_snapshot_support(pool_desc, 'add snapshot')
+    if err:
+        return err
+    
+    name = disk_desc['name']
+    sname = disk_desc['sname']
+    param = '%s %s' % (name, sname)
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'add-snap', param, 1, '-1')
+    err = get_resultjson_errcode(jsonobj)
+    if err:
+        return print_resultjson(err, 'failed', 'add snapshot')
+        
+    nodeid = jsonobj['node']
+    param = "%s %s 0 0 %s" %  (name, sname, uus_iscsi_export_mode(pool_desc))
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'export-snap', param, 1, nodeid)
+    err = get_resultjson_errcode(jsonobj)
+    if err:
+        return print_resultjson(err, 'failed', 'export snapshot')
+    
+    data = {} 
+    data['name'] = name
+    data['poolname'] = disk_desc['poolname']
+    data['filetype'] = 'block'
+    data['sname'] = sname
+    
+    dataobj = jsonobj['data']
+    
+    fullname = '%s/%s' % (dataobj['portal'], dataobj['tname'])
+    data['path'] = fullname
+    
+    #data['id'] = ''
+    data['vmsize'] = int(dataobj['size'])
+    data['date'] = dataobj['date']
+    data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
+        
+    return print_datajson(err, 'success', 'add snapshot', data) 
 
 def uus_iscsi_show_vol_snapshot(pool_desc, disk_desc):
-    pass
+    err = uus_check_snapshot_support(pool_desc, 'show')
+    if err:
+        return err
+    
+    name = disk_desc['name']
+    sname = disk_desc['sname']  
+    param = "%s %s" %  (name, sname)
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'show-ss', param, 1, '0')
+    err = get_resultjson_errcode(jsonobj)
+    if err:
+        return print_resultjson(err, 'failed', 'show snapshot')
+    
+    data = {} 
+    data['name'] = name
+    data['poolname'] = disk_desc['poolname']
+    data['filetype'] = 'block'
+    data['sname'] = sname
+    
+    dataobj = jsonobj
+    
+    fullname = '%s/%s' % (dataobj['portal'], dataobj['tname'])
+    data['path'] = fullname
+    
+    #data['id'] = ''
+    data['vmsize'] = int(dataobj['size'])
+    data['date'] = dataobj['date']
+    data['uni'] = '%s://%s' % (pool_desc['proto'], fullname)
+    
+    return print_datajson(err, 'success', 'show snapshot', data) 
 
 def uus_iscsi_reocver_vol_snapshot(pool_desc, disk_desc):
-    pass
+    err = uus_check_snapshot_support(pool_desc, 'reocver')
+    if err:
+        return err
+        
+    name = disk_desc['name']
+    sname = disk_desc['sname']  
+    param = "%s %s" %  (name, sname)
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'recover-snap', param, 1, '-1')
+    err = get_resultjson_errcode(jsonobj)
+    msg = 'success'
+    if err:
+        msg = 'failed'
+    
+    return print_resultjson(err, msg, 'recover snapshot')
 
 def uus_iscsi_remove_vol_snapshot(pool_desc, disk_desc):
-    pass  
+    err = uus_check_snapshot_support(pool_desc, 'remove')
+    if err:
+        return err 
+
+    name = disk_desc['name']
+    sname = disk_desc['sname']  
+    param = "%s %s" %  (name, sname)
+    jsonobj = uus_make_http_request(pool_desc, 'uvol', 'del-snap', param, 1, '-1')
+    err = get_resultjson_errcode(jsonobj)
+    msg = 'success'
+    if err:
+        msg = 'failed'
+    
+    return print_resultjson(err, msg, 'del snapshot')       
 
 def uus_iscsi_clone_vol(pool_desc, disk_desc):
     return print_resultjson(101, 'not support', 'clone')    
  
 def uus_iscsi_prepare_vol(pool_desc, disk_desc):
-    pass
+    iscsiconf = file_read_str('/etc/iscsi', 'initiatorname.iscsi')
+    ininame = iscsiconf.split('=')[1]
+    
+    
+    
     
 def uus_iscsi_release_vol(pool_desc, disk_desc):
     pass

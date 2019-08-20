@@ -1195,6 +1195,11 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
         elif plural == PLURAL_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
+        elif plural == PLURAL_UIT_SNAPSHOT:
+            if data:
+                jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
+            else:
+                jsonDict['spec']['virtualMachineUITSnapshot']['result'] = result
         elif plural == PLURAL_VM_NETWORK:
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
         if result:

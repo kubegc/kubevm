@@ -1188,7 +1188,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group=group, version=version, namespace=namespace, plural=plural, name=name)
         # logger.debug(dumps(jsonStr))
-        logger.debug("node name is: " + name)
+#         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
 
         if plural == PLURAL_STORAGE_POOL:

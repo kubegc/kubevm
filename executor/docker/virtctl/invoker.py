@@ -811,7 +811,8 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                if not _isDeleteSwPort():
+                    jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
     #             body = jsondict['raw_object']
@@ -1194,6 +1195,11 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
         elif plural == PLURAL_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
+        elif plural == PLURAL_UIT_SNAPSHOT:
+            if data:
+                jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
+            else:
+                jsonDict['spec']['virtualMachineUITSnapshot']['result'] = result
         elif plural == PLURAL_VM_NETWORK:
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
         if result:
@@ -1288,6 +1294,11 @@ def _isRecoveryUITSnapshot(the_cmd_key):
     if the_cmd_key == "recoveryUITSnapshot":
         return True
     return False
+
+def _isDeleteSwPort(the_cmd_key):
+    if the_cmd_key == "deleteSwPort":
+        return True
+    return False    
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']

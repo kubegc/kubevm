@@ -194,13 +194,13 @@ spec:
     type: string
   - JSONPath: .spec.virtualMachineUITPool.data.free
     name: FREE
-    type: int
+    type: integer
   - JSONPath: .spec.virtualMachineUITPool.data.used
     name: USED
-    type: int
+    type: integer
   - JSONPath: .spec.virtualMachineUITPool.data.total
     name: TOTAL
-    type: int
+    type: integer
   - JSONPath: .spec.virtualMachineUITPool.data.disktype
     name: DISKTYPE
     type: string

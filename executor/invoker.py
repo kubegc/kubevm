@@ -811,7 +811,8 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                if not _isDeleteSwPort():
+                    jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
     #             body = jsondict['raw_object']
@@ -1288,6 +1289,11 @@ def _isRecoveryUITSnapshot(the_cmd_key):
     if the_cmd_key == "recoveryUITSnapshot":
         return True
     return False
+
+def _isDeleteSwPort(the_cmd_key):
+    if the_cmd_key == "deleteSwPort":
+        return True
+    return False    
 
 def getMetadataName(jsondict):
     metadata = jsondict['raw_object']['metadata']

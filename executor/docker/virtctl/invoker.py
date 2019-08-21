@@ -223,12 +223,25 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
+                if _isInstallVMFromISO(the_cmd_key):
+                    network_config = _get_field(jsondict, the_cmd_key, 'network')
+                    config_dict = _network_config_to_dict(network_config)
+                    if config_dict.get('ovsbridge') and config_dict.get('switch'):
+                        plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
+                        boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        jsondict = _del_field(jsondict, the_cmd_key, 'network')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
                     if not os.path.exists(template_path):
                         raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
                     jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
+                    network_config = _get_field(jsondict, the_cmd_key, 'network')
+                    config_dict = _network_config_to_dict(network_config)
+                    if config_dict.get('ovsbridge') and config_dict.get('switch'):
+                        plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
+                        boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        jsondict = _del_field(jsondict, the_cmd_key, 'network')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
                         logger.debug('***VM %s already deleted!***' % metadata_name)
@@ -276,6 +289,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
+                            if 'plugNICCmd' in dir():
+                                runCmd(plugNICCmd)
+                            if 'boundSwPortCmd' in dir():
+                                runCmd(boundSwPortCmd)    
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -284,6 +301,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
+                            if 'plugNICCmd' in dir():
+                                runCmd(plugNICCmd)
+                            if 'boundSwPortCmd' in dir():
+                                runCmd(boundSwPortCmd) 
                         else:
                             if cmd:
                                 runCmd(cmd)
@@ -928,15 +949,19 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
 
                     elif operation_type == 'MODIFIED':
                         result, data = runCmdWithResult(cmd)
-                    write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
-                                           involved_object_name, result, data)
 
                     if result['code'] == 0:
                         # Verify successful operation, if success countinue, else raise exception
 #                         verifyUITStoragePoolOperation(the_cmd_key, cmd)
+                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
+                                               involved_object_name, result, data)
                         status = 'Done(Success)'
-
+                        logger.debug(result)
                     else:
+                        result['msg'] = 'VirtctlError'
+                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
+                                               involved_object_name, result, data)
+                        logger.debug(result)
                         raise ExecuteException(the_cmd_key+" exec error", result['msg'])
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)
@@ -1026,13 +1051,17 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
 
                     elif operation_type == 'MODIFIED':
                         result, data = runCmdWithResult(cmd)
-                    write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
-                                           involved_object_name, result, data)
 
                     if result['code'] == 0:
-#                         verifyUITDiskOperation(the_cmd_key, cmd)
+                        # verifyUITDiskOperation(the_cmd_key, cmd)
+                        write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
+                                               involved_object_name, result, data)
                         status = 'Done(Success)'
                     else:
+                        result['msg'] = 'VirtctlError'
+                        write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
+                                               involved_object_name, result, data)
+                        logger.debug(result)
                         raise ExecuteException(result['code'], result['msg'])
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)
@@ -1121,13 +1150,17 @@ def uitSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_UIT_SNAPSHOT, pl
 
                     elif operation_type == 'MODIFIED':
                         result, data = runCmdWithResult(cmd)
-                    write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
-                                           involved_object_name, result, data)
 
                     if result['code'] == 0:
-#                         verifyUITDiskOperation(the_cmd_key, cmd)
+                        # verifyUITDiskOperation(the_cmd_key, cmd)
+                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
+                                           involved_object_name, result, data)
                         status = 'Done(Success)'
                     else:
+                        result['msg'] = 'VirtctlError'
+                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
+                                               involved_object_name, result, data)
+                        logger.debug(result)
                         raise ExecuteException(result['code'], result['msg'])
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)
@@ -1196,10 +1229,13 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
         elif plural == PLURAL_UIT_SNAPSHOT:
-            if data:
-                jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
+            if 'virtualMachineUITSnapshot' in jsonDict['spec'].keys():
+                if data:
+                    jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
+                else:
+                    jsonDict['spec']['virtualMachineUITSnapshot']['result'] = result
             else:
-                jsonDict['spec']['virtualMachineUITSnapshot']['result'] = result
+                jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
         elif plural == PLURAL_VM_NETWORK:
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
         if result:
@@ -1324,7 +1360,7 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
         lifecycle[the_cmd_key]['sname'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
-        lifecycle[the_cmd_key]['swName'] = metadata_name
+        lifecycle[the_cmd_key]['switch'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):
@@ -1497,7 +1533,41 @@ def _get_field(jsondict, the_cmd_key, field):
             for k, v in contents.items():
                 if k == field:
                     retv = v
-    return retv    
+    return retv   
+
+def _set_field(jsondict, the_cmd_key, field, value):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        if the_cmd_key:
+            contents = lifecycle.get(the_cmd_key)
+            for k, v in contents.items():
+                if k == field:
+                    jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = value
+    return jsondict 
+
+def _del_field(jsondict, the_cmd_key, field):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        if the_cmd_key:
+            contents = lifecycle.get(the_cmd_key)
+            for k, v in contents.items():
+                if k == field:
+                    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
+    return jsondict
         
 def jsontoxml(jsonstr):
     json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
@@ -1513,31 +1583,8 @@ def toKubeJson(json):
     return json.replace('@', '_').replace('$', 'text').replace(
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
-                    
-def createNICFromXml(metadata_name, jsondict, the_cmd_key):
-    spec = jsondict['raw_object'].get('spec')
-    if spec:    
-        lifecycle = spec.get('lifecycle')
-        if not lifecycle:
-            return
-        '''
-        Read parameters from lifecycle, add default value to some parameters.
-        '''
-        mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
-        source = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('source')
-        model = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('model')
-        if not source:
-            raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'source\'!')
-        if not mac:
-            mac = randomMAC()
-        if not model:
-            model = 'virtio'
-        lines = {}
-        lines['mac'] = mac
-        lines['source'] = source
-        lines['virtualport'] = 'openvswitch'
-        lines['model'] = model
-    
+
+def _createNICXml(metadata_name, data):   
     '''
     Write NIC Xml file to DEFAULT_DEVICE_DIR dir.
     '''
@@ -1545,7 +1592,8 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     root = doc.createElement('interface')
     root.setAttribute('type', 'bridge')
     doc.appendChild(root)
-    for k, v in lines.items():
+    bandwidth = {}
+    for k, v in data.items():
         if k == 'mac':
             node = doc.createElement(k)
             node.setAttribute('address', v)
@@ -1562,17 +1610,63 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
             node = doc.createElement(k)
             node.setAttribute('type', v)
             root.appendChild(node)
+        elif k == 'inbound':
+            bandwidth[k] = v
+        elif k == 'outbound':
+            bandwidth[k] = v
+    
+    if bandwidth:        
+        node_bandwidth = doc.createElement('bandwidth')
+        for k,v in bandwidth.items():
+            sub_node = doc.createElement(k)
+            sub_node.setAttribute('average', v)
+            node_bandwidth.appendChild(sub_node)
+            root.appendChild(node_bandwidth)        
+            
     '''
     If DEFAULT_DEVICE_DIR not exists, create it.
     '''
     if not os.path.exists(DEFAULT_DEVICE_DIR):
         os.makedirs(DEFAULT_DEVICE_DIR, 0711)
-    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
+    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
     try:
         with open(file_path, 'w') as f:
             f.write(doc.toprettyxml(indent='\t'))
     except:
-        raise ExecuteException('VirtctlError', 'Execute plugNIC error: cannot create NIC XML file \'%s\'' % file_path)
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: cannot create NIC XML file \'%s\'' % file_path)  
+    
+    return file_path
+
+def createNICFromXmlCmd(metadata_name, data):
+    file_path = _createNICXml(metadata_name, data)
+    cmd = 'virsh attach-device --domain %s --file %s --live --config' % (metadata_name, file_path)
+    return cmd
+
+def createNICFromXml(metadata_name, jsondict, the_cmd_key):
+    spec = jsondict['raw_object'].get('spec')
+    lifecycle = spec.get('lifecycle')
+    if not lifecycle:
+        return
+    '''
+    Read parameters from lifecycle, add default value to some parameters.
+    '''
+    mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
+    source = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('source')
+    model = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('model')
+    if not source:
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'source\'!')
+    if not mac:
+        mac = randomMAC()
+    if not model:
+        model = 'virtio'
+    lines = {}
+    lines['mac'] = mac
+    lines['source'] = source
+    lines['virtualport'] = 'openvswitch'
+    lines['model'] = model
+    
+    file_path = _createNICXml(lines)
+
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
     new_cmd_key = 'plugDevice'
     jsondict['raw_object']['spec']['lifecycle'][new_cmd_key] = {'file': file_path}
@@ -1580,16 +1674,15 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
 
 def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
-    if spec:    
-        lifecycle = spec.get('lifecycle')
-        if not lifecycle:
-            return
-        '''
-        Read parameters from lifecycle, add default value to some parameters.
-        '''
-        mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
-        if not mac:
-            raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'mac\'!')
+    lifecycle = spec.get('lifecycle')
+    if not lifecycle:
+        return
+    '''
+    Read parameters from lifecycle, add default value to some parameters.
+    '''
+    mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
+    if not mac:
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'mac\'!')
     
     file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
@@ -1621,7 +1714,24 @@ def addDefaultSettings(jsondict, the_cmd_key):
         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['boot'] = "hd"
         logger.debug(jsondict)
         return jsondict    
-        
+
+def _network_config_to_dict(data):
+    retv = {}
+    if type(data) == str:
+        split_it = data.split(',')
+        for i in split_it:
+            i = i.strip()
+            if i.find('=') != -1:
+                (k, v) = i.split('=')
+                retv[k] = v
+    if retv:
+        retv['virtualport'] = 'openvswitch'
+        retv['source'] = retv['ovsbridge']
+        if not retv.has_key('mac'):
+            retv['mac'] = randomMAC()
+        if not retv.has_key('model'):
+            retv['model'] = 'virtio'
+    return retv
 
 def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
     '''

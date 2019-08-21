@@ -44,10 +44,10 @@ def check_version(ignore_warning=False):
     return (virtctl_running_version, virtlet_running_version)
     
 def run_virtctl():
-    return runCmd('docker run -itd -h %s --net=host -v /usr/lib64:/usr/lib64 -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash virtctl.sh' % (HOSTNAME, VERSION))
+    return runCmd('docker run -itd -h %s --net=host -v /dev:/dev -v /usr/lib64:/usr/lib64 -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash virtctl.sh' % (HOSTNAME, VERSION))
 
 def run_virtlet():
-    return runCmd('docker run -itd -h %s --net=host -v /usr/lib64:/usr/lib64 -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash virtlet.sh' % (HOSTNAME, VERSION))
+    return runCmd('docker run -itd -h %s --net=host -v /dev:/dev -v /usr/lib64:/usr/lib64 -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash virtlet.sh' % (HOSTNAME, VERSION))
 
 def start(ignore_warning=False):
     virtctl_err = None

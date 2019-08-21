@@ -949,15 +949,19 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
 
                     elif operation_type == 'MODIFIED':
                         result, data = runCmdWithResult(cmd)
-                    write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
-                                           involved_object_name, result, data)
 
                     if result['code'] == 0:
                         # Verify successful operation, if success countinue, else raise exception
 #                         verifyUITStoragePoolOperation(the_cmd_key, cmd)
+                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
+                                               involved_object_name, result, data)
                         status = 'Done(Success)'
-
+                        logger.debug(result)
                     else:
+                        result['msg'] = 'VirtctlError'
+                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
+                                               involved_object_name, result, data)
+                        logger.debug(result)
                         raise ExecuteException(the_cmd_key+" exec error", result['msg'])
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)
@@ -1047,13 +1051,17 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
 
                     elif operation_type == 'MODIFIED':
                         result, data = runCmdWithResult(cmd)
-                    write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
-                                           involved_object_name, result, data)
 
                     if result['code'] == 0:
-#                         verifyUITDiskOperation(the_cmd_key, cmd)
+                        # verifyUITDiskOperation(the_cmd_key, cmd)
+                        write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
+                                               involved_object_name, result, data)
                         status = 'Done(Success)'
                     else:
+                        result['msg'] = 'VirtctlError'
+                        write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
+                                               involved_object_name, result, data)
+                        logger.debug(result)
                         raise ExecuteException(result['code'], result['msg'])
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)
@@ -1142,13 +1150,17 @@ def uitSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_UIT_SNAPSHOT, pl
 
                     elif operation_type == 'MODIFIED':
                         result, data = runCmdWithResult(cmd)
-                    write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
-                                           involved_object_name, result, data)
 
                     if result['code'] == 0:
-#                         verifyUITDiskOperation(the_cmd_key, cmd)
+                        # verifyUITDiskOperation(the_cmd_key, cmd)
+                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
+                                           involved_object_name, result, data)
                         status = 'Done(Success)'
                     else:
+                        result['msg'] = 'VirtctlError'
+                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
+                                               involved_object_name, result, data)
+                        logger.debug(result)
                         raise ExecuteException(result['code'], result['msg'])
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)

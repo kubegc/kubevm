@@ -227,7 +227,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     network_config = _get_field(jsondict, the_cmd_key, 'network')
                     config_dict = _network_config_to_dict(network_config)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
-                        plugNICCmd = 
+                        plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
+                        createSwPortCmd = 'kubeovn-adm '
                         jsondict = _del_field(jsondict, the_cmd_key, 'network')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -282,6 +283,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
+                            if 'plugNICCmd' in dir():
+                                runCmd(plugNICCmd)
+                                
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -1342,7 +1346,7 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
         lifecycle[the_cmd_key]['sname'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
-        lifecycle[the_cmd_key]['swName'] = metadata_name
+        lifecycle[the_cmd_key]['switch'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):
@@ -1627,7 +1631,9 @@ def createNICFromXmlCmd(metadata_name, data):
     if not data.has_key('model'):
         data['model'] = 'virtio'
     
-    file_path = _createNICXml(metadata_name, data)              
+    file_path = _createNICXml(metadata_name, data)
+    cmd = 'virsh attach-device --domain %s --file %s --live --config' % (metadata_name, file_path)
+    return cmd
 
 def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')

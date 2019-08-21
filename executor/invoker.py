@@ -230,7 +230,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -242,7 +242,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     config_dict = _network_config_to_dict(network_config)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
@@ -293,9 +293,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 create(metadata_name)
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
-                            if 'boundSwPortCmd' in dir():
-                                logger.debug(boundSwPortCmd)
-                                runCmd(boundSwPortCmd)    
+                            if 'bindSwPortCmd' in dir():
+                                logger.debug(bindSwPortCmd)
+                                runCmd(bindSwPortCmd)    
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -306,9 +306,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 create(metadata_name)
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
-                            if 'boundSwPortCmd' in dir():
-                                logger.debug(boundSwPortCmd)
-                                runCmd(boundSwPortCmd) 
+                            if 'bindSwPortCmd' in dir():
+                                logger.debug(bindSwPortCmd)
+                                runCmd(bindSwPortCmd) 
                         else:
                             if cmd:
                                 runCmd(cmd)

@@ -228,7 +228,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     config_dict = _network_config_to_dict(network_config)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        createSwPortCmd = 'kubeovn-adm '
+                        boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
                         jsondict = _del_field(jsondict, the_cmd_key, 'network')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -285,7 +285,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 create(metadata_name)
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
-                                
+                            if 'boundSwPortCmd' in dir():
+                                runCmd(boundSwPortCmd)    
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -1615,13 +1616,6 @@ def _createNICXml(metadata_name, data):
     return file_path
 
 def createNICFromXmlCmd(metadata_name, data):
-    data['virtualport'] = 'openvswitch'
-    data['source'] = data['ovsbridge']
-    if not data.has_key('mac'):
-        data['mac'] = randomMAC()
-    if not data.has_key('model'):
-        data['model'] = 'virtio'
-    
     file_path = _createNICXml(metadata_name, data)
     cmd = 'virsh attach-device --domain %s --file %s --live --config' % (metadata_name, file_path)
     return cmd
@@ -1708,6 +1702,13 @@ def _network_config_to_dict(data):
             if i.find('=') != -1:
                 (k, v) = i.split('=')
                 retv[k] = v
+    if retv:
+        retv['virtualport'] = 'openvswitch'
+        retv['source'] = retv['ovsbridge']
+        if not retv.has_key('mac'):
+            retv['mac'] = randomMAC()
+        if not retv.has_key('model'):
+            retv['model'] = 'virtio'
     return retv
 
 def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):

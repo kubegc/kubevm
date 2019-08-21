@@ -225,11 +225,13 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             if the_cmd_key and operation_type != 'DELETED':
                 if _isInstallVMFromISO(the_cmd_key):
                     network_config = _get_field(jsondict, the_cmd_key, 'network')
+                    logger.debug(network_config)
                     config_dict = _network_config_to_dict(network_config)
+                    logger.debug(config_dict)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
                         boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
-                        jsondict = _del_field(jsondict, the_cmd_key, 'network')
+                        jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
                     if not os.path.exists(template_path):
@@ -241,7 +243,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
                         boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
-                        jsondict = _del_field(jsondict, the_cmd_key, 'network')
+                        jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
                         logger.debug('***VM %s already deleted!***' % metadata_name)
@@ -292,6 +294,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
                             if 'boundSwPortCmd' in dir():
+                                logger.debug(boundSwPortCmd)
                                 runCmd(boundSwPortCmd)    
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
@@ -304,6 +307,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
                             if 'boundSwPortCmd' in dir():
+                                logger.debug(boundSwPortCmd)
                                 runCmd(boundSwPortCmd) 
                         else:
                             if cmd:
@@ -1561,7 +1565,7 @@ def _del_field(jsondict, the_cmd_key, field):
         '''
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
-            return None
+            return jsondict
         if the_cmd_key:
             contents = lifecycle.get(the_cmd_key)
             for k, v in contents.items():
@@ -1639,7 +1643,7 @@ def _createNICXml(metadata_name, data):
 
 def createNICFromXmlCmd(metadata_name, data):
     file_path = _createNICXml(metadata_name, data)
-    cmd = 'virsh attach-device --domain %s --file %s --live --config' % (metadata_name, file_path)
+    cmd = 'virsh attach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
     return cmd
 
 def createNICFromXml(metadata_name, jsondict, the_cmd_key):
@@ -1717,7 +1721,7 @@ def addDefaultSettings(jsondict, the_cmd_key):
 
 def _network_config_to_dict(data):
     retv = {}
-    if type(data) == str:
+    if data:
         split_it = data.split(',')
         for i in split_it:
             i = i.strip()

@@ -71,7 +71,7 @@ fi
 
 echo -e "\033[3;30;47m*** Push new SPECS/kubevmm.spec to Github.\033[0m"
 git add ./SPECS/kubevmm.spec
-git commit -a -m "new release version ${VERSION}"
+git commit -m "new release version ${VERSION}"
 git push
 if [ $? -ne 0 ]; then
     echo "    Failed to push SPECS/kubevmm.spec to Github!"

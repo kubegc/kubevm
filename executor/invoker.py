@@ -223,6 +223,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
+                if _isInstallVMFromISO(the_cmd_key):
+                    network_config = _get_field(jsondict, the_cmd_key, 'network')
+                    config_dict = _network_config_to_dict(network_config)
+                    if config_dict.get('ovsbridge') and config_dict.get('switch'):
+                        plugNICCmd = 
+                        
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
                     if not os.path.exists(template_path):
@@ -1497,7 +1503,24 @@ def _get_field(jsondict, the_cmd_key, field):
             for k, v in contents.items():
                 if k == field:
                     retv = v
-    return retv    
+    return retv   
+
+def _set_field(jsondict, the_cmd_key, field, value):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        if the_cmd_key:
+            contents = lifecycle.get(the_cmd_key)
+            for k, v in contents.items():
+                if k == field:
+                    jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = value
+    return jsondict 
         
 def jsontoxml(jsonstr):
     json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
@@ -1621,7 +1644,17 @@ def addDefaultSettings(jsondict, the_cmd_key):
         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['boot'] = "hd"
         logger.debug(jsondict)
         return jsondict    
-        
+
+def _network_config_to_dict(data):
+    retv = {}
+    if type(data) == str:
+        split_it = data.split(',')
+        for i in split_it:
+            i = i.strip()
+            if i.find('=') != -1:
+                (k, v) = i.split('=')
+                retv[k] = v
+    return retv
 
 def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
     '''

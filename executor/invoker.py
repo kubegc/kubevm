@@ -228,7 +228,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     config_dict = _network_config_to_dict(network_config)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = 
-                        
+                        jsondict = _del_field(jsondict, the_cmd_key, 'network')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
                     if not os.path.exists(template_path):
@@ -1524,6 +1524,23 @@ def _set_field(jsondict, the_cmd_key, field, value):
                 if k == field:
                     jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = value
     return jsondict 
+
+def _del_field(jsondict, the_cmd_key, field):
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        if the_cmd_key:
+            contents = lifecycle.get(the_cmd_key)
+            for k, v in contents.items():
+                if k == field:
+                    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
+    return jsondict
         
 def jsontoxml(jsonstr):
     json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
@@ -1539,31 +1556,8 @@ def toKubeJson(json):
     return json.replace('@', '_').replace('$', 'text').replace(
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
-                    
-def createNICFromXml(metadata_name, jsondict, the_cmd_key):
-    spec = jsondict['raw_object'].get('spec')
-    if spec:    
-        lifecycle = spec.get('lifecycle')
-        if not lifecycle:
-            return
-        '''
-        Read parameters from lifecycle, add default value to some parameters.
-        '''
-        mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
-        source = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('source')
-        model = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('model')
-        if not source:
-            raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'source\'!')
-        if not mac:
-            mac = randomMAC()
-        if not model:
-            model = 'virtio'
-        lines = {}
-        lines['mac'] = mac
-        lines['source'] = source
-        lines['virtualport'] = 'openvswitch'
-        lines['model'] = model
-    
+
+def _createNICXml(metadata_name, data):   
     '''
     Write NIC Xml file to DEFAULT_DEVICE_DIR dir.
     '''
@@ -1571,7 +1565,8 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     root = doc.createElement('interface')
     root.setAttribute('type', 'bridge')
     doc.appendChild(root)
-    for k, v in lines.items():
+    bandwidth = {}
+    for k, v in data.items():
         if k == 'mac':
             node = doc.createElement(k)
             node.setAttribute('address', v)
@@ -1588,17 +1583,68 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
             node = doc.createElement(k)
             node.setAttribute('type', v)
             root.appendChild(node)
+        elif k == 'inbound':
+            bandwidth[k] = v
+        elif k == 'outbound':
+            bandwidth[k] = v
+    
+    if bandwidth:        
+        node_bandwidth = doc.createElement('bandwidth')
+        for k,v in bandwidth.items():
+            sub_node = doc.createElement(k)
+            sub_node.setAttribute('average', v)
+            node_bandwidth.appendChild(sub_node)
+            root.appendChild(node_bandwidth)        
+            
     '''
     If DEFAULT_DEVICE_DIR not exists, create it.
     '''
     if not os.path.exists(DEFAULT_DEVICE_DIR):
         os.makedirs(DEFAULT_DEVICE_DIR, 0711)
-    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
+    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
     try:
         with open(file_path, 'w') as f:
             f.write(doc.toprettyxml(indent='\t'))
     except:
-        raise ExecuteException('VirtctlError', 'Execute plugNIC error: cannot create NIC XML file \'%s\'' % file_path)
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: cannot create NIC XML file \'%s\'' % file_path)  
+    
+    return file_path
+
+def createNICFromXmlCmd(metadata_name, data):
+    data['virtualport'] = 'openvswitch'
+    data['source'] = data['ovsbridge']
+    if not data.has_key('mac'):
+        data['mac'] = randomMAC()
+    if not data.has_key('model'):
+        data['model'] = 'virtio'
+    
+    file_path = _createNICXml(metadata_name, data)              
+
+def createNICFromXml(metadata_name, jsondict, the_cmd_key):
+    spec = jsondict['raw_object'].get('spec')
+    lifecycle = spec.get('lifecycle')
+    if not lifecycle:
+        return
+    '''
+    Read parameters from lifecycle, add default value to some parameters.
+    '''
+    mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
+    source = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('source')
+    model = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('model')
+    if not source:
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'source\'!')
+    if not mac:
+        mac = randomMAC()
+    if not model:
+        model = 'virtio'
+    lines = {}
+    lines['mac'] = mac
+    lines['source'] = source
+    lines['virtualport'] = 'openvswitch'
+    lines['model'] = model
+    
+    file_path = _createNICXml(lines)
+
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
     new_cmd_key = 'plugDevice'
     jsondict['raw_object']['spec']['lifecycle'][new_cmd_key] = {'file': file_path}
@@ -1606,16 +1652,15 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
 
 def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
-    if spec:    
-        lifecycle = spec.get('lifecycle')
-        if not lifecycle:
-            return
-        '''
-        Read parameters from lifecycle, add default value to some parameters.
-        '''
-        mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
-        if not mac:
-            raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'mac\'!')
+    lifecycle = spec.get('lifecycle')
+    if not lifecycle:
+        return
+    '''
+    Read parameters from lifecycle, add default value to some parameters.
+    '''
+    mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
+    if not mac:
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'mac\'!')
     
     file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]

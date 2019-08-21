@@ -50,7 +50,7 @@ metadata:
   name: virtualmachinenetworks.cloudplus.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.type
+  - JSONPath: .spec.VirtualMachineNetwork.type
     name: TYPE
     type: string
   - JSONPath: .spec.nodeName

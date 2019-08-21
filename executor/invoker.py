@@ -236,6 +236,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
                     jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
+                    network_config = _get_field(jsondict, the_cmd_key, 'network')
+                    config_dict = _network_config_to_dict(network_config)
+                    if config_dict.get('ovsbridge') and config_dict.get('switch'):
+                        plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
+                        boundSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('boundSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        jsondict = _del_field(jsondict, the_cmd_key, 'network')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
                         logger.debug('***VM %s already deleted!***' % metadata_name)
@@ -295,6 +301,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
+                            if 'plugNICCmd' in dir():
+                                runCmd(plugNICCmd)
+                            if 'boundSwPortCmd' in dir():
+                                runCmd(boundSwPortCmd) 
                         else:
                             if cmd:
                                 runCmd(cmd)

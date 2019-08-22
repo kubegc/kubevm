@@ -18,7 +18,7 @@ from kubernetes import config
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.utils import CDaemon, runCmd
+from utils.utils import CDaemon, runCmd, singleton
 from utils import logger
 from libvirt_event_handler import main as libvirt_event_handler
 from os_event_handler import main as os_event_handler
@@ -43,6 +43,7 @@ class ClientDaemon(CDaemon):
         CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
         self.name = name
  
+    @singleton('/var/run/virtlet_daemon.pid')
     def run(self, output_fn, **kwargs):
         logger.debug("---------------------------------------------------------------------------------")
         logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")

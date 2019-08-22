@@ -36,7 +36,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, runCmdRaiseException
+from utils.utils import singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, runCmdRaiseException, runCmd
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -54,8 +54,10 @@ PLURAL = config_raw.get('VirtualMachine', 'plural')
 VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 
+DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
+
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
-        
+
 def myDomainEventHandler(conn, dom, *args, **kwargs):
     vm_name = dom.name()
     #     print(jsondict)
@@ -65,22 +67,16 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         try:
             logger.debug('Callback domain deletion to virtlet')
 #             deleteVM(vm_name, V1DeleteOptions())
+            file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, vm_name)
+            cmd = 'mv -f %s /tmp' % file_path
+            logger.debug(cmd)
+            runCmd(cmd, 'Error')
         except:
             logger.error('Oops! ', exc_info=1)
     else:
-        if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
-            try:
-                logger.debug('Callback domain shutdown to virtlet')
-                macs = get_macs(vm_name)
-                for mac in macs:
-                    unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
-                    logger.debug(unbindSwPortCmd)
-                    retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
-                    logger.debug(retv)
     #             deleteVM(vm_name, V1DeleteOptions())
-            except:
-                logger.error('Oops! ', exc_info=1)
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+        step1_done = False
         try:
             logger.debug('Callback domain changes to virtlet')
             vm_xml = get_xml(vm_name)
@@ -90,13 +86,56 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
             body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
             modifyVM(vm_name, body)
+            step1_done = True
         except:
+            step1_done = False
             logger.error('Oops! ', exc_info=1)
             info=sys.exc_info()
             try:
                 report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
             except:
                 logger.warning('Oops! ', exc_info=1)
+        if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
+            try:
+                logger.debug('Callback domain shutdown to virtlet')
+                macs = get_macs(vm_name)
+                for mac in macs:
+                    unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
+                    logger.debug(unbindSwPortCmd)
+                    retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
+                    logger.debug(retv)
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+        if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Started":
+            try:
+                logger.debug('Callback domain start to virtlet')
+                macs = get_macs(vm_name)
+                for mac in macs:
+                    swith_file_path = '%s/%s-nic-%s.switch' % \
+                            (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
+                    with open(swith_file_path, 'r') as fr:
+                        switch = fr.read()
+                    ip_file_path = '%s/%s-nic-%s.ip' % \
+                            (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
+                    with open(ip_file_path, 'r') as fr:
+                        ip = fr.read()
+                    if switch and ip:
+                        unbindSwPortCmd = 'kubeovn-adm bind-swport --mac %s --switch %s --ip %s' % (mac, switch.strip(), ip.strip())
+                        logger.debug(unbindSwPortCmd)
+                        retv = runCmdRaiseException(unbindSwPortCmd, 'Kubeovn error')
+                        logger.debug(retv)
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
 
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
@@ -630,7 +669,6 @@ def myDomainEventCallback(conn, dom, event, detail, opaque):
     logger.debug("myDomainEventCallback%s EVENT: Domain %s(%s) %s %s" % (
         opaque, dom.name(), dom.ID(), DOM_EVENTS[event], DOM_EVENTS[event][detail]))
     myDomainEventHandler(conn, dom, event=event, detail=detail, opaque=opaque)
-    
 
 def myDomainEventRebootCallback(conn, dom, opaque):
     logger.debug("myDomainEventRebootCallback: Domain %s(%s)" % (
@@ -849,7 +887,6 @@ def usage():
     print("   --loop=TYPE, -l   Choose event-loop-implementation (native, poll, asyncio)")
     print("   --timeout=SECS  Quit after SECS seconds running")
 
-
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hdl:", ["help", "debug", "loop=", "timeout="])
@@ -906,7 +943,7 @@ def main():
     # Add 2 lifecycle callbacks to prove this works with more than just one
     vc.domainEventRegister(myDomainEventCallback, 1)
     domcallbacks = [
-        vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE, myDomainEventCallback, 2),
+#         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE, myDomainEventCallback, 2),
         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_REBOOT, myDomainEventRebootCallback, None),
         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_RTC_CHANGE, myDomainEventRTCChangeCallback, None),
         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_WATCHDOG, myDomainEventWatchdogCallback, None),

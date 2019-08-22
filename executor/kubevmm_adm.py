@@ -143,36 +143,44 @@ def update_online():
     time.sleep(3)
     start(ignore_warning=True)
 
-def update_offline(pack):
+def update_offline(pack, ignore_warning=True):
     print('updating from package \'%s\'' % pack)
-    print('*step1: checking package file')
+    virtctl_err = None
+    virtlet_err = None
+    (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version) = status(ignore_warning=ignore_warning)
+    if not virtctl_container_id:
+        print('error: service \'virtctl\' is not running')
+    if not virtlet_container_id:
+        print('error: service \'virtlet\' is not running\n') 
+    if virtctl_err or virtlet_err:
+        sys.exit(1)
+    print('\033[3;30;47m*step1: checking package file\033[0m')
     time.sleep(2)
     is_ready = os.path.isfile(pack)
     if not is_ready:
         print('error: wrong pack file')
-        print('error: please check the path %s - not exists' % pack)
+        print('error: please check the path %s - not exists\n' % pack)
         sys.exit(1)
-    print('    package file is ready, continue...')
-    print('*step2: unpacking .tar.gz file to /tmp dir')
-    time.sleep(3)
+    print('    package file is ready, continue...\n')
+    print('\033[3;30;47m*step2: unpacking .tar.gz file to /tmp dir\033[0m')
+    time.sleep(2)
     (_, step2_err) = runCmd('tar -zxvf %s -C %s' % (pack, '/tmp'))
     if step2_err:
         print('error: %s' % step2_err)
-        print('error: unpack failed, aborting...')
+        print('error: unpack failed, aborting...\n')
         sys.exit(1)
-    print('    unpack done, continue...')
-    print('*step3: checking package dir in /tmp')
+    print('    unpack done, continue...\n')
+    print('\033[3;30;47m*step3: update virtctl & virtlet in docker\033[0m')
     time.sleep(2)
-    check_unpack_dir = os.path.isdir('/tmp/kubevmm-%s' % VERSION)
-    if not check_unpack_dir:
-        print('error: wrong directory')
-        print('error: please check the path %s - not exists' % check_unpack_dir)
+    (_, virtctl_err) = runCmd('docker cp /tmp/kubevmm-service-pack/virtctl/* %s:/home/virtctl/bin' % virtctl_container_id)
+    (_, virtlet_err) = runCmd('docker cp /tmp/kubevmm-service-pack/virtlet/* %s:/home/virtlet/bin' % virtlet_container_id)
+    if virtctl_err:
+        print('warning: %s\n' % (virtctl_err))
+    if virtlet_err:
+        print('warning: %s\n' % (virtlet_err))
+    if virtctl_err or virtlet_err:
         sys.exit(1)
-    print('    package dir is ready, continue...')
-    print('*step4: updating kubevmm')
-    time.sleep(2)
-    runCmd('bash /tmp/kubevmm-%s/install.sh --skip-adm' % VERSION, True)
-    print('    update complete.')
+    print('    update complete.\n')
 
 def version(service=False, ignore_warning=False):
     if service:

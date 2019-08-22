@@ -971,8 +971,6 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                     logger.error('Oops! ', exc_info=1)
                     info = sys.exc_info()
                     try:
-                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
-                                               involved_object_name, {"msg": e.reason}, {})
                         report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                     except:
                         logger.warning('Oops! ', exc_info=1)
@@ -1073,8 +1071,6 @@ def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL
                     logger.error('Oops! ', exc_info=1)
                     info = sys.exc_info()
                     try:
-                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
-                                               involved_object_name, {"msg": e.reason}, {})
                         report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                     except:
                         logger.warning('Oops! ', exc_info=1)
@@ -1174,8 +1170,6 @@ def uitSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_UIT_SNAPSHOT, pl
                     logger.error('Oops! ', exc_info=1)
                     info = sys.exc_info()
                     try:
-                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
-                                               involved_object_name, {"msg": e.reason}, {})
                         report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                     except:
                         logger.warning('Oops! ', exc_info=1)

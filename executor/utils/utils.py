@@ -286,7 +286,7 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
 
-def runCmdRaiseException(cmd):
+def runCmdRaiseException(cmd, head='VirtctlError'):
     std_err = None
     if not cmd:
         return
@@ -295,7 +295,7 @@ def runCmdRaiseException(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_err:
-            raise ExecuteException('VirtctlError', std_err)
+            raise ExecuteException(head, std_err)
         return std_out
     finally:
         p.stdout.close()

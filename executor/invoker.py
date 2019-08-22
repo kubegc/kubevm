@@ -230,7 +230,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        if not config_dict.get('ip'):
+                            bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        else:
+                            bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip'))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -242,7 +245,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     config_dict = _network_config_to_dict(network_config)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        if not config_dict.get('ip'):
+                            bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
+                        else:
+                            bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip'))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
@@ -291,6 +297,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
+                            time.sleep(2)
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
                             if 'bindSwPortCmd' in dir():
@@ -304,6 +311,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
+                            time.sleep(2)
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
                             if 'bindSwPortCmd' in dir():
@@ -1614,6 +1622,10 @@ def _createNICXml(metadata_name, data):
             node = doc.createElement(k)
             node.setAttribute('type', v)
             root.appendChild(node)
+        elif k == 'target':
+            node = doc.createElement(k)
+            node.setAttribute('dev', v)
+            root.appendChild(node)
         elif k == 'inbound':
             bandwidth[k] = v
         elif k == 'outbound':
@@ -1669,7 +1681,7 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     lines['virtualport'] = 'openvswitch'
     lines['model'] = model
     
-    file_path = _createNICXml(lines)
+    file_path = _createNICXml(metadata_name, lines)
 
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
     new_cmd_key = 'plugDevice'

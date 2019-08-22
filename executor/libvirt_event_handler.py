@@ -35,8 +35,8 @@ from xmljson import badgerfish as bf
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure
+from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
+from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, runCmdRaiseException
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -68,6 +68,18 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         except:
             logger.error('Oops! ', exc_info=1)
     else:
+        if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
+            try:
+                logger.debug('Callback domain shutdown to virtlet')
+                macs = get_macs(vm_name)
+                for mac in macs:
+                    unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
+                    logger.debug(unbindSwPortCmd)
+                    retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
+                    logger.debug(retv)
+    #             deleteVM(vm_name, V1DeleteOptions())
+            except:
+                logger.error('Oops! ', exc_info=1)
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
         try:
             logger.debug('Callback domain changes to virtlet')

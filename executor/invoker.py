@@ -235,10 +235,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        if not config_dict.get('ip'):
-                            bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
-                        else:
-                            bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip'))
+                        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+                        bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
+                        recordSwitchToFileCmd = 'echo "%s" > %s/%s-nic-%s.switch' % \
+                        (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+                        recordIpToFileCmd = 'echo "%s" > %s/%s-nic-%s.ip' % \
+                        (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -250,10 +252,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     config_dict = _network_config_to_dict(network_config)
                     if config_dict.get('ovsbridge') and config_dict.get('switch'):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        if not config_dict.get('ip'):
-                            bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'))
-                        else:
-                            bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip'))
+                        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+                        bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
+                        recordSwitchToFileCmd = 'echo "%s" > %s/%s-nic-%s.switch' % \
+                        (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+                        recordIpToFileCmd = 'echo "%s" > %s/%s-nic-%s.ip' % \
+                        (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
@@ -305,9 +309,18 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             time.sleep(2)
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
+                            if 'unbindSwPortCmd' in dir():
+                                logger.debug(unbindSwPortCmd)
+                                runCmdIgnoreError(unbindSwPortCmd)
                             if 'bindSwPortCmd' in dir():
                                 logger.debug(bindSwPortCmd)
-                                runCmd(bindSwPortCmd)    
+                                runCmd(bindSwPortCmd)
+                            if 'recordSwitchToFileCmd' in dir():
+                                logger.debug(recordSwitchToFileCmd)
+                                runCmd(recordSwitchToFileCmd)
+                            if 'recordIpToFileCmd' in dir():
+                                logger.debug(recordIpToFileCmd)
+                                runCmd(recordIpToFileCmd)
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -319,9 +332,18 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             time.sleep(2)
                             if 'plugNICCmd' in dir():
                                 runCmd(plugNICCmd)
+                            if 'unbindSwPortCmd' in dir():
+                                logger.debug(unbindSwPortCmd)
+                                runCmdIgnoreError(unbindSwPortCmd)
                             if 'bindSwPortCmd' in dir():
                                 logger.debug(bindSwPortCmd)
                                 runCmd(bindSwPortCmd) 
+                            if 'recordSwitchToFileCmd' in dir():
+                                logger.debug(recordSwitchToFileCmd)
+                                runCmd(recordSwitchToFileCmd)
+                            if 'recordIpToFileCmd' in dir():
+                                logger.debug(recordIpToFileCmd)
+                                runCmd(recordIpToFileCmd)
                         else:
                             if cmd:
                                 runCmd(cmd)
@@ -332,8 +354,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     destroy(metadata_name)
                                 if cmd:
                                     runCmd(cmd)
-                                file_path = '%s/%s-*.xml' % (DEFAULT_DEVICE_DIR, metadata_name)
-                                mvNICXmlToTmpDir(file_path)
+#                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)
+#                                 mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
                             elif _isPlugDevice(the_cmd_key):
                                 if cmd:
@@ -1810,7 +1832,7 @@ def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
 
 def mvNICXmlToTmpDir(file_path):
     if file_path:
-        runCmd('mv %s /tmp' % file_path)
+        runCmd('mv -f %s /tmp' % file_path)
 
 def addDefaultSettings(jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
@@ -1950,6 +1972,27 @@ def runCmd(cmd):
 #             raise ExecuteException('VirtctlError', str.strip(msg))
             raise ExecuteException('VirtctlError', std_err)
 #         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
+        return
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
+'''
+Run back-end command in subprocess.
+'''
+def runCmdIgnoreError(cmd):
+    std_err = None
+    if not cmd:
+#         logger.debug('No CMD to execute.')
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            logger.debug(std_out)
+        if std_err:
+            logger.warning(std_err)
         return
     finally:
         p.stdout.close()

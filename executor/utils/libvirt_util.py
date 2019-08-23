@@ -71,6 +71,7 @@ def _get_dom(vm_):
 
 def _get_pool(pool_):
     conn = __get_conn()
+    print list_pools()
     if pool_ not in list_pools():
         raise Exception('The specified pool is not present(%s).' % pool_)
     pool = conn.storagePoolLookupByName(pool_)
@@ -82,13 +83,14 @@ def _get_pool(pool_):
 
 def _get_pool_info(pool_):
     pool = _get_pool(pool_)
+    pool.refresh()
     lines = pool.XMLDesc()
     result = runCmdWithResult('virsh pool-info ' + pool_)
     del result['allocation']
     del result['available']
     for line in lines.split():
         if line.find("path") >= 0:
-            result['path'] = line.replace("<path>", "").replace("</path>", "")
+            result['path'] = line.replace('<path>', '').replace('</path>', '')
             break
     return result
 
@@ -777,7 +779,7 @@ def runCmdWithResult(cmd):
                 if not str.strip(line):
                     continue
                 line = str.strip(line)
-                kv = line.replace(":", "").split()
+                kv = line.replace(':', '').split()
                 result[kv[0].lower()] = kv[1]
             return result
     finally:
@@ -789,6 +791,6 @@ if __name__ == '__main__':
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))
     # print _get_pool("pool1").info()
-    print _get_pool_info('pool1')
+    print is_pool_exists('pool2')
 #     print(list_volumes('volumes'))
 #     print(get_volume_xml('volumes', 'ddd.qcow2'))

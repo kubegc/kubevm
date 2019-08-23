@@ -1088,7 +1088,8 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                pool_name = _get_field(jsondict, the_cmd_key, 'pool')
+                pool_name = metadata_name
+                logger.debug("pool_name is :"+pool_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if cmd is None:
@@ -1107,14 +1108,12 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             runCmd(cmd)
                             poolJson = _get_pool_info(pool_name)
                             write_result_to_server(group, version, 'default', plural,
-                                                   involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                        else:
-                            raise ExecuteException('VirtctlError', 'Not exist %s pool!' % (pool_name))
-                    elif operation_type == 'DELETED':
-                        if is_pool_exists(pool_name):
-                            runCmd(cmd)
-                        else:
-                            raise ExecuteException('VirtctlError', 'Not exist %s pool!' % (pool_name))
+                                                involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                    # elif operation_type == 'DELETED':
+                    #     if is_pool_exists(pool_name):
+                    #         runCmd(cmd)
+                    #     else:
+                    #         raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -1400,7 +1399,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_NETWORK:
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
         elif plural == PLURAL_VM_POOL:
-            jsonDict['spec']['pool'] = {'result': result, 'pool': data}
+            jsonDict['spec']['pool'] = data
 
         if result:
             jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))

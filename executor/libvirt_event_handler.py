@@ -86,9 +86,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     ignore_pushing = True
             except Exception, e:
                 raise e
-            if ignore_pushing:
-                step1_done = True
-            else:
+            if not ignore_pushing:
                 try:
                     logger.debug('Callback domain changes to virtlet')
                     vm_xml = get_xml(vm_name)
@@ -130,30 +128,33 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     for mac in macs:
                         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
                                 (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
-                        with open(net_cfg_file_path, 'r') as fr:
-                            cfg = fr.read()
+                        cfg = ''
+                        if os.path.exists(net_cfg_file_path):
+                            with open(net_cfg_file_path, 'r') as fr:
+                                cfg = fr.read()
                         if cfg:
                             switch = ''
                             ip = ''
-                            vxlan = ''
+#                             vxlan = ''
                             for line in cfg.split("\n"):
                                 line = line.strip()
                                 if line.find('switch') != -1:
                                     (_, switch) = line.split('=')
                                 elif line.find('ip') != -1:
                                     (_, ip) = line.split('=')
-                                elif line.find('vxlan') != -1:
-                                    (_, vxlan) = line.split('=')
-                        if switch and ip and vxlan:
+#                                 elif line.find('vxlan') != -1:
+#                                     (_, vxlan) = line.split('=')
+#                         if switch and ip and vxlan:
+                        if switch and ip:
                             bindSwPortCmd = 'kubeovn-adm bind-swport --mac %s --switch %s --ip %s' % (mac, switch.strip(), ip.strip())
                             logger.debug(bindSwPortCmd)
                             retv = runCmdRaiseException(bindSwPortCmd, 'Kubeovn error')
                             logger.debug(retv)
-                            if vxlan != '-1':
-                                setVxlanCmd = 'kubeovn-adm setport-vxlan --mac %s -vxlan %s' % (mac, vxlan)
-                                logger.debug(setVxlanCmd)
-                                retv = runCmdRaiseException(setVxlanCmd, 'Kubeovn error')
-                                logger.debug(retv)      
+#                             if vxlan != '-1':
+#                                 setVxlanCmd = 'kubeovn-adm setport-vxlan --mac %s -vxlan %s' % (mac, vxlan)
+#                                 logger.debug(setVxlanCmd)
+#                                 retv = runCmdRaiseException(setVxlanCmd, 'Kubeovn error')
+#                                 logger.debug(retv)      
                 except:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()

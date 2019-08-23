@@ -170,10 +170,10 @@ def main():
         thread_4.daemon = True
         thread_4.name = 'vm_snapshot_watcher'
         thread_4.start()
-        thread_5 = Thread(target=vMBlockDevWatcher)
-        thread_5.daemon = True
-        thread_5.name = 'vm_block_dev_watcher'
-        thread_5.start()
+#         thread_5 = Thread(target=vMBlockDevWatcher)
+#         thread_5.daemon = True
+#         thread_5.name = 'vm_block_dev_watcher'
+#         thread_5.start()
         thread_6 = Thread(target=UITPoolWatcher)
         thread_6.daemon = True
         thread_6.name = 'vm_storage_pool_watcher'
@@ -204,7 +204,7 @@ def main():
         thread_2.join()
         thread_3.join()
         thread_4.join()
-        thread_5.join()
+#         thread_5.join()
         thread_6.join()
         thread_7.join()
         thread_8.join()
@@ -232,6 +232,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
@@ -243,7 +246,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     network_config = _get_field(jsondict, the_cmd_key, 'network')
                     config_dict = _network_config_parser(network_config)
                     logger.debug(config_dict)
-                    network_operations = _network_operations(config_dict, metadata_name)
+                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
                     jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -257,20 +260,22 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     network_config = _get_field(jsondict, the_cmd_key, 'network')
                     config_dict = _network_config_parser(network_config)
                     logger.debug(config_dict)
-                    network_operations = _network_operations(config_dict, metadata_name)
+                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
                     jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
                         logger.debug('***VM %s already deleted!***' % metadata_name)
                         continue
-                if _isPlugNIC(the_cmd_key):
-                    network_type = _get_field(jsondict, the_cmd_key, 'type')
-                    if network_type == 'l2bridge':
-                        (jsondict, the_cmd_key, file_path) = _createNICFromXml(metadata_name, jsondict, the_cmd_key)
-                if _isUnplugNIC(the_cmd_key):
-                    network_type = _get_field(jsondict, the_cmd_key, 'type')
-                    if network_type == 'l2bridge':
-                        (jsondict, the_cmd_key, file_path) = _deleteNICFromXml(metadata_name, jsondict, the_cmd_key)
+                if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key):
+                    '''
+                    Parse network configurations
+                    '''
+                    network_config = _get_fields(jsondict, the_cmd_key)
+                    logger.debug(network_config)
+                    config_dict = _network_config_parser_json(the_cmd_key, network_config)
+                    logger.debug(config_dict)
+                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
+                    jsondict = deleteLifecycleInJson(jsondict)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
@@ -307,13 +312,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
                             time.sleep(2)
-                            '''
-                            Run network operations
-                            '''
-                            if 'network_operations' in dir() and network_operations:
-                                for operation in network_operations:
-                                    logger.debug(operation)
-                                    runCmd(operation)
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -323,16 +321,16 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
                             time.sleep(2)
-                            '''
-                            Run network operations
-                            '''
-                            if 'network_operations' in dir() and network_operations:
-                                for operation in network_operations:
-                                    logger.debug(operation)
-                                    runCmd(operation)
                         else:
                             if cmd:
                                 runCmd(cmd)
+                        '''
+                        Run network operations
+                        '''
+                        if 'network_operations_queue' in dir() and network_operations_queue:
+                            for operation in network_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
                     elif operation_type == 'MODIFIED':
                         if is_vm_exists(metadata_name):
                             if _isDeleteVM(the_cmd_key):
@@ -343,24 +341,16 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
 #                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)
 #                                 mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
-                            elif _isPlugDevice(the_cmd_key):
-                                if cmd:
-                                    try:
-                                        runCmd(cmd)
-                                    except ExecuteException, e:
-                                        if 'file_path' in dir():
-                                            if 'network_type' in dir() and network_type == 'ovsbridge':
-                                                mvNICXmlToTmpDir(file_path)
-                                        raise e            
-                            elif _isUnplugDevice(the_cmd_key):
-                                if cmd:
-                                    runCmd(cmd)
-                                if 'file_path' in dir():
-                                    if 'network_type' in dir() and network_type == 'ovsbridge':
-                                        mvNICXmlToTmpDir(file_path)
                             else:
                                 if cmd:
                                     runCmd(cmd)
+                        '''
+                        Run network operations
+                        '''
+                        if 'network_operations_queue' in dir() and network_operations_queue:
+                            for operation in network_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
                     elif operation_type == 'DELETED':
                         logger.debug('Delete custom object by client.')
     #                     if is_vm_exists(metadata_name):
@@ -410,9 +400,20 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -1481,22 +1482,23 @@ def getMetadataName(jsondict):
 def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']
     lifecycle = spec.get('lifecycle')
-    if the_cmd_key in ALL_SUPPORT_CMDS_WITH_NAME_FIELD:
-        lifecycle[the_cmd_key]['name'] = metadata_name    
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD:
-        lifecycle[the_cmd_key]['domain'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_VOL_FIELD:
-        lifecycle[the_cmd_key]['vol'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
-        lifecycle[the_cmd_key]['snapshotname'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD:
-        lifecycle[the_cmd_key]['poolname'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
-        lifecycle[the_cmd_key]['sname'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
-        lifecycle[the_cmd_key]['switch'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
-        lifecycle[the_cmd_key]['pool'] = metadata_name
+    if lifecycle:
+        if the_cmd_key in ALL_SUPPORT_CMDS_WITH_NAME_FIELD:
+            lifecycle[the_cmd_key]['name'] = metadata_name    
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD:
+            lifecycle[the_cmd_key]['domain'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_VOL_FIELD:
+            lifecycle[the_cmd_key]['vol'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
+            lifecycle[the_cmd_key]['snapshotname'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD:
+            lifecycle[the_cmd_key]['poolname'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
+            lifecycle[the_cmd_key]['sname'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
+            lifecycle[the_cmd_key]['switch'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
+            lifecycle[the_cmd_key]['pool'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):
@@ -1674,7 +1676,22 @@ def _get_field(jsondict, the_cmd_key, field):
             for k, v in contents.items():
                 if k == field:
                     retv = v
-    return retv   
+    return retv  
+
+def _get_fields(jsondict, the_cmd_key):
+    retv = None
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        if the_cmd_key:
+            retv = lifecycle.get(the_cmd_key)
+    return retv  
 
 def _set_field(jsondict, the_cmd_key, field, value):
     spec = jsondict['raw_object'].get('spec')
@@ -1782,14 +1799,14 @@ def _createNICXml(metadata_name, data):
     
     return file_path
 
-def _validate_network_params(data): 
-    if data:
-        for key in data.keys():
-            if key not in ['type', 'source', 'inbound', 'outbound', 'mac', 'ip', 'switch']:
-                return False
-    else:
-        return False
-    return True
+# def _validate_network_params(data): 
+#     if data:
+#         for key in data.keys():
+#             if key not in ['type', 'source', 'inbound', 'outbound', 'mac', 'ip', 'switch']:
+#                 return False
+#     else:
+#         return False
+#     return True
 
 def _network_config_parser(data):
     retv = {}
@@ -1800,7 +1817,7 @@ def _network_config_parser(data):
             if i.find('=') != -1:
                 (k, v) = i.split('=')
                 retv[k] = v
-    if _validate_network_params(retv):
+    if retv:
         net_type = retv.get('type')
         if not net_type:
             raise ExecuteException('VirtctlError', 'Network config error: no "type" parameter.')
@@ -1823,31 +1840,92 @@ def _network_config_parser(data):
         raise ExecuteException('VirtctlError', 'Network config error: no parameters or in wrong format, plz check it!')
     return retv
 
-def _network_operations(config_dict, metadata_name):
-    if config_dict.get('type') == 'l1bridge':
-        plugNICCmd = _createNICFromXmlCmd(metadata_name, config_dict)
-        return [plugNICCmd]
-    elif config_dict.get('type') == 'l3bridge':
-        plugNICCmd = _createNICFromXmlCmd(metadata_name, config_dict)
-        return [plugNICCmd]
-    elif config_dict.get('type') == 'l3bridge':
-        if not config_dict.get('switch'):
-            raise ExecuteException('VirtctlError', 'Network config error: no "switch" parameter.')
-        plugNICCmd = _createNICFromXmlCmd(metadata_name, config_dict)
-        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
-        bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
-        recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
-        (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-        recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
-        (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-        recordVxlanToFileCmd = 'echo "vxlan=%s" >> %s/%s-nic-%s.cfg' % \
-        (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-        return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd, recordVxlanToFileCmd]
+def _network_config_parser_json(the_cmd_key, data):
+    retv = {}
+    if data:
+        retv = data.copy()
+        if _isUnplugNIC(the_cmd_key):
+            if not retv.get('mac'):
+                raise ExecuteException('VirtctlError', 'Network config error: no "mac" parameter.')
+            return retv
+        source = data.get('source')
+        if not source:
+            raise ExecuteException('VirtctlError', 'Network config error: no "source" parameter.')
+        split_it = source.split(',')
+        for i in split_it:
+            i = i.strip()
+            if i.find('=') != -1:
+                (k, v) = i.split('=')
+                retv[k] = v
+    if retv:
+        net_type = retv.get('type')
+        if not net_type:
+            raise ExecuteException('VirtctlError', 'Network config error: no "type" parameter.')
+        else:
+            if net_type not in ['bridge', 'l2bridge', 'l3bridge']:
+                raise ExecuteException('VirtctlError', 'Network config error: unsupported network "type" %s.' % retv['type'])
+        if not retv.has_key('mac'):
+            retv['mac'] = randomMAC()
+        '''
+        Add default params.
+        '''
+        if net_type in ['l2bridge', 'l3bridge']:
+            retv['virtualport'] = 'openvswitch'
+        retv['model'] = 'virtio'
+        retv['target'] = '%s' % (retv['mac'].replace(':', ''))
+    else:
+        raise ExecuteException('VirtctlError', 'Network config error: no parameters or in wrong format, plz check it!')
+    return retv
 
-def _createNICFromXmlCmd(metadata_name, data):
+def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
+    if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key) or _isPlugNIC(the_cmd_key):
+        if _isPlugNIC(the_cmd_key):
+            live = config_dict.get('live') if config_dict.get('live') else False
+        else:
+            live = True
+        if config_dict.get('type') == 'bridge':
+            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            return [plugNICCmd]
+        elif config_dict.get('type') == 'l2bridge':
+            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            return [plugNICCmd]
+        elif config_dict.get('type') == 'l3bridge':
+            if not config_dict.get('switch'):
+                raise ExecuteException('VirtctlError', 'Network config error: no "switch" parameter.')
+            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+            bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
+            recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
+            (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+            recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
+            (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+    #         recordVxlanToFileCmd = 'echo "vxlan=%s" >> %s/%s-nic-%s.cfg' % \
+    #         (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+            return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
+    elif _isUnplugNIC(the_cmd_key):
+        live = config_dict.get('live') if config_dict.get('live') else False
+        unplugNICCmd = _unplugNICFromXmlCmd(metadata_name, config_dict, live)
+        if config_dict.get('type') == 'bridge':
+            return [unplugNICCmd]
+        elif config_dict.get('type') == 'l2bridge':
+            return [unplugNICCmd]
+        elif config_dict.get('type') == 'l3bridge':
+            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+            return [unbindSwPortCmd, unplugNICCmd]
+
+def _plugNICFromXmlCmd(metadata_name, data, live):
     file_path = _createNICXml(metadata_name, data)
-    cmd = 'virsh attach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
-    return cmd
+    if live:
+        return 'virsh attach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
+    else:
+        return 'virsh attach-device --domain %s --file %s --config' % (metadata_name, file_path)
+
+def _unplugNICFromXmlCmd(metadata_name, data, live):
+    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
+    if live:
+        return 'virsh detach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
+    else:
+        return 'virsh detach-device --domain %s --file %s --config' % (metadata_name, file_path)
 
 def _createNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')

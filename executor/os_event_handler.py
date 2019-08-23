@@ -5,6 +5,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuheng@otcaix.iscas.ac.cn
 
 '''
+import copy
 
 '''
 Import python libs
@@ -32,7 +33,7 @@ from xmljson import badgerfish as bf
 '''
 Import local libs
 '''
-from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state
+from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path
 from utils import logger
 from utils.utils import runCmdRaiseException, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
@@ -727,7 +728,18 @@ def main():
         observer.schedule(event_handler,ob[1],True)
     observer.start()
     try:
+        logger.debug(VOL_DIRS)
+        OLD_PATHS = []
+        for ob in VOL_DIRS:
+            OLD_PATHS.append(ob[1])
         while True:
+            paths = _get_all_pool_path()
+            for pool in paths.keys():
+                if paths[pool] not in OLD_PATHS:
+                    logger.debug(paths[pool])
+                    event_handler = VmVolEventHandler(pool, paths[pool], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+                    observer.schedule(event_handler, paths[pool], True)
+            OLD_PATHS = paths.values()
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()

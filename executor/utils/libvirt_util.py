@@ -71,15 +71,22 @@ def _get_dom(vm_):
 
 def _get_pool(pool_):
     conn = __get_conn()
-    print list_pools()
     if pool_ not in list_pools():
         raise Exception('The specified pool is not present(%s).' % pool_)
     pool = conn.storagePoolLookupByName(pool_)
-    try:
-        pool.refresh()
-    except:
-        pass
     return pool
+
+def _get_all_pool_path():
+    paths = {}
+    for pool_ in list_pools():
+        pool = _get_pool(pool_)
+        # pool.refresh()
+        lines = pool.XMLDesc()
+        for line in lines.split():
+            if line.find("path") >= 0:
+                paths[pool_] = line.replace('<path>', '').replace('</path>', '')
+                break
+    return paths
 
 def _get_pool_info(pool_):
     pool = _get_pool(pool_)
@@ -97,6 +104,10 @@ def _get_pool_info(pool_):
 
 def _get_vol(pool_, vol_):
     pool = _get_pool(pool_)
+    try:
+        pool.refresh()
+    except:
+        pass
     return pool.storageVolLookupByName(vol_)
 
 def _get_all_snapshots(vm_):
@@ -791,6 +802,6 @@ if __name__ == '__main__':
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))
     # print _get_pool("pool1").info()
-    print is_pool_exists('pool2')
+    print _get_all_pool_path()
 #     print(list_volumes('volumes'))
 #     print(get_volume_xml('volumes', 'ddd.qcow2'))

@@ -8,11 +8,7 @@
 **Authors**
 - wuheng@otcaix.iscas.ac.cn
 - wuyuewen@otcaix.iscas.ac.cn
-
-**Thanks**
-- xianghao16@otcaix.iscas.ac.cn
-- shizhonghao17@otcaix.iscas.ac.cn
-- yangchen18@otcaix.iscas.ac.cn
+- liuhe18@otcaix.iscas.ac.cn
 
 # Introduction
 

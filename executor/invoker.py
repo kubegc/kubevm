@@ -117,9 +117,10 @@ ALL_SUPPORT_CMDS_WITH_NAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_VOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = {}
-ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -133,11 +134,13 @@ for k,v in config_raw._sections.items():
         elif string.find(k, 'WithSnapNameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD, **v)
         elif string.find(k, 'WithPoolNameField') != -1:
-            ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
+            ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD, **v)
         elif string.find(k, 'WithSnameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAME_FIELD, **v)
         elif string.find(k, 'WithSwitchField') != -1:
             ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD, **v)
+        elif string.find(k, 'WithPoolField') != -1:
+            ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -187,6 +190,10 @@ def main():
         thread_9.daemon = True
         thread_9.name = 'vm_network_watcher'
         thread_9.start()
+        # thread_10 = Thread(target=vMPoolWatcher)
+        # thread_10.daemon = True
+        # thread_10.name = 'vm_pool_watcher'
+        # thread_10.start()
         
         try:
             while True:
@@ -202,6 +209,7 @@ def main():
         thread_7.join()
         thread_8.join()
         thread_9.join()
+        thread_10.join()
     except:
         logger.error('Oops! ', exc_info=1)
         
@@ -1079,7 +1087,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         if not is_pool_exists(pool_name):
                             runCmd(cmd)
                         else:
-                            raise ExecuteException('VirtctlError', 'No %s pool!' % (pool_name))
+                            raise ExecuteException('VirtctlError', 'has existed %s pool!' % (pool_name))
                     elif operation_type == 'MODIFIED':
                         if is_pool_exists(pool_name):
                             runCmd(cmd)
@@ -1491,11 +1499,13 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
         lifecycle[the_cmd_key]['vol'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
         lifecycle[the_cmd_key]['snapshotname'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD:
         lifecycle[the_cmd_key]['poolname'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
         lifecycle[the_cmd_key]['sname'] = metadata_name
     elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
+        lifecycle[the_cmd_key]['switch'] = metadata_name
+    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD:
         lifecycle[the_cmd_key]['switch'] = metadata_name
     return jsondict
 

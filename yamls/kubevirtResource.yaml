@@ -174,132 +174,37 @@ kind: CustomResourceDefinition
 metadata:
   labels:
     kubevirt.io: ""
-  name: uitstoragepools.cloudplus.io
+  name: virtualmachinepools.cloudplus.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.nodeName
-    name: NODE
+  - JSONPath: .spec.pool.name
+    name: NAME
     type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.poolname
-    name: POOLNAME
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.url
-    name: URL
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.mountpath
-    name: MOUNTPATH
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.proto
-    name: PROTO
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.free
-    name: FREE
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.used
-    name: USED
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.total
-    name: TOTAL
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.data.disktype
-    name: DISKTYPE
-    type: string
-  - JSONPath: .spec.virtualMachineUITPool.result.msg
-    name: STATUS
-    type: string
-  group: cloudplus.io
-  names:
-    kind: UITStoragePool
-    plural: uitstoragepools
-    shortNames:
-      - usp
-      - usps
-    singular: uitstoragepool
-  scope: Namespaced
-  version: v1alpha3
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: uitdisks.cloudplus.io
-spec:
-  additionalPrinterColumns:
-  - JSONPath: .spec.nodeName
-    name: NODE
-    type: string
-  - JSONPath: .spec.virtualMachineUITDisk.data.name
-    name: DISKNAME
-    type: string
-  - JSONPath: .spec.virtualMachineUITDisk.data.poolname
-    name: POOLNAME
-    type: string
-  - JSONPath: .spec.virtualMachineUITDisk.data.size
-    name: SIZE
-    type: string
-  - JSONPath: .spec.virtualMachineUITDisk.data.filetype
-    name: FILETYPE
-    type: string
-  - JSONPath: .spec.virtualMachineUITDisk.data.path
+  - JSONPath: .spec.pool.uuid
+    name: UUID
+    type: string  
+  - JSONPath: .spec.pool.path
     name: PATH
     type: string
-  - JSONPath: .spec.virtualMachineUITDisk.result.msg
-    name: STATUS
+  - JSONPath: .spec.pool.autostart
+    name: AUTOSTART
+    type: string
+  - JSONPath: .spec.pool.state
+    name: STATU
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
     type: string
   group: cloudplus.io
   names:
-    kind: UITDisk
-    plural: uitdisks
+    kind: VirtualMachinePool
+    plural: virtualmachinepools
     shortNames:
-      - ud
-      - uds
-    singular: uitdisk
-  scope: Namespaced
-  version: v1alpha3
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: uitsnapshots.cloudplus.io
-spec:
-  additionalPrinterColumns:
-    - JSONPath: .spec.nodeName
-      name: NODE
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.data.poolname
-      name: POOLNAME
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.data.name
-      name: DISKNAME
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.data.sname
-      name: SNAME
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.data.path
-      name: PATH
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.data.filetype
-      name: FILETYPE
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.data.date
-      name: DATE
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.data.vmsize
-      name: VMSIZE
-      type: string
-    - JSONPath: .spec.virtualMachineUITSnapshot.result.msg
-      name: STATUS
-      type: string
-  group: cloudplus.io
-  names:
-    kind: UITSnapshot
-    plural: uitsnapshots
-    shortNames:
-      - us
-      - uss
-    singular: uitsnapshot
+    - vmp
+    - vmps
+    singular: virtualmachinepool
   scope: Namespaced
   version: v1alpha3

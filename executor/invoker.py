@@ -1637,6 +1637,11 @@ def _isCreateImage(the_cmd_key):
         return True
     return False
 
+def _isDeleteImage(the_cmd_key):
+    if the_cmd_key == "deleteImage":
+        return True
+    return False
+
 def _isCloneDisk(the_cmd_key):
     if the_cmd_key == "cloneDisk":
         return True

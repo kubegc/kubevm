@@ -440,21 +440,28 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
 #                                                                               namespace='default', 
 #                                                                               plural=plural, 
 #                                                                               name=name)
+        logger.debug('***Delete VM %s , report to virtlet***' % name)
         try:
-            logger.debug('***Delete VM %s from back-end, report to virtlet***' % name)
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+            vm_xml = get_xml(name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            modifyStructure(name, body, group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM %s already deleted, ignore this 404 error.' % name)
+        except:
+            logger.error('Oops! ', exc_info=1)
             try:
-                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                              version=version, 
-                                                                              namespace='default', 
-                                                                              plural=plural, 
-                                                                              name=name)
-                vm_xml = get_xml(name)
-                vm_json = toKubeJson(xmlToJson(vm_xml))
-                vm_json = updateDomain(loads(vm_json))
-                body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                modifyStructure(name, body, group, version, plural)
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
             except:
-                logger.warning('***Delete from client, ignore.')
+                logger.warning('Oops! ', exc_info=1)
+        try:
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
 #                 vm_xml = get_xml(name)
 #                 vm_json = toKubeJson(xmlToJson(vm_xml))
@@ -462,8 +469,15 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
 #                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
 #                 body = addExceptionMessage(jsondict, 'VirtletError', 'VM has been deleted in back-end.')
 #                 modifyStructure(name, body, group, version, plural)   
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 class VmLibvirtXmlEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):

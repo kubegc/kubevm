@@ -34,14 +34,13 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr 
 
-cfg = "%s/../default.cfg" % os.path.dirname(os.path.realpath(__file__))
-config_raw = parser()
-config_raw.read(cfg)
-
-TOKEN = config_raw.get('Kubernetes', 'token_file')
-
 def get_l3_network_info(name):
-    master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % TOKEN)[0].strip()
+    cfg = "%s/../default.cfg" % os.path.dirname(os.path.realpath(__file__))
+    config_raw = parser()
+    config_raw.read(cfg)
+    token = config_raw.get('Kubernetes', 'token_file')
+    
+    master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
     nb_port = '6641'
     sb_port = '6642'
     data = {'switchInfo': '', 'routerInfo': '', 'gatewayInfo': ''}

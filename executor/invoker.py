@@ -245,10 +245,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
                         unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
                         bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
-                        recordSwitchToFileCmd = 'echo "%s" > %s/%s-nic-%s.switch' % \
+                        recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
                         (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-                        recordIpToFileCmd = 'echo "%s" > %s/%s-nic-%s.ip' % \
+                        recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
                         (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+                        recordVxlanToFileCmd = 'echo "vxlan=%s" >> %s/%s-nic-%s.cfg' % \
+                        (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -262,10 +264,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
                         unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
                         bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
-                        recordSwitchToFileCmd = 'echo "%s" > %s/%s-nic-%s.switch' % \
+                        recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
                         (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-                        recordIpToFileCmd = 'echo "%s" > %s/%s-nic-%s.ip' % \
+                        recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
                         (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+                        recordVxlanToFileCmd = 'echo "vxlan=%s" >> %s/%s-nic-%s.cfg' % \
+                        (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
                         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
@@ -329,6 +333,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if 'recordIpToFileCmd' in dir():
                                 logger.debug(recordIpToFileCmd)
                                 runCmd(recordIpToFileCmd)
+                            if 'recordVxlanToFileCmd' in dir():
+                                logger.debug(recordVxlanToFileCmd)
+                                runCmd(recordVxlanToFileCmd)
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -352,6 +359,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if 'recordIpToFileCmd' in dir():
                                 logger.debug(recordIpToFileCmd)
                                 runCmd(recordIpToFileCmd)
+                            if 'recordVxlanToFileCmd' in dir():
+                                logger.debug(recordVxlanToFileCmd)
+                                runCmd(recordVxlanToFileCmd)
                         else:
                             if cmd:
                                 runCmd(cmd)
@@ -1813,6 +1823,7 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
     source = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('source')
     model = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('model')
+#     target = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('target')
     if not source:
         raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'source\'!')
     if not mac:
@@ -1824,6 +1835,7 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     lines['source'] = source
     lines['virtualport'] = 'openvswitch'
     lines['model'] = model
+    lines['target'] = 'vnet-%s' % (mac.replace(':', '-'))
     
     file_path = _createNICXml(metadata_name, lines)
 
@@ -1891,6 +1903,7 @@ def _network_config_to_dict(data):
             retv['mac'] = randomMAC()
         if not retv.has_key('model'):
             retv['model'] = 'virtio'
+        retv['target'] = 'vnet-%s' % (retv['mac'].replace(':', '-'))
     return retv
 
 def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):

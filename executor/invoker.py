@@ -40,7 +40,7 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
+from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, is_pool_exists
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
 from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
@@ -75,12 +75,17 @@ PLURAL_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'plural')
 VERSION_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'version')
 GROUP_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'group')
 
+
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
 
-PLURAL_STORAGE_POOL = config_raw.get('UITStoragePool', 'plural')
-VERSION_STORAGE_POOL = config_raw.get('UITStoragePool', 'version')
-GROUP_STORAGE_POOL = config_raw.get('UITStoragePool', 'group')
+PLURAL_VM_POOL = config_raw.get('VirtualMahcineStoragePool', 'plural')
+VERSION_VM_POOL = config_raw.get('VirtualMahcineStoragePool', 'version')
+GROUP_VM_POOL = config_raw.get('VirtualMahcineStoragePool', 'group')
+
+PLURAL_UIT_POOL = config_raw.get('UITStoragePool', 'plural')
+VERSION_UIT_POOL = config_raw.get('UITStoragePool', 'version')
+GROUP_UIT_POOL = config_raw.get('UITStoragePool', 'group')
 
 PLURAL_UIT_DISK = config_raw.get('UITDisk', 'plural')
 VERSION_UIT_DISK = config_raw.get('UITDisk', 'version')
@@ -166,7 +171,7 @@ def main():
         thread_5.daemon = True
         thread_5.name = 'vm_block_dev_watcher'
         thread_5.start()
-        thread_6 = Thread(target=storagePoolWatcher)
+        thread_6 = Thread(target=UITPoolWatcher)
         thread_6.daemon = True
         thread_6.name = 'vm_storage_pool_watcher'
         thread_6.start()
@@ -909,7 +914,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
 
-def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, plural=PLURAL_STORAGE_POOL):
+def UITPoolWatcher(group=GROUP_UIT_POOL, version=VERSION_UIT_POOL, plural=PLURAL_UIT_POOL):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
@@ -965,13 +970,13 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                     if result['code'] == 0:
                         # Verify successful operation, if success countinue, else raise exception
 #                         verifyUITStoragePoolOperation(the_cmd_key, cmd)
-                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
+                        write_result_to_server(GROUP_UIT_POOL, VERSION_UIT_POOL, 'default', PLURAL_UIT_POOL,
                                                involved_object_name, result, data)
                         status = 'Done(Success)'
                         logger.debug(result)
                     else:
                         result['msg'] = 'VirtctlError'
-                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
+                        write_result_to_server(GROUP_UIT_POOL, VERSION_UIT_POOL, 'default', PLURAL_UIT_POOL,
                                                involved_object_name, result, data)
                         logger.debug(result)
                         raise ExecuteException(the_cmd_key+" exec error", result['msg'])
@@ -1010,6 +1015,103 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
             logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
 
+def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL):
+    watcher = watch.Watch()
+    kwargs = {}
+    kwargs['label_selector'] = LABEL
+    kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
+    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                   group=group, version=version, plural=plural, **kwargs):
+        try:
+            operation_type = jsondict.get('type')
+            logger.debug(operation_type)
+            metadata_name = getMetadataName(jsondict)
+            logger.debug('metadata name: %s' % metadata_name)
+            the_cmd_key = _getCmdKey(jsondict)
+            logger.debug('cmd key is: %s' % the_cmd_key)
+            if the_cmd_key and operation_type != 'DELETED':
+                involved_object_name = metadata_name
+                involved_object_kind = 'VirtualMachineDisk'
+                event_metadata_name = randomUUID()
+                event_type = 'Normal'
+                status = 'Doing(Success)'
+                reporter = 'virtctl'
+                event_id = _getEventId(jsondict)
+                time_now = now_to_datetime()
+                time_start = time_now
+                time_end = time_now
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+                try:
+                    event.registerKubernetesEvent()
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                pool_name = _get_field(jsondict, the_cmd_key, 'pool')
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+                if cmd is None:
+                    break
+                try:
+                    if operation_type == 'ADDED':
+                        if not is_pool_exists(pool_name):
+                            runCmd(cmd)
+                        else:
+                            raise ExecuteException('VirtctlError', 'No %s pool!' % (pool_name))
+                    elif operation_type == 'MODIFIED':
+                        if is_pool_exists(pool_name):
+                            runCmd(cmd)
+                        else:
+                            raise ExecuteException('VirtctlError', 'Not exist %s pool!' % (pool_name))
+                    elif operation_type == 'DELETED':
+                        if is_pool_exists(pool_name):
+                            runCmd(cmd)
+                        else:
+                            raise ExecuteException('VirtctlError', 'Not exist %s pool!' % (pool_name))
+                    status = 'Done(Success)'
+                except libvirtError:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except ExecuteException, e:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                finally:
+                    if the_cmd_key and operation_type != 'DELETED':
+                        time_end = now_to_datetime()
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        event.set_message(message)
+                        event.set_time_end(time_end)
+                        try:
+                            event.updateKubernetesEvent()
+                        except:
+                            logger.warning('Oops! ', exc_info=1)
+        except:
+            logger.debug("error occurred during processing json data from apiserver")
+            logger.warning('Oops! ', exc_info=1)
 
 def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL_UIT_DISK):
     watcher = watch.Watch()
@@ -1236,7 +1338,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
 #         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
 
-        if plural == PLURAL_STORAGE_POOL:
+        if plural == PLURAL_UIT_POOL:
             jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
         elif plural == PLURAL_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}

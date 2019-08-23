@@ -95,6 +95,11 @@ def is_vm_exists(vm_):
         return True
     return False
 
+def is_pool_exists(pool_):
+    if pool_ in list_pools():
+        return True
+    return False
+
 def is_vm_active(vm_):
     if vm_ in list_active_vms():
         return True

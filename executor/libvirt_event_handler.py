@@ -70,31 +70,42 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, vm_name)
             cmd = 'mv -f %s /tmp' % file_path
             logger.debug(cmd)
-            runCmd(cmd, 'Error')
+            runCmd(cmd)
         except:
             logger.error('Oops! ', exc_info=1)
     else:
     #             deleteVM(vm_name, V1DeleteOptions())
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+        ignore_pushing = False
         step1_done = False
         try:
-            logger.debug('Callback domain changes to virtlet')
-            vm_xml = get_xml(vm_name)
-            vm_power_state = vm_state(vm_name).get(vm_name)
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            vm_json = updateDomain(loads(vm_json))
-            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-            body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-            modifyVM(vm_name, body)
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+                ignore_pushing = True
+            else:
+                raise e
+        if ignore_pushing:
             step1_done = True
-        except:
-            step1_done = False
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
+        else:
             try:
-                report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                logger.debug('Callback domain changes to virtlet')
+                vm_xml = get_xml(vm_name)
+                vm_power_state = vm_state(vm_name).get(vm_name)
+                vm_json = toKubeJson(xmlToJson(vm_xml))
+                vm_json = updateDomain(loads(vm_json))
+                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+                modifyVM(vm_name, body)
+                step1_done = True
             except:
-                logger.warning('Oops! ', exc_info=1)
+                step1_done = False
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
             try:
                 logger.debug('Callback domain shutdown to virtlet')

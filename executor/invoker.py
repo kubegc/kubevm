@@ -1825,7 +1825,7 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     lines['source'] = source
     lines['virtualport'] = 'openvswitch'
     lines['model'] = model
-    lines['target'] = 'vnet-%s' % (mac.replace(':', '-'))
+    lines['target'] = '%s' % (mac.replace(':', ''))
     
     file_path = _createNICXml(metadata_name, lines)
 
@@ -1893,7 +1893,7 @@ def _network_config_to_dict(data):
             retv['mac'] = randomMAC()
         if not retv.has_key('model'):
             retv['model'] = 'virtio'
-        retv['target'] = 'vnet-%s' % (retv['mac'].replace(':', '-'))
+        retv['target'] = '%s' % (retv['mac'].replace(':', ''))
     return retv
 
 def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):

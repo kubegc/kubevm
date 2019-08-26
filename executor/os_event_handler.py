@@ -793,21 +793,21 @@ def addNodeName(jsondict):
             
 def main():
     observer = Observer()
-    for ob in VOL_DIRS:
-        if not os.path.exists(ob[1]):
-            os.makedirs(ob[1], 0711)
-            try:
-                runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
-            except:
-                os.removedirs(ob[1])
-                logger.error('Oops! ', exc_info=1)
-        event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
-        observer.schedule(event_handler,ob[1],True)
-    for ob in SYSTEM_VOL_DIRS:
-        if not os.path.exists(ob[1]):
-            os.makedirs(ob[1], 0711)
-        event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
-        observer.schedule(event_handler,ob[1],True)
+    # for ob in VOL_DIRS:
+    #     if not os.path.exists(ob[1]):
+    #         os.makedirs(ob[1], 0711)
+    #         try:
+    #             runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
+    #         except:
+    #             os.removedirs(ob[1])
+    #             logger.error('Oops! ', exc_info=1)
+    #     event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+    #     observer.schedule(event_handler,ob[1],True)
+    # for ob in SYSTEM_VOL_DIRS:
+    #     if not os.path.exists(ob[1]):
+    #         os.makedirs(ob[1], 0711)
+    #     event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+    #     observer.schedule(event_handler,ob[1],True)
     for ob in SNAP_DIRS:
         if not os.path.exists(ob[1]):
             os.makedirs(ob[1], 0711)
@@ -832,8 +832,6 @@ def main():
     try:
         logger.debug(VOL_DIRS)
         OLD_PATHS = []
-        for ob in VOL_DIRS:
-            OLD_PATHS.append(ob[1])
         while True:
             paths = _get_all_pool_path()
             for pool in paths.keys():

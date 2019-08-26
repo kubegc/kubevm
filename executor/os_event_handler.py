@@ -119,7 +119,29 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
     #     print(jsondict)
     if  event == "Delete":
         try:
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+            vol_xml = get_volume_xml(pool, name)
+            vol_json = toKubeJson(xmlToJson(vol_xml))
+            jsondict = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            modifyStructure(name, body, group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('Delete vm disk %s, report to virtlet' % name)
+
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
         except:
             logger.error('Oops! ', exc_info=1)
@@ -210,6 +232,28 @@ class VmVolEventHandler(FileSystemEventHandler):
 def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
     #     print(jsondict)
     if  event == "Delete":
+        try:
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+            snap_xml = get_snapshot_xml(vm, name)
+            snap_json = toKubeJson(xmlToJson(snap_xml))
+            snap_json = updateDomainSnapshot(loads(snap_json))
+            jsondict = updateJsonRemoveLifecycle(jsondict, snap_json)
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            modifyStructure(name, body, group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM snapshot %s already deleted, ignore this 404 error.' % name)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         try:
             logger.debug('Delete vm snapshot %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
@@ -305,6 +349,26 @@ class VmSnapshotEventHandler(FileSystemEventHandler):
 def myVmBlockDevEventHandler(event, name, group, version, plural):
     #     print(jsondict)
     if  event == "Delete":
+        try:
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+            block_json = get_block_dev_json(name)
+            jsondict = updateJsonRemoveLifecycle(jsondict, loads(block_json))
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            modifyStructure(name, body, group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM block device %s already deleted, ignore this 404 error.' % name)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         try:
             logger.debug('Delete vm block %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
@@ -458,6 +522,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                 logger.debug('**VM %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
             try:
                 report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
             except:
@@ -605,6 +670,29 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
 #                                                                               namespace='default', 
 #                                                                               plural=plural, 
 #                                                                               name=name)
+        try:
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                          version=version, 
+                                                                          namespace='default', 
+                                                                          plural=plural, 
+                                                                          name=name)
+            with open(xml_path, 'r') as fr:
+                vm_xml = fr.read()
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            modifyStructure(name, body, group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM image %s already deleted, ignore this 404 error.' % name)
+        except:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         try:
             logger.debug('Delete vm image %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)

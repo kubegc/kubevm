@@ -174,18 +174,6 @@ def main():
 #         thread_5.daemon = True
 #         thread_5.name = 'vm_block_dev_watcher'
 #         thread_5.start()
-        thread_6 = Thread(target=UITPoolWatcher)
-        thread_6.daemon = True
-        thread_6.name = 'vm_storage_pool_watcher'
-        thread_6.start()
-        thread_7 = Thread(target=uitDiskWatcher)
-        thread_7.daemon = True
-        thread_7.name = 'uit_disk_watcher'
-        thread_7.start()
-        thread_8 = Thread(target=uitSnapshotWatcher)
-        thread_8.daemon = True
-        thread_8.name = 'uit_snapshot_watcher'
-        thread_8.start()
         thread_9 = Thread(target=vMNetworkWatcher)
         thread_9.daemon = True
         thread_9.name = 'vm_network_watcher'
@@ -1087,66 +1075,6 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         logger.error('Oops! ', exc_info=1)
         raise ExecuteException('VirtctlError', 'write result to apiserver failure')
 
-def verifyUITStoragePoolOperation(the_cmd_key, cmd):
-    success = False
-    kv = {}
-    for i in range(len(cmd.split()) / 2):
-        kv[cmd.split()[i * 2].replace('--', '')] = cmd.split()[i * 2 + 1]
-
-    result, data = runCmdWithResult('cstor-cli pool-list')
-    if result['code'] != 0:
-        raise ExecuteException(the_cmd_key + " exec error", 'verifyUITStoragePoolOperation failure')
-
-    if the_cmd_key == 'createPool':
-        # cstor-cli pooladd-localfs --poolname test --url localfs:///dev/sdb:/pool
-        for pooldata in result['data']:
-            if pooldata['poolname'] == kv['poolname']:
-                success = True
-                break
-    elif the_cmd_key == 'deletePool':
-        success = True
-        for pooldata in data:
-            if pooldata['poolname'] == kv['poolname']:
-                success = False
-    else:
-        success = True
-    if not success:
-        raise ExecuteException(the_cmd_key + " exec error", 'UITStoragePoolOperation not really successful,'
-                                                            ' '+the_cmd_key + ' operation has bug!!!')
-
-def verifyUITDiskOperation(the_cmd_key, cmd):
-    success = False
-    kv = {}
-    for i in range(len(cmd.split()) / 2):
-        kv[cmd.split()[i * 2].replace('--', '')] = cmd.split()[i * 2 + 1]
-
-    result, data = runCmdWithResult('cstor-cli vdisk-show --poolname '+kv['poolname']+' --name '+kv['name'])
-    if result['code'] != 0 and the_cmd_key != 'deleteUITDisk':
-        raise ExecuteException(the_cmd_key + " exec error", 'verifyUITDiskOperation failure')
-
-    if the_cmd_key == 'createUITDisk' or the_cmd_key == 'expandUITDisk':
-        if data['name'] == kv['name'] and data['poolname'] == kv['poolname'] and data['size'] == kv['size']:
-            success = True
-    elif the_cmd_key == 'deleteUITDisk':
-        if result['code'] == 0:
-            raise ExecuteException(the_cmd_key + " exec error", 'verifyUITDiskOperation failure')
-    elif the_cmd_key == 'snapshotUITDisk':
-        result, data = runCmdWithResult('cstor-cli vdisk-show-ss --poolname '+kv['poolname']+
-                                        ' --name '+kv['name']+' --sname '+kv['sname'])
-        if kv['cstor-cli'] == 'vdisk-add-ss':
-            if result['code'] == 0 and data['name'] == kv['name'] and data['poolname'] == kv['poolname'] and data['sname'] == kv['sname']:
-                success = True
-        elif kv['cstor-cli'] == 'vdisk-rr-ss':
-            if result['code'] == 0:
-                success = True
-        elif kv['cstor-cli'] == 'vdisk-rm-ss':
-            if result['code'] != 0:
-                success = True
-    else:
-        success = True
-    if not success:
-        raise ExecuteException(the_cmd_key + " exec error", 'UITDiskOperation not really successful,'
-                                                            ' ' + the_cmd_key + ' operation has bug!!!')
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":

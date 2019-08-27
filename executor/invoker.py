@@ -315,10 +315,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         '''
                         Run network operations
                         '''
-                        if 'network_operations_queue' in dir() and network_operations_queue:
-                            for operation in network_operations_queue:
-                                logger.debug(operation)
-                                runCmd(operation)
+                        if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key) or \
+                        _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+                            if 'network_operations_queue' in dir() and network_operations_queue:
+                                for operation in network_operations_queue:
+                                    logger.debug(operation)
+                                    runCmd(operation)
                     elif operation_type == 'MODIFIED':
                         if is_vm_exists(metadata_name):
                             if _isDeleteVM(the_cmd_key):
@@ -335,12 +337,14 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         '''
                         Run network operations
                         '''
-                        if 'network_operations_queue' in dir() and network_operations_queue:
-                            for operation in network_operations_queue:
-                                logger.debug(operation)
-                                runCmd(operation)
-                    elif operation_type == 'DELETED':
-                        logger.debug('Delete custom object by client.')
+                        if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key) or \
+                        _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+                            if 'network_operations_queue' in dir() and network_operations_queue:
+                                for operation in network_operations_queue:
+                                    logger.debug(operation)
+                                    runCmd(operation)
+#                     elif operation_type == 'DELETED':
+#                         logger.debug('Delete custom object by client.')
     #                     if is_vm_exists(metadata_name):
     #                         if is_vm_active(metadata_name):
     #                             destroy(metadata_name)

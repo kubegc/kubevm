@@ -33,7 +33,7 @@ from xmljson import badgerfish as bf
 '''
 Import local libs
 '''
-from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path
+from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path, get_all_vnc_info
 from utils import logger
 from utils.utils import runCmdRaiseException, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
@@ -790,6 +790,22 @@ def addNodeName(jsondict):
         if spec:
             jsondict['spec']['nodeName'] = HOSTNAME
     return jsondict
+
+
+DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/'
+DEFAULT_TT_FILE = '/root/noVNC/websockify/token'
+def support_tt():
+    file_dir = os.path.split(DEFAULT_TT_FILE_PATH)[0]
+    if not os.path.isdir(file_dir):
+        os.makedirs(file_dir)
+
+    with open(DEFAULT_TT_FILE, "w+") as f:
+        f.truncate()
+        lines = []
+        vnc_infos = get_all_vnc_info()
+        for vm in vnc_infos.keys():
+            lines.append(vm+': '+vnc_infos[vm]+'\n')
+        f.writelines(lines)
             
 def main():
     observer = Observer()
@@ -840,6 +856,10 @@ def main():
                     event_handler = VmVolEventHandler(pool, paths[pool], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
                     observer.schedule(event_handler, paths[pool], True)
             OLD_PATHS = paths.values()
+
+
+            # support tt
+            support_tt()
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()

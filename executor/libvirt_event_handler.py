@@ -152,12 +152,12 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
                                 (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
                         cfg = ''
+                        switch = ''
+                        ip = ''
                         if os.path.exists(net_cfg_file_path):
                             with open(net_cfg_file_path, 'r') as fr:
                                 cfg = fr.read()
                         if cfg:
-                            switch = ''
-                            ip = ''
 #                             vxlan = ''
                             for line in cfg.split("\n"):
                                 line = line.strip()

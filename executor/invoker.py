@@ -98,7 +98,7 @@ GROUP_UIT_SNAPSHOT = config_raw.get('UITSnapshot', 'group')
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 
-LABEL = 'host=%s' % (get_hostname_in_lower_case())
+LABEL = 'host=vm.%s' % (get_hostname_in_lower_case())
 
 TIMEOUT = config_raw.get('WatcherTimeout', 'timeout')
 

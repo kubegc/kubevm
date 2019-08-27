@@ -835,7 +835,7 @@ def main():
         while True:
             paths = _get_all_pool_path()
             for pool in paths.keys():
-                if paths[pool] not in OLD_PATHS:
+                if paths[pool] not in OLD_PATHS and os.path.isdir(paths[pool]):
                     logger.debug(paths[pool])
                     event_handler = VmVolEventHandler(pool, paths[pool], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
                     observer.schedule(event_handler, paths[pool], True)

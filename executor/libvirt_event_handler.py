@@ -100,8 +100,10 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         try:
                             modifyVM(vm_name, body)
                             time.sleep(0.5)
-                        except:
+                        except ApiException, e:
                             i -= 1
+                            if i == 0:
+                                raise e
                         if i == 3:
                             break;
                     step1_done = True

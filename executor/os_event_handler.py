@@ -843,6 +843,8 @@ def main():
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
+    except:
+        logger.warning('Oops! ', exc_info=1)
     observer.join()    
 
 if __name__ == "__main__":

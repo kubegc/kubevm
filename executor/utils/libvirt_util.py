@@ -90,7 +90,10 @@ def _get_all_pool_path():
 
 def _get_pool_info(pool_):
     pool = _get_pool(pool_)
-    pool.refresh()
+    try:
+        pool.refresh()
+    except:
+        pass
     lines = pool.XMLDesc()
     result = runCmdWithResult('virsh pool-info ' + pool_)
     del result['allocation']

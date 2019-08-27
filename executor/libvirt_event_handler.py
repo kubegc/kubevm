@@ -98,7 +98,17 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     vm_json = updateDomain(loads(vm_json))
                     jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
                     body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-                    modifyVM(vm_name, body)
+                    i=3
+                    while (i>0):
+                        try:
+                            modifyVM(vm_name, body)
+                            time.sleep(0.5)
+                        except ApiException, e:
+                            i -= 1
+                            if i == 0:
+                                raise e
+                        if i == 3:
+                            break;
                     step1_done = True
                 except:
                     step1_done = False

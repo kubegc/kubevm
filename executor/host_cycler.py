@@ -85,7 +85,7 @@ class HostCycler:
         return V1ObjectMeta(annotations=[], name=HOSTNAME, uid='', labels=[], resource_version='', self_link='')
     
     def get_status_address(self):
-        ip = socket.gethostbyname(HOSTNAME)
+        ip = socket.gethostbyname(socket.gethostname())
         node_status_address1 = V1NodeAddress(address=ip, type='InternalIP')
         node_status_address2 = V1NodeAddress(address=HOSTNAME, type='Hostname')
         return [node_status_address1, node_status_address2]

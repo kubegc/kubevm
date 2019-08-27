@@ -792,20 +792,20 @@ def addNodeName(jsondict):
     return jsondict
 
 
-DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/'
-DEFAULT_TT_FILE = '/root/noVNC/websockify/token'
-def support_tt():
-    file_dir = os.path.split(DEFAULT_TT_FILE_PATH)[0]
-    if not os.path.isdir(file_dir):
-        os.makedirs(file_dir)
-
-    with open(DEFAULT_TT_FILE, "w+") as f:
-        f.truncate()
-        lines = []
-        vnc_infos = get_all_vnc_info()
-        for vm in vnc_infos.keys():
-            lines.append(vm+': '+vnc_infos[vm]+'\n')
-        f.writelines(lines)
+# DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
+# def support_tt():
+#     file_dir = os.path.split(DEFAULT_TT_FILE_PATH)[0]
+#
+#     if not os.path.isdir(file_dir):
+#         os.makedirs(file_dir)
+#
+#     with open(DEFAULT_TT_FILE_PATH, "w+") as f:
+#         f.truncate()
+#         lines = []
+#         vnc_infos = get_all_vnc_info()
+#         for vm in vnc_infos.keys():
+#             lines.append(vm+': '+vnc_infos[vm]+'\n')
+#         f.writelines(lines)
             
 def main():
     observer = Observer()
@@ -857,9 +857,6 @@ def main():
                     observer.schedule(event_handler, paths[pool], True)
             OLD_PATHS = paths.values()
 
-
-            # support tt
-            support_tt()
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()

@@ -188,6 +188,15 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
     except:
         logger.error('Oops! ', exc_info=1)
 
+def ttDomainEventHandler(conn, dom, *args, **kwargs):
+    try:
+        vm_name = dom.name()
+        logger.debug("liuhe")
+        logger.debug(type(dom))
+        logger.debug(dom)
+    except:
+        logger.error('Oops! ', exc_info=1)
+
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)

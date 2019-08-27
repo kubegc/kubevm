@@ -127,7 +127,7 @@ def get_l3_network_info(name):
     switchId = switchInfo.get('id')
     if not switchId:
         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
+    lines = runCmdRaiseException('ovn-nbctl show net | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\'' % (name))
     if not lines:
         raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
     gatewayInfo['id'] = lines[0].strip()

@@ -97,14 +97,13 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
                     i=3
                     while (i>0):
-                        if i == 3:
-                            break;
                         try:
                             modifyVM(vm_name, body)
                             time.sleep(0.5)
                         except:
                             i -= 1
-                            modifyVM(vm_name, body)
+                        if i == 3:
+                            break;
                     step1_done = True
                 except:
                     step1_done = False

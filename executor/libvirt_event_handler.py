@@ -102,6 +102,16 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                             time.sleep(0.5)
                         except ApiException, e:
                             i -= 1
+                            try:
+                                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+                                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                                body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+                            except ApiException, e:
+                                if e.reason == 'Not Found':
+                                    logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+                                    ignore_pushing = True
+                            except Exception, e:
+                                raise e
                             if i == 0:
                                 raise e
                         if i == 3:

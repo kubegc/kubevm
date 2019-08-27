@@ -770,6 +770,15 @@ def get_boot_disk_path(vm_):
     else:
         raise Exception('VM %s has no disks.' % vm_)
 
+def get_all_vnc_info():
+    vms = list_vms()
+    vnc_infos = {}
+    for vm in vms:
+        if is_vm_active(vm):
+            vnc_info = get_graphics(vm)
+            vnc_infos[vm] = vnc_info['listen']+':'+vnc_info['port']
+    return vnc_infos
+
 def runCmdWithResult(cmd):
     if not cmd:
         #         logger.debug('No CMD to execute.')

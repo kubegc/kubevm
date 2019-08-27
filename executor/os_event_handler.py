@@ -791,21 +791,6 @@ def addNodeName(jsondict):
             jsondict['spec']['nodeName'] = HOSTNAME
     return jsondict
 
-
-# DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
-# def support_tt():
-#     file_dir = os.path.split(DEFAULT_TT_FILE_PATH)[0]
-#
-#     if not os.path.isdir(file_dir):
-#         os.makedirs(file_dir)
-#
-#     with open(DEFAULT_TT_FILE_PATH, "w+") as f:
-#         f.truncate()
-#         lines = []
-#         vnc_infos = get_all_vnc_info()
-#         for vm in vnc_infos.keys():
-#             lines.append(vm+': '+vnc_infos[vm]+'\n')
-#         f.writelines(lines)
             
 def main():
     observer = Observer()

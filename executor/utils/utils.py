@@ -4,11 +4,13 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
+from libvirt_util import get_graphics
 
 '''
 Import python libs
 '''
 import fcntl
+import socket
 import errno
 from functools import wraps
 import os, sys, time, signal, atexit, subprocess
@@ -32,7 +34,39 @@ class parser(ConfigParser.ConfigParser):
     def __init__(self,defaults=None):  
         ConfigParser.ConfigParser.__init__(self,defaults=None)  
     def optionxform(self, optionstr):  
-        return optionstr 
+        return optionstr
+
+DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
+
+def get_IP():
+    myname = socket.getfqdn(socket.gethostname())
+    myaddr = socket.gethostbyname(myname)
+    return myaddr
+
+def modify_token(vm_name, op):
+    file_dir = os.path.split(DEFAULT_TT_FILE_PATH)[0]
+    print file_dir
+    if not os.path.isdir(file_dir):
+        os.makedirs(file_dir)
+    lines = []
+    if os.path.exists(DEFAULT_TT_FILE_PATH):
+        with open(DEFAULT_TT_FILE_PATH, "r") as f:
+            lines = f.readlines()
+
+    with open(DEFAULT_TT_FILE_PATH, "w") as f:
+        print 'debug'
+        for line in lines:
+            if line.strip('\n').split(':')[0] != vm_name:
+                f.write(line)
+        if op != 'Stopped':
+            vnc_info = get_graphics(vm_name)
+            if vnc_info['listen'] == '0.0.0.0':
+                newline = vm_name + ': ' + get_IP() + ':' + vnc_info['port'] + '\n'
+                f.write(newline)
+            else:
+                newline = vm_name + ': ' + vnc_info['listen'] + ':' + vnc_info['port'] +'\n'
+                f.write(newline)
+
 
 def get_l3_network_info(name):
     cfg = "%s/../default.cfg" % os.path.dirname(os.path.realpath(__file__))
@@ -814,6 +848,8 @@ class CDaemon:
     def run(self, *args, **kwargs):
         'NOTE: override the method in subclass'
         print 'base class run()'
+
+
 
 if __name__ == '__main__':
     print(get_l3_network_info('sw12'))

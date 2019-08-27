@@ -36,7 +36,8 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
-from utils.utils import singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, runCmdRaiseException, runCmd
+from utils.utils import singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+    runCmdRaiseException, runCmd, modify_token
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -61,10 +62,20 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 def myDomainEventHandler(conn, dom, *args, **kwargs):
     try:
         vm_name = dom.name()
-        logger.debug("liuhe")
-        logger.debug(type(dom))
-        logger.debug(dom)
-        #     print(jsondict)
+        # print '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        # print vm_name
+        # print kwargs
+
+        # support tt
+        if kwargs.has_key('detail') and kwargs.has_key('event'):
+            event = str(DOM_EVENTS[kwargs['event']])
+            detail = str(DOM_EVENTS[kwargs['event']][kwargs['detail']])
+
+            if event == 'Started' and detail == 'Booted':
+                modify_token(vm_name, 'Started')
+            elif event == 'Stopped' and detail == 'Destroyed':
+                modify_token(vm_name, 'Stopped')
+
         if kwargs.has_key('event') and kwargs.has_key('detail') and \
         str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
         str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
@@ -185,6 +196,9 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                     except:
                         logger.warning('Oops! ', exc_info=1)
+
+
+
     except:
         logger.error('Oops! ', exc_info=1)
 

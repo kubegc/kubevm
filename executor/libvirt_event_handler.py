@@ -70,7 +70,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         if kwargs.has_key('detail') and kwargs.has_key('event'):
             event = str(DOM_EVENTS[kwargs['event']])
             detail = str(DOM_EVENTS[kwargs['event']][kwargs['detail']])
-
+            logger.debug(event+"    "+detail)
             if event == 'Started' and detail == 'Booted':
                 modify_token(vm_name, 'Started')
             elif event == 'Stopped' and detail == 'Destroyed':

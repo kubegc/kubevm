@@ -193,9 +193,9 @@ def main():
         thread_3.join()
         thread_4.join()
 #         thread_5.join()
-        thread_6.join()
-        thread_7.join()
-        thread_8.join()
+#         thread_6.join()
+#         thread_7.join()
+#         thread_8.join()
         thread_9.join()
         thread_10.join()
     except:

@@ -105,7 +105,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                     except:
                         logger.warning('Oops! ', exc_info=1)
-            if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
+            if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
                     macs = get_macs(vm_name)

@@ -127,11 +127,15 @@ def get_l3_network_info(name):
     switchId = switchInfo.get('id')
     if not switchId:
         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show net | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name))
+    cmd = 'ovn-nbctl --db=tcp:%s:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name, name)
+#     print(cmd)
+    lines = runCmdRaiseException(cmd)
     if not lines:
         raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
     gatewayInfo['id'] = lines[0].strip()
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id']))
+    cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
+#     print(cmd)
+    lines = runCmdRaiseException(cmd)
     for line in lines:
         if line.find('server_mac') != -1:
             (_, gatewayInfo['server_mac']) = line.strip().split('=')
@@ -812,4 +816,4 @@ class CDaemon:
         print 'base class run()'
 
 if __name__ == '__main__':
-    print(get_l3_network_info('nettt'))
+    print(get_l3_network_info('sw12'))

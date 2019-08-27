@@ -323,7 +323,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         if is_vm_exists(metadata_name):
                             if _isDeleteVM(the_cmd_key):
                                 if is_vm_active(metadata_name):
-                                    raise ExecuteException('VirtctlError', 'VM %s is running, stop it first.' % metadata_name)
+                                    destroy(metadata_name)
                                 if cmd:
                                     runCmd(cmd)
 #                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)

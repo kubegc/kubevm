@@ -61,6 +61,9 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 def myDomainEventHandler(conn, dom, *args, **kwargs):
     try:
         vm_name = dom.name()
+        logger.debug("liuhe")
+        logger.debug(type(dom))
+        logger.debug(dom)
         #     print(jsondict)
         if kwargs.has_key('event') and kwargs.has_key('detail') and \
         str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \

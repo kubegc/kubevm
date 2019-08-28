@@ -142,16 +142,6 @@ def update_online():
     stop(ignore_warning=True)
     time.sleep(3)
     start(ignore_warning=True)
-    time.sleep(1)
-    (virtctl_container_id, _, virtlet_container_id, _) = status(ignore_warning=True)
-    if not virtctl_container_id or not virtlet_container_id:
-        print('error: service \'virtctl\' or \'virtlet\' is not running\n')
-        sys.exit(1)
-    (_, err) = runCmd("docker exec %s bash -c \"cp -f /home/kubevmm/bin/config /etc/kubevmm\"")
-    if err:
-        print('update \'config\' file failed')
-        print('error: %s\n')
-        sys.exit(1)
 
 def update_offline(pack, ignore_warning=True):
     print('updating from package \'%s\'' % pack)

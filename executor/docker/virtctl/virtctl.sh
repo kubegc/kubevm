@@ -14,4 +14,5 @@
 #chmod +x dist/vmm
 #cp -f dist/vmm /usr/bin
 
+cp -f /home/kubevmm/bin/config /etc/kubevmm
 python virtctl_in_docker.py

@@ -6,5 +6,5 @@
 ##
 ################################################################
 
-
+cp -f /home/kubevmm/bin/config /etc/kubevmm
 python virtlet_in_docker.py

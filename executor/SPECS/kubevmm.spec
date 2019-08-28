@@ -30,7 +30,7 @@ install %{SOURCE1} %{buildroot}/%{_usr}/bin/vmm
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
-nstall %{SOURCE3} %{buildroot}/etc/kubevmm
+install %{SOURCE3} %{buildroot}/etc/kubevmm
 
 %clean
 rm -rf %{buildroot}

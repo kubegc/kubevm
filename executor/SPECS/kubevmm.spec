@@ -15,7 +15,7 @@ URL:            https://github.com/kubesys
 Source0:        kubevmm-adm
 Source1:        vmm
 Source2:        VERSION
-Source3:		config
+Source3:        config
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -39,4 +39,6 @@ rm -rf %{buildroot}
 %defattr(755, -, -)
 /%{_usr}/bin/kubevmm-adm
 /%{_usr}/bin/vmm
+%defattr(644, -, -)
 /etc/kubevmm/VERSION
+/etc/kubevmm/config

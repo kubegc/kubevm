@@ -18,7 +18,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 import invoker
-from utils.utils import CDaemon
+from utils.utils import CDaemon, singleton
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -27,7 +27,9 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr 
     
-cfg = "%s/default.cfg" % os.path.dirname(os.path.realpath(__file__))
+cfg = "/etc/kubevmm/config"
+if not os.path.exists(cfg):
+    cfg = "/home/kubevmm/bin/config"
 config_raw = parser()
 config_raw.read(cfg)
 
@@ -39,6 +41,7 @@ class ClientDaemon(CDaemon):
         CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
         self.name = name
  
+    @singleton('/var/run/virtctl_daemon.pid')
     def run(self, output_fn, **kwargs):
         config.load_kube_config(config_file=TOKEN)
         try:

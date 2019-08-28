@@ -5,6 +5,8 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuheng@otcaix.iscas.ac.cn
 
 '''
+from json import loads
+
 
 '''
 Import python libs
@@ -72,14 +74,43 @@ def _get_pool(pool_):
     if pool_ not in list_pools():
         raise Exception('The specified pool is not present(%s).' % pool_)
     pool = conn.storagePoolLookupByName(pool_)
+    return pool
+
+def _get_all_pool_path():
+    paths = {}
+    for pool_ in list_pools():
+        pool = _get_pool(pool_)
+        # pool.refresh()
+        lines = pool.XMLDesc()
+        for line in lines.split():
+            if line.find("path") >= 0:
+                paths[pool_] = line.replace('<path>', '').replace('</path>', '')
+                break
+    return paths
+
+def _get_pool_info(pool_):
+    pool = _get_pool(pool_)
     try:
         pool.refresh()
     except:
         pass
-    return pool
+    lines = pool.XMLDesc()
+    result = runCmdWithResult('virsh pool-info ' + pool_)
+    del result['allocation']
+    del result['available']
+    for line in lines.split():
+        if line.find("path") >= 0:
+            result['path'] = line.replace('<path>', '').replace('</path>', '')
+            break
+    return result
+
 
 def _get_vol(pool_, vol_):
     pool = _get_pool(pool_)
+    try:
+        pool.refresh()
+    except:
+        pass
     return pool.storageVolLookupByName(vol_)
 
 def _get_all_snapshots(vm_):
@@ -92,6 +123,11 @@ def _get_snapshot(vm_, snap_):
 
 def is_vm_exists(vm_):
     if vm_ in list_vms():
+        return True
+    return False
+
+def is_pool_exists(pool_):
+    if pool_ in list_pools():
         return True
     return False
 
@@ -674,7 +710,12 @@ def list_pools():
 
 def get_pool_path(pool_):
     pool = _get_pool(pool_)
-    return pool.XMLDesc(0)
+    lines = pool.XMLDesc(0)
+    for line in lines.split():
+        if line.find("path") >= 0:
+            path = line.replace("<path>", "").replace("</path>", "")
+            return path
+    return None
 
 def get_pool_xml(pool_):
     pool = _get_pool(pool_)
@@ -729,9 +770,50 @@ def get_boot_disk_path(vm_):
     else:
         raise Exception('VM %s has no disks.' % vm_)
 
+def get_all_vnc_info():
+    vms = list_vms()
+    vnc_infos = {}
+    for vm in vms:
+        if is_vm_active(vm):
+            vnc_info = get_graphics(vm)
+            vnc_infos[vm] = vnc_info['listen']+':'+vnc_info['port']
+    return vnc_infos
+
+def runCmdWithResult(cmd):
+    if not cmd:
+        #         logger.debug('No CMD to execute.')
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_err:
+            error_msg = ''
+            for index, line in enumerate(std_err):
+                if not str.strip(line):
+                    continue
+                else:
+                    error_msg = error_msg + str.strip(line)
+            error_msg = str.strip(error_msg)
+            raise Exception(error_msg)
+        if std_out:
+            result = {}
+            for index, line in enumerate(std_out):
+                if not str.strip(line):
+                    continue
+                line = str.strip(line)
+                kv = line.replace(':', '').split()
+                result[kv[0].lower()] = kv[1]
+            return result
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
 if __name__ == '__main__':
-    pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
-    print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
-#     print(get_pool_xml('volumes'))
+    # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
+    # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
+    # print(get_pool_xml('pool1'))
+    # print _get_pool("pool1").info()
+    print _get_all_pool_path()
 #     print(list_volumes('volumes'))
 #     print(get_volume_xml('volumes', 'ddd.qcow2'))

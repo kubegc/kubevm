@@ -51,7 +51,7 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr 
 
-cfg = "%s/default.cfg" % os.path.dirname(os.path.realpath(__file__))
+cfg = "/etc/kubevmm/config"
 config_raw = parser()
 config_raw.read(cfg)
 
@@ -962,7 +962,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
                         else:
-                            raise ExecuteException('VirtctlError', 'has existed %s pool!' % (pool_name))
+                            poolJson = _get_pool_info(pool_name)
+                            write_result_to_server(group, version, 'default', plural,
+                                                   involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
                     elif operation_type == 'MODIFIED':
                         if is_pool_exists(pool_name):
                             runCmd(cmd)

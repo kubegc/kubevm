@@ -1,5 +1,6 @@
 [Kubernetes]
 token_file = /root/.kube/config
+hostname_prefix = vm
 
 [WatcherTimeout]
 timeout = 31536000
@@ -49,6 +50,11 @@ plural = virtualmachinesnapshots
 group = cloudplus.io
 version = v1alpha3
 plural = virtualmachineuitdisks
+
+[VirtualMahcinePool]
+group = cloudplus.io
+version = v1alpha3
+plural = virtualmachinepools
 
 [VirtualMachineSupportCmdsWithNameField]
 createAndStartVMFromISO = virt-install
@@ -102,6 +108,18 @@ deleteSnapshot = virsh snapshot-delete
 createImage = virt-install
 convertImageToVM = /usr/bin/vmm convert_image_to_vm
 
+[VirtualMachineImageSupportCmdsWithDomainField]
+deleteImage = virsh undefine
+
+[VirtualMahcinePoolSupportCmdsWithNameField]
+createPool = virsh pool-create-as
+
+[VirtualMahcinePoolSupportCmdsWithPoolField]
+deletePool = virsh pool-destroy
+startPool = virsh pool-start
+autoStart = virsh pool-autostart
+unregisterPool = virsh pool-undefine
+
 [UITStoragePool]
 group = cloudplus.io
 version = v1alpha3
@@ -150,7 +168,10 @@ deleteSwitch = kubeovn-adm remove-switch
 [NetworkSupportCmdsWithSwitchField]
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
-setBridgeVlan =  todo
+setPortVlan = kubeovn-adm setport-vlan
+delPortVlan = kubeovn-adm delport-vlan
+setPortVxlan = kubeovn-adm setport-vxlan
+delPortVxlan = kubeovn-adm delport-vxlan
 createFloatIP = todo
 deleteFloatIP = todo
 bindFloatIP = todo

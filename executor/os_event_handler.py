@@ -469,16 +469,16 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
     if  event == "Create":
         try:
             logger.debug('***Create VM %s from back-end, report to virtlet***' % name)
-#                 jsondict = {'spec': {'domain': {}, 'nodeName': HOSTNAME, 'status': {}}, 
-#                             'kind': VM_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
-#                 vm_xml = get_xml(name)
-#                 vm_power_state = vm_state(name).get(name)
-#                 vm_json = toKubeJson(xmlToJson(vm_xml))
-#                 vm_json = updateDomain(loads(vm_json))
-#                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-#                 jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-#                 body = addNodeName(jsondict)
-#                 createStructure(body, group, version, plural)
+            jsondict = {'spec': {'domain': {}, 'nodeName': HOSTNAME, 'status': {}}, 
+                        'kind': VM_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
+            vm_xml = get_xml(name)
+            vm_power_state = vm_state(name).get(name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+            body = addNodeName(jsondict)
+            createStructure(body, group, version, plural)
         except:
             logger.error('Oops! ', exc_info=1)
     elif event == "Modify":

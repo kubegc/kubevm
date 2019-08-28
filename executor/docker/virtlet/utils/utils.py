@@ -4,11 +4,13 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
+from libvirt_util import get_graphics
 
 '''
 Import python libs
 '''
 import fcntl
+import socket
 import errno
 from functools import wraps
 import os, sys, time, signal, atexit, subprocess
@@ -32,16 +34,49 @@ class parser(ConfigParser.ConfigParser):
     def __init__(self,defaults=None):  
         ConfigParser.ConfigParser.__init__(self,defaults=None)  
     def optionxform(self, optionstr):  
-        return optionstr 
+        return optionstr
 
-cfg = "%s/../default.cfg" % os.path.dirname(os.path.realpath(__file__))
-config_raw = parser()
-config_raw.read(cfg)
+DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
 
-TOKEN = config_raw.get('Kubernetes', 'token_file')
+def get_IP():
+    myname = socket.getfqdn(socket.gethostname())
+    myaddr = socket.gethostbyname(myname)
+    return myaddr
+
+def modify_token(vm_name, op):
+    file_dir = os.path.split(DEFAULT_TT_FILE_PATH)[0]
+    print file_dir
+    if not os.path.isdir(file_dir):
+        os.makedirs(file_dir)
+    lines = []
+    if os.path.exists(DEFAULT_TT_FILE_PATH):
+        with open(DEFAULT_TT_FILE_PATH, "r") as f:
+            lines = f.readlines()
+
+    with open(DEFAULT_TT_FILE_PATH, "w") as f:
+        print 'debug'
+        for line in lines:
+            if line.strip('\n').split(':')[0] != vm_name:
+                f.write(line)
+        if op != 'Stopped':
+            vnc_info = get_graphics(vm_name)
+            if vnc_info['listen'] == '0.0.0.0':
+                newline = vm_name + ': ' + get_IP() + ':' + vnc_info['port'] + '\n'
+                f.write(newline)
+            else:
+                newline = vm_name + ': ' + vnc_info['listen'] + ':' + vnc_info['port'] +'\n'
+                f.write(newline)
+
 
 def get_l3_network_info(name):
-    master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % TOKEN)[0].strip()
+    cfg = "/etc/kubevmm/config"
+    if not os.path.exists(cfg):
+        cfg = "/home/kubevmm/bin/config"
+    config_raw = parser()
+    config_raw.read(cfg)
+    token = config_raw.get('Kubernetes', 'token_file')
+    
+    master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
     nb_port = '6641'
     sb_port = '6642'
     data = {'switchInfo': '', 'routerInfo': '', 'gatewayInfo': ''}
@@ -128,11 +163,15 @@ def get_l3_network_info(name):
     switchId = switchInfo.get('id')
     if not switchId:
         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
+    cmd = 'ovn-nbctl --db=tcp:%s:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name, name)
+#     print(cmd)
+    lines = runCmdRaiseException(cmd)
     if not lines:
         raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
     gatewayInfo['id'] = lines[0].strip()
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id']))
+    cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
+#     print(cmd)
+    lines = runCmdRaiseException(cmd)
     for line in lines:
         if line.find('server_mac') != -1:
             (_, gatewayInfo['server_mac']) = line.strip().split('=')
@@ -203,7 +242,16 @@ def pid_exists(pid):
         return True
 
 def get_hostname_in_lower_case():
-    return socket.gethostname().lower()
+    cfg = "/etc/kubevmm/config"
+    if not os.path.exists(cfg):
+        cfg = "/home/kubevmm/bin/config"
+    config_raw = parser()
+    config_raw.read(cfg)
+    prefix = config_raw.get('Kubernetes', 'hostname_prefix')
+    if prefix == 'vm':
+        return 'vm.%s' % socket.gethostname().lower()
+    else:
+        return socket.gethostname().lower()
 
 def normlize(s):
     return s[:1].upper() + s[1:]
@@ -286,7 +334,7 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
 
-def runCmdRaiseException(cmd):
+def runCmdRaiseException(cmd, head='VirtctlError'):
     std_err = None
     if not cmd:
         return
@@ -295,7 +343,7 @@ def runCmdRaiseException(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_err:
-            raise ExecuteException('VirtctlError', std_err)
+            raise ExecuteException(head, std_err)
         return std_out
     finally:
         p.stdout.close()
@@ -812,5 +860,7 @@ class CDaemon:
         'NOTE: override the method in subclass'
         print 'base class run()'
 
+
+
 if __name__ == '__main__':
-    print(get_l3_network_info('nettt'))
+    print(get_l3_network_info('sw12'))

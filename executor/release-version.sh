@@ -34,8 +34,8 @@ fi
 ##############################patch image#########################################
 
 # step 1 copy file
-cp -rf utils arraylist.cfg default.cfg invoker.py virtctl.py docker/virtctl
-cp -rf utils arraylist.cfg default.cfg host_cycler.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
+cp -rf utils config arraylist.cfg invoker.py virtctl.py docker/virtctl
+cp -rf utils config arraylist.cfg host_cycler.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
 
 #step 2 docker build
 cd docker
@@ -60,6 +60,10 @@ docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${V
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"
 cd ..
+if [ ! -d "./dist" ]; then
+	mkdir ./dist
+fi
+cp -f config ./dist
 sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
 mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
 if [ $? -ne 0 ]; then

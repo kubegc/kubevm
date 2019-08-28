@@ -27,7 +27,9 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr 
     
-cfg = "%s/default.cfg" % os.path.dirname(os.path.realpath(__file__))
+cfg = "/etc/kubevmm/config"
+if not os.path.exists(cfg):
+    cfg = "/home/kubevmm/bin/config"
 config_raw = parser()
 config_raw.read(cfg)
 

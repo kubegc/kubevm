@@ -40,7 +40,7 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists
+from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
 from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
@@ -51,7 +51,9 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr 
 
-cfg = "%s/default.cfg" % os.path.dirname(os.path.realpath(__file__))
+cfg = "/etc/kubevmm/config"
+if not os.path.exists(cfg):
+    cfg = "/home/kubevmm/bin/config"
 config_raw = parser()
 config_raw.read(cfg)
 
@@ -75,12 +77,17 @@ PLURAL_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'plural')
 VERSION_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'version')
 GROUP_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'group')
 
+
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
 
-PLURAL_STORAGE_POOL = config_raw.get('UITStoragePool', 'plural')
-VERSION_STORAGE_POOL = config_raw.get('UITStoragePool', 'version')
-GROUP_STORAGE_POOL = config_raw.get('UITStoragePool', 'group')
+PLURAL_VM_POOL = config_raw.get('VirtualMahcinePool', 'plural')
+VERSION_VM_POOL = config_raw.get('VirtualMahcinePool', 'version')
+GROUP_VM_POOL = config_raw.get('VirtualMahcinePool', 'group')
+
+PLURAL_UIT_POOL = config_raw.get('UITStoragePool', 'plural')
+VERSION_UIT_POOL = config_raw.get('UITStoragePool', 'version')
+GROUP_UIT_POOL = config_raw.get('UITStoragePool', 'group')
 
 PLURAL_UIT_DISK = config_raw.get('UITDisk', 'plural')
 VERSION_UIT_DISK = config_raw.get('UITDisk', 'version')
@@ -112,9 +119,10 @@ ALL_SUPPORT_CMDS_WITH_NAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_VOL_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = {}
-ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -128,11 +136,13 @@ for k,v in config_raw._sections.items():
         elif string.find(k, 'WithSnapNameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD, **v)
         elif string.find(k, 'WithPoolNameField') != -1:
-            ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
+            ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD, **v)
         elif string.find(k, 'WithSnameField') != -1:
             ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SNAME_FIELD, **v)
         elif string.find(k, 'WithSwitchField') != -1:
             ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD, **v)
+        elif string.find(k, 'WithPoolField') != -1:
+            ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
 
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -162,26 +172,18 @@ def main():
         thread_4.daemon = True
         thread_4.name = 'vm_snapshot_watcher'
         thread_4.start()
-        thread_5 = Thread(target=vMBlockDevWatcher)
-        thread_5.daemon = True
-        thread_5.name = 'vm_block_dev_watcher'
-        thread_5.start()
-        thread_6 = Thread(target=storagePoolWatcher)
-        thread_6.daemon = True
-        thread_6.name = 'vm_storage_pool_watcher'
-        thread_6.start()
-        thread_7 = Thread(target=uitDiskWatcher)
-        thread_7.daemon = True
-        thread_7.name = 'uit_disk_watcher'
-        thread_7.start()
-        thread_8 = Thread(target=uitSnapshotWatcher)
-        thread_8.daemon = True
-        thread_8.name = 'uit_snapshot_watcher'
-        thread_8.start()
+#         thread_5 = Thread(target=vMBlockDevWatcher)
+#         thread_5.daemon = True
+#         thread_5.name = 'vm_block_dev_watcher'
+#         thread_5.start()
         thread_9 = Thread(target=vMNetworkWatcher)
         thread_9.daemon = True
         thread_9.name = 'vm_network_watcher'
         thread_9.start()
+        thread_10 = Thread(target=vMPoolWatcher)
+        thread_10.daemon = True
+        thread_10.name = 'vm_pool_watcher'
+        thread_10.start()
         
         try:
             while True:
@@ -192,11 +194,12 @@ def main():
         thread_2.join()
         thread_3.join()
         thread_4.join()
-        thread_5.join()
-        thread_6.join()
-        thread_7.join()
-        thread_8.join()
+#         thread_5.join()
+#         thread_6.join()
+#         thread_7.join()
+#         thread_8.join()
         thread_9.join()
+        thread_10.join()
     except:
         logger.error('Oops! ', exc_info=1)
         
@@ -219,45 +222,50 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
                 if _isInstallVMFromISO(the_cmd_key):
+                    '''
+                    Parse network configurations
+                    '''
                     network_config = _get_field(jsondict, the_cmd_key, 'network')
-                    logger.debug(network_config)
-                    config_dict = _network_config_to_dict(network_config)
+                    config_dict = _network_config_parser(network_config)
                     logger.debug(config_dict)
-                    if config_dict.get('ovsbridge') and config_dict.get('switch'):
-                        plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        libvirt_mac = "fe:%s" % config_dict.get('mac')[3:]
-                        bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), libvirt_mac, config_dict.get('switch'))
-                        jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
+                    jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isInstallVMFromImage(the_cmd_key):
                     template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
                     if not os.path.exists(template_path):
                         raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
                     new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
                     jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
+                    '''
+                    Parse network configurations
+                    '''
                     network_config = _get_field(jsondict, the_cmd_key, 'network')
-                    config_dict = _network_config_to_dict(network_config)
-                    if config_dict.get('ovsbridge') and config_dict.get('switch'):
-                        plugNICCmd = createNICFromXmlCmd(metadata_name, config_dict)
-                        libvirt_mac = "fe:%s" % config_dict.get('mac')[3:]
-                        bindSwPortCmd = '%s --mac %s --switch %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), libvirt_mac, config_dict.get('switch'))
-                        jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+                    config_dict = _network_config_parser(network_config)
+                    logger.debug(config_dict)
+                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
+                    jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
                 if _isDeleteVM(the_cmd_key):
                     if not is_vm_exists(metadata_name):
                         logger.debug('***VM %s already deleted!***' % metadata_name)
                         continue
-                if _isPlugNIC(the_cmd_key):
-                    network_type = _get_field(jsondict, the_cmd_key, 'type')
-                    if network_type == 'ovsbridge':
-                        (jsondict, the_cmd_key, file_path) = createNICFromXml(metadata_name, jsondict, the_cmd_key)
-                if _isUnplugNIC(the_cmd_key):
-                    network_type = _get_field(jsondict, the_cmd_key, 'type')
-                    if network_type == 'ovsbridge':
-                        (jsondict, the_cmd_key, file_path) = deleteNICFromXml(metadata_name, jsondict, the_cmd_key)
+                if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key):
+                    '''
+                    Parse network configurations
+                    '''
+                    network_config = _get_fields(jsondict, the_cmd_key)
+                    logger.debug(network_config)
+                    config_dict = _network_config_parser_json(the_cmd_key, network_config)
+                    logger.debug(config_dict)
+                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
+                    jsondict = deleteLifecycleInJson(jsondict)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
@@ -293,11 +301,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
-                            if 'plugNICCmd' in dir():
-                                runCmd(plugNICCmd)
-                            if 'bindSwPortCmd' in dir():
-                                logger.debug(bindSwPortCmd)
-                                runCmd(bindSwPortCmd)    
+                            time.sleep(2)
                         elif _isInstallVMFromImage(the_cmd_key):
         #                     if os.path.exists(new_vm_path):
         #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
@@ -306,14 +310,19 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                                 create(metadata_name)
-                            if 'plugNICCmd' in dir():
-                                runCmd(plugNICCmd)
-                            if 'bindSwPortCmd' in dir():
-                                logger.debug(bindSwPortCmd)
-                                runCmd(bindSwPortCmd) 
+                            time.sleep(2)
                         else:
                             if cmd:
                                 runCmd(cmd)
+                        '''
+                        Run network operations
+                        '''
+                        if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key) or \
+                        _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+                            if 'network_operations_queue' in dir() and network_operations_queue:
+                                for operation in network_operations_queue:
+                                    logger.debug(operation)
+                                    runCmd(operation)
                     elif operation_type == 'MODIFIED':
                         if is_vm_exists(metadata_name):
                             if _isDeleteVM(the_cmd_key):
@@ -321,29 +330,23 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     destroy(metadata_name)
                                 if cmd:
                                     runCmd(cmd)
-                                file_path = '%s/%s-*.xml' % (DEFAULT_DEVICE_DIR, metadata_name)
-                                mvNICXmlToTmpDir(file_path)
+#                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)
+#                                 mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
-                            elif _isPlugDevice(the_cmd_key):
-                                if cmd:
-                                    try:
-                                        runCmd(cmd)
-                                    except ExecuteException, e:
-                                        if 'file_path' in dir():
-                                            if 'network_type' in dir() and network_type == 'ovsbridge':
-                                                mvNICXmlToTmpDir(file_path)
-                                        raise e            
-                            elif _isUnplugDevice(the_cmd_key):
-                                if cmd:
-                                    runCmd(cmd)
-                                if 'file_path' in dir():
-                                    if 'network_type' in dir() and network_type == 'ovsbridge':
-                                        mvNICXmlToTmpDir(file_path)
                             else:
                                 if cmd:
                                     runCmd(cmd)
-                    elif operation_type == 'DELETED':
-                        logger.debug('Delete custom object by client.')
+                        '''
+                        Run network operations
+                        '''
+                        if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key) or \
+                        _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+                            if 'network_operations_queue' in dir() and network_operations_queue:
+                                for operation in network_operations_queue:
+                                    logger.debug(operation)
+                                    runCmd(operation)
+#                     elif operation_type == 'DELETED':
+#                         logger.debug('Delete custom object by client.')
     #                     if is_vm_exists(metadata_name):
     #                         if is_vm_active(metadata_name):
     #                             destroy(metadata_name)
@@ -391,9 +394,20 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -903,7 +917,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
 
-def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, plural=PLURAL_STORAGE_POOL):
+def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL):
     watcher = watch.Watch()
     kwargs = {}
     kwargs['label_selector'] = LABEL
@@ -913,19 +927,15 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                                    group=group, version=version, plural=plural, **kwargs):
         try:
             logger.debug(dumps(jsondict))
-
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
-
             metadata_name = getMetadataName(jsondict)
             logger.debug('metadata name: %s' % metadata_name)
-
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
-
             if the_cmd_key and operation_type != 'DELETED':
                 involved_object_name = metadata_name
-                involved_object_kind = 'UITStoragePool'
+                involved_object_kind = 'VirtualMachinePool'
                 event_metadata_name = randomUUID()
                 event_type = 'Normal'
                 status = 'Doing(Success)'
@@ -934,44 +944,57 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                 time_now = now_to_datetime()
                 time_start = time_now
                 time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                (time_end - time_start).total_seconds())
-                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name,
-                                         involved_object_kind, message, the_cmd_key, event_type)
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
                 try:
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-
+                pool_name = metadata_name
+                logger.debug("pool_name is :"+pool_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = get_cmd(jsondict, the_cmd_key)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+                if cmd is None:
+                    break
                 try:
-                    if cmd is None:
-                        break
-                    result, data = None, None
                     if operation_type == 'ADDED':
-                        result, data = runCmdWithResult(cmd)
-
+                        if not is_pool_exists(pool_name):
+                            runCmd(cmd)
+                            poolJson = _get_pool_info(pool_name)
+                            write_result_to_server(group, version, 'default', plural,
+                                                   involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                        else:
+                            poolJson = _get_pool_info(pool_name)
+                            write_result_to_server(group, version, 'default', plural,
+                                                   involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
                     elif operation_type == 'MODIFIED':
-                        result, data = runCmdWithResult(cmd)
-
-                    if result['code'] == 0:
-                        # Verify successful operation, if success countinue, else raise exception
-#                         verifyUITStoragePoolOperation(the_cmd_key, cmd)
-                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
-                                               involved_object_name, result, data)
-                        status = 'Done(Success)'
-                        logger.debug(result)
-                    else:
-                        result['msg'] = 'VirtctlError'
-                        write_result_to_server(GROUP_STORAGE_POOL, VERSION_STORAGE_POOL, 'default', PLURAL_STORAGE_POOL,
-                                               involved_object_name, result, data)
-                        logger.debug(result)
-                        raise ExecuteException(the_cmd_key+" exec error", result['msg'])
+                        if is_pool_exists(pool_name):
+                            runCmd(cmd)
+                            if the_cmd_key != "deletePool":
+                                poolJson = _get_pool_info(pool_name)
+                                write_result_to_server(group, version, 'default', plural,
+                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                        else:
+                            raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
+                    # elif operation_type == 'DELETED':
+                    #     if is_pool_exists(pool_name):
+                    #         runCmd(cmd)
+                    #     else:
+                    #         raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
+                    status = 'Done(Success)'
+                except libvirtError:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)
-                    info = sys.exc_info()
+                    info=sys.exc_info()
                     try:
                         report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
                     except:
@@ -981,7 +1004,7 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                     event.set_event_type(event_type)
                 except:
                     logger.error('Oops! ', exc_info=1)
-                    info = sys.exc_info()
+                    info=sys.exc_info()
                     try:
                         report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
                     except:
@@ -999,206 +1022,6 @@ def storagePoolWatcher(group=GROUP_STORAGE_POOL, version=VERSION_STORAGE_POOL, p
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
-
-        except:
-            logger.debug("error occurred during processing json data from apiserver")
-            logger.warning('Oops! ', exc_info=1)
-
-
-def uitDiskWatcher(group=GROUP_UIT_DISK, version=VERSION_UIT_DISK, plural=PLURAL_UIT_DISK):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                   group=group, version=version, plural=plural, **kwargs):
-        try:
-            logger.debug(dumps(jsondict))
-
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
-
-            the_cmd_key = _getCmdKey(jsondict)
-            logger.debug('cmd key is: %s' % the_cmd_key)
-
-            if the_cmd_key and operation_type != 'DELETED':
-                involved_object_name = metadata_name
-                involved_object_kind = 'NodeStoragePool'
-                event_metadata_name = randomUUID()
-                event_type = 'Normal'
-                status = 'Doing(Success)'
-                reporter = 'virtctl'
-                event_id = _getEventId(jsondict)
-                time_now = now_to_datetime()
-                time_start = time_now
-                time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                    involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                    (time_end - time_start).total_seconds())
-                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name,
-                                         involved_object_kind, message, the_cmd_key, event_type)
-                try:
-                    event.registerKubernetesEvent()
-                except:
-                    logger.error('Oops! ', exc_info=1)
-
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = get_cmd(jsondict, the_cmd_key)
-                try:
-                    if cmd is None:
-                        break
-                    result, data = None, None
-                    if operation_type == 'ADDED':
-                        result, data = runCmdWithResult(cmd)
-
-                    elif operation_type == 'MODIFIED':
-                        result, data = runCmdWithResult(cmd)
-
-                    if result['code'] == 0:
-                        # verifyUITDiskOperation(the_cmd_key, cmd)
-                        write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
-                                               involved_object_name, result, data)
-                        status = 'Done(Success)'
-                    else:
-                        result['msg'] = 'VirtctlError'
-                        write_result_to_server(GROUP_UIT_DISK, VERSION_UIT_DISK, 'default', PLURAL_UIT_DISK,
-                                               involved_object_name, result, data)
-                        logger.debug(result)
-                        raise ExecuteException(result['code'], result['msg'])
-                except ExecuteException, e:
-                    logger.error('Oops! ', exc_info=1)
-                    info = sys.exc_info()
-                    try:
-                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
-                    except:
-                        logger.warning('Oops! ', exc_info=1)
-                    status = 'Done(Error)'
-                    event_type = 'Warning'
-                    event.set_event_type(event_type)
-                except:
-                    logger.error('Oops! ', exc_info=1)
-                    info = sys.exc_info()
-                    try:
-                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-                    except:
-                        logger.warning('Oops! ', exc_info=1)
-                    status = 'Done(Error)'
-                    event_type = 'Warning'
-                    event.set_event_type(event_type)
-                finally:
-                    if the_cmd_key and operation_type != 'DELETED':
-                        time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
-                        event.set_message(message)
-                        event.set_time_end(time_end)
-                        try:
-                            event.updateKubernetesEvent()
-                        except:
-                            logger.warning('Oops! ', exc_info=1)
-
-        except:
-            logger.debug("error occurred during processing json data from apiserver")
-            logger.warning('Oops! ', exc_info=1)
-
-def uitSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_UIT_SNAPSHOT, plural=PLURAL_UIT_SNAPSHOT):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                   group=group, version=version, plural=plural, **kwargs):
-        try:
-            logger.debug(dumps(jsondict))
-
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-
-            metadata_name = getMetadataName(jsondict)
-            logger.debug('metadata name: %s' % metadata_name)
-
-            the_cmd_key = _getCmdKey(jsondict)
-            logger.debug('cmd key is: %s' % the_cmd_key)
-
-            if the_cmd_key and operation_type != 'DELETED':
-                involved_object_name = metadata_name
-                involved_object_kind = 'UITSnapshot'
-                event_metadata_name = randomUUID()
-                event_type = 'Normal'
-                status = 'Doing(Success)'
-                reporter = 'virtctl'
-                event_id = _getEventId(jsondict)
-                time_now = now_to_datetime()
-                time_start = time_now
-                time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (
-                    involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id,
-                    (time_end - time_start).total_seconds())
-                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name,
-                                         involved_object_kind, message, the_cmd_key, event_type)
-                try:
-                    event.registerKubernetesEvent()
-                except:
-                    logger.error('Oops! ', exc_info=1)
-
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = get_cmd(jsondict, the_cmd_key)
-                try:
-                    if cmd is None:
-                        break
-                    result, data = None, None
-                    if operation_type == 'ADDED':
-                        result, data = runCmdWithResult(cmd)
-
-                    elif operation_type == 'MODIFIED':
-                        result, data = runCmdWithResult(cmd)
-
-                    if result['code'] == 0:
-                        # verifyUITDiskOperation(the_cmd_key, cmd)
-                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
-                                           involved_object_name, result, data)
-                        status = 'Done(Success)'
-                    else:
-                        result['msg'] = 'VirtctlError'
-                        write_result_to_server(GROUP_UIT_SNAPSHOT, VERSION_UIT_SNAPSHOT, 'default', PLURAL_UIT_SNAPSHOT,
-                                               involved_object_name, result, data)
-                        logger.debug(result)
-                        raise ExecuteException(result['code'], result['msg'])
-                except ExecuteException, e:
-                    logger.error('Oops! ', exc_info=1)
-                    info = sys.exc_info()
-                    try:
-                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
-                    except:
-                        logger.warning('Oops! ', exc_info=1)
-                    status = 'Done(Error)'
-                    event_type = 'Warning'
-                    event.set_event_type(event_type)
-                except:
-                    logger.error('Oops! ', exc_info=1)
-                    info = sys.exc_info()
-                    try:
-                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-                    except:
-                        logger.warning('Oops! ', exc_info=1)
-                    status = 'Done(Error)'
-                    event_type = 'Warning'
-                    event.set_event_type(event_type)
-                finally:
-                    if the_cmd_key and operation_type != 'DELETED':
-                        time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
-                        event.set_message(message)
-                        event.set_time_end(time_end)
-                        try:
-                            event.updateKubernetesEvent()
-                        except:
-                            logger.warning('Oops! ', exc_info=1)
-
         except:
             logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
@@ -1230,7 +1053,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
 #         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
 
-        if plural == PLURAL_STORAGE_POOL:
+        if plural == PLURAL_UIT_POOL:
             jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
         elif plural == PLURAL_UIT_DISK:
             jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
@@ -1244,6 +1067,9 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
                 jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
         elif plural == PLURAL_VM_NETWORK:
             jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
+        elif plural == PLURAL_VM_POOL:
+            jsonDict['spec']['pool'] = data
+
         if result:
             jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))
         else:
@@ -1257,66 +1083,6 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         logger.error('Oops! ', exc_info=1)
         raise ExecuteException('VirtctlError', 'write result to apiserver failure')
 
-def verifyUITStoragePoolOperation(the_cmd_key, cmd):
-    success = False
-    kv = {}
-    for i in range(len(cmd.split()) / 2):
-        kv[cmd.split()[i * 2].replace('--', '')] = cmd.split()[i * 2 + 1]
-
-    result, data = runCmdWithResult('cstor-cli pool-list')
-    if result['code'] != 0:
-        raise ExecuteException(the_cmd_key + " exec error", 'verifyUITStoragePoolOperation failure')
-
-    if the_cmd_key == 'createPool':
-        # cstor-cli pooladd-localfs --poolname test --url localfs:///dev/sdb:/pool
-        for pooldata in result['data']:
-            if pooldata['poolname'] == kv['poolname']:
-                success = True
-                break
-    elif the_cmd_key == 'deletePool':
-        success = True
-        for pooldata in data:
-            if pooldata['poolname'] == kv['poolname']:
-                success = False
-    else:
-        success = True
-    if not success:
-        raise ExecuteException(the_cmd_key + " exec error", 'UITStoragePoolOperation not really successful,'
-                                                            ' '+the_cmd_key + ' operation has bug!!!')
-
-def verifyUITDiskOperation(the_cmd_key, cmd):
-    success = False
-    kv = {}
-    for i in range(len(cmd.split()) / 2):
-        kv[cmd.split()[i * 2].replace('--', '')] = cmd.split()[i * 2 + 1]
-
-    result, data = runCmdWithResult('cstor-cli vdisk-show --poolname '+kv['poolname']+' --name '+kv['name'])
-    if result['code'] != 0 and the_cmd_key != 'deleteUITDisk':
-        raise ExecuteException(the_cmd_key + " exec error", 'verifyUITDiskOperation failure')
-
-    if the_cmd_key == 'createUITDisk' or the_cmd_key == 'expandUITDisk':
-        if data['name'] == kv['name'] and data['poolname'] == kv['poolname'] and data['size'] == kv['size']:
-            success = True
-    elif the_cmd_key == 'deleteUITDisk':
-        if result['code'] == 0:
-            raise ExecuteException(the_cmd_key + " exec error", 'verifyUITDiskOperation failure')
-    elif the_cmd_key == 'snapshotUITDisk':
-        result, data = runCmdWithResult('cstor-cli vdisk-show-ss --poolname '+kv['poolname']+
-                                        ' --name '+kv['name']+' --sname '+kv['sname'])
-        if kv['cstor-cli'] == 'vdisk-add-ss':
-            if result['code'] == 0 and data['name'] == kv['name'] and data['poolname'] == kv['poolname'] and data['sname'] == kv['sname']:
-                success = True
-        elif kv['cstor-cli'] == 'vdisk-rr-ss':
-            if result['code'] == 0:
-                success = True
-        elif kv['cstor-cli'] == 'vdisk-rm-ss':
-            if result['code'] != 0:
-                success = True
-    else:
-        success = True
-    if not success:
-        raise ExecuteException(the_cmd_key + " exec error", 'UITDiskOperation not really successful,'
-                                                            ' ' + the_cmd_key + ' operation has bug!!!')
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":
@@ -1353,20 +1119,23 @@ def getMetadataName(jsondict):
 def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']
     lifecycle = spec.get('lifecycle')
-    if the_cmd_key in ALL_SUPPORT_CMDS_WITH_NAME_FIELD:
-        lifecycle[the_cmd_key]['name'] = metadata_name    
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD:
-        lifecycle[the_cmd_key]['domain'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_VOL_FIELD:
-        lifecycle[the_cmd_key]['vol'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
-        lifecycle[the_cmd_key]['snapshotname'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
-        lifecycle[the_cmd_key]['poolname'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
-        lifecycle[the_cmd_key]['sname'] = metadata_name
-    elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
-        lifecycle[the_cmd_key]['switch'] = metadata_name
+    if lifecycle:
+        if the_cmd_key in ALL_SUPPORT_CMDS_WITH_NAME_FIELD:
+            lifecycle[the_cmd_key]['name'] = metadata_name    
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_DOMAIN_FIELD:
+            lifecycle[the_cmd_key]['domain'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_VOL_FIELD:
+            lifecycle[the_cmd_key]['vol'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAPNAME_FIELD:
+            lifecycle[the_cmd_key]['snapshotname'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD:
+            lifecycle[the_cmd_key]['poolname'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SNAME_FIELD:
+            lifecycle[the_cmd_key]['sname'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD:
+            lifecycle[the_cmd_key]['switch'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
+            lifecycle[the_cmd_key]['pool'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):
@@ -1430,7 +1199,7 @@ def _getEventId(jsondict):
     metadata = jsondict['raw_object'].get('metadata')
     labels = metadata.get('labels')
     logger.debug(labels)
-    return labels.get('eventid') if labels.get('eventid') else '-1'
+    return labels.get('eventId') if labels.get('eventId') else '-1'
 
 '''
 Get the CMD key.
@@ -1472,6 +1241,11 @@ def _isInstallVMFromImage(the_cmd_key):
 
 def _isCreateImage(the_cmd_key):
     if the_cmd_key == "createImage":
+        return True
+    return False
+
+def _isDeleteImage(the_cmd_key):
+    if the_cmd_key == "deleteImage":
         return True
     return False
 
@@ -1539,7 +1313,22 @@ def _get_field(jsondict, the_cmd_key, field):
             for k, v in contents.items():
                 if k == field:
                     retv = v
-    return retv   
+    return retv  
+
+def _get_fields(jsondict, the_cmd_key):
+    retv = None
+    spec = jsondict['raw_object'].get('spec')
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        if the_cmd_key:
+            retv = lifecycle.get(the_cmd_key)
+    return retv  
 
 def _set_field(jsondict, the_cmd_key, field, value):
     spec = jsondict['raw_object'].get('spec')
@@ -1616,6 +1405,10 @@ def _createNICXml(metadata_name, data):
             node = doc.createElement(k)
             node.setAttribute('type', v)
             root.appendChild(node)
+        elif k == 'target':
+            node = doc.createElement(k)
+            node.setAttribute('dev', v)
+            root.appendChild(node)
         elif k == 'inbound':
             bandwidth[k] = v
         elif k == 'outbound':
@@ -1643,12 +1436,135 @@ def _createNICXml(metadata_name, data):
     
     return file_path
 
-def createNICFromXmlCmd(metadata_name, data):
-    file_path = _createNICXml(metadata_name, data)
-    cmd = 'virsh attach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
-    return cmd
+# def _validate_network_params(data): 
+#     if data:
+#         for key in data.keys():
+#             if key not in ['type', 'source', 'inbound', 'outbound', 'mac', 'ip', 'switch']:
+#                 return False
+#     else:
+#         return False
+#     return True
 
-def createNICFromXml(metadata_name, jsondict, the_cmd_key):
+def _network_config_parser(data):
+    retv = {}
+    if data:
+        split_it = data.split(',')
+        for i in split_it:
+            i = i.strip()
+            if i.find('=') != -1:
+                (k, v) = i.split('=')
+                retv[k] = v
+    if retv:
+        net_type = retv.get('type')
+        if not net_type:
+            raise ExecuteException('VirtctlError', 'Network config error: no "type" parameter.')
+        else:
+            if net_type not in ['bridge', 'l2bridge', 'l3bridge']:
+                raise ExecuteException('VirtctlError', 'Network config error: unsupported network "type" %s.' % retv['type'])
+        source = retv.get('source')
+        if not source:
+            raise ExecuteException('VirtctlError', 'Network config error: no "source" parameter.')
+        if not retv.has_key('mac'):
+            retv['mac'] = randomMAC()
+        '''
+        Add default params.
+        '''
+        if net_type in ['l2bridge', 'l3bridge']:
+            retv['virtualport'] = 'openvswitch'
+        retv['model'] = 'virtio'
+        retv['target'] = '%s' % (retv['mac'].replace(':', ''))
+    else:
+        raise ExecuteException('VirtctlError', 'Network config error: no parameters or in wrong format, plz check it!')
+    return retv
+
+def _network_config_parser_json(the_cmd_key, data):
+    retv = {}
+    if data:
+        retv = data.copy()
+        if _isUnplugNIC(the_cmd_key):
+            if not retv.get('mac'):
+                raise ExecuteException('VirtctlError', 'Network config error: no "mac" parameter.')
+            return retv
+        source = data.get('source')
+        if not source:
+            raise ExecuteException('VirtctlError', 'Network config error: no "source" parameter.')
+        split_it = source.split(',')
+        for i in split_it:
+            i = i.strip()
+            if i.find('=') != -1:
+                (k, v) = i.split('=')
+                retv[k] = v
+    if retv:
+        net_type = retv.get('type')
+        if not net_type:
+            raise ExecuteException('VirtctlError', 'Network config error: no "type" parameter.')
+        else:
+            if net_type not in ['bridge', 'l2bridge', 'l3bridge']:
+                raise ExecuteException('VirtctlError', 'Network config error: unsupported network "type" %s.' % retv['type'])
+        if not retv.has_key('mac'):
+            retv['mac'] = randomMAC()
+        '''
+        Add default params.
+        '''
+        if net_type in ['l2bridge', 'l3bridge']:
+            retv['virtualport'] = 'openvswitch'
+        retv['model'] = 'virtio'
+        retv['target'] = '%s' % (retv['mac'].replace(':', ''))
+    else:
+        raise ExecuteException('VirtctlError', 'Network config error: no parameters or in wrong format, plz check it!')
+    return retv
+
+def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
+    if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key) or _isPlugNIC(the_cmd_key):
+        if _isPlugNIC(the_cmd_key):
+            live = config_dict.get('live') if config_dict.get('live') else False
+        else:
+            live = True
+        if config_dict.get('type') == 'bridge':
+            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            return [plugNICCmd]
+        elif config_dict.get('type') == 'l2bridge':
+            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            return [plugNICCmd]
+        elif config_dict.get('type') == 'l3bridge':
+            if not config_dict.get('switch'):
+                raise ExecuteException('VirtctlError', 'Network config error: no "switch" parameter.')
+            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+            bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
+            recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
+            (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+            recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
+            (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+    #         recordVxlanToFileCmd = 'echo "vxlan=%s" >> %s/%s-nic-%s.cfg' % \
+    #         (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+            return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
+    elif _isUnplugNIC(the_cmd_key):
+        live = config_dict.get('live') if config_dict.get('live') else False
+        unplugNICCmd = _unplugNICFromXmlCmd(metadata_name, config_dict, live)
+        if config_dict.get('type') == 'bridge':
+            return [unplugNICCmd]
+        elif config_dict.get('type') == 'l2bridge':
+            return [unplugNICCmd]
+        elif config_dict.get('type') == 'l3bridge':
+            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+            return [unbindSwPortCmd, unplugNICCmd]
+
+def _plugNICFromXmlCmd(metadata_name, data, live):
+    file_path = _createNICXml(metadata_name, data)
+    if live:
+        return 'virsh attach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
+    else:
+        return 'virsh attach-device --domain %s --file %s --config' % (metadata_name, file_path)
+
+def _unplugNICFromXmlCmd(metadata_name, data, live):
+    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
+    if live:
+        return 'virsh detach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
+    else:
+        return 'virsh detach-device --domain %s --file %s --config' % (metadata_name, file_path)
+
+def _createNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
     lifecycle = spec.get('lifecycle')
     if not lifecycle:
@@ -1659,8 +1575,9 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
     source = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('source')
     model = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('model')
+#     target = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('target')
     if not source:
-        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'source\'!')
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter "source"!')
     if not mac:
         mac = randomMAC()
     if not model:
@@ -1670,15 +1587,16 @@ def createNICFromXml(metadata_name, jsondict, the_cmd_key):
     lines['source'] = source
     lines['virtualport'] = 'openvswitch'
     lines['model'] = model
+    lines['target'] = '%s' % (mac.replace(':', ''))
     
-    file_path = _createNICXml(lines)
+    file_path = _createNICXml(metadata_name, lines)
 
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
     new_cmd_key = 'plugDevice'
     jsondict['raw_object']['spec']['lifecycle'][new_cmd_key] = {'file': file_path}
     return(jsondict, new_cmd_key, file_path)
 
-def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
+def _deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
     lifecycle = spec.get('lifecycle')
     if not lifecycle:
@@ -1688,7 +1606,7 @@ def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
     '''
     mac = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].get('mac')
     if not mac:
-        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter \'mac\'!')
+        raise ExecuteException('VirtctlError', 'Execute plugNIC error: missing parameter "mac"!')
     
     file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, mac.replace(':', ''))
     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]
@@ -1698,7 +1616,7 @@ def deleteNICFromXml(metadata_name, jsondict, the_cmd_key):
 
 def mvNICXmlToTmpDir(file_path):
     if file_path:
-        runCmd('mv %s /tmp' % file_path)
+        runCmd('mv -f %s /tmp' % file_path)
 
 def addDefaultSettings(jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')
@@ -1719,26 +1637,8 @@ def addDefaultSettings(jsondict, the_cmd_key):
         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['noautoconsole'] = "True"
         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['boot'] = "hd"
         logger.debug(jsondict)
-        return jsondict    
-
-def _network_config_to_dict(data):
-    retv = {}
-    if data:
-        split_it = data.split(',')
-        for i in split_it:
-            i = i.strip()
-            if i.find('=') != -1:
-                (k, v) = i.split('=')
-                retv[k] = v
-    if retv:
-        retv['virtualport'] = 'openvswitch'
-        retv['source'] = retv['ovsbridge']
-        if not retv.has_key('mac'):
-            retv['mac'] = randomMAC()
-        if not retv.has_key('model'):
-            retv['model'] = 'virtio'
-    return retv
-
+        return jsondict  
+    
 def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
     '''
     Get target VM name from Json.
@@ -1846,6 +1746,27 @@ def runCmd(cmd):
 '''
 Run back-end command in subprocess.
 '''
+def runCmdIgnoreError(cmd):
+    std_err = None
+    if not cmd:
+#         logger.debug('No CMD to execute.')
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            logger.debug(std_out)
+        if std_err:
+            logger.warning(std_err)
+        return
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
+'''
+Run back-end command in subprocess.
+'''
 def runCmdWithResult(cmd):
     std_err = None
     if not cmd:
@@ -1875,7 +1796,7 @@ def runCmdWithResult(cmd):
                     error_msg = error_msg + str.strip(line)
                 error_msg = str.strip(error_msg)
                 logger.error(error_msg)
-                raise ExecuteException('cmd exec failure', error_msg)
+                raise ExecuteException('VirtctlError', error_msg)
         if std_err:
             logger.error(std_err)
             raise ExecuteException('VirtctlError', std_err)

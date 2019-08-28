@@ -1,5 +1,6 @@
 [Kubernetes]
 token_file = /root/.kube/config
+hostname_prefix = vm
 
 [WatcherTimeout]
 timeout = 31536000
@@ -175,5 +176,3 @@ createFloatIP = todo
 deleteFloatIP = todo
 bindFloatIP = todo
 unbindFloatIP = todo
-
-

@@ -240,6 +240,7 @@ def pid_exists(pid):
         return True
 
 def get_hostname_in_lower_case():
+#     return socket.gethostname().lower()
     return 'vm.%s' % socket.gethostname().lower()
 
 def normlize(s):

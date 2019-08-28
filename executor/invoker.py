@@ -1195,7 +1195,7 @@ def _getEventId(jsondict):
     metadata = jsondict['raw_object'].get('metadata')
     labels = metadata.get('labels')
     logger.debug(labels)
-    return labels.get('eventid') if labels.get('eventid') else '-1'
+    return labels.get('eventId') if labels.get('eventId') else '-1'
 
 '''
 Get the CMD key.

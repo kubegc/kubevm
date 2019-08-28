@@ -169,8 +169,21 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                     jsondict = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     modifyStructure(name, body, group, version, plural)
+                else:
+                    raise e
+                    
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                               version=version, 
+                                                                               namespace='default', 
+                                                                               plural=plural, 
+                                                                               name=name) 
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.error('Oops! ', exc_info=1)
     else:
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                               version=version, 
@@ -284,8 +297,21 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
                     jsondict = updateJsonRemoveLifecycle(jsondict, snap_json)
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     modifyStructure(name, body, group, version, plural)
+                else:
+                    raise e
+                    
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                               version=version, 
+                                                                               namespace='default', 
+                                                                               plural=plural, 
+                                                                               name=name) 
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.error('Oops! ', exc_info=1)
     else:
         try:
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
@@ -397,8 +423,21 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
                     jsondict = updateJsonRemoveLifecycle(jsondict, loads(block_json))
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')               
                     modifyStructure(name, body, group, version, plural)
+                else:
+                    raise e
+                    
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                               version=version, 
+                                                                               namespace='default', 
+                                                                               plural=plural, 
+                                                                               name=name) 
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.error('Oops! ', exc_info=1)
     else:
         try:
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
@@ -478,9 +517,39 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
             jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
             body = addNodeName(jsondict)
-            createStructure(body, group, version, plural)
+            try:
+                createStructure(body, group, version, plural)
+            except ApiException, e:
+                logger.debug(e)
+                if e.reason == 'Conflict':
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                              version=version, 
+                                                                              namespace='default', 
+                                                                              plural=plural, 
+                                                                              name=name)
+                    vm_xml = get_xml(name)
+                    vm_power_state = vm_state(name).get(name)
+                    vm_json = toKubeJson(xmlToJson(vm_xml))
+                    vm_json = updateDomain(loads(vm_json))
+                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                    jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+                    body = addNodeName(jsondict)
+                    modifyStructure(name, body, group, version, plural)  
+                else:
+                    raise e
+                    
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                               version=version, 
+                                                                               namespace='default', 
+                                                                               plural=plural, 
+                                                                               name=name) 
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.error('Oops! ', exc_info=1) 
     elif event == "Modify":
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 
@@ -641,8 +710,21 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
                     jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     body = addNodeName(jsondict)
                     modifyStructure(name, body, group, version, plural)  
+                else:
+                    raise e
+                    
         except:
-            logger.error('Oops! ', exc_info=1)          
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
+                                                                               version=version, 
+                                                                               namespace='default', 
+                                                                               plural=plural, 
+                                                                               name=name) 
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.error('Oops! ', exc_info=1)         
     elif event == "Modify":
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 

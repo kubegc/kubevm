@@ -111,27 +111,16 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     vm_json = updateDomain(loads(vm_json))
                     jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
                     body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-                    i=3
-                    while (i>0):
-                        try:
-                            modifyVM(vm_name, body)
-                            time.sleep(0.5)
-                        except ApiException, e:
-                            i -= 1
-                            try:
-                                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
-                                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                                body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-                            except ApiException, e:
-                                if e.reason == 'Not Found':
-                                    logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
-                                    ignore_pushing = True
-                            except Exception, e:
-                                raise e
-                            if i == 0:
-                                raise e
-                        if i == 3:
-                            break;
+                    try:
+                        modifyVM(vm_name, body)
+                    except ApiException, e:
+                        if e.reason == 'Not Found':
+                            logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+                            ignore_pushing = True
+                        else:
+                            raise e
+                    except Exception, e:
+                        raise e
                     step1_done = True
                 except:
                     step1_done = False

@@ -116,7 +116,6 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     except ApiException, e:
                         if e.reason == 'Not Found':
                             logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
-                            ignore_pushing = True
                         else:
                             raise e
                     except Exception, e:
@@ -130,15 +129,18 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                     except:
                         logger.warning('Oops! ', exc_info=1)
-            if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
+            if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
                     macs = get_macs(vm_name)
                     for mac in macs:
-                        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
-                        logger.debug(unbindSwPortCmd)
-                        retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
-                        logger.debug(retv)
+                        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+                                (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
+                        if os.path.exists(net_cfg_file_path):
+                            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
+                            logger.debug(unbindSwPortCmd)
+                            retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
+                            logger.debug(retv)
                 except:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()

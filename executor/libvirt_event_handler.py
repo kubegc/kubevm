@@ -66,15 +66,15 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         # print vm_name
         # print kwargs
 
-        # support tt
-        if kwargs.has_key('detail') and kwargs.has_key('event'):
-            event = str(DOM_EVENTS[kwargs['event']])
-            detail = str(DOM_EVENTS[kwargs['event']][kwargs['detail']])
-            logger.debug(event+"    "+detail)
-            if event == 'Started' and detail == 'Booted':
-                modify_token(vm_name, 'Started')
-            elif event == 'Stopped' and detail == 'Destroyed':
-                modify_token(vm_name, 'Stopped')
+        # support vnc
+        # if kwargs.has_key('detail') and kwargs.has_key('event'):
+        #     event = str(DOM_EVENTS[kwargs['event']])
+        #     detail = str(DOM_EVENTS[kwargs['event']][kwargs['detail']])
+        #     logger.debug(event+"    "+detail)
+        #     if event == 'Started' and detail == 'Booted':
+        #         modify_token(vm_name, 'Started')
+        #     elif event == 'Stopped' and detail == 'Destroyed':
+        #         modify_token(vm_name, 'Stopped')
 
         if kwargs.has_key('event') and kwargs.has_key('detail') and \
         str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \

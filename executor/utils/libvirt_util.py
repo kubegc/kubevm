@@ -78,14 +78,17 @@ def _get_pool(pool_):
 
 def _get_all_pool_path():
     paths = {}
-    for pool_ in list_pools():
-        pool = _get_pool(pool_)
-        # pool.refresh()
-        lines = pool.XMLDesc()
-        for line in lines.split():
-            if line.find("path") >= 0:
-                paths[pool_] = line.replace('<path>', '').replace('</path>', '')
-                break
+    try:
+        for pool_ in list_pools():
+            pool = _get_pool(pool_)
+            # pool.refresh()
+            lines = pool.XMLDesc()
+            for line in lines.split():
+                if line.find("path") >= 0:
+                    paths[pool_] = line.replace('<path>', '').replace('</path>', '')
+                    break
+    except Excepetion, e:
+        pass
     return paths
 
 def _get_pool_info(pool_):

@@ -87,7 +87,7 @@ def _get_all_pool_path():
                 if line.find("path") >= 0:
                     paths[pool_] = line.replace('<path>', '').replace('</path>', '')
                     break
-    except Excepetion, e:
+    except Exception, e:
         pass
     return paths
 

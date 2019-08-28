@@ -40,6 +40,7 @@ VMI_PLURAL = config_raw.get('VirtualMachineImage', 'plural')
 VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 DEFAULT_TEMPLATE_DIR = config_raw.get('DefaultTemplateDir', 'default')
+DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 
 LOG = '/var/log/virtctl.log'
 logger = logger.set_logger(os.path.basename(__file__), LOG)
@@ -129,6 +130,9 @@ def convert_vm_to_image(name):
             vm_xml = get_xml(self.vm)
             with open(self.tmp_path, 'w') as fw:
                 fw.write(vm_xml)
+            file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, self.vm)
+            cmd = 'mv -f %s %s' % (file_path, DEFAULT_TEMPLATE_DIR)
+            runCmd(cmd)
             try:
                 if self.force:
                     undefine_with_snapshot(self.vm)
@@ -146,6 +150,9 @@ def convert_vm_to_image(name):
                 with open(self.tmp_path, 'r') as fr:
                     vm_xml = fr.read()
                 define_xml_str(vm_xml)
+            file_path = '%s/%s-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
+            cmd = 'mv -f %s %s' % (file_path, DEFAULT_DEVICE_DIR)
+            runCmd(cmd)
             return 
         
     class final_step_delete_source_file(RotatingOperation):
@@ -312,6 +319,9 @@ def convert_image_to_vm(name):
             with open(self.xml_path, 'r') as fr:
                 vm_xml = fr.read()
             define_xml_str(vm_xml)
+            file_path = '%s/%s-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
+            cmd = 'mv -f %s %s' % (file_path, DEFAULT_DEVICE_DIR)
+            runCmd(cmd)
             done_operations.append(self.tag)
             return 
     
@@ -319,6 +329,9 @@ def convert_image_to_vm(name):
             if self.tag in done_operations:
                 if is_vm_exists(self.vm):
                     undefine(self.vm)
+            file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, self.vm)
+            cmd = 'mv -f %s %s' % (file_path, DEFAULT_TEMPLATE_DIR)
+            runCmd(cmd)
             return 
 
     class final_step_delete_source_file(RotatingOperation):

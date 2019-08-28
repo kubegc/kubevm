@@ -190,13 +190,16 @@ spec:
     name: AUTOSTART
     type: string
   - JSONPath: .spec.pool.state
-    name: STATU
+    name: STATE
     type: string
   - JSONPath: .metadata.creationTimestamp
     name: AGE
     type: date
   - JSONPath: .spec.nodeName
     name: NODE
+    type: string
+  - JSONPath: .spec.status.conditions.state.waiting.reason
+    name: STATUS
     type: string
   group: cloudplus.io
   names:

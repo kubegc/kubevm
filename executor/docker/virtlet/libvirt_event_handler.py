@@ -35,8 +35,9 @@ from xmljson import badgerfish as bf
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state
-from utils.utils import CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure
+from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
+from utils.utils import singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+    runCmdRaiseException, runCmd, modify_token
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -45,7 +46,9 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr 
     
-cfg = "%s/default.cfg" % os.path.dirname(os.path.realpath(__file__))
+cfg = "/etc/kubevmm/config"
+if not os.path.exists(cfg):
+    cfg = "/home/kubevmm/bin/config"
 config_raw = parser()
 config_raw.read(cfg)
 
@@ -54,37 +57,161 @@ PLURAL = config_raw.get('VirtualMachine', 'plural')
 VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 
+DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
+
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
-        
+
 def myDomainEventHandler(conn, dom, *args, **kwargs):
-    vm_name = dom.name()
-    #     print(jsondict)
-    if kwargs.has_key('event') and kwargs.has_key('detail') and \
-    str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
-    str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
-        try:
-            logger.debug('Callback domain deletion to virtlet')
-#             deleteVM(vm_name, V1DeleteOptions())
-        except:
-            logger.error('Oops! ', exc_info=1)
-    else:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
-        try:
-            logger.debug('Callback domain changes to virtlet')
-            vm_xml = get_xml(vm_name)
-            vm_power_state = vm_state(vm_name).get(vm_name)
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            vm_json = updateDomain(loads(vm_json))
-            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-            body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-            modifyVM(vm_name, body)
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
+    try:
+        vm_name = dom.name()
+        # print '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        # print vm_name
+        # print kwargs
+
+        # support vnc
+        # if kwargs.has_key('detail') and kwargs.has_key('event'):
+        #     event = str(DOM_EVENTS[kwargs['event']])
+        #     detail = str(DOM_EVENTS[kwargs['event']][kwargs['detail']])
+        #     logger.debug(event+"    "+detail)
+        #     if event == 'Started' and detail == 'Booted':
+        #         modify_token(vm_name, 'Started')
+        #     elif event == 'Stopped' and detail == 'Destroyed':
+        #         modify_token(vm_name, 'Stopped')
+
+        if kwargs.has_key('event') and kwargs.has_key('detail') and \
+        str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
+        str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
             try:
-                report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                logger.debug('Callback domain deletion to virtlet')
+    #             deleteVM(vm_name, V1DeleteOptions())
+                file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, vm_name)
+                cmd = 'mv -f %s /tmp' % file_path
+                logger.debug(cmd)
+                runCmd(cmd)
             except:
-                logger.warning('Oops! ', exc_info=1)
+                logger.error('Oops! ', exc_info=1)
+        else:
+        #             deleteVM(vm_name, V1DeleteOptions())
+            ignore_pushing = False
+            step1_done = False
+            try:
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+            except ApiException, e:
+                if e.reason == 'Not Found':
+                    logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+                    ignore_pushing = True
+            except Exception, e:
+                raise e
+            if not ignore_pushing:
+                try:
+                    logger.debug('Callback domain changes to virtlet')
+                    vm_xml = get_xml(vm_name)
+                    vm_power_state = vm_state(vm_name).get(vm_name)
+                    vm_json = toKubeJson(xmlToJson(vm_xml))
+                    vm_json = updateDomain(loads(vm_json))
+                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                    body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+                    i=3
+                    while (i>0):
+                        try:
+                            modifyVM(vm_name, body)
+                            time.sleep(0.5)
+                        except ApiException, e:
+                            i -= 1
+                            try:
+                                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+                                jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                                body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+                            except ApiException, e:
+                                if e.reason == 'Not Found':
+                                    logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+                                    ignore_pushing = True
+                            except Exception, e:
+                                raise e
+                            if i == 0:
+                                raise e
+                        if i == 3:
+                            break;
+                    step1_done = True
+                except:
+                    step1_done = False
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+            if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
+                try:
+                    logger.debug('Callback domain shutdown to virtlet')
+                    macs = get_macs(vm_name)
+                    for mac in macs:
+                        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
+                        logger.debug(unbindSwPortCmd)
+                        retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
+                        logger.debug(retv)
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+            if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Started":
+                try:
+                    logger.debug('Callback domain start to virtlet')
+                    macs = get_macs(vm_name)
+                    for mac in macs:
+                        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+                                (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
+                        cfg = ''
+                        switch = ''
+                        ip = ''
+                        if os.path.exists(net_cfg_file_path):
+                            with open(net_cfg_file_path, 'r') as fr:
+                                cfg = fr.read()
+                        if cfg:
+#                             vxlan = ''
+                            for line in cfg.split("\n"):
+                                line = line.strip()
+                                if line.find('switch') != -1:
+                                    (_, switch) = line.split('=')
+                                elif line.find('ip') != -1:
+                                    (_, ip) = line.split('=')
+#                                 elif line.find('vxlan') != -1:
+#                                     (_, vxlan) = line.split('=')
+#                         if switch and ip and vxlan:
+                        if switch and ip:
+                            bindSwPortCmd = 'kubeovn-adm bind-swport --mac %s --switch %s --ip %s' % (mac, switch.strip(), ip.strip())
+                            logger.debug(bindSwPortCmd)
+                            retv = runCmdRaiseException(bindSwPortCmd, 'Kubeovn error')
+                            logger.debug(retv)
+#                             if vxlan != '-1':
+#                                 setVxlanCmd = 'kubeovn-adm setport-vxlan --mac %s -vxlan %s' % (mac, vxlan)
+#                                 logger.debug(setVxlanCmd)
+#                                 retv = runCmdRaiseException(setVxlanCmd, 'Kubeovn error')
+#                                 logger.debug(retv)      
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+
+
+
+    except:
+        logger.error('Oops! ', exc_info=1)
+
+def ttDomainEventHandler(conn, dom, *args, **kwargs):
+    try:
+        vm_name = dom.name()
+        logger.debug("liuhe")
+        logger.debug(type(dom))
+        logger.debug(dom)
+    except:
+        logger.error('Oops! ', exc_info=1)
 
 def modifyVM(name, body):
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
@@ -618,7 +745,6 @@ def myDomainEventCallback(conn, dom, event, detail, opaque):
     logger.debug("myDomainEventCallback%s EVENT: Domain %s(%s) %s %s" % (
         opaque, dom.name(), dom.ID(), DOM_EVENTS[event], DOM_EVENTS[event][detail]))
     myDomainEventHandler(conn, dom, event=event, detail=detail, opaque=opaque)
-    
 
 def myDomainEventRebootCallback(conn, dom, opaque):
     logger.debug("myDomainEventRebootCallback: Domain %s(%s)" % (
@@ -837,7 +963,6 @@ def usage():
     print("   --loop=TYPE, -l   Choose event-loop-implementation (native, poll, asyncio)")
     print("   --timeout=SECS  Quit after SECS seconds running")
 
-
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hdl:", ["help", "debug", "loop=", "timeout="])
@@ -894,7 +1019,7 @@ def main():
     # Add 2 lifecycle callbacks to prove this works with more than just one
     vc.domainEventRegister(myDomainEventCallback, 1)
     domcallbacks = [
-        vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE, myDomainEventCallback, 2),
+#         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE, myDomainEventCallback, 2),
         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_REBOOT, myDomainEventRebootCallback, None),
         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_RTC_CHANGE, myDomainEventRTCChangeCallback, None),
         vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_WATCHDOG, myDomainEventWatchdogCallback, None),

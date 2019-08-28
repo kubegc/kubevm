@@ -41,7 +41,7 @@ class parser(ConfigParser.ConfigParser):
 
 cfg = "/etc/kubevmm/config"
 if not os.path.exists(cfg):
-    cfg = "/home/kubevmm/bin"
+    cfg = "/home/kubevmm/bin/config"
 config_raw = parser()
 config_raw.read(cfg)
 

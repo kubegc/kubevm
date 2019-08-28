@@ -71,7 +71,7 @@ def modify_token(vm_name, op):
 def get_l3_network_info(name):
     cfg = "/etc/kubevmm/config"
     if not os.path.exists(cfg):
-        cfg = "/home/kubevmm/bin"
+        cfg = "/home/kubevmm/bin/config"
     config_raw = parser()
     config_raw.read(cfg)
     token = config_raw.get('Kubernetes', 'token_file')
@@ -244,7 +244,7 @@ def pid_exists(pid):
 def get_hostname_in_lower_case():
     cfg = "/etc/kubevmm/config"
     if not os.path.exists(cfg):
-        cfg = "/home/kubevmm/bin"
+        cfg = "/home/kubevmm/bin/config"
     config_raw = parser()
     config_raw.read(cfg)
     prefix = config_raw.get('Kubernetes', 'hostname_prefix')

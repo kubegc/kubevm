@@ -958,11 +958,19 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     break
                 try:
                     if operation_type == 'ADDED':
+                        # judge pool path exist or not
+
+                        POOL_PATH = getPoolPathWhenCreate(jsondict)
+                        # file_dir = os.path.split(POOL_PATH)[0]
+                        if not os.path.isdir(POOL_PATH):
+                            os.makedirs(POOL_PATH)
+
                         if not is_pool_exists(pool_name):
                             runCmd(cmd)
                             poolJson = _get_pool_info(pool_name)
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                            raise ExecuteException('VirtctlError', 'has exist ' + pool_name + ' pool!')
                         else:
                             poolJson = _get_pool_info(pool_name)
                             write_result_to_server(group, version, 'default', plural,
@@ -974,6 +982,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 poolJson = _get_pool_info(pool_name)
                                 write_result_to_server(group, version, 'default', plural,
                                                     involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                            # else:
+                            #     cmd = 'virsh pool-undefine ' + pool_name
+                            #     runCmd(cmd)
                         else:
                             raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
                     # elif operation_type == 'DELETED':
@@ -1114,7 +1125,16 @@ def getMetadataName(jsondict):
     if metadata_name:
         return metadata_name
     else:
-        raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!') 
+        raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!')
+
+def getPoolPathWhenCreate(jsondict):
+    spec = jsondict['raw_object']['spec']
+    lifecycle = spec.get('lifecycle')
+
+    if lifecycle:
+        return lifecycle['createPool']['target']
+    else:
+        raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!')
 
 def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']

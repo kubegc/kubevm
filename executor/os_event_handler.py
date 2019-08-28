@@ -836,13 +836,17 @@ def main():
         logger.debug(VOL_DIRS)
         OLD_PATHS = []
         while True:
-            paths = _get_all_pool_path()
-            for pool in paths.keys():
-                if paths[pool] not in OLD_PATHS and os.path.isdir(paths[pool]):
-                    logger.debug(paths[pool])
-                    event_handler = VmVolEventHandler(pool, paths[pool], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
-                    observer.schedule(event_handler, paths[pool], True)
-            OLD_PATHS = paths.values()
+            try:
+                paths = _get_all_pool_path()
+                for pool in paths.keys():
+                    if paths[pool] not in OLD_PATHS and os.path.isdir(paths[pool]):
+                        logger.debug(paths[pool])
+                        event_handler = VmVolEventHandler(pool, paths[pool], GROUP_VM_DISK, VERSION_VM_DISK,
+                                                          PLURAL_VM_DISK)
+                        observer.schedule(event_handler, paths[pool], True)
+                OLD_PATHS = paths.values()
+            except Exception, e:
+                logger.debug("error occur when watch all storage pool")
 
             time.sleep(1)
     except KeyboardInterrupt:

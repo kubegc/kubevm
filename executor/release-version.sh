@@ -34,8 +34,8 @@ fi
 ##############################patch image#########################################
 
 # step 1 copy file
-cp -rf utils arraylist.cfg invoker.py virtctl.py docker/virtctl
-cp -rf utils arraylist.cfg host_cycler.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
+cp -rf utils config arraylist.cfg invoker.py virtctl.py docker/virtctl
+cp -rf utils config arraylist.cfg host_cycler.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
 
 #step 2 docker build
 cd docker

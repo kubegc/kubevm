@@ -1784,13 +1784,13 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
         (key, value) = 'config', config_dict.get('config')
         (config, _) = _convertCharsInJson(key, value)
         unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
-        if config_dict.get('type') == 'bridge':
-            return [unplugNICCmd]
-        elif config_dict.get('type') == 'l2bridge':
-            return [unplugNICCmd]
-        elif config_dict.get('type') == 'l3bridge':
+        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+                                (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+        if os.path.exists(net_cfg_file_path):
             unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
             return [unbindSwPortCmd, unplugNICCmd]
+        else:
+            return [unplugNICCmd]
         
 def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
     (key, value) = 'live', config_dict.get('live')

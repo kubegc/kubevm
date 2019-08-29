@@ -451,10 +451,10 @@ def convert_image_to_vm(name):
 #     logger.debug('convert Image to VM successful.')
 
 def delete_image(name):
-    file1 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, name)
-    file2 = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, name)
-    file3 = '%s/%s.qcow2' % (DEFAULT_TEMPLATE_DIR, name)
-    file4 = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, name)
+    file1 = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, name)
+    file2 = '%s/%s.qcow2' % (DEFAULT_TEMPLATE_DIR, name)
+    file3 = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, name)
+    file4 = '%s/%s-*' % (DEFAULT_TEMPLATE_DIR, name)
     cmd = 'rm -rf %s %s %s %s' % (file1, file2, file3, file4)
     logger.debug(cmd)
     try:

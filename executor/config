@@ -107,9 +107,7 @@ deleteSnapshot = virsh snapshot-delete
 [VirtualMachineImageSupportCmdsWithNameField]
 createImage = virt-install
 convertImageToVM = /usr/bin/vmm convert_image_to_vm
-
-[VirtualMachineImageSupportCmdsWithDomainField]
-deleteImage = virsh undefine
+deleteImage = /usr/bin/vmm delete_image
 
 [VirtualMahcinePoolSupportCmdsWithNameField]
 createPool = virsh pool-create-as

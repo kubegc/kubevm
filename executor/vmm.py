@@ -450,6 +450,14 @@ def convert_image_to_vm(name):
 #         group=GROUP, version=VERSION, namespace='default', plural='virtualmachineimages', name=name, body=V1DeleteOptions())
 #     logger.debug('convert Image to VM successful.')
 
+def delete_image(name):
+    file1 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, name)
+    file2 = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, name)
+    file3 = '%s/%s.qcow2' % (DEFAULT_TEMPLATE_DIR, name)
+    file4 = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, name)
+    cmd = 'rm -rf %s %s %s %s' % (file1, file2, file3, file4)
+    logger.debug(cmd)
+    runCmd(cmd)
 
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -474,7 +482,7 @@ def addExceptionMessage(jsondict, reason, message):
     return jsondict
 
 def main():
-    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|update-os|--help>' % sys.argv[0]
+    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|delete_image|update-os|--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
         print (help_msg)
         sys.exit(1)
@@ -492,6 +500,8 @@ def main():
         convert_vm_to_image(params['--name'])
     elif sys.argv[1] == 'convert_image_to_vm':
         convert_image_to_vm(params['--name'])
+    elif sys.argv[1] == 'delete_image':
+        delete_image(params['--name'])
     elif sys.argv[1] == 'update-os':
         updateOS(params['--domain'], params['--source'], params['--target'])
     else:

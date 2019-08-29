@@ -159,7 +159,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
-                logger.debug(e)
                 if e.reason == 'Conflict':
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                               version=version, 
@@ -170,6 +169,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     modifyStructure(name, body, group, version, plural)
                 else:
+                    logger.error(e)
                     raise e
                     
         except:
@@ -287,7 +287,6 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
-                logger.debug(e)
                 if e.reason == 'Conflict':
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                               version=version, 
@@ -298,6 +297,7 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     modifyStructure(name, body, group, version, plural)
                 else:
+                    logger.error(e)
                     raise e
                     
         except:
@@ -413,7 +413,6 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
-                logger.debug(e)
                 if e.reason == 'Conflict':
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 
@@ -424,6 +423,7 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')               
                     modifyStructure(name, body, group, version, plural)
                 else:
+                    logger.error(e)
                     raise e
                     
         except:
@@ -520,7 +520,6 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
-                logger.debug(e)
                 if e.reason == 'Conflict':
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                               version=version, 
@@ -536,6 +535,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                     body = addNodeName(jsondict)
                     modifyStructure(name, body, group, version, plural)  
                 else:
+                    logger.error(e)
                     raise e
                     
         except:
@@ -699,7 +699,6 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
-                logger.debug(e)
                 if e.reason == 'Conflict':
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                               version=version, 
@@ -711,6 +710,7 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
                     body = addNodeName(jsondict)
                     modifyStructure(name, body, group, version, plural)  
                 else:
+                    logger.error(e)
                     raise e
                     
         except:

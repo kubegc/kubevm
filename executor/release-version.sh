@@ -64,6 +64,8 @@ if [ ! -d "./dist" ]; then
 	mkdir ./dist
 fi
 cp -f config ./dist
+cp -f kubeovn-adm ./dist
+find ./dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
 mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
 if [ $? -ne 0 ]; then

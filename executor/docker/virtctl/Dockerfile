@@ -10,7 +10,7 @@ ADD config /home/kubevmm/bin/
 
 ADD *.cfg /home/kubevmm/bin/
 
-ADD virtctl.sh /home/kubevmm/bin/
+ADD *.sh /home/kubevmm/bin/
 
 ADD utils /home/kubevmm/bin/utils
 

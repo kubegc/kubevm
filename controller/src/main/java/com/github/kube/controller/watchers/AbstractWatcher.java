@@ -7,15 +7,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.alibaba.fastjson.JSON;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
+import com.github.kubesys.kubernetes.api.model.ExtendedCustomResourceDefinitionSpec;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 
 /**
  * @author wuheng@otcaix.iscas.ac.cn
@@ -27,6 +31,11 @@ import io.fabric8.kubernetes.api.model.ResourceRequirements;
  **/
 public abstract class AbstractWatcher {
 
+	/**
+	 * m_logger
+	 */
+	protected final static Logger m_logger = Logger.getLogger(VirtualMachineWatcher.class.getName());
+	
 	/**
 	 * Kubernetes client
 	 */
@@ -65,11 +74,11 @@ public abstract class AbstractWatcher {
 	 * @return                        Pod
 	 * @throws Exception              exception
 	 */
-	protected Pod createPod(ObjectMeta om, Object spec, Map<String, String> nodeSelector, String nodeName, String podName) throws Exception {
+	protected Pod createPod(ObjectMeta om, Object spec, Map<String, String> nodeSelector, String podName) throws Exception {
 		Pod pod = new Pod();
 		// metadata and podSpec
 		pod.setMetadata(createMetadataFrom(om, spec, podName));
-		pod.setSpec(createPodSpecFrom(spec, nodeSelector, nodeName, podName));
+		pod.setSpec(createPodSpecFrom(spec, nodeSelector, podName));
 		return pod;
 	}
 	
@@ -158,9 +167,8 @@ public abstract class AbstractWatcher {
 	 * @param podName            pod name
 	 * @return  PodSpec object
 	 */
-	protected PodSpec createPodSpecFrom(Object resInfo, Map<String, String> nodeSelector, String nodeName, String podName) {
+	protected PodSpec createPodSpecFrom(Object resInfo, Map<String, String> nodeSelector, String podName) {
 		PodSpec spec = new PodSpec();
-		spec.setNodeName(nodeName);
 		spec.setNodeSelector(nodeSelector);
 		spec.setContainers(createContainerFrom(resInfo, podName));
 		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
@@ -259,5 +267,98 @@ public abstract class AbstractWatcher {
 		annotations.put(NS_ANNOTATION, om.getNamespace());
 		annotations.put(JSON_ANNOTATION, JSON.toJSONString(spec));
 		return annotations;
+	}
+	
+	/*************************************
+	 * 
+	 *  Some common methods
+	 * 
+	 *************************************/
+	
+	/**
+	 * @param logger             logger
+	 * @param cause              cause
+	 */
+	public void logStopInfo(KubernetesClientException cause) {
+		m_logger.log(Level.INFO, "Stop " 
+				+ getClass().getSimpleName() + ":" + cause);
+	}
+	
+	
+	/**
+	 * @param podName         pod name
+	 */
+	public void logCreateInfo(String podName) {
+		m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + POD_NAMESPACE + "'");
+	}
+	
+	/**
+	 * @param podName         pod name
+	 */
+	public void logDeleteInfo(String podName) {
+		m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + POD_NAMESPACE + "'");
+	}
+	
+	/**
+	 * @param data            Metadata
+	 * @return                pod name
+	 */
+	public String getPodName(ObjectMeta data) {
+		return getPrefix() + "-" + data.getName() 
+					+ "-" + data.getNamespace();
+	}
+	
+	/**
+	 * @param action        action
+	 * @param objMeta       object metadata
+	 * @param spec          spec
+	 */
+	public void doConvert(String action, ObjectMeta objMeta, 
+				ExtendedCustomResourceDefinitionSpec spec) {
+
+		// if user assign a node for a CRD, then
+		// our process will skip the scheduling step
+		if (spec.getNodeName() != null) {
+			return;
+		}
+		
+		// if it is a 'ADDED' command, 
+		// we will create a pod based on the CRD's info 
+		String podName = getPodName(objMeta);
+		if (action.equals(ACTION_ADDED)) {
+			try {
+				Pod pod = createPod(objMeta, spec, spec.getNodeSelector(), podName);
+				doCreate(podName, pod);
+			} catch (Exception e) {
+				// this means we cannot create a pod based on the CRD's info 
+				m_logger.log(Level.SEVERE, "cannot create object because of " + e);
+				doDelete(podName);
+			}
+		} else if (action.equals(ACTION_DELETED)) {
+			doDelete(podName);
+		}
+	}
+
+
+	/**
+	 * @param podName            pod name
+	 */
+	protected void doDelete(String podName) {
+		if (client.pods().inNamespace(POD_NAMESPACE).withName(podName).get() != null) {
+			client.pods().inNamespace(POD_NAMESPACE).withName(podName).delete();
+			logDeleteInfo(podName);
+		}
+	}
+
+
+	/**
+	 * @param podName            pod name
+	 * @param pod                pod
+	 */
+	protected void doCreate(String podName, Pod pod) {
+		if (client.pods().inNamespace(POD_NAMESPACE).withName(podName).get() == null) {
+			client.pods().inNamespace(POD_NAMESPACE).create(pod);
+			logCreateInfo(podName);
+		}
 	}
 }

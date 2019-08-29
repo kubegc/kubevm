@@ -688,6 +688,8 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 except:
                     logger.error('Oops! ', exc_info=1)
                 vm_name = _get_field(jsondict, the_cmd_key, 'domain')
+                if not vm_name:
+                    raise ExecuteException('VirtctlError', 'error: no "domain" parameter')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -701,13 +703,13 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                         if cmd:
                             runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-                        if vm_name and is_snapshot_exists(metadata_name, vm_name):
-                            if cmd:
-                                runCmd(cmd)
+#                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
+                        if cmd:
+                            runCmd(cmd)
                     elif operation_type == 'DELETED':
-                        if vm_name and is_snapshot_exists(metadata_name, vm_name):
-                            if cmd:
-                                runCmd(cmd)
+#                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
+                        if cmd:
+                            runCmd(cmd)
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)

@@ -43,28 +43,28 @@ def check_version(ignore_warning=False):
         print('\033[1;46m*strongly suggest do: %s service update\033[0m \n' % sys.argv[0])
     return (virtctl_running_version, virtlet_running_version)
     
-def run_virtctl(update_config=False):
-    if update_config:
-        script = 'virtctl-update-config.sh'
+def run_virtctl(update_stuff=False):
+    if update_stuff:
+        script = 'virtctl-update-stuff.sh'
     else:
         script = 'virtctl.sh'
     return runCmd('docker run -itd --restart=always -h %s --net=host -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /etc/sysconfig/cstor:/etc/sysconfig/cstor -v /dev:/dev -v /usr/lib64:/usr/lib64 -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash %s' % (HOSTNAME, VERSION, script))
 
-def run_virtlet(update_config=False):
-    if update_config:
-        script = 'virtlet-update-config.sh'
+def run_virtlet(update_stuff=False):
+    if update_stuff:
+        script = 'virtlet-update-stuff.sh'
     else:
         script = 'virtlet.sh'
     return runCmd('docker run -itd --restart=always -h %s --net=host -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /etc/sysconfig/cstor:/etc/sysconfig/cstor -v /dev:/dev -v /usr/lib64:/usr/lib64 -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash %s' % (HOSTNAME, VERSION, script))
 
-def start(ignore_warning=False, update_config=False):
+def start(ignore_warning=False, update_stuff=False):
     virtctl_err = None
     virtlet_err = None
     (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version) = status(ignore_warning=ignore_warning)
     print('starting kubevmm(%s) services...' % VERSION)
     time.sleep(3)
     if not virtctl_container_id:
-        (_, virtctl_err) = run_virtctl(update_config=update_config)
+        (_, virtctl_err) = run_virtctl(update_stuff=update_stuff)
         if virtctl_err:
             print('warning: %s\n' % (virtctl_err))
     else:
@@ -73,7 +73,7 @@ def start(ignore_warning=False, update_config=False):
         else:
             print('do noting: service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
     if not virtlet_container_id:
-        (_, virtlet_err) = run_virtlet(update_config=update_config)
+        (_, virtlet_err) = run_virtlet(update_stuff=update_stuff)
         if virtlet_err:
             print('warning: %s\n' % (virtlet_err))
     else:
@@ -149,7 +149,7 @@ def update_online():
         sys.exit(1)
     stop(ignore_warning=True)
     time.sleep(3)
-    start(ignore_warning=True, update_config=True)
+    start(ignore_warning=True, update_stuff=True)
 
 def update_offline(pack, ignore_warning=True):
     print('updating from package \'%s\'' % pack)

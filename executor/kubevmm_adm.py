@@ -24,10 +24,10 @@ except:
     sys.exit(1)
     
 def check_version(ignore_warning=False):
-    (virtctl_running_version, _) = runCmd('docker ps | grep \"bash virtctl.sh\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
+    (virtctl_running_version, _) = runCmd('docker ps | grep \"bash virtctl\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not virtctl_running_version:
         (virtctl_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
-    (virtlet_running_version, _) = runCmd('docker ps | grep \"bash virtlet.sh\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
+    (virtlet_running_version, _) = runCmd('docker ps | grep \"bash virtlet\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not virtlet_running_version:
         (virtlet_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not ignore_warning and virtctl_running_version and virtctl_running_version != VERSION or not ignore_warning and virtlet_running_version and virtlet_running_version != VERSION:

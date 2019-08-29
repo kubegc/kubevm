@@ -16,6 +16,7 @@ Source0:        kubevmm-adm
 Source1:        vmm
 Source2:        VERSION
 Source3:        config
+Source4:        kubeovn-adm
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -27,6 +28,7 @@ BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 mkdir -p %{buildroot}/%{_usr}/bin
 install %{SOURCE0} %{buildroot}/%{_usr}/bin/kubevmm-adm
 install %{SOURCE1} %{buildroot}/%{_usr}/bin/vmm
+install %{SOURCE4} %{buildroot}/%{_usr}/bin/kubeovn-adm
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
@@ -39,6 +41,7 @@ rm -rf %{buildroot}
 %defattr(755, -, -)
 /%{_usr}/bin/kubevmm-adm
 /%{_usr}/bin/vmm
+/%{_usr}/bin/kubeovn-adm
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 /etc/kubevmm/config

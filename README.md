@@ -47,8 +47,8 @@ kubectl apply -f yamls/
 - VirtualMachineDisk **(Supported)**
 - VirtualMachineSnapshot **(Supported)**
 - VirtualMachineImage **(Supported)**
-- VirtualMachineNetwork
-- VirtualMachineStoragePool
+- VirtualMachineNetwork **(Supported)**
+- VirtualMachineStoragePool **(Supported)**
 
 # Architecture
 
@@ -56,7 +56,7 @@ kubectl apply -f yamls/
 
 - **[Analyser](analyser)**: converte libvirt's XML to Kubernetes's YAML, the libvirt's XML is used by [Openstack](https://www.openstack.org/) (Go, Shell, Python). 
 - **[Controller](controller)**: extend Kubernetes to support VirtualMachine resource (Java).
-- **[Scheduler](scheduler)**:  extend Kubernetes to schedule VirtualMachine (Go).
+- **[Scheduler](https://github.com/kubesys/kubeext-scheduler)**:  extend Kubernetes to schedule VirtualMachine (Go).
 - **[Executor(aka Virtctl)](executor)**:  manage VM's lifecycle (Python, Shell).
 
 # Roadmap

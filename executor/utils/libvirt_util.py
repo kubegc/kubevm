@@ -99,8 +99,8 @@ def _get_pool_info(pool_):
         pass
     lines = pool.XMLDesc()
     result = runCmdWithResult('virsh pool-info ' + pool_)
-    del result['allocation']
-    del result['available']
+    # del result['allocation']
+    # del result['available']
     for line in lines.split():
         if line.find("path") >= 0:
             result['path'] = line.replace('<path>', '').replace('</path>', '')

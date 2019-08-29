@@ -31,6 +31,38 @@ else
     echo "    Success pull latest version."
 fi
 
+##############################patch stuff#########################################
+SHELL_FOLDER=$(dirname $(readlink -f "$0"))
+cd ${SHELL_FOLDER}
+if [ ! -d "./dist" ]; then
+	mkdir ./dist
+fi
+cp -f config ./dist
+cp -f kubeovn-adm ./dist
+pyinstaller -F kubevmm_adm.py -n kubevmm-adm
+if [ $? -ne 0 ]; then
+    echo "    Failed to compile <kubevmm-adm>!"
+    exit 1
+else
+    echo "    Success compile <kubevmm-adm>."
+fi
+pyinstaller -F vmm.py
+if [ $? -ne 0 ]; then
+    echo "    Failed to compile <vmm>!"
+    exit 1
+else
+    echo "    Success compile <kubevmm-adm>."
+fi
+find ${SHELL_FOLDER}/dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
+
+cp -f ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm docker/virtctl
+if [ $? -ne 0 ]; then
+    echo "    Failed to copy stuff to docker/virtctl!"
+    exit 1
+else
+    echo "    Success copy stuff to docker/virtctl."
+fi
+
 ##############################patch image#########################################
 
 # step 1 copy file
@@ -59,14 +91,8 @@ docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${V
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"
-cd ..
-if [ ! -d "./dist" ]; then
-	mkdir ./dist
-fi
-cp -f config ./dist
-cp -f kubeovn-adm ./dist
 SHELL_FOLDER=$(dirname $(readlink -f "$0"))
-find ${SHELL_FOLDER}/dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
+cd ${SHELL_FOLDER}
 sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
 mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
 if [ $? -ne 0 ]; then

@@ -65,7 +65,8 @@ if [ ! -d "./dist" ]; then
 fi
 cp -f config ./dist
 cp -f kubeovn-adm ./dist
-find ./dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
+SHELL_FOLDER=$(dirname $(readlink -f "$0"))
+find ${SHELL_FOLDER}/dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
 mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
 if [ $? -ne 0 ]; then

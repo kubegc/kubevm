@@ -927,6 +927,7 @@ def main():
                         event_handler = VmVolEventHandler(pool, paths[pool], GROUP_VM_DISK, VERSION_VM_DISK,
                                                           PLURAL_VM_DISK)
                         observer.schedule(event_handler, paths[pool], True)
+                        observer.unschedule()
                 OLD_PATHS = paths.values()
             except Exception, e:
                 logger.debug("error occur when watch all storage pool")

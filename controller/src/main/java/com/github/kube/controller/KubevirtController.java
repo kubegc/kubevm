@@ -14,6 +14,8 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.github.kube.controller.watchers.VirtualMachineDiskWatcher;
 import com.github.kube.controller.watchers.VirtualMachineImageWatcher;
+import com.github.kube.controller.watchers.VirtualMachineNetworkWatcher;
+import com.github.kube.controller.watchers.VirtualMachinePoolWatcher;
 import com.github.kube.controller.watchers.VirtualMachineSnapshotWatcher;
 import com.github.kube.controller.watchers.VirtualMachineWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
@@ -69,6 +71,8 @@ public class KubevirtController {
 		client.watchVirtualMachines(new VirtualMachineWatcher(client));
 		client.watchVirtualMachineImages(new VirtualMachineImageWatcher(client));
 		client.watchVirtualMachineDisks(new VirtualMachineDiskWatcher(client));
+		client.watchVirtualMachineNetworks(new VirtualMachineNetworkWatcher(client));
+		client.watchVirtualMachinePools(new VirtualMachinePoolWatcher(client));
 		client.watchVirtualMachineSnapshots(new VirtualMachineSnapshotWatcher(client));
 	}
 	
@@ -76,8 +80,9 @@ public class KubevirtController {
 		m_logger.log(Level.INFO, "Start VirtualMachineWatcher");
 		m_logger.log(Level.INFO, "Start VirtualMachineImageWatcher");
 		m_logger.log(Level.INFO, "Start VirtualMachineDiskWatcher");
-		m_logger.log(Level.INFO, "Start VirtualMachineUITDiskWatcher");
 		m_logger.log(Level.INFO, "Start VirtualMachineSnapshotWatcher");
+		m_logger.log(Level.INFO, "Start VirtualMachinePoolWatcher");
+		m_logger.log(Level.INFO, "Start VirtualMachineNetworkWatcher");
 		KubevirtController scheduler = new KubevirtController();
 		try {
 			scheduler.start();

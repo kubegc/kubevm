@@ -186,6 +186,12 @@ spec:
   - JSONPath: .spec.pool.autostart
     name: AUTOSTART
     type: string
+  - JSONPath: .spec.pool.allocation
+    name: ALLOCATION
+    type: string
+  - JSONPath: .spec.pool.available
+    name: AVAILABLE
+    type: string
   - JSONPath: .spec.pool.state
     name: STATE
     type: string

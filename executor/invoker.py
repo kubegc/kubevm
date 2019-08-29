@@ -331,6 +331,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if _isDeleteVM(the_cmd_key):
                                 if is_vm_active(metadata_name):
                                     destroy(metadata_name)
+                                    time.sleep(1)
                                 if cmd:
                                     runCmd(cmd)
 #                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)

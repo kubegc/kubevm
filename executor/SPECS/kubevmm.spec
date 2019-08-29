@@ -28,7 +28,7 @@ BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 mkdir -p %{buildroot}/%{_usr}/bin
 install %{SOURCE0} %{buildroot}/%{_usr}/bin/kubevmm-adm
 install %{SOURCE1} %{buildroot}/%{_usr}/bin/vmm
-install %{SOURCE4} %{buildroot}/%{_usr}/bin/vmm
+install %{SOURCE4} %{buildroot}/%{_usr}/bin/kubeovn-adm
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm

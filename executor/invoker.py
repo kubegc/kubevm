@@ -983,7 +983,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
                             try:
-                                report_success(metadata_name, jsondict, 'warning',
+                                report_success(metadata_name, jsondict, 'success',
                                                'has exist ' + pool_name + ' pool!', group, version, plural)
                             except:
                                 logger.warning('Oops! report_success fail', exc_info=1)

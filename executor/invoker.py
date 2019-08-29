@@ -43,9 +43,12 @@ Import local libs
 from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent
+from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+    addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
+    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success
 
-class parser(ConfigParser.ConfigParser):  
+
+class parser(ConfigParser.ConfigParser):
     def __init__(self,defaults=None):  
         ConfigParser.ConfigParser.__init__(self,defaults=None)  
     def optionxform(self, optionstr):  
@@ -970,12 +973,20 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             poolJson = _get_pool_info(pool_name)
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                            raise ExecuteException('success', 'create ' + pool_name + ' pool success!')
+                            try:
+                                report_success(metadata_name, jsondict, 'success',
+                                               'create ' + pool_name + ' pool success!', group, version, plural)
+                            except:
+                                logger.warning('Oops! report_success fail', exc_info=1)
                         else:
                             poolJson = _get_pool_info(pool_name)
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                            raise ExecuteException('warning', 'has exist ' + pool_name + ' pool!')
+                            try:
+                                report_success(metadata_name, jsondict, 'warning',
+                                               'has exist ' + pool_name + ' pool!', group, version, plural)
+                            except:
+                                logger.warning('Oops! report_success fail', exc_info=1)
                     elif operation_type == 'MODIFIED':
                         if is_pool_exists(pool_name):
                             runCmd(cmd)
@@ -983,6 +994,10 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 poolJson = _get_pool_info(pool_name)
                                 write_result_to_server(group, version, 'default', plural,
                                                     involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                                try:
+                                    report_success(metadata_name, jsondict, 'success', the_cmd_key + pool_name + ' pool success!', group, version, plural)
+                                except:
+                                    logger.warning('Oops! report_success fail', exc_info=1)
                             # else:
                             #     cmd = 'virsh pool-undefine ' + pool_name
                             #     runCmd(cmd)

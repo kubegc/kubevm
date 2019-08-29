@@ -265,6 +265,16 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
                     jsondict = deleteLifecycleInJson(jsondict)
+                if _isPlugDisk(the_cmd_key) or _isUnplugDisk(the_cmd_key):
+                    '''
+                    Parse disk configurations
+                    '''
+                    disk_config = _get_fields(jsondict, the_cmd_key)
+                    logger.debug(disk_config)
+                    config_dict = _disk_config_parser_json(the_cmd_key, disk_config)
+                    logger.debug(config_dict)
+                    disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
+                    jsondict = deleteLifecycleInJson(jsondict)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
@@ -343,6 +353,14 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
                             if 'network_operations_queue' in dir() and network_operations_queue:
                                 for operation in network_operations_queue:
+                                    logger.debug(operation)
+                                    runCmd(operation)
+                        '''
+                        Run disk operations
+                        '''
+                        if _isPlugDisk(the_cmd_key) or _isUnplugDisk(the_cmd_key):
+                            if 'disk_operations_queue' in dir() and disk_operations_queue:
+                                for operation in disk_operations_queue:
                                     logger.debug(operation)
                                     runCmd(operation)
 #                     elif operation_type == 'DELETED':
@@ -1306,6 +1324,16 @@ def _isUnplugNIC(the_cmd_key):
         return True
     return False
 
+def _isPlugDisk(the_cmd_key):
+    if the_cmd_key == "plugDisk":
+        return True
+    return False
+
+def _isUnplugDisk(the_cmd_key):
+    if the_cmd_key == "unplugDisk":
+        return True
+    return False
+
 def _isPlugDevice(the_cmd_key):
     if the_cmd_key == "plugDevice":
         return True
@@ -1560,6 +1588,71 @@ def _createNICXml(metadata_name, data):
     
     return file_path
 
+def _createDiskXml(metadata_name, data):   
+    '''
+    Write disk Xml file to DEFAULT_DEVICE_DIR dir.
+    '''
+    doc = Document()
+    root = doc.createElement('disk')
+    root.setAttribute('type', 'file')
+    root.setAttribute('device', data.get('type') if data.get('type') else 'disk')
+    doc.appendChild(root)
+    driver = {}
+    iotune = {}
+    for k, v in data.items():
+        if k == 'driver':
+            driver[k] = v
+        elif k == 'subdriver':
+            driver[k] = v
+        elif k == 'source':
+            node = doc.createElement(k)
+            node.setAttribute('file', v)
+            root.appendChild(node)
+        elif k == 'mode':
+            node = doc.createElement(v)
+            root.appendChild(node)
+        elif k == 'target':
+            node = doc.createElement(k)
+            node.setAttribute('dev', v)
+            root.appendChild(node)
+        elif k == 'read_bytes_sec':
+            iotune[k] = v
+        elif k == 'write_bytes_sec':
+            iotune[k] = v
+        elif k == 'read_iops_sec':
+            iotune[k] = v
+        elif k == 'write_iops_sec':
+            iotune[k] = v
+    
+    if driver:        
+        node = doc.createElement('driver')
+        node.setAttribute('name', driver.get('driver') if driver.get('driver') else 'qemu')
+        node.setAttribute('type', driver.get('subdriver') if driver.get('subdriver') else 'qcow2')
+        root.appendChild(node)
+    
+    if iotune:        
+        vm_iotune = doc.createElement('iotune')
+        for k,v in iotune.items():
+            sub_node = doc.createElement(k)
+            text = doc.createTextNode(v)
+            sub_node.appendChild(text)
+            vm_iotune.appendChild(sub_node)
+            root.appendChild(vm_iotune)      
+            
+    '''
+    If DEFAULT_DEVICE_DIR not exists, create it.
+    '''
+    if not os.path.exists(DEFAULT_DEVICE_DIR):
+        os.makedirs(DEFAULT_DEVICE_DIR, 0711)
+    file_path = '%s/%s-disk-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('target'))
+    try:
+        with open(file_path, 'w') as f:
+            f.write(doc.toprettyxml(indent='\t'))
+    except:
+        raise ExecuteException('VirtctlError', 'Execute plugDisk error: cannot create disk XML file \'%s\'' % file_path)  
+    
+    return file_path
+
 # def _validate_network_params(data): 
 #     if data:
 #         for key in data.keys():
@@ -1638,22 +1731,44 @@ def _network_config_parser_json(the_cmd_key, data):
         raise ExecuteException('VirtctlError', 'Network config error: no parameters or in wrong format, plz check it!')
     return retv
 
+def _disk_config_parser_json(the_cmd_key, data):
+    retv = {}
+    if data:
+        retv = data.copy()
+        if _isUnplugDisk(the_cmd_key):
+            if not retv.get('target'):
+                raise ExecuteException('VirtctlError', 'Disk config error: no "target" parameter.')
+            return retv
+        source = data.get('source')
+        if not source:
+            raise ExecuteException('VirtctlError', 'Disk config error: no "source" parameter.')
+    if retv:
+        if not retv.get('target'):
+                raise ExecuteException('VirtctlError', 'Disk config error: no "target" parameter.')
+    else:
+        raise ExecuteException('VirtctlError', 'Disk config error: no parameters or in wrong format, plz check it!')
+    return retv
+
 def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key) or _isPlugNIC(the_cmd_key):
         if _isPlugNIC(the_cmd_key):
-            live = config_dict.get('live') if config_dict.get('live') else False
+            (key, value) = 'live', config_dict.get('live')
+            (live, _) = _convertCharsInJson(key, value)
+            (key, value) = 'config', config_dict.get('config')
+            (config, _) = _convertCharsInJson(key, value)
         else:
             live = True
+            config = True
         if config_dict.get('type') == 'bridge':
-            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
             return [plugNICCmd]
         elif config_dict.get('type') == 'l2bridge':
-            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
             return [plugNICCmd]
         elif config_dict.get('type') == 'l3bridge':
             if not config_dict.get('switch'):
                 raise ExecuteException('VirtctlError', 'Network config error: no "switch" parameter.')
-            plugNICCmd = _plugNICFromXmlCmd(metadata_name, config_dict, live)
+            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
             unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
             bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
             recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
@@ -1664,8 +1779,11 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
     #         (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
             return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
     elif _isUnplugNIC(the_cmd_key):
-        live = config_dict.get('live') if config_dict.get('live') else False
-        unplugNICCmd = _unplugNICFromXmlCmd(metadata_name, config_dict, live)
+        (key, value) = 'live', config_dict.get('live')
+        (live, _) = _convertCharsInJson(key, value)
+        (key, value) = 'config', config_dict.get('config')
+        (config, _) = _convertCharsInJson(key, value)
+        unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
         if config_dict.get('type') == 'bridge':
             return [unplugNICCmd]
         elif config_dict.get('type') == 'l2bridge':
@@ -1673,20 +1791,32 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
         elif config_dict.get('type') == 'l3bridge':
             unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
             return [unbindSwPortCmd, unplugNICCmd]
+        
+def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
+    (key, value) = 'live', config_dict.get('live')
+    (live, _) = _convertCharsInJson(key, value)
+    (key, value) = 'config', config_dict.get('config')
+    (config, _) = _convertCharsInJson(key, value) 
+    if _isPlugDisk(the_cmd_key):
+        plugDiskCmd = _plugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
+        return [plugDiskCmd]
+    elif _isUnplugDisk(the_cmd_key):
+        unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
+        return [unplugDiskCmd]
 
-def _plugNICFromXmlCmd(metadata_name, data, live):
-    file_path = _createNICXml(metadata_name, data)
-    if live:
-        return 'virsh attach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
-    else:
-        return 'virsh attach-device --domain %s --file %s --config' % (metadata_name, file_path)
+def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
+    if device_type == 'nic':
+        file_path = _createNICXml(metadata_name, data)
+    elif device_type == 'disk':
+        file_path = _createDiskXml(metadata_name, data)
+    return 'virsh attach-device --domain %s --file %s %s %s' % (metadata_name, file_path, live, config)
 
-def _unplugNICFromXmlCmd(metadata_name, data, live):
-    file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
-    if live:
-        return 'virsh detach-device --domain %s --file %s --config --live' % (metadata_name, file_path)
-    else:
-        return 'virsh detach-device --domain %s --file %s --config' % (metadata_name, file_path)
+def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
+    if device_type == 'nic':
+        file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
+    elif device_type == 'disk':
+        file_path = '%s/%s-disk-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('target'))
+    return 'virsh detach-device --domain %s --file %s %s %s' % (metadata_name, file_path, live, config)
 
 def _createNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')

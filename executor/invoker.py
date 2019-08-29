@@ -1069,6 +1069,8 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                     report_success(metadata_name, jsondict, 'success', the_cmd_key + pool_name + ' pool success!', group, version, plural)
                                 except:
                                     logger.warning('Oops! report_success fail', exc_info=1)
+                            else:
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             # else:
                             #     cmd = 'virsh pool-undefine ' + pool_name
                             #     runCmd(cmd)
@@ -1151,6 +1153,11 @@ def get_cmd(jsondict, the_cmd_key):
         raise Exception("error: can't get cmd")
     logger.debug(cmd)
     return cmd
+
+def deleteStructure(name, body, group, version, plural):
+    retv = client.CustomObjectsApi().delete_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    return retv
 
 def write_result_to_server(group, version, namespace, plural, name, result=None, data=None):
     jsonDict = None

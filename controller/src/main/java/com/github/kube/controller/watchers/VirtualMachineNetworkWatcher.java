@@ -42,10 +42,10 @@ public class VirtualMachineNetworkWatcher extends AbstractWatcher implements Wat
 		String namespace = network.getMetadata().getNamespace();
 		String podName = getPrefix() + "-" + network.getMetadata().getName() + "-" + namespace;
 		
-		if (action.toString().equals(ACTION_CREATE)) {
+		if (action.toString().equals(ACTION_ADDED)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(network.getMetadata(), network.getSpec(), 
+				pod = createPod(network.getMetadata(), network.getSpec(), network.getSpec().getNodeSelector(),
 						network.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -58,7 +58,7 @@ public class VirtualMachineNetworkWatcher extends AbstractWatcher implements Wat
 						+ network.getMetadata().getNamespace() + "'");
 				m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + namespace + "'");
 			}
-		} else if (action.toString().equals(ACTION_REMOVE)) {
+		} else if (action.toString().equals(ACTION_DELETED)) {
 			if (client.pods().inNamespace(namespace).withName(podName).get() != null) {
 				client.pods().inNamespace(namespace).withName(podName).delete();
 				m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + namespace + "'");

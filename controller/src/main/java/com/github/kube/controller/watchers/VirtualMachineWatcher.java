@@ -42,10 +42,10 @@ public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<Vi
 		String namespace = vm.getMetadata().getNamespace();
 		String podName = getPrefix() + "-" + vm.getMetadata().getName() + "-" + namespace;
 		
-		if (action.toString().equals(ACTION_CREATE)) {
+		if (action.toString().equals(ACTION_ADDED)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(vm.getMetadata(), vm.getSpec(), 
+				pod = createPod(vm.getMetadata(), vm.getSpec(), vm.getSpec().getNodeSelector(), 
 						vm.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -58,7 +58,7 @@ public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<Vi
 						+ vm.getMetadata().getNamespace() + "'");
 				m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + namespace + "'");
 			}
-		} else if (action.toString().equals(ACTION_REMOVE)) {
+		} else if (action.toString().equals(ACTION_DELETED)) {
 			if (client.pods().inNamespace(namespace).withName(podName).get() != null) {
 				client.pods().inNamespace(namespace).withName(podName).delete();
 				m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + namespace + "'");

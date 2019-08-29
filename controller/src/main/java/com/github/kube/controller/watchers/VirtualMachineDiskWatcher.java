@@ -42,10 +42,10 @@ public class VirtualMachineDiskWatcher extends AbstractWatcher implements Watche
 		String namespace = disk.getMetadata().getNamespace();
 		String podName = getPrefix() + "-" + disk.getMetadata().getName() + "-" + namespace;
 		
-		if (action.toString().equals(ACTION_CREATE)) {
+		if (action.toString().equals(ACTION_ADDED)) {
 			Pod pod = null;;
 			try {
-				pod = createPod(disk.getMetadata(), disk.getSpec(), 
+				pod = createPod(disk.getMetadata(), disk.getSpec(), disk.getSpec().getNodeSelector(),
 								disk.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -58,7 +58,7 @@ public class VirtualMachineDiskWatcher extends AbstractWatcher implements Watche
 						+ disk.getMetadata().getNamespace() + "'");
 				m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + namespace + "'");
 			}
-		} else if (action.toString().equals(ACTION_REMOVE)) {
+		} else if (action.toString().equals(ACTION_DELETED)) {
 			if (client.pods().inNamespace(namespace).withName(podName).get() != null) {
 				client.pods().inNamespace(namespace).withName(podName).delete();
 				m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + namespace + "'");

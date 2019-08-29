@@ -41,10 +41,10 @@ public class VirtualMachineImageWatcher extends AbstractWatcher implements Watch
 		String namespace = image.getMetadata().getNamespace();
 		String podName = getPrefix() + "-" + image.getMetadata().getName() + "-" + namespace;
 		
-		if (action.toString().equals(ACTION_CREATE)) {
+		if (action.toString().equals(ACTION_ADDED)) {
 			Pod pod = null;
 			try {
-				pod = createPod(image.getMetadata(), image.getSpec(),
+				pod = createPod(image.getMetadata(), image.getSpec(),image.getSpec().getNodeSelector(),
 						image.getSpec().getNodeName(), podName);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -57,7 +57,7 @@ public class VirtualMachineImageWatcher extends AbstractWatcher implements Watch
 						+ image.getMetadata().getNamespace() + "'");
 				m_logger.log(Level.INFO, "Create Pod '" + podName + "' in namespace '" + namespace + "'");
 			}
-		} else if (action.toString().equals(ACTION_REMOVE)) {
+		} else if (action.toString().equals(ACTION_DELETED)) {
 			if (client.pods().inNamespace(namespace).withName(podName).get() != null) {
 				client.pods().inNamespace(namespace).withName(podName).delete();
 				m_logger.log(Level.INFO, "Delete Pod '" + podName + "' in namespace '" + namespace + "'");

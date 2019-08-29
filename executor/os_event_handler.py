@@ -119,7 +119,7 @@ def updateJsonRemoveLifecycle(jsondict, body):
 
 def myVmVolEventHandler(event, pool, name, group, version, plural):
     #     print(jsondict)
-    if  event == "Delete":
+    if event == "Delete":
         try:
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 

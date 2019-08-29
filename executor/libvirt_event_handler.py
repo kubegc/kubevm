@@ -83,7 +83,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
             try:
                 logger.debug('Callback domain deletion to virtlet')
-    #             deleteVM(vm_name, V1DeleteOptions())
+#                 deleteVM(vm_name, V1DeleteOptions())
                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, vm_name)
                 cmd = 'mv -f %s /tmp' % file_path
                 logger.debug(cmd)

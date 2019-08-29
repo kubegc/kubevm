@@ -424,6 +424,9 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
@@ -516,9 +519,20 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
                 
 def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     watcher = watch.Watch()
@@ -529,10 +543,12 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=group, version=version, plural=plural, **kwargs):
         try:
-            # logger.debug(jsondict)
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
@@ -624,9 +640,20 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         
 def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
     watcher = watch.Watch()
@@ -640,6 +667,9 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
@@ -722,9 +752,20 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
     watcher = watch.Watch()
@@ -738,6 +779,9 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
@@ -819,9 +863,20 @@ def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, 
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
             
 def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK):
     watcher = watch.Watch()
@@ -835,6 +890,9 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
@@ -916,9 +974,20 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL):
     watcher = watch.Watch()
@@ -929,10 +998,12 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                    group=group, version=version, plural=plural, **kwargs):
         try:
-            logger.debug(dumps(jsondict))
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
@@ -1049,9 +1120,20 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             event.updateKubernetesEvent()
                         except:
                             logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
         except:
-            logger.debug("error occurred during processing json data from apiserver")
             logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 def get_cmd(jsondict, the_cmd_key):
     cmd = None

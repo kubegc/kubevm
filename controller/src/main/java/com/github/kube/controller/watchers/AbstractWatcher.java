@@ -18,9 +18,8 @@ import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 
 /**
- * @author shizhonghao17@otcaix.iscas.ac.cn
- * @author yangchen18@otcaix.iscas.ac.cn
  * @author wuheng@otcaix.iscas.ac.cn
+ * 
  * @since Wed July 08 17:26:22 CST 2019
  * 
  **/

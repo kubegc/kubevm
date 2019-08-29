@@ -18,6 +18,10 @@
 cp -f /home/kubevmm/bin/config /etc/kubevmm/config.new
 mv -f /etc/kubevmm/config /etc/kubevmm/config.old
 mv -f /etc/kubevmm/config.new /etc/kubevmm/config
+# update VERSION file
+cp -f /home/kubevmm/bin/VERSION /etc/kubevmm/VERSION.new
+mv -f /etc/kubevmm/VERSION /etc/kubevmm/VERSION.old
+mv -f /etc/kubevmm/VERSION.new /etc/kubevmm/VERSION
 # update kubevmm-adm
 cp -f /home/kubevmm/bin/kubevmm-adm /usr/bin/kubevmm-adm.new
 mv -f /usr/bin/kubevmm-adm /usr/bin/kubevmm-adm.old

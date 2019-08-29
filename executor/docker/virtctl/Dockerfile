@@ -20,6 +20,8 @@ Add kubevmm-adm /home/kubevmm/bin/
 
 Add vmm /home/kubevmm/bin/
 
+Add VERSION /home/kubevmm/bin
+
 RUN rm -fr /tmp/*
 
 WORKDIR /home/kubevmm/bin

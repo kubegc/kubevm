@@ -975,7 +975,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             poolJson = _get_pool_info(pool_name)
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                            raise ExecuteException('success', 'has exist ' + pool_name + ' pool!')
+                            raise ExecuteException('warning', 'has exist ' + pool_name + ' pool!')
                     elif operation_type == 'MODIFIED':
                         if is_pool_exists(pool_name):
                             runCmd(cmd)

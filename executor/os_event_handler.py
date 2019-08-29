@@ -126,9 +126,9 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                                                                           namespace='default', 
                                                                           plural=plural, 
                                                                           name=name)
-            vol_xml = get_volume_xml(pool, name)
-            vol_json = toKubeJson(xmlToJson(vol_xml))
-            jsondict = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+#             vol_xml = get_volume_xml(pool, name)
+#             vol_json = toKubeJson(xmlToJson(vol_xml))
+            jsondict = updateJsonRemoveLifecycle(jsondict, {})
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
         except ApiException, e:
@@ -253,10 +253,10 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
                                                                           namespace='default', 
                                                                           plural=plural, 
                                                                           name=name)
-            snap_xml = get_snapshot_xml(vm, name)
-            snap_json = toKubeJson(xmlToJson(snap_xml))
-            snap_json = updateDomainSnapshot(loads(snap_json))
-            jsondict = updateJsonRemoveLifecycle(jsondict, snap_json)
+#             snap_xml = get_snapshot_xml(vm, name)
+#             snap_json = toKubeJson(xmlToJson(snap_xml))
+#             snap_json = updateDomainSnapshot(loads(snap_json))
+            jsondict = updateJsonRemoveLifecycle(jsondict, {})
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
         except ApiException, e:
@@ -383,8 +383,8 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
                                                                           namespace='default', 
                                                                           plural=plural, 
                                                                           name=name)
-            block_json = get_block_dev_json(name)
-            jsondict = updateJsonRemoveLifecycle(jsondict, loads(block_json))
+#             block_json = get_block_dev_json(name)
+            jsondict = updateJsonRemoveLifecycle(jsondict, {})
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
         except ApiException, e:
@@ -583,10 +583,10 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                           namespace='default', 
                                                                           plural=plural, 
                                                                           name=name)
-            vm_xml = get_xml(name)
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            vm_json = updateDomain(loads(vm_json))
-            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+#             vm_xml = get_xml(name)
+#             vm_json = toKubeJson(xmlToJson(vm_xml))
+#             vm_json = updateDomain(loads(vm_json))
+            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, {})
             modifyStructure(name, body, group, version, plural)
         except ApiException, e:
             if e.reason == 'Not Found':
@@ -760,11 +760,11 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
                                                                           namespace='default', 
                                                                           plural=plural, 
                                                                           name=name)
-            with open(xml_path, 'r') as fr:
-                vm_xml = fr.read()
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            vm_json = updateDomain(loads(vm_json))
-            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+#             with open(xml_path, 'r') as fr:
+#                 vm_xml = fr.read()
+#             vm_json = toKubeJson(xmlToJson(vm_xml))
+#             vm_json = updateDomain(loads(vm_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, {})
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
         except ApiException, e:

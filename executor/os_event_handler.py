@@ -941,6 +941,7 @@ def main():
                         OLD_PATH_WATCHERS[paths[pool]] = watcher
 
             except Exception, e:
+                logger.debug(traceback.print_exc())
                 logger.debug("error occur when watch all storage pool")
 
             time.sleep(1)

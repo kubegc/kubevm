@@ -99,6 +99,8 @@ def _get_pool_info(pool_):
         pass
     lines = pool.XMLDesc()
     result = runCmdWithResult('virsh pool-info ' + pool_)
+    result['allocation'] = int(1024*1024*1024*result['allocation'])
+    result['available'] = int(1024 * 1024 * 1024 * result['available'])
     # del result['allocation']
     # del result['available']
     for line in lines.split():

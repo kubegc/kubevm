@@ -457,7 +457,10 @@ def delete_image(name):
     file4 = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, name)
     cmd = 'rm -rf %s %s %s %s' % (file1, file2, file3, file4)
     logger.debug(cmd)
-    runCmd(cmd)
+    try:
+        runCmd(cmd)
+    except:
+        logger.error('Oops! ', exc_info=1)
 
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(

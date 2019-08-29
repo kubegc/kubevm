@@ -112,10 +112,10 @@ def restart(ignore_warning=False):
 
 def status(print_result=False, ignore_warning=False):
     (virtctl_running_version, virtlet_running_version) = check_version(ignore_warning=ignore_warning)
-    (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep \"bash virtctl.sh\" | awk \'NR==1{print $1}\'")
+    (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep \"bash virtctl\" | awk \'NR==1{print $1}\'")
     if not virtctl_container_id:
         (virtctl_container_id, virtctl_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl | awk \'NR==1{print $1}\'")
-    (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep \"bash virtlet.sh\" | awk \'NR==1{print $1}\'")
+    (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep \"bash virtlet\" | awk \'NR==1{print $1}\'")
     if not virtlet_container_id:
         (virtlet_container_id, virtlet_err) = runCmd("docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet | awk \'NR==1{print $1}\'")
     if virtctl_err:

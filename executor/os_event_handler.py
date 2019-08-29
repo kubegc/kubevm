@@ -917,17 +917,29 @@ def main():
         observer.start()
 
         logger.debug(VOL_DIRS)
-        OLD_PATHS = []
+        OLD_PATH_WATCHERS = {}
         while True:
             try:
                 paths = _get_all_pool_path()
+                # unschedule not exist pool path
+                watchers = {}
+                for path in OLD_PATH_WATCHERS.keys():
+                    if path not in paths.values():
+                        observer.unschedule(OLD_PATH_WATCHERS[path])
+                    else:
+                        watchers[path] = OLD_PATH_WATCHERS[path]
+                OLD_PATH_WATCHERS = watchers
+
+
                 for pool in paths.keys():
-                    if paths[pool] not in OLD_PATHS and os.path.isdir(paths[pool]):
+                    # schedule new pool path
+                    if paths[pool] not in OLD_PATH_WATCHERS.keys() and os.path.isdir(paths[pool]):
                         logger.debug(paths[pool])
                         event_handler = VmVolEventHandler(pool, paths[pool], GROUP_VM_DISK, VERSION_VM_DISK,
                                                           PLURAL_VM_DISK)
-                        observer.schedule(event_handler, paths[pool], True)
-                OLD_PATHS = paths.values()
+                        watcher = observer.schedule(event_handler, paths[pool], True)
+                        OLD_PATH_WATCHERS[paths[pool]] = watcher
+
             except Exception, e:
                 logger.debug("error occur when watch all storage pool")
 

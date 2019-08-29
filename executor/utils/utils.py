@@ -361,6 +361,18 @@ def report_failure(name, jsondict, error_reason, error_message, group, version, 
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
 
+def report_success(name, jsondict, success_reason, success_message, group, version, plural):
+    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                      version=version,
+                                                                      namespace='default',
+                                                                      plural=plural,
+                                                                      name=name)
+    jsondict = deleteLifecycleInJson(jsondict)
+    body = addExceptionMessage(jsondict, success_reason, success_message)
+    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    return retv
+
 def _getSpec(jsondict):
     spec = jsondict.get('spec')
     if not spec:

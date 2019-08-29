@@ -255,10 +255,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
                     jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
-                if _isDeleteVM(the_cmd_key):
-                    if not is_vm_exists(metadata_name):
-                        logger.debug('***VM %s already deleted!***' % metadata_name)
-                        continue
                 if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key):
                     '''
                     Parse network configurations

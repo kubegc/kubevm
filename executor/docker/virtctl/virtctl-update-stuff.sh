@@ -32,6 +32,7 @@ cp -f /home/kubevmm/bin/kubeovn-adm /usr/bin/kubeovn-adm.new
 mv -f /usr/bin/kubeovn-adm /usr/bin/kubeovn-adm.old
 chmod -x /usr/bin/kubeovn-adm.old
 mv -f /usr/bin/kubeovn-adm.new /usr/bin/kubeovn-adm
+chmod +x /usr/bin/kubeovn-adm
 # update vmm
 cp -f /home/kubevmm/bin/vmm /usr/bin/vmm.new
 mv -f /usr/bin/vmm /usr/bin/vmm.old

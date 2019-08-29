@@ -205,11 +205,6 @@ public abstract class AbstractWatcher {
 	 * CRD's metadata name
 	 */
 	public final static String NAME_ANNOTATION       = "crdName";
-
-	/**
-	 * CRD's JSON
-	 */
-	public final static String JSON_ANNOTATION       = "crdJSON";
 	
 	
 	/**
@@ -265,7 +260,6 @@ public abstract class AbstractWatcher {
 		annotations.put(VERSION_ANNOTATION, getVersion());
 		annotations.put(NAME_ANNOTATION, om.getName());
 		annotations.put(NS_ANNOTATION, om.getNamespace());
-		annotations.put(JSON_ANNOTATION, JSON.toJSONString(spec));
 		return annotations;
 	}
 	

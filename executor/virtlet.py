@@ -64,11 +64,11 @@ class ClientDaemon(CDaemon):
             thread_2.daemon = True
             thread_2.name = 'os_event_handler'
             thread_2.start()
-            if not is_kubernetes_master():
-                thread_3 = Thread(target=host_cycler)
-                thread_3.daemon = True
-                thread_3.name = 'host_cycler'
-                thread_3.start()
+#             if not is_kubernetes_master():
+#                 thread_3 = Thread(target=host_cycler)
+#                 thread_3.daemon = True
+#                 thread_3.name = 'host_cycler'
+#                 thread_3.start()
             try:
                 while True:
                     time.sleep(1)
@@ -76,8 +76,8 @@ class ClientDaemon(CDaemon):
                 return
             thread_1.join()
             thread_2.join()
-            if not is_kubernetes_master():
-                thread_3.join()
+#             if not is_kubernetes_master():
+#                 thread_3.join()
         except:
             logger.error('Oops! ', exc_info=1)
             

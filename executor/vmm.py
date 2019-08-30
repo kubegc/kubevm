@@ -130,9 +130,13 @@ def convert_vm_to_image(name):
             vm_xml = get_xml(self.vm)
             with open(self.tmp_path, 'w') as fw:
                 fw.write(vm_xml)
-            file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, self.vm)
-            cmd = 'mv -f %s %s' % (file_path, DEFAULT_TEMPLATE_DIR)
-            runCmd(cmd)
+            file_path1 = '%s/%s-nic-*' % (DEFAULT_DEVICE_DIR, self.vm)
+            file_path2 = '%s/%s-disk-*' % (DEFAULT_DEVICE_DIR, self.vm)
+            cmd = 'mv -f %s %s %s' % (file_path1, file_path2, DEFAULT_TEMPLATE_DIR)
+            try:
+                runCmd(cmd)
+            except:
+                logger.warning('Oops! ', exc_info=1)
             try:
                 if self.force:
                     undefine_with_snapshot(self.vm)
@@ -150,9 +154,13 @@ def convert_vm_to_image(name):
                 with open(self.tmp_path, 'r') as fr:
                     vm_xml = fr.read()
                 define_xml_str(vm_xml)
-            file_path = '%s/%s-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
-            cmd = 'mv -f %s %s' % (file_path, DEFAULT_DEVICE_DIR)
-            runCmd(cmd)
+            file_path1 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
+            file_path2 = '%s/%s-disk-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
+            cmd = 'mv -f %s %s %s' % (file_path1, file_path2, DEFAULT_DEVICE_DIR)
+            try:
+                runCmd(cmd)
+            except:
+                logger.warning('Oops! ', exc_info=1)
             return 
         
     class final_step_delete_source_file(RotatingOperation):
@@ -319,9 +327,13 @@ def convert_image_to_vm(name):
             with open(self.xml_path, 'r') as fr:
                 vm_xml = fr.read()
             define_xml_str(vm_xml)
-            file_path = '%s/%s-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
-            cmd = 'mv -f %s %s' % (file_path, DEFAULT_DEVICE_DIR)
-            runCmd(cmd)
+            file_path1 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
+            file_path2 = '%s/%s-disk-*' % (DEFAULT_TEMPLATE_DIR, self.vm)
+            cmd = 'mv -f %s %s %s' % (file_path1, file_path2, DEFAULT_DEVICE_DIR)
+            try:
+                runCmd(cmd)
+            except:
+                logger.warning('Oops! ', exc_info=1)
             done_operations.append(self.tag)
             return 
     
@@ -329,9 +341,13 @@ def convert_image_to_vm(name):
             if self.tag in done_operations:
                 if is_vm_exists(self.vm):
                     undefine(self.vm)
-            file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, self.vm)
-            cmd = 'mv -f %s %s' % (file_path, DEFAULT_TEMPLATE_DIR)
-            runCmd(cmd)
+            file_path1 = '%s/%s-nic-*' % (DEFAULT_DEVICE_DIR, self.vm)
+            file_path2 = '%s/%s-disk-*' % (DEFAULT_DEVICE_DIR, self.vm)
+            cmd = 'mv -f %s %s %s' % (file_path1, file_path2, DEFAULT_TEMPLATE_DIR)
+            try:
+                runCmd(cmd)
+            except:
+                logger.warning('Oops! ', exc_info=1)
             return 
 
     class final_step_delete_source_file(RotatingOperation):
@@ -451,11 +467,12 @@ def convert_image_to_vm(name):
 #     logger.debug('convert Image to VM successful.')
 
 def delete_image(name):
-    file1 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, name)
-    file2 = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, name)
-    file3 = '%s/%s.qcow2' % (DEFAULT_TEMPLATE_DIR, name)
-    file4 = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, name)
-    cmd = 'rm -rf %s %s %s %s' % (file1, file2, file3, file4)
+    file1 = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, name)
+    file2 = '%s/%s.qcow2' % (DEFAULT_TEMPLATE_DIR, name)
+    file3 = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, name)
+    file4 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, name)
+    file5 = '%s/%s-disk-*' % (DEFAULT_TEMPLATE_DIR, name)
+    cmd = 'rm -rf %s %s %s %s %s' % (file1, file2, file3, file4, file5)
     logger.debug(cmd)
     try:
         runCmd(cmd)

@@ -14,6 +14,8 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.github.kube.controller.watchers.VirtualMachineDiskWatcher;
 import com.github.kube.controller.watchers.VirtualMachineImageWatcher;
+import com.github.kube.controller.watchers.VirtualMachineNetworkWatcher;
+import com.github.kube.controller.watchers.VirtualMachinePoolWatcher;
 import com.github.kube.controller.watchers.VirtualMachineSnapshotWatcher;
 import com.github.kube.controller.watchers.VirtualMachineWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
@@ -22,39 +24,64 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 
 /**
- * @author shizhonghao17@otcaix.iscas.ac.cn
- * @author yangchen18@otcaix.iscas.ac.cn
  * @author wuheng@otcaix.iscas.ac.cn
- * @since Wed May 01 17:26:22 CST 2019
+ * @author shizhonghao17@otcaix.iscas.ac.cn
  * 
- * https://www.json2yaml.com/
- * http://www.bejson.com/xml2json/
+ * @version 1.0.0
+ * @since Wed Aug 29 17:26:22 CST 2019
  * 
- * debug at runWatch method of io.fabric8.kubernetes.client.dsl.internal.WatchConnectionManager
+ * 
+ * KubevirtController is used for converting VM-related CRD to Pod.
+ * 
+ * Note that this progress must be running on the master node of Kubernetes.
+ * And you should firstly install the related CRDs.
  **/
 public class KubevirtController {
 	
-	protected final static Logger m_logger = Logger.getLogger(KubevirtController.class.getName());
+	/**
+	 * m_logger
+	 */
+	protected final static Logger m_logger  = Logger.getLogger(KubevirtController.class.getName());
 
-	public final static String TOKEN              = "/etc/kubernetes/admin.conf";
+	/**
+	 * default token
+	 */
+	public final static String DEFAULT_TOKEN = "/etc/kubernetes/admin.conf";
 	
-	protected final ExtendedKubernetesClient client;
+	/**
+	 * Kubernetes client, please see https://github.com/kubesys/kubeext-jdk
+	 */
+	protected ExtendedKubernetesClient client;
 	
+	
+	/**
+	 * @throws Exception         token file does not exist
+	 */
 	public KubevirtController() throws Exception {
-		this(TOKEN);
+		this(DEFAULT_TOKEN);
 	}
 	
-	@SuppressWarnings("rawtypes")
+	/**
+	 * @param token               token
+	 * @throws Exception          token file does not exist or wrong token
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public KubevirtController(String token) throws Exception {
 		super();
-		Map<String, Object> map = new Yaml().load(
-				new FileInputStream(new File(token)));
-		@SuppressWarnings("unchecked")
+		Map<String, Object> map = new Yaml().load(new FileInputStream(new File(token)));
 		Map<String, Map<String, Object>> clusdata = (Map<String, Map<String, Object>>)
-												((List) map.get("clusters")).get(0);
-		@SuppressWarnings("unchecked")
+													((List) map.get("clusters")).get(0);
 		Map<String, Map<String, Object>> userdata = (Map<String, Map<String, Object>>)
-												((List) map.get("users")).get(0);
+													((List) map.get("users")).get(0);
+		initKubeClient(clusdata, userdata);
+	}
+
+	/**
+	 * @param clusdata              cluster data
+	 * @param userdata              user data
+	 */
+	protected void initKubeClient(Map<String, Map<String, Object>> clusdata,
+									Map<String, Map<String, Object>> userdata) {
 		Config config = new ConfigBuilder()
 				.withApiVersion("v1")
 				.withCaCertData((String) clusdata.get("cluster").get("certificate-authority-data"))
@@ -62,25 +89,29 @@ public class KubevirtController {
 				.withClientKeyData((String) userdata.get("user").get("client-key-data"))
 				.withMasterUrl((String) clusdata.get("cluster").get("server"))
 				.build();
-		client = new ExtendedKubernetesClient(config);
+		this.client = new ExtendedKubernetesClient(config);
 	}
 	
+	/**
+	 * start controller manager, each watcher is used for one kind of CRD
+	 */
 	public void start() {
 		client.watchVirtualMachines(new VirtualMachineWatcher(client));
-		client.watchVirtualMachineImages(new VirtualMachineImageWatcher(client));
+		client.watchVirtualMachinePools(new VirtualMachinePoolWatcher(client));
 		client.watchVirtualMachineDisks(new VirtualMachineDiskWatcher(client));
+		client.watchVirtualMachineImages(new VirtualMachineImageWatcher(client));
+		client.watchVirtualMachineNetworks(new VirtualMachineNetworkWatcher(client));
 		client.watchVirtualMachineSnapshots(new VirtualMachineSnapshotWatcher(client));
 	}
 	
+	/**
+	 * @param args                args
+	 * @throws Exception          cannot start controller manager
+	 */
 	public static void main(String[] args) throws Exception {
-		m_logger.log(Level.INFO, "Start VirtualMachineWatcher");
-		m_logger.log(Level.INFO, "Start VirtualMachineImageWatcher");
-		m_logger.log(Level.INFO, "Start VirtualMachineDiskWatcher");
-		m_logger.log(Level.INFO, "Start VirtualMachineUITDiskWatcher");
-		m_logger.log(Level.INFO, "Start VirtualMachineSnapshotWatcher");
-		KubevirtController scheduler = new KubevirtController();
+		KubevirtController controller = new KubevirtController();
 		try {
-			scheduler.start();
+			controller.start();
 		} catch (Exception ex) {
 			m_logger.log(Level.SEVERE, "Fail to start controller:" + ex);
 		}

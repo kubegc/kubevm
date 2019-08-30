@@ -5,7 +5,7 @@
 
 	<groupId>com.github.kubesys</groupId>
 	<artifactId>kubevirt-controller</artifactId>
-	<version>2.1.0</version>
+	<version>1.0.0</version>
 	<packaging>jar</packaging>
 
 	<name>kubevirt-controller</name>
@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>com.github.kubesys</groupId>
 			<artifactId>kubernetes-client</artifactId>
-			<version>20190804</version>
+			<version>1.0.0</version>
 		</dependency>
 	</dependencies>
 	<build>

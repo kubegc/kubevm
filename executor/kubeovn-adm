@@ -116,7 +116,7 @@ function remove-switch()
   fi
   
   router='r4'$name
-  dhcpid=$($NB_CMD show | grep "dhcpv4id-$name-" | awk -F"dhcpv4id-$name-" '{print$2}')
+  dhcpid=$($NB_CMD show $name | grep "dhcpv4id-$name-" | awk -F"dhcpv4id-$name-" '{print$2}')
   $NB_CMD ls-del $name
   $NB_CMD lr-del $router
   $NB_CMD dhcp-options-del $dhcpid
@@ -325,6 +325,8 @@ function start-central()
   sudo ovs-vsctl set open . external-ids:ovn-remote=unix:/usr/var/run/openvswitch/ovnsb_db.sock
   sudo ovs-vsctl set open . external-ids:ovn-encap-ip=127.0.0.1
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
+
+  $create-br-c-br
 }
 
 function stop-central()
@@ -364,13 +366,12 @@ function start-worker()
   sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$master:6642
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
   sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$thisip
+  $create-br-c-br
 }
 
 
 function stop-worker()
 {
-  systemctl stop openvswitch
-  systemctl disable openvswitch
   systemctl stop ovn-controller
   systemctl disable ovn-controller
 }
@@ -387,6 +388,7 @@ function help()
   echo -e "  stop-worker  :\tStop worker node"
   echo -e "  create-switch:\tCreate a switch with a dhcp"
   echo -e "  remove-switch:\tRemove a switch and the related dhcp"
+  echo -e "  delete-switch:\tRemove a switch and the related dhcp, see remove-switch"
   echo -e "  bind-swport  :\tBind a switch port"
   echo -e "  unbind-swport:\tUnbind a switch port"
   echo -e "  setport-vlan :\tSet port with vlan ID"
@@ -404,7 +406,7 @@ function create-fip()
   if [[ -z $1 || -z $name || -z $ip || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name      \tPhysical NIC mac"
+    echo -e "--name      \tPhysical NIC name"
     echo -e "--ip        \tFloating IP"
     exit 1
   fi
@@ -430,7 +432,7 @@ function create-fip()
     then
       continue
     fi
-    mask=$(ip a | grep -A 1 ens37 | grep inet | awk 'NR==1' |awk '{print$2}' | awk -F"/" '{print$2}')
+    mask=$(ip a | grep -A 1 $name | grep inet | awk 'NR==1' |awk '{print$2}' | awk -F"/" '{print$2}')
     rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
     echo "DEVICE=$fname" >> /etc/sysconfig/network-scripts/ifcfg-$fname
     echo "BOOTPROTO=static" >> /etc/sysconfig/network-scripts/ifcfg-$fname
@@ -451,7 +453,15 @@ function create-fip()
 function delete-fip()
 {
   ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-  fname=$(ip a | grep $ip | awk '{print$8}')
+  fname=$(ip a | grep $ip | awk '{print$7}')
+
+  if [[ -z $1 || -z $ip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--ip        \tFloating IP"
+    exit 1
+  fi
+
   if [[ -z $fname ]]
   then
     echo "wrong IP, cannot find a NIC with the IP"
@@ -462,6 +472,99 @@ function delete-fip()
   rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
 }
 
+function bind-fip()
+{
+  switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
+  vmmac=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+  fip=$(echo $* | awk -F"--fip" '{print$2}' | awk '{print$1}')
+ 
+  if [[ -z $1 || -z $switch || -z $vmmac || -z $fip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--switch  \tswitch name"
+    echo -e "--vmmac   \tvm mac"
+    echo -e "--fip     \tflating ip"
+    exit 1
+  fi
+
+  node=$(hostname)
+  name=$(ovs-vsctl list interface | grep -A 14 "$vmmac" | grep name | awk -F"\"" '{print$2}')
+  ne=$(ovs-vsctl show | grep "\"$name\"" | grep Port)
+  if [[ -z $ne ]]
+  then
+    echo "mac does not exist"
+    exit 1
+  fi
+
+  nuuid=$($SB_CMD show | grep -B 1 "$node" | grep Chassis | awk -F"\"" '{print$2}')
+  if [[ -z $nuuid ]]
+  then
+    echo "wrong node name"
+    exit 1
+  fi
+
+  
+  sport='sp4'$name
+  router='r4'$name
+  rport='rp4'$name
+
+  $NB_CMD lsp-add $switch $sport
+  $NB_CMD lsp-set-addresses $sport dynamic
+  rip=$($NB_CMD list logical_switch_port $sport | grep dynamic_addresses | awk -F"\"" '{print$2}' | awk '{print$2}')
+  rmac=$($NB_CMD list logical_switch_port $sport | grep dynamic_addresses | awk -F"\"" '{print$2}' | awk '{print$1}')
+  $NB_CMD lsp-del $sport
+
+  rmk=$($NB_CMD show 'r4'$switch | grep networks | awk -F"\"" '{print$2}' | awk -F"/" '{print$2}')
+  $NB_CMD lr-add $router
+  $NB_CMD lrp-add $router $rport $rmac $rip"/"$rmk
+
+  $NB_CMD lsp-add $switch $sport
+  $NB_CMD lsp-set-type $sport router
+  $NB_CMD lsp-set-addresses $sport $rmac
+  $NB_CMD lsp-set-options $sport router-port=$rport
+  $NB_CMD lrp-set-gateway-chassis $rport $nuuid
+
+  #dhcpid=$($NB_CMD show $switch | grep "dhcpv4id-$name-" | awk -F"dhcpv4id-$switch-" '{print$2}')
+  #$NB_CMD lsp-set-dhcpv4-options $sport $dhcpid
+
+  lip=$($NB_CMD list logical_switch_port  | grep "$vmmac" | awk -F"\"" '{print$2}' | awk '{print$2}')
+  $NB_CMD -- --id=@nat create nat type="dnat_and_snat" logical_ip=$lip external_ip=$fip -- add logical_router $router nat @nat
+}
+
+function unbind-fip()
+{
+  switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
+  vmmac=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $switch || -z $vmmac || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--switch  \tswitch name"
+    echo -e "--vmmac   \tvm mac"
+    exit 1
+  fi
+
+  name=$(ovs-vsctl list interface | grep -A 14 "$vmmac" | grep name | awk -F"\"" '{print$2}')
+  ne=$(ovs-vsctl show | grep "\"$name\"" | grep Port)
+  if [[ -z $ne ]]
+  then
+    echo "mac does not exist"
+    exit 1
+  fi
+
+  sport='sp4'$name
+  router='r4'$name
+
+  $NB_CMD lr-del $router 
+  $NB_CMD lsp-del $sport
+}
+
+function create-br-c-br()
+{
+  ovs-vsctl --may-exist add-port br-native patch-br-int -- set interface patch-br-int type=patch -- set interface patch-br-int option:peer=patch-br-native
+  ovs-vsctl --may-exist add-port br-int patch-br-native -- set interface patch-br-native type=patch -- set interface patch-br-native option:peer=patch-br-int
+}
+
 function cmddesc()
 {
   echo -e "Welcome to ovnctl, the ovn plugin for Kubernetes."
@@ -470,10 +573,10 @@ function cmddesc()
 
 case $1 in
   "start-central")
-    start-central
+    start-central $*
     ;;
   "stop-central")
-    stop-central
+    stop-central $*
     ;;
   "start-worker")
     start-worker $*
@@ -485,6 +588,9 @@ case $1 in
     create-switch $*
     ;;
   "remove-switch")
+    remove-switch $*
+    ;;
+  "delete-switch")
     remove-switch $*
     ;;
   "bind-swport")
@@ -505,6 +611,12 @@ case $1 in
   "delete-fip")
     delete-fip $*
     ;;
+  "bind-fip")
+    bind-fip $*
+    ;;
+  "unbind-fip")
+    unbind-fip $*
+    ;;
   "--help")
     help
     ;;
@@ -512,4 +624,3 @@ case $1 in
   help
   ;;
 esac
-

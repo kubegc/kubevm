@@ -1757,8 +1757,8 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
             (key, value) = 'config', config_dict.get('config')
             (config, _) = _convertCharsInJson(key, value)
         else:
-            live = True
-            config = True
+            live = '--live'
+            config = '--config'
         if config_dict.get('type') == 'bridge':
             plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
             return [plugNICCmd]

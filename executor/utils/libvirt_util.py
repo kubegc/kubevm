@@ -101,6 +101,7 @@ def _get_pool_info(pool_):
     result = runCmdWithResult('virsh pool-info ' + pool_)
     result['allocation'] = int(1024*1024*1024*float(result['allocation']))
     result['available'] = int(1024 * 1024 * 1024 * float(result['available']))
+    result['capacity'] = int(1024 * 1024 * 1024 * float(result['capacity']))
     # del result['allocation']
     # del result['available']
     for line in lines.split():

@@ -1,6 +1,6 @@
 [Kubernetes]
 token_file = /root/.kube/config
-hostname_prefix = vm
+hostname_prefix = none
 
 [WatcherTimeout]
 timeout = 31536000

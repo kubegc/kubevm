@@ -10,10 +10,10 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.alibaba.fastjson.JSON;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.ExtendedCustomResourceDefinitionSpec;
 
+import io.fabric8.kubernetes.api.model.Affinity;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -74,11 +74,11 @@ public abstract class AbstractWatcher {
 	 * @return                        Pod
 	 * @throws Exception              exception
 	 */
-	protected Pod createPod(ObjectMeta om, Object spec, Map<String, String> nodeSelector, String podName) throws Exception {
+	protected Pod createPod(ObjectMeta om, Object spec, Map<String, String> nodeSelector, Affinity affinity, String podName) throws Exception {
 		Pod pod = new Pod();
 		// metadata and podSpec
 		pod.setMetadata(createMetadataFrom(om, spec, podName));
-		pod.setSpec(createPodSpecFrom(spec, nodeSelector, podName));
+		pod.setSpec(createPodSpecFrom(spec, nodeSelector, affinity, podName));
 		return pod;
 	}
 	
@@ -167,9 +167,10 @@ public abstract class AbstractWatcher {
 	 * @param podName            pod name
 	 * @return  PodSpec object
 	 */
-	protected PodSpec createPodSpecFrom(Object resInfo, Map<String, String> nodeSelector, String podName) {
+	protected PodSpec createPodSpecFrom(Object resInfo, Map<String, String> nodeSelector, Affinity affinity, String podName) {
 		PodSpec spec = new PodSpec();
 		spec.setNodeSelector(nodeSelector);
+		spec.setAffinity(affinity);
 		spec.setContainers(createContainerFrom(resInfo, podName));
 		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
 		return spec;
@@ -321,7 +322,7 @@ public abstract class AbstractWatcher {
 		String podName = getPodName(objMeta);
 		if (action.equals(ACTION_ADDED)) {
 			try {
-				Pod pod = createPod(objMeta, spec, spec.getNodeSelector(), podName);
+				Pod pod = createPod(objMeta, spec, spec.getNodeSelector(), spec.getAffinity(), podName);
 				doCreate(podName, pod);
 			} catch (Exception e) {
 				// this means we cannot create a pod based on the CRD's info 

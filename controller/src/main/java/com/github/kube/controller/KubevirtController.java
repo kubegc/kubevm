@@ -93,7 +93,8 @@ public class KubevirtController {
 	}
 	
 	/**
-	 * start controller manager, each watcher is used for one kind of CRD
+	 * start controller manager based on watcher mechanism, each watcher 
+	 * is used for one kind of CRD
 	 */
 	public void start() {
 		client.watchVirtualMachines(new VirtualMachineWatcher(client));

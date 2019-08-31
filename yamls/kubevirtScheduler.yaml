@@ -32,7 +32,7 @@ spec:
           - --port=10253
           - --secure-port=10261
           - --lock-object-namespace=cloudplus
-          image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-scheduler:v1.14.1
+          image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-scheduler:v1.14.6
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 8

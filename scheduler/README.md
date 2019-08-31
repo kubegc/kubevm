@@ -55,7 +55,7 @@ Build the image with `<RepoPath>/build/Dockerfile`, before that you need to move
 ```
 cp scheduler docker/
 cp /etc/kubernetes/admin.conf docker/
-docker build docker/ -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-scheduler:v1.14.1
+docker build docker/ -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-scheduler:v1.14.6
 ```
 #### Step 4: Deploy
 Created a Deployment configuration file and ran it in an existing Kubernetes cluster, using the Deployment resource rather than creating a Pod resource directly because the Deployment resource can better handle the case of a scheduler running node failure. We offered a Deployment configuration example, saved as the `custom-scheduler.yaml` in `<RepoPath>/yaml/`.

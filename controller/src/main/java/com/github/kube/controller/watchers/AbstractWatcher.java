@@ -209,13 +209,6 @@ public abstract class AbstractWatcher {
 	
 	
 	/**
-	 * @return      prefix
-	 */
-	public String getPrefix() {
-		return getWatcherType() + "-";
-	}
-	
-	/**
 	 * @return       plural
 	 */
 	public String getPlural() {
@@ -299,7 +292,7 @@ public abstract class AbstractWatcher {
 	 * @return                pod name
 	 */
 	public String getPodName(ObjectMeta data) {
-		return getPrefix() + "-" + data.getName() 
+		return getWatcherType() + "-" + data.getName() 
 					+ "-" + data.getNamespace();
 	}
 	

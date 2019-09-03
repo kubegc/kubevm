@@ -150,7 +150,7 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD, **v)
         elif string.find(k, 'WithPoolField') != -1:
             ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
-
+            
 def main():
     logger.debug("---------------------------------------------------------------------------------")
     logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")

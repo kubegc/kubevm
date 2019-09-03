@@ -46,7 +46,7 @@ VMD_PLURAL = config_raw.get('VirtualMachineDisk', 'plural')
 VMD_VERSION = config_raw.get('VirtualMachineDisk', 'version')
 VMD_GROUP = config_raw.get('VirtualMachineDisk', 'group')
 DEFAULT_TEMPLATE_DIR = config_raw.get('DefaultTemplateDir', 'default')
-DEFAULT_VMD_TEMPLATE_DIR = config_raw.get('DefaultVirtualMachineDiskTemplateDir', 'default')
+DEFAULT_VMD_TEMPLATE_DIR = config_raw.get('DefaultVirtualMachineDiskTemplateDir', 'vmdi')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 
 LOG = '/var/log/virtctl.log'

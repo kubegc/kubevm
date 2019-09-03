@@ -230,7 +230,6 @@ def main():
         
     if sys.argv[1] == '--help':
         print(help_msg)
-        sys.exit(1)
     elif sys.argv[1] == '--version':
         version()
     elif sys.argv[1] == 'service':
@@ -267,27 +266,38 @@ def main():
                 sys.exit(1)   
             status(True)
         elif sys.argv[2] == 'update':
-            if len(params) == 1:
-                if params[0] == '--help':
+            if params[0] == '--help':
+                if len(params) != 0:
+                    print('error: invalid arguments!\n')
                     print(help_update)
                     sys.exit(1)
-                elif params[0] == '--online':
-                    if len(params) == 2:
-                        version = params[1]
-                        update_online(version)
-                    update_online('latest')
+                print(help_update)
+            elif params[0] == '--online':
+                if len(params) > 2:
+                    print('error: invalid arguments!\n')
+                    print(help_update)
+                    sys.exit(1)
+                elif len(params) == 2:
+                    version = params[1]
+                    update_online(version)
                 else:
-                    print('error: command \'update\' requires [--online <version>|--offline <package absolute path>|--help] arguments!\n')
+                    update_online('latest')
+            elif params[0] == '--offline':
+                if len(params) > 2:
+                    print('error: invalid arguments!\n')
+                    print(help_update)
                     sys.exit(1)
-            elif len(params) == 2:
-                if params[0] != '--offline':
-                    print('error: command \'update\' requires [--online <version>|--offline <package absolute path>|--help] arguments!\n')
+                elif len(params) == 2:
+                    pack = params[1]
+                    update_offline(pack)
+                else:
+                    print('error: invalid arguments!\n')
+                    print(help_update)
                     sys.exit(1)
-                pack = params[1]
-                update_offline(pack)
             else:
-                print('error: command \'update\' requires [--online <version>|--offline <package absolute path>|--help] arguments!\n')
-                sys.exit(1) 
+                print('error: invalid arguments!\n')
+                print(help_update)
+                sys.exit(1)
         elif sys.argv[2] == '--version':
             if len(params) != 0:
                 print('error: invalid arguments!\n')

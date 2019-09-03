@@ -675,7 +675,7 @@ def convert_vmdi_to_vmd(name):
             '''
             Remove source path of template's boot disk
             '''
-            for path in [self.source_path, self.store_target_path]:
+            for path in [self.source_path, self.store_target_path, self.xml_path]:
                 if os.path.exists(path):
                     os.remove(path)
             done_operations.append(self.tag)

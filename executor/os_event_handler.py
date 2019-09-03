@@ -33,7 +33,7 @@ from xmljson import badgerfish as bf
 '''
 Import local libs
 '''
-from utils.libvirt_util import get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path, get_all_vnc_info
+from utils.libvirt_util import refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path, get_all_vnc_info
 from utils import logger
 from utils.utils import runCmdRaiseException, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
@@ -688,17 +688,21 @@ class VmLibvirtXmlEventHandler(FileSystemEventHandler):
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
 
-def myVmdImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
+def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version, plural):
     #     print(jsondict)
     if event == "Create":
         try:
+            '''
+            Refresh pool manually
+            '''
+            refresh_pool(pool)
             logger.debug('Create vm disk image %s, report to virtlet' % name)
             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}}, 
                         'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
             with open(xml_path, 'r') as fr:
                 vm_xml = fr.read()
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vm_json))
+            vmd_json = toKubeJson(xmlToJson(vm_xml))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
             jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             body = addNodeName(jsondict)
             try:
@@ -710,7 +714,7 @@ def myVmdImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plur
                                                                               namespace='default', 
                                                                               plural=plural, 
                                                                               name=name)
-                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vmd_json)
                     jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     body = addNodeName(jsondict)
                     modifyStructure(name, body, group, version, plural)  
@@ -731,6 +735,10 @@ def myVmdImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plur
             except:
                 logger.error('Oops! ', exc_info=1)         
     elif event == "Modify":
+        '''
+        Refresh pool manually
+        '''
+        refresh_pool(pool)
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 
                                                                           namespace='default', 
@@ -740,8 +748,8 @@ def myVmdImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plur
             logger.debug('Modify vm disk image %s, report to virtlet' % name)
             with open(xml_path, 'r') as fr:
                 vm_xml = fr.read()
-            vm_json = toKubeJson(xmlToJson(vm_xml))
-            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vm_json))
+            vmd_json = toKubeJson(xmlToJson(vm_xml))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
 #             logger.debug(body)
             modifyStructure(name, body, group, version, plural)
@@ -753,6 +761,10 @@ def myVmdImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plur
             except:
                 logger.warning('Oops! ', exc_info=1)
     elif event == "Delete":
+        '''
+        Refresh pool manually
+        '''
+        refresh_pool(pool)
 #             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
 #                                                                               version=version, 
 #                                                                               namespace='default', 
@@ -766,8 +778,8 @@ def myVmdImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plur
                                                                           name=name)
 #             with open(xml_path, 'r') as fr:
 #                 vm_xml = fr.read()
-#             vm_json = toKubeJson(xmlToJson(vm_xml))
-#             vm_json = updateDomain(loads(vm_json))
+#             vmd_json = toKubeJson(xmlToJson(vm_xml))
+#             vmd_json = updateDomain(loads(vmd_json))
             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, {})
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             modifyStructure(name, body, group, version, plural)
@@ -784,16 +796,16 @@ def myVmdImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plur
         try:
             logger.debug('Delete vm disk image %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
-#                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+#                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vmd_json)
 #                 body = addExceptionMessage(jsondict, 'VirtletError', 'VM has been deleted in back-end.')
 #                 modifyStructure(name, body, group, version, plural)   
         except:
             logger.error('Oops! ', exc_info=1)
 
 class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
-    def __init__(self, field, target, group, version, plural):
+    def __init__(self, pool, target, group, version, plural):
         FileSystemEventHandler.__init__(self)
-        self.field = field
+        self.pool = pool
         self.target = target
         self.group = group
         self.version = version
@@ -806,10 +818,10 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
             _,name = os.path.split(event.dest_path)
             file_type = os.path.splitext(name)[1]
-            vmi = os.path.splitext(os.path.splitext(name)[0])[0]
+            vmdi = os.path.splitext(os.path.splitext(name)[0])[0]
             if file_type == '.xml':
                 try:
-                    myImageLibvirtXmlEventHandler('Create', vmi, event.dest_path, self.group, self.version, self.plural)
+                    myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.dest_path, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
 
@@ -834,10 +846,10 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("file deleted:{0}".format(event.src_path))
             _,name = os.path.split(event.src_path)
             file_type = os.path.splitext(name)[1]
-            vmi = os.path.splitext(os.path.splitext(name)[0])[0]
+            vmdi = os.path.splitext(os.path.splitext(name)[0])[0]
             if file_type == '.xml':
                 try:
-                    myImageLibvirtXmlEventHandler('Delete', vmi, event.src_path, self.group, self.version, self.plural)
+                    myVmdImageLibvirtXmlEventHandler('Delete', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
 

@@ -123,10 +123,6 @@ def _get_volume_by_path(path_):
     conn = __get_conn()
     return conn.storageVolLookupByPath(path_)
 
-def _get_pool_by_vol(vol_):
-    conn = __get_conn()
-    return conn.storagePoolLookupByVolume(vol_)
-
 def _get_all_snapshots(vm_):
     vm = _get_dom(vm_)
     return vm.snapshotListNames()
@@ -722,6 +718,14 @@ def list_pools():
     conn = __get_conn()
     return conn.listStoragePools()
 
+def refresh_pool(pool_):
+    pool = _get_pool(pool_)
+    try:
+        pool.refresh()
+    except:
+        pass   
+    return 
+
 def get_pool_path(pool_):
     pool = _get_pool(pool_)
     lines = pool.XMLDesc(0)
@@ -739,12 +743,20 @@ def list_all_volumes():
     vols = []
     for pool_ in list_pools():
         pool = _get_pool(pool_)
+        try:
+            pool.refresh()
+        except:
+            pass
         for vol in pool.listAllVolumes():
             vols.append(vol.name())
     return vols
 
 def list_volumes(pool_):
     pool = _get_pool(pool_)
+    try:
+        pool.refresh()
+    except:
+        pass
     vols = []
     for vol in pool.listAllVolumes():
         vols.append(vol.name())
@@ -841,7 +853,7 @@ if __name__ == '__main__':
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))
     # print _get_pool("pool1").info()
-    print is_volume_in_use("t1", "default")
-    print is_volume_in_use("win7", "templates")
+    print list_all_volumes()
+    print list_volumes('vmdi')
 #     print(list_volumes('volumes'))
 #     print(get_volume_xml('volumes', 'ddd.qcow2'))

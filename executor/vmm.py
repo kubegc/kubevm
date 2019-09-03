@@ -514,7 +514,7 @@ def convert_vmd_to_vmdi(name, pool):
             '''
             with open(self.store_source_path, 'w') as fw:
                 fw.write(self.source_path)
-            string_switch(self.xml_path, self.source_path, self.dest_path, 1)
+            string_switch(self.xml_path, self.source_path, self.dest_path, 'g')
             done_operations.append(self.tag)
             return 
     
@@ -659,7 +659,7 @@ def convert_vmdi_to_vmd(name):
             if self.full_copy:
                 copy_template_cmd = 'cp %s %s' % (self.source_path, self.dest_path)
             runCmd(copy_template_cmd)
-            string_switch(self.xml_path, self.source_path, self.dest_path, 1)
+            string_switch(self.xml_path, self.source_path, self.dest_path, 'g')
             done_operations.append(self.tag)
             return 
     

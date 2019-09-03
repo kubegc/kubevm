@@ -734,32 +734,6 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
                 report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
             except:
                 logger.error('Oops! ', exc_info=1)         
-    elif event == "Modify":
-        '''
-        Refresh pool manually
-        '''
-        refresh_pool(pool)
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                          version=version, 
-                                                                          namespace='default', 
-                                                                          plural=plural, 
-                                                                          name=name)
-        try:
-            logger.debug('Modify vm disk image %s, report to virtlet' % name)
-            with open(xml_path, 'r') as fr:
-                vm_xml = fr.read()
-            vmd_json = toKubeJson(xmlToJson(vm_xml))
-            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
-            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-#             logger.debug(body)
-            modifyStructure(name, body, group, version, plural)
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            try:
-                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-            except:
-                logger.warning('Oops! ', exc_info=1)
     elif event == "Delete":
         '''
         Refresh pool manually
@@ -858,15 +832,15 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
 #             logger.debug("directory modified:{0}".format(event.src_path))
             pass
         else:
-#             logger.debug("file modified:{0}".format(event.src_path))
-            _,name = os.path.split(event.src_path)
-            file_type = os.path.splitext(name)[1]
-            vmi = os.path.splitext(os.path.splitext(name)[0])[0]
-            if file_type == '.xml':
-                try:
-                    myImageLibvirtXmlEventHandler('Modify', vmi, event.src_path, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            logger.debug("file modified:{0}".format(event.src_path))
+#             _,name = os.path.split(event.src_path)
+#             file_type = os.path.splitext(name)[1]
+#             vmi = os.path.splitext(os.path.splitext(name)[0])[0]
+#             if file_type == '.xml':
+#                 try:
+#                     myVmdImageLibvirtXmlEventHandler('Modify', vmi, event.src_path, self.group, self.version, self.plural)
+#                 except ApiException:
+#                     logger.error('Oops! ', exc_info=1)
                     
 def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
     #     print(jsondict)

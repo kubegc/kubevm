@@ -167,27 +167,22 @@ def main():
         thread_1.daemon = True
         thread_1.name = 'vm_watcher'
         thread_1.start()
-        thread_1.join()
         thread_2 = Thread(target=vMDiskWatcher)
         thread_2.daemon = True
         thread_2.name = 'vm_disk_watcher'
         thread_2.start()
-        thread_2.join()
         thread_3 = Thread(target=vMImageWatcher)
         thread_3.daemon = True
         thread_3.name = 'vm_image_watcher'
         thread_3.start()
-        thread_3.join()
         thread_4 = Thread(target=vMSnapshotWatcher)
         thread_4.daemon = True
         thread_4.name = 'vm_snapshot_watcher'
         thread_4.start()
-        thread_4.join()
         thread_5 = Thread(target=vMDiskImageWatcher)
         thread_5.daemon = True
         thread_5.name = 'vm_disk_image_watcher'
         thread_5.start()
-        thread_5.join()
 #         thread_5 = Thread(target=vMBlockDevWatcher)
 #         thread_5.daemon = True
 #         thread_5.name = 'vm_block_dev_watcher'
@@ -196,21 +191,25 @@ def main():
         thread_9.daemon = True
         thread_9.name = 'vm_network_watcher'
         thread_9.start()
-        thread_9.join()
         thread_10 = Thread(target=vMPoolWatcher)
         thread_10.daemon = True
         thread_10.name = 'vm_pool_watcher'
         thread_10.start()
-        thread_10.join()
-#         thread_6.join()
-#         thread_7.join()
-#         thread_8.join()
-        
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             return
+        thread_1.join()
+        thread_2.join()
+        thread_3.join()
+        thread_4.join()
+        thread_5.join()
+#         thread_6.join()
+#         thread_7.join()
+#         thread_8.join()
+        thread_9.join()
+        thread_10.join()
     except:
         logger.error('Oops! ', exc_info=1)
         

@@ -275,11 +275,10 @@ def convert_vm_to_image(name):
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        for done in done_operations:
-            try:
-                '{}'.format(done).rotating_option()
-            except:
-                logger.error('Oops! ', exc_info=1)
+        step4.rotating_option()
+        step3.rotating_option()
+        step2.rotating_option()
+        step1.rotating_option()
 
 '''
 A atomic operation: Convert image to vm.
@@ -446,11 +445,9 @@ def convert_image_to_vm(name):
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        for done in done_operations:
-            try:
-                '{}'.format(done).rotating_option()
-            except:
-                logger.error('Oops! ', exc_info=1)
+        step3.rotating_option()
+        step2.rotating_option()
+        step1.rotating_option()
 
 def convert_vmd_to_vmdi(name, pool):
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
@@ -617,11 +614,9 @@ def convert_vmd_to_vmdi(name, pool):
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        for done in done_operations:
-            try:
-                '{}'.format(done).rotating_option()
-            except:
-                logger.error('Oops! ', exc_info=1)
+        step3.rotating_option()
+        step2.rotating_option()
+        step1.rotating_option()
 
 '''
 A atomic operation: Convert image to vm.
@@ -745,11 +740,9 @@ def convert_vmdi_to_vmd(name):
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        for done in done_operations:
-            try:
-                '{}'.format(done).rotating_option()
-            except:
-                logger.error('Oops! ', exc_info=1)
+        step2.rotating_option()
+        step1.rotating_option()
+
 
 # def toImage(name):
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(

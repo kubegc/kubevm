@@ -140,6 +140,40 @@ kind: CustomResourceDefinition
 metadata:
   labels:
     kubevirt.io: ""
+  name: virtualmachinediskimages.cloudplus.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.volume.target.format._type
+    name: TYPE
+    type: string  
+  - JSONPath: .spec.volume.target.path.text
+    name: PATH
+    type: string  
+  - JSONPath: .spec.status.conditions.state.waiting.reason
+    name: STATUS
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachineDiskImage
+    plural: virtualmachinediskimages
+    shortNames:
+    - vmdi
+    - vmdis
+    singular: virtualmachinediskimage
+  scope: Namespaced
+  version: v1alpha3
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
   name: virtualmachinesnapshots.cloudplus.io
 spec:
   additionalPrinterColumns:

@@ -84,6 +84,7 @@ SNAP_DIRS = config_raw.items('DefaultSnapshotDir')
 BLOCK_DEV_DIRS = config_raw.items('DefaultBlockDevDir')
 LIBVIRT_XML_DIRS = config_raw.items('DefaultLibvirtXmlDir')
 TEMPLATE_DIRS = config_raw.items('DefaultTemplateDir')
+VMD_TEMPLATE_DIRS = config_raw.items('DefaultVirtualMachineDiskTemplateDir')
 
 HOSTNAME = get_hostname_in_lower_case()
 
@@ -1087,7 +1088,7 @@ def main():
                 os.makedirs(ob[1], 0711)
             event_handler = ImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
             observer.schedule(event_handler,ob[1],True)
-        for ob in TEMPLATE_DIRS:
+        for ob in VMD_TEMPLATE_DIRS:
             if not os.path.exists(ob[1]):
                 os.makedirs(ob[1], 0711)
                 try:

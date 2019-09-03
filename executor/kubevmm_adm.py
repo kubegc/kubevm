@@ -135,12 +135,12 @@ def status(print_result=False, ignore_warning=False):
         sys.exit(1)
     return (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version)
 
-def update_online():
+def update_online(version='latest'):
     print('updating online')
     print('pulling from official repository...\n')
     time.sleep(3)
-    (_, virtctl_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s" % VERSION)
-    (_, virtlet_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s" % VERSION)
+    (_, virtctl_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s" % version)
+    (_, virtlet_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s" % version)
     if virtctl_err:
         print('warning: %s\n' % (virtctl_err))
     if virtlet_err:
@@ -272,7 +272,10 @@ def main():
                     print(help_update)
                     sys.exit(1)
                 elif params[0] == '--online':
-                    update_online()
+                    if len(params) == 2:
+                        version = params[1]
+                        update_online(version)
+                    update_online('latest')
                 else:
                     print('error: command \'update\' requires [--online|--offline <package absolute path>|--help] arguments!\n')
                     sys.exit(1)

@@ -209,10 +209,10 @@ def convert_vm_to_image(name):
         os.makedirs(DEFAULT_TEMPLATE_DIR, 0711)
     if not get_boot_disk_path(name):
         raise Exception('VM %s has no boot disk.' % name)
-    step1 = step_1_dumpxml_to_path(name, 'Step1: dumpxml')
-    step2 = step_2_copy_template_to_path(name, 'Step2: copy template')
-    step3 = step_3_undefine_vm(name, 'Step3: undefine vm')
-    step_final = final_step_delete_source_file(name, 'Final step: remove source file')
+    step1 = step_1_dumpxml_to_path(name, 'step1')
+    step2 = step_2_copy_template_to_path(name, 'step2')
+    step3 = step_3_undefine_vm(name, 'step3')
+    step4 = final_step_delete_source_file(name, 'step4')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
         '''
@@ -266,22 +266,20 @@ def convert_vm_to_image(name):
         '''
         #Final step: delete source file
         '''       
-        doing = step_final.tag
-        step_final.option()
-    except Exception, e:
+        doing = step4.tag
+        step4.option()
+    except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
         error_message = '%s failed!' % doing
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        if e.message.find('409') != -1:
-            pass
-        else:
-            step_final.rotating_option()
-            step3.rotating_option()
-            step2.rotating_option()
-            step1.rotating_option()
+        for done in done_operations:
+            try:
+                '{}'.format(done).rotating_option()
+            except:
+                logger.error('Oops! ', exc_info=1)
 
 '''
 A atomic operation: Convert image to vm.
@@ -390,9 +388,9 @@ def convert_image_to_vm(name):
         
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
 #         group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
-    step1 = step_1_copy_template_to_path(name, 'Step1: copy template')
-    step2 = step_2_define_vm(name, 'Step2: define vm')
-    step_final = final_step_delete_source_file(name, 'Final step: remove source file')
+    step1 = step_1_copy_template_to_path(name, 'step1')
+    step2 = step_2_define_vm(name, 'step2')
+    step3 = final_step_delete_source_file(name, 'step3')
     try:
         '''
         #Step 1: copy template to original path
@@ -439,21 +437,20 @@ def convert_image_to_vm(name):
         '''
         #Final step: delete source file
         '''       
-        doing = step_final.tag
-        step_final.option()
-    except Exception, e:
+        doing = step3.tag
+        step3.option()
+    except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
         error_message = '%s failed!' % doing
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        if e.message.find('409') != -1:
-            pass
-        else:
-            step_final.rotating_option()
-            step2.rotating_option()
-            step1.rotating_option()
+        for done in done_operations:
+            try:
+                '{}'.format(done).rotating_option()
+            except:
+                logger.error('Oops! ', exc_info=1)
 
 def convert_vmd_to_vmdi(name, pool):
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
@@ -560,9 +557,9 @@ def convert_vmd_to_vmdi(name, pool):
         raise Exception('Cannot covert vmd in use to image.')
     if not os.path.exists(DEFAULT_VMD_TEMPLATE_DIR):
         os.makedirs(DEFAULT_VMD_TEMPLATE_DIR, 0711)
-    step1 = step_1_dumpxml_to_path(name, pool, 'Step1: dumpxml')
-    step2 = step_2_copy_template_to_path(name, pool, 'Step2: copy template')
-    step3 = step_3_delete_source_file(name, 'Step3: remove source file')
+    step1 = step_1_dumpxml_to_path(name, pool, 'step1')
+    step2 = step_2_copy_template_to_path(name, pool, 'step2')
+    step3 = step_3_delete_source_file(name, 'step3')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
         '''
@@ -613,19 +610,18 @@ def convert_vmd_to_vmdi(name, pool):
         '''       
         doing = step3.tag
         step3.option()
-    except Exception, e:
+    except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
         error_message = '%s failed!' % doing
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        if e.message.find('409') != -1:
-            pass
-        else:
-            step3.rotating_option()
-            step2.rotating_option()
-            step1.rotating_option()
+        for done in done_operations:
+            try:
+                '{}'.format(done).rotating_option()
+            except:
+                logger.error('Oops! ', exc_info=1)
 
 '''
 A atomic operation: Convert image to vm.
@@ -697,8 +693,8 @@ def convert_vmdi_to_vmd(name):
         
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
 #         group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
-    step1 = step_1_copy_template_to_path(name, 'Step1: copy template')
-    step2 = step_2_delete_source_file(name, 'Step2: remove source file')
+    step1 = step_1_copy_template_to_path(name, 'step1')
+    step2 = step_2_delete_source_file(name, 'step2')
     try:
         '''
         #Step 1: copy template to original path
@@ -742,18 +738,18 @@ def convert_vmdi_to_vmd(name):
         '''       
         doing = step2.tag
         step2.option()
-    except Exception, e:
+    except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
         error_message = '%s failed!' % doing
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        if e.message.find('409') != -1:
-            pass
-        else:
-            step2.rotating_option()
-            step1.rotating_option()
+        for done in done_operations:
+            try:
+                '{}'.format(done).rotating_option()
+            except:
+                logger.error('Oops! ', exc_info=1)
 
 # def toImage(name):
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(

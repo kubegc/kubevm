@@ -80,6 +80,10 @@ PLURAL_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'plural')
 VERSION_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'version')
 GROUP_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'group')
 
+PLURAL_VM_DISK_IMAGE = config_raw.get('VirtualMachineDiskImage', 'plural')
+VERSION_VM_DISK_IMAGE = config_raw.get('VirtualMachineDiskImage', 'version')
+GROUP_VM_DISK_IMAGE = config_raw.get('VirtualMachineDiskImage', 'group')
+
 
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
@@ -163,18 +167,27 @@ def main():
         thread_1.daemon = True
         thread_1.name = 'vm_watcher'
         thread_1.start()
+        thread_1.join()
         thread_2 = Thread(target=vMDiskWatcher)
         thread_2.daemon = True
         thread_2.name = 'vm_disk_watcher'
         thread_2.start()
+        thread_2.join()
         thread_3 = Thread(target=vMImageWatcher)
         thread_3.daemon = True
         thread_3.name = 'vm_image_watcher'
         thread_3.start()
+        thread_3.join()
         thread_4 = Thread(target=vMSnapshotWatcher)
         thread_4.daemon = True
         thread_4.name = 'vm_snapshot_watcher'
         thread_4.start()
+        thread_4.join()
+        thread_5 = Thread(target=vMDiskImageWatcher)
+        thread_5.daemon = True
+        thread_5.name = 'vm_disk_image_watcher'
+        thread_5.start()
+        thread_5.join()
 #         thread_5 = Thread(target=vMBlockDevWatcher)
 #         thread_5.daemon = True
 #         thread_5.name = 'vm_block_dev_watcher'
@@ -183,26 +196,21 @@ def main():
         thread_9.daemon = True
         thread_9.name = 'vm_network_watcher'
         thread_9.start()
+        thread_9.join()
         thread_10 = Thread(target=vMPoolWatcher)
         thread_10.daemon = True
         thread_10.name = 'vm_pool_watcher'
         thread_10.start()
+        thread_10.join()
+#         thread_6.join()
+#         thread_7.join()
+#         thread_8.join()
         
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             return
-        thread_1.join()
-        thread_2.join()
-        thread_3.join()
-        thread_4.join()
-#         thread_5.join()
-#         thread_6.join()
-#         thread_7.join()
-#         thread_8.join()
-        thread_9.join()
-        thread_10.join()
     except:
         logger.error('Oops! ', exc_info=1)
         
@@ -448,6 +456,128 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             if the_cmd_key and operation_type != 'DELETED':
                 involved_object_name = metadata_name
                 involved_object_kind = 'VirtualMachineDisk'
+                event_metadata_name = randomUUID()
+                event_type = 'Normal'
+                status = 'Doing(Success)'
+                reporter = 'virtctl'
+                event_id = _getEventId(jsondict)
+                time_now = now_to_datetime()
+                time_start = time_now
+                time_end = time_now
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+                try:
+                    event.registerKubernetesEvent()
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                pool_name = _get_field(jsondict, the_cmd_key, 'pool')
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+    #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+    #             body = jsondict['raw_object']
+    #             try:
+    #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+    #             except:
+    #                 logger.warning('Oops! ', exc_info=1)
+                try:
+                    if operation_type == 'ADDED':
+                        if cmd:
+                            runCmd(cmd)
+                    elif operation_type == 'MODIFIED':
+                        if pool_name and is_volume_exists(metadata_name, pool_name):
+                            if cmd:
+                                runCmd(cmd)
+                            if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
+                                vol_xml = get_volume_xml(pool_name, metadata_name)
+                                vol_json = toKubeJson(xmlToJson(vol_xml))
+                                vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+                                body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                        else:
+                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
+                    elif operation_type == 'DELETED':
+                        if pool_name and is_volume_exists(metadata_name, pool_name):
+                            if cmd:
+                                runCmd(cmd)
+                        else:
+                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
+                    status = 'Done(Success)'
+                except libvirtError:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except ExecuteException, e:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                finally:
+                    if the_cmd_key and operation_type != 'DELETED':
+                        time_end = now_to_datetime()
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        event.set_message(message)
+                        event.set_time_end(time_end)
+                        try:
+                            event.updateKubernetesEvent()
+                        except:
+                            logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
+                
+def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE):
+    watcher = watch.Watch()
+    kwargs = {}
+    kwargs['label_selector'] = LABEL
+    kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
+    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                   group=group, version=version, plural=plural, **kwargs):
+        try:
+            operation_type = jsondict.get('type')
+            logger.debug(operation_type)
+            metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
+            logger.debug('metadata name: %s' % metadata_name)
+            the_cmd_key = _getCmdKey(jsondict)
+            logger.debug('cmd key is: %s' % the_cmd_key)
+            if the_cmd_key and operation_type != 'DELETED':
+                involved_object_name = metadata_name
+                involved_object_kind = 'VirtualMachineDiskImage'
                 event_metadata_name = randomUUID()
                 event_type = 'Normal'
                 status = 'Doing(Success)'

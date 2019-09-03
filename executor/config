@@ -20,6 +20,9 @@ snapshot = /var/lib/libvirt/qemu/snapshot
 [DefaultTemplateDir]
 default = /var/lib/libvirt/templates
 
+[DefaultVirtualMachineDiskTemplateDir]
+vmdi = /var/lib/libvirt/vmdi
+
 [DefaultStorageDir]
 default = /var/lib/libvirt/images
 
@@ -40,6 +43,11 @@ version = v1alpha3
 group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinedisks
+
+[VirtualMachineDiskImage]
+group = cloudplus.io
+version = v1alpha3
+plural = virtualmachinediskimages
 
 [VirtualMachineSnapshot]
 group = cloudplus.io
@@ -87,6 +95,7 @@ resizeRAM= virsh setmem
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDisk = virsh vol-create-as
+convertVmDiskToVmDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 
 [VirtualMahcineBlockDevUitSupportCmdsWithNameField]
 createUITDisk = /bin/bash /usr/bin/fucli
@@ -108,6 +117,9 @@ deleteSnapshot = virsh snapshot-delete
 createImage = virt-install
 convertImageToVM = /usr/bin/vmm convert_image_to_vm
 deleteImage = /usr/bin/vmm delete_image
+
+[VirtualMachineDiskImageSupportCmdsWithNameField]
+convertVmDiskImageToVmDisk = /usr/bin/vmm convert_vmdi_to_vmd
 
 [VirtualMahcinePoolSupportCmdsWithNameField]
 createPool = virsh pool-create-as

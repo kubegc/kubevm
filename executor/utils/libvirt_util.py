@@ -119,6 +119,14 @@ def _get_vol(pool_, vol_):
         pass
     return pool.storageVolLookupByName(vol_)
 
+def _get_volume_by_path(path_):
+    conn = __get_conn()
+    return conn.storageVolLookupByPath(path_)
+
+def _get_pool_by_vol(vol_):
+    conn = __get_conn()
+    return conn.storagePoolLookupByVolume(vol_)
+
 def _get_all_snapshots(vm_):
     vm = _get_dom(vm_)
     return vm.snapshotListNames()
@@ -744,6 +752,14 @@ def list_volumes(pool_):
 
 def get_volume_xml(pool_, vol_):
     vol = _get_vol(pool_, vol_)
+    return vol.XMLDesc()
+
+def get_volume_path(pool_, vol_):
+    vol = _get_vol(pool_, vol_)
+    return vol.path()
+
+def get_volume_xml_by_path(path_):
+    vol = _get_volume_by_path(path_)
     return vol.XMLDesc()
 
 def delete_volume(pool_, vol_):

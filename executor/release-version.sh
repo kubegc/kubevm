@@ -90,6 +90,8 @@ fi
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${VERSION}
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:latest
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:latest
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"

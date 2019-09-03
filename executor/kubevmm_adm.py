@@ -61,14 +61,14 @@ def start(ignore_warning=False, update_stuff=False, version=VERSION):
     virtctl_err = None
     virtlet_err = None
     (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version) = status(ignore_warning=ignore_warning)
-    print('starting kubevmm(%s) services...' % VERSION)
+    print('starting kubevmm(%s) services...' % version)
     time.sleep(3)
     if not virtctl_container_id:
         (_, virtctl_err) = run_virtctl(update_stuff=update_stuff, version=version)
         if virtctl_err:
             print('warning: %s\n' % (virtctl_err))
     else:
-        if virtctl_running_version != VERSION:
+        if virtctl_running_version != version:
             print('error: a different version of service \'virtctl(%s)\' is running in container \'%s\'\n' % (virtctl_running_version, str(virtctl_container_id)))
         else:
             print('do noting: service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
@@ -77,7 +77,7 @@ def start(ignore_warning=False, update_stuff=False, version=VERSION):
         if virtlet_err:
             print('warning: %s\n' % (virtlet_err))
     else:
-        if virtlet_running_version != VERSION:
+        if virtlet_running_version != version:
             print('error: a different version of service \'virtlet(%s)\' is running in container \'%s\'\n' % (virtlet_running_version, str(virtlet_container_id)))
         else:
             print('do noting: service \'virtlet\' is running in container \'%s\'\n' % str(virtlet_container_id))

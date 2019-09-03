@@ -76,6 +76,8 @@ cd docker
 docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
 docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${VERSION}
 docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${VERSION}
+docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:latest
+docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:latest
 
 #step 3 docker push
 echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"

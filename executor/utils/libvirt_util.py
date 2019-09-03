@@ -758,10 +758,6 @@ def get_volume_path(pool_, vol_):
     vol = _get_vol(pool_, vol_)
     return vol.path()
 
-def get_volume_xml_by_path(path_):
-    vol = _get_volume_by_path(path_)
-    return vol.XMLDesc()
-
 def delete_volume(pool_, vol_):
     vol = _get_vol(pool_, vol_)
     return vol.delete()
@@ -774,6 +770,15 @@ def is_volume_exists(vol_, pool_=None):
         if vol_ in list_all_volumes():
             return True
     return False
+
+def is_volume_in_use(vol=None, pool=None, path=None):
+    vms = vm_info()
+    if path and str(vms).find(path) != -1:
+        return True
+    elif vol and pool and str(vms).find(get_volume_path(pool, vol)) != -1:
+        return True
+    else:
+        return False
 
 def is_snapshot_exists(snap_, vm_):
     if snap_ in _get_all_snapshots(vm_):
@@ -836,6 +841,7 @@ if __name__ == '__main__':
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))
     # print _get_pool("pool1").info()
-    print _get_all_pool_path()
+    print is_volume_in_use("t1", "default")
+    print is_volume_in_use("win7", "templates")
 #     print(list_volumes('volumes'))
 #     print(get_volume_xml('volumes', 'ddd.qcow2'))

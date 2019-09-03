@@ -19,7 +19,7 @@ import shutil
 
 from kubernetes.client.rest import ApiException
 
-from utils.libvirt_util import get_volume_xml, get_volume_path, get_volume_xml_by_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
+from utils.libvirt_util import is_volume_in_use, is_volume_exists, get_volume_xml, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
 from utils.utils import addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, report_failure, deleteLifecycleInJson
 from utils import logger
 
@@ -554,14 +554,12 @@ def convert_vmd_to_vmdi(name, pool):
     #Preparations
     '''
     doing = 'Preparations'
-    if not is_vm_exists(name):
-        raise Exception('VM %s not exists!' % name)
-    if is_vm_active(name):
-        raise Exception('Cannot covert running vm to image.')
+    if not is_volume_exists(name, pool):
+        raise Exception('VM disk %s not exists!' % name)
+    if is_volume_in_use(vol=name, pool=pool):
+        raise Exception('Cannot covert vmd in use to image.')
     if not os.path.exists(DEFAULT_VMD_TEMPLATE_DIR):
         os.makedirs(DEFAULT_VMD_TEMPLATE_DIR, 0711)
-    if not get_boot_disk_path(name):
-        raise Exception('VM %s has no boot disk.' % name)
     step1 = step_1_dumpxml_to_path(name, pool, 'Step1: dumpxml')
     step2 = step_2_copy_template_to_path(name, pool, 'Step2: copy template')
     step3 = step_3_delete_source_file(name, 'Step3: remove source file')

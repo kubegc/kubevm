@@ -40,7 +40,7 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, is_pool_exists, _get_pool_info
+from utils.libvirt_util import is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
 from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
@@ -106,6 +106,8 @@ GROUP_UIT_SNAPSHOT = config_raw.get('UITSnapshot', 'group')
 
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
+
+DEFAULT_VMD_TEMPLATE_DIR = config_raw.get('DefaultVirtualMachineDiskTemplateDir', 'vmdi')
 
 LABEL = 'host=%s' % (get_hostname_in_lower_case())
 
@@ -282,6 +284,14 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
                     jsondict = deleteLifecycleInJson(jsondict)
+                if _isPlugDisk(the_cmd_key):
+                    vmd_path = _get_field(jsondict, the_cmd_key, 'source')
+                    if not vmd_path:
+                        raise ExecuteException('VirtctlError', 'Config error: no "source" parameter.')
+                    if is_volume_in_use(path=vmd_path):
+                        raise ExecuteException('VirtctlError', "Cannot plug disk in use %s." % vmd_path)
+                    if os.path.split(vmd_path)[0] == DEFAULT_VMD_TEMPLATE_DIR:
+                        raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name

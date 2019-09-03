@@ -601,7 +601,6 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                pool_name = _get_field(jsondict, the_cmd_key, 'pool')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -615,23 +614,11 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                         if cmd:
                             runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-                        if pool_name and is_volume_exists(metadata_name, pool_name):
                             if cmd:
                                 runCmd(cmd)
-                            if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
-                                vol_xml = get_volume_xml(pool_name, metadata_name)
-                                vol_json = toKubeJson(xmlToJson(vol_xml))
-                                vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
-                                body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
-                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
-                        else:
-                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     elif operation_type == 'DELETED':
-                        if pool_name and is_volume_exists(metadata_name, pool_name):
-                            if cmd:
-                                runCmd(cmd)
-                        else:
-                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
+                        if cmd:
+                            runCmd(cmd)
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)

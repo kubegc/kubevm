@@ -94,6 +94,10 @@ Some steps to do to install and run kubevmm services.
     sudo yum install epel-release -y
     sudo yum install virt-manager libvirt virt-install qemu-kvm -y
     ```
+* Start "libvirtd" service:
+    ```
+    systemctl start libvirtd; systemctl enable libvirtd
+    ```
 
 * Softwares needed for kubevmm commands:
     ```

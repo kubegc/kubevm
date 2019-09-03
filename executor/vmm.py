@@ -678,6 +678,7 @@ def convert_vmdi_to_vmd(name):
             self.vmdi = vmdi
             self.source_path = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi, file_type)
             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
+            self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
         def option(self):
             '''

@@ -281,7 +281,9 @@ def main():
                     version = params[1]
                     update_online(version)
                 else:
-                    update_online('latest')
+                    print('error: invalid arguments!\n')
+                    print(help_update)
+                    sys.exit(1)
             elif params[0] == '--offline':
                 if len(params) > 2:
                     print('error: invalid arguments!\n')

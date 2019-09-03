@@ -220,9 +220,9 @@ def main():
                 '    service  --help                          print help\n\n'
     help_msg = help_subcommands + help_service
     help_update = 'Name:\n' + \
-                '    %s service update [--online|--offline <package>|--help]\n' % sys.argv[0] + \
+                '    %s service update [--online <version>|--offline <package>|--help]\n' % sys.argv[0] + \
                 'Options:\n' + \
-                '    --online            update online\n' + \
+                '    --online <version>   update online, default "version" is the "latest"\n' + \
                 '    --offline <package>  absolute path of package file\n\n'
     if len(sys.argv) < 2:
         print(usage_msg)
@@ -277,16 +277,16 @@ def main():
                         update_online(version)
                     update_online('latest')
                 else:
-                    print('error: command \'update\' requires [--online|--offline <package absolute path>|--help] arguments!\n')
+                    print('error: command \'update\' requires [--online <version>|--offline <package absolute path>|--help] arguments!\n')
                     sys.exit(1)
             elif len(params) == 2:
                 if params[0] != '--offline':
-                    print('error: command \'update\' requires [--online|--offline <package absolute path>|--help] arguments!\n')
+                    print('error: command \'update\' requires [--online <version>|--offline <package absolute path>|--help] arguments!\n')
                     sys.exit(1)
                 pack = params[1]
                 update_offline(pack)
             else:
-                print('error: command \'update\' requires [--online|--offline <package absolute path>|--help] arguments!\n')
+                print('error: command \'update\' requires [--online <version>|--offline <package absolute path>|--help] arguments!\n')
                 sys.exit(1) 
         elif sys.argv[2] == '--version':
             if len(params) != 0:

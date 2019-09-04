@@ -256,7 +256,9 @@ def convert_vm_to_image(name):
             try: 
                 client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
             except:
+                time.sleep(1)
                 success = False
+                continue
             finally:
                 i += 1
             success = True
@@ -426,7 +428,9 @@ def convert_image_to_vm(name):
             try:
                 client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
             except:
+                time.sleep(1)
                 success = False
+                continue
             finally:
                 i += 1
             success = True
@@ -589,7 +593,9 @@ def convert_vmd_to_vmdi(name, pool):
             try: 
                 client.CustomObjectsApi().get_namespaced_custom_object(group=VMDI_GROUP, version=VMDI_VERSION, namespace='default', plural=VMDI_PLURAL, name=name)
             except:
+                time.sleep(1)
                 success = False
+                continue
             finally:
                 i += 1
             success = True
@@ -708,7 +714,9 @@ def convert_vmdi_to_vmd(name, pool):
             try:
                 client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
             except:
+                time.sleep(1)
                 success = False
+                continue
             finally:
                 i += 1
             success = True

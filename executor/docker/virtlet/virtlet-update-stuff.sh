@@ -7,4 +7,5 @@
 ##
 ################################################################
 
+echo "Now starting virtlet service..."
 python virtlet_in_docker.py

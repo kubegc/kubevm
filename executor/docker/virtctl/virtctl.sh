@@ -14,4 +14,5 @@
 #chmod +x dist/vmm
 #cp -f dist/vmm /usr/bin
 
+echo "Now starting virtctl service..."
 python virtctl_in_docker.py

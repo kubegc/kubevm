@@ -695,9 +695,9 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
             logger.debug('Create vm disk image %s, report to virtlet' % name)
             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}}, 
                         'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
-            with open(xml_path, 'r') as fr:
-                vm_xml = fr.read()
-            vmd_json = toKubeJson(xmlToJson(vm_xml))
+            name = '%s.qcow2' % name
+            vmd_xml = get_volume_xml(pool, name)
+            vmd_json = toKubeJson(xmlToJson(vmd_xml))
             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
             jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             body = addNodeName(jsondict)

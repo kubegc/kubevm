@@ -127,6 +127,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
     #     print(jsondict)
     if event == "Delete":
         try:
+            refresh_pool(pool)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 
                                                                           namespace='default', 
@@ -190,6 +191,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             except:
                 logger.error('Oops! ', exc_info=1)
     else:
+        refresh_pool(pool)
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                               version=version, 
                                                                               namespace='default', 

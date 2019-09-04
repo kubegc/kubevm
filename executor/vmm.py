@@ -881,6 +881,7 @@ def main():
 Run back-end command in subprocess.
 '''
 def runCmd(cmd):
+    logger.debug(cmd)
     std_err = None
     if not cmd:
         return

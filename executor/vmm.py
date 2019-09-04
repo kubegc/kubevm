@@ -799,22 +799,15 @@ def delete_image(name):
     file4 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, name)
     file5 = '%s/%s-disk-*' % (DEFAULT_TEMPLATE_DIR, name)
     cmd = 'rm -rf %s %s %s %s %s' % (file1, file2, file3, file4, file5)
-    logger.debug(cmd)
     try:
         runCmd(cmd)
     except:
         logger.error('Oops! ', exc_info=1)
 
 def delete_vmdi(name):
-    file1 = '%s/%s.qcow2' % (DEFAULT_VMD_TEMPLATE_DIR, name)
-    file2 = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, name)
-    file3 = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, name)
-    cmd = 'rm -rf %s %s %s' % (file1, file2, file3)
-    logger.debug(cmd)
-    try:
-        runCmd(cmd)
-    except:
-        logger.error('Oops! ', exc_info=1)
+    file1 = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, name)
+    cmd = 'rm -rf %s' % (file1)
+    runCmd(cmd)
 
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(

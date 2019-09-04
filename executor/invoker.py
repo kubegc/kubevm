@@ -617,8 +617,8 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                         if cmd:
                             runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-                            if cmd:
-                                runCmd(cmd)
+                        if cmd:
+                            runCmd(cmd)
                     elif operation_type == 'DELETED':
                         if cmd:
                             runCmd(cmd)

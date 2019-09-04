@@ -812,7 +812,7 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("file deleted:{0}".format(event.src_path))
             _,name = os.path.split(event.src_path)
             file_type = os.path.splitext(name)[1]
-            vmdi = os.path.split(os.path.splitext(event.dest_path)[0])[1]
+            vmdi = os.path.split(os.path.splitext(event.src_path)[0])[1]
             if file_type == '.qcow2':
                 try:
                     myVmdImageLibvirtXmlEventHandler('Delete', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)

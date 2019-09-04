@@ -822,6 +822,15 @@ def updateOS(name, source, target):
     body = addPowerStatusMessage(jsonDict, vm_power_state, 'The VM is %s' % vm_power_state)
     client.CustomObjectsApi().replace_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=body)
+    
+def create_disk_snapshot(name, pool, snapshot):
+    pass
+
+def delete_disk_snapshot(name, pool, snapshot):
+    pass
+
+def revert_disk_snapshot(name, pool, snapshot):
+    pass
         
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:
@@ -832,7 +841,7 @@ def addExceptionMessage(jsondict, reason, message):
     return jsondict
 
 def main():
-    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]
+    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_snapshot|delete_disk_snapshot|revert_disk_snapshot|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
         print (help_msg)
         sys.exit(1)
@@ -856,6 +865,12 @@ def main():
         convert_vmdi_to_vmd(params['--name'], params['--pool'])    
     elif sys.argv[1] == 'create_disk_from_vmdi':
         create_disk_from_vmdi(params['--name'], params['--pool'], params['--image'])
+    elif sys.argv[1] == 'create_disk_snapshot':
+        create_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
+    elif sys.argv[1] == 'delete_disk_snapshot':
+        delete_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
+    elif sys.argv[1] == 'revert_disk_snapshot':
+        revert_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
     elif sys.argv[1] == 'delete_image':
         delete_image(params['--name'])
     elif sys.argv[1] == 'create_vmdi':

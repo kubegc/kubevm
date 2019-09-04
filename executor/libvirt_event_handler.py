@@ -101,7 +101,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
                     ignore_pushing = True
             except Exception, e:
-                raise e
+                logger.error('Oops! ', exc_info=1)
             if not ignore_pushing:
                 try:
                     logger.debug('Callback domain changes to virtlet')
@@ -117,9 +117,9 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         if e.reason == 'Not Found':
                             logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
                         else:
-                            raise e
+                            logger.error('Oops! ', exc_info=1)
                     except Exception, e:
-                        raise e
+                        logger.error('Oops! ', exc_info=1)
                     step1_done = True
                 except:
                     step1_done = False
@@ -189,9 +189,6 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                     except:
                         logger.warning('Oops! ', exc_info=1)
-
-
-
     except:
         logger.error('Oops! ', exc_info=1)
 

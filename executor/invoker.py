@@ -363,6 +363,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             else:
                                 if cmd:
                                     runCmd(cmd)
+                        else:
+                            if cmd:
+                                runCmd(cmd)
                         '''
                         Run network operations
                         '''

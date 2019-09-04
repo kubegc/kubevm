@@ -711,7 +711,7 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
                                                                               namespace='default', 
                                                                               plural=plural, 
                                                                               name=name)
-                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vmd_json)
+                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
                     jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     body = addNodeName(jsondict)
                     modifyStructure(name, body, group, version, plural)  

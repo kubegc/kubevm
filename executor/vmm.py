@@ -731,8 +731,9 @@ def convert_vmdi_to_vmd(name, pool):
         step1.rotating_option()
         
 def create_vmdi(name, source, file_type='qcow2'):
-    dest = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, name, file_type)
-    if os.path.exists(dest):
+    dest = '%s/%s.%s.new' % (DEFAULT_VMD_TEMPLATE_DIR, name, file_type)
+    dest1 = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, name, file_type)
+    if os.path.exists(dest1):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     cmd = 'cp -f %s %s' % (source, dest)
     try:
@@ -741,6 +742,14 @@ def create_vmdi(name, source, file_type='qcow2'):
         if os.path.exists(dest):
             runCmd('rm -f %s' % dest)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
+    source1 = dest
+    cmd = 'mv -f %s %s' % (source1, dest1)
+    try:
+        runCmd(cmd)
+    except:
+        if os.path.exists(dest1):
+            runCmd('rm -f %s' % dest1)
+        raise Exception('400, Bad Reqeust. Move %s to %s failed!' % (source1, dest1))
         
 def create_disk_from_vmdi(name, pool, image, file_type='qcow2'):
     source = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, image, file_type)

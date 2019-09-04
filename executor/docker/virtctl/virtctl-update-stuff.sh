@@ -42,5 +42,12 @@ cp -f /home/kubevmm/bin/vmm /usr/bin/vmm.new
 mv -f /usr/bin/vmm /usr/bin/vmm.old
 chmod -x /usr/bin/vmm.old
 mv -f /usr/bin/vmm.new /usr/bin/vmm
+# apply kubevirtResource.yaml
+if [ -f "/etc/kubevmm/yamls/kubevirtResource.yaml" ];then
+	echo "Ready: apply new /etc/kubevmm/yamls/kubevirtResource.yaml"
+	kubectl apply -f /etc/kubevmm/yamls/kubevirtResource.yaml
+else
+	echo "Warning: file /etc/kubevmm/yamls/kubevirtResource.yaml not exists!"
+fi
 # run virtctl service
 python virtctl_in_docker.py

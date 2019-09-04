@@ -222,7 +222,7 @@ def main():
     help_update = 'Name:\n' + \
                 '    %s service update [--online <version>|--offline <package>|--help]\n' % sys.argv[0] + \
                 'Options:\n' + \
-                '    --online <version>   update online, default "version" is the "latest"\n' + \
+                '    --online <version>   update to an online version\n' + \
                 '    --offline <package>  absolute path of package file\n\n'
     if len(sys.argv) < 2:
         print(usage_msg)

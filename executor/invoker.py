@@ -274,6 +274,14 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
                     jsondict = deleteLifecycleInJson(jsondict)
+                if _isPlugDisk(the_cmd_key):
+                    vmd_path = _get_field(jsondict, the_cmd_key, 'source')
+                    if not vmd_path:
+                        raise ExecuteException('VirtctlError', 'Config error: no "source" parameter.')
+                    if is_volume_in_use(path=vmd_path):
+                        raise ExecuteException('VirtctlError', "Cannot plug disk in use %s." % vmd_path)
+                    if os.path.split(vmd_path)[0] == DEFAULT_VMD_TEMPLATE_DIR:
+                        raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
                 if _isPlugDisk(the_cmd_key) or _isUnplugDisk(the_cmd_key):
                     '''
                     Parse disk configurations
@@ -284,14 +292,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     logger.debug(config_dict)
                     disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
                     jsondict = deleteLifecycleInJson(jsondict)
-                if _isPlugDisk(the_cmd_key):
-                    vmd_path = _get_field(jsondict, the_cmd_key, 'source')
-                    if not vmd_path:
-                        raise ExecuteException('VirtctlError', 'Config error: no "source" parameter.')
-                    if is_volume_in_use(path=vmd_path):
-                        raise ExecuteException('VirtctlError', "Cannot plug disk in use %s." % vmd_path)
-                    if os.path.split(vmd_path)[0] == DEFAULT_VMD_TEMPLATE_DIR:
-                        raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name

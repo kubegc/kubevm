@@ -95,6 +95,7 @@ resizeRAM= virsh setmem
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDisk = virsh vol-create-as
+createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
 convertVmDiskToVmDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 
 [VirtualMahcineBlockDevUitSupportCmdsWithNameField]
@@ -120,6 +121,7 @@ deleteImage = /usr/bin/vmm delete_image
 
 [VirtualMachineDiskImageSupportCmdsWithNameField]
 convertVmDiskImageToVmDisk = /usr/bin/vmm convert_vmdi_to_vmd
+deleteVmDiskImage = /usr/bin/vmm delete_vmdi
 
 [VirtualMahcinePoolSupportCmdsWithNameField]
 createPool = virsh pool-create-as

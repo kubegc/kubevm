@@ -19,7 +19,7 @@ import shutil
 
 from kubernetes.client.rest import ApiException
 
-from utils.libvirt_util import is_volume_in_use, is_volume_exists, get_volume_xml, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
+from utils.libvirt_util import get_pool_path, is_volume_in_use, is_volume_exists, get_volume_xml, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
 from utils.utils import addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, report_failure, deleteLifecycleInJson
 from utils import logger
 
@@ -742,7 +742,20 @@ def convert_vmdi_to_vmd(name):
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
         step2.rotating_option()
         step1.rotating_option()
-
+        
+def create_disk_from_vmdi(name, pool, image):
+    source = '%s/%s.qcow2' % (DEFAULT_VMD_TEMPLATE_DIR, image)
+    pool_path = get_pool_path(pool)
+    dest = '%s/%s' % (pool_path, name)
+    if os.path.exists(dest):
+        raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
+    cmd = 'cp -f %s %s' % (source, dest)
+    try:
+        runCmd(cmd)
+    except:
+        if os.path.exists(dest):
+            runCmd('rm -f %s' % dest)
+        raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
 
 # def toImage(name):
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -785,6 +798,17 @@ def delete_image(name):
     except:
         logger.error('Oops! ', exc_info=1)
 
+def delete_vmdi(name):
+    file1 = '%s/%s.qcow2' % (DEFAULT_VMD_TEMPLATE_DIR, name)
+    file2 = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, name)
+    file3 = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, name)
+    cmd = 'rm -rf %s %s %s' % (file1, file2, file3)
+    logger.debug(cmd)
+    try:
+        runCmd(cmd)
+    except:
+        logger.error('Oops! ', exc_info=1)
+
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
@@ -808,7 +832,7 @@ def addExceptionMessage(jsondict, reason, message):
     return jsondict
 
 def main():
-    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|delete_image|update-os|--help>' % sys.argv[0]
+    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_from_vmdi|delete_image|delete_vmdi|update-os|--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
         print (help_msg)
         sys.exit(1)
@@ -830,8 +854,12 @@ def main():
         convert_vmd_to_vmdi(params['--name'], params['--pool'])
     elif sys.argv[1] == 'convert_vmdi_to_vmd':
         convert_vmdi_to_vmd(params['--name'])    
+    elif sys.argv[1] == 'create_disk_from_vmdi':
+        create_disk_from_vmdi(params['--name'], params['--pool'], params['--image'])
     elif sys.argv[1] == 'delete_image':
         delete_image(params['--name'])
+    elif sys.argv[1] == 'delete_vmdi':
+        delete_vmdi(params['--name'])
     elif sys.argv[1] == 'update-os':
         updateOS(params['--domain'], params['--source'], params['--target'])
     else:

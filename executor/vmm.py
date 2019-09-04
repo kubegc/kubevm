@@ -494,7 +494,7 @@ def convert_vmd_to_vmdi(name, pool):
             self.file_type = file_type
             self.full_copy = full_copy
             self.source_path = get_volume_path(pool, vmd)
-            self.dest_path = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmd, file_type)
+            self.dest_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
     
@@ -635,8 +635,8 @@ def convert_vmdi_to_vmd(name, pool):
             self.pool = pool
             self.file_type = file_type
             self.full_copy = full_copy
-            self.source_path = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi, file_type)
-            self.dest_path = '%s/%s.%s' % (get_pool_path(self.pool), vmdi, file_type)
+            self.source_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
+            self.dest_path = '%s/%s' % (get_pool_path(self.pool), vmdi)
 #             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
@@ -660,7 +660,7 @@ def convert_vmdi_to_vmd(name, pool):
         def __init__(self, vmdi, tag, file_type='qcow2'):
             self.tag = tag
             self.vmdi = vmdi
-            self.source_path = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi, file_type)
+            self.source_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
 #             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
@@ -712,7 +712,7 @@ def convert_vmdi_to_vmd(name, pool):
         success = False
         while(i < 3):
             try:
-                client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
+                client.CustomObjectsApi().get_namespaced_custom_object(group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=name)
             except:
                 time.sleep(1)
                 success = False
@@ -739,7 +739,7 @@ def convert_vmdi_to_vmd(name, pool):
         step1.rotating_option()
         
 def create_vmdi(name, source, file_type='qcow2'):
-    dest = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, name, file_type)
+    dest = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, name)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     cmd = 'cp -f %s %s' % (source, dest)
@@ -751,7 +751,7 @@ def create_vmdi(name, source, file_type='qcow2'):
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
         
 def create_disk_from_vmdi(name, pool, image, file_type='qcow2'):
-    source = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, image, file_type)
+    source = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, image)
     pool_path = get_pool_path(pool)
     dest = '%s/%s' % (pool_path, name)
     if os.path.exists(dest):

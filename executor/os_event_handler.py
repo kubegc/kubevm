@@ -697,7 +697,6 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
             logger.debug('Create vm disk image %s, report to virtlet' % name)
             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}}, 
                         'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
-            name = '%s.qcow2' % name
             vmd_xml = get_volume_xml(pool, name)
             vmd_json = toKubeJson(xmlToJson(vmd_xml))
             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
@@ -782,42 +781,33 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("directory moved from {0} to {1}".format(event.src_path,event.dest_path))
         else:
             logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
-            _,name = os.path.split(event.dest_path)
-            file_type = os.path.splitext(name)[1]
             vmdi = os.path.split(os.path.splitext(event.dest_path)[0])[1]
-            if file_type == '.qcow2':
-                try:
-                    myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.dest_path, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            try:
+                myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.dest_path, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_created(self, event):
         if event.is_directory:
             logger.debug("directory created:{0}".format(event.src_path))
         else:
             logger.debug("file created:{0}".format(event.src_path))
-            _,name = os.path.split(event.src_path)
-            file_type = os.path.splitext(name)[1]
             vmdi = os.path.split(os.path.splitext(event.src_path)[0])[1]
-            if file_type == '.qcow2':
-                try:
-                    myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            try:
+                myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
             logger.debug("directory deleted:{0}".format(event.src_path))
         else:
             logger.debug("file deleted:{0}".format(event.src_path))
-            _,name = os.path.split(event.src_path)
-            file_type = os.path.splitext(name)[1]
             vmdi = os.path.split(os.path.splitext(event.src_path)[0])[1]
-            if file_type == '.qcow2':
-                try:
-                    myVmdImageLibvirtXmlEventHandler('Delete', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            try:
+                myVmdImageLibvirtXmlEventHandler('Delete', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
+            except ApiException:
+                logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
         if event.is_directory:

@@ -732,16 +732,11 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
             except:
                 logger.error('Oops! ', exc_info=1)         
     elif event == "Delete":
-        '''
-        Refresh pool manually
-        '''
-        refresh_pool(pool)
-#             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-#                                                                               version=version, 
-#                                                                               namespace='default', 
-#                                                                               plural=plural, 
-#                                                                               name=name)
         try:
+            '''
+            Refresh pool manually
+            '''
+            refresh_pool(pool)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                           version=version, 
                                                                           namespace='default', 

@@ -109,9 +109,9 @@ deleteDisk = virsh vol-delete
 
 [VirtualMachineSnapshotSupportCmdsWithNameField]
 createSnapshot = virsh snapshot-create-as
-revertVirtualMachine = virsh snapshot-revert
 
 [VirtualMachineSnapshotSupportCmdsWithSnapNameField]
+revertVirtualMachine = virsh snapshot-revert
 deleteSnapshot = virsh snapshot-delete
 
 [VirtualMachineImageSupportCmdsWithNameField]

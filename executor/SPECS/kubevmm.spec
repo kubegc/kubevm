@@ -47,3 +47,4 @@ rm -rf %{buildroot}
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 /etc/kubevmm/config
+/etc/kubevmm/yamls

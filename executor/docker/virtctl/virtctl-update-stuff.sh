@@ -48,7 +48,7 @@ mv -f /usr/bin/kubeovn-adm.new /usr/bin/kubeovn-adm
 chmod +x /usr/bin/kubeovn-adm
 echo "--- Done: update kubeovn-adm"
 # update vmm
-echo "*** Processing: update vmm"
+echo "+++ Processing: update vmm"
 cp -f /home/kubevmm/bin/vmm /usr/bin/vmm.new
 mv -f /usr/bin/vmm /usr/bin/vmm.old
 chmod -x /usr/bin/vmm.old

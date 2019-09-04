@@ -56,7 +56,8 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <kubevmm-adm>."
 fi
-find ${SHELL_FOLDER}/dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
+find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
+find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
 cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm docker/virtctl
 if [ $? -ne 0 ]; then

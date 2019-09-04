@@ -35,7 +35,7 @@ echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
 install %{SOURCE3} %{buildroot}/etc/kubevmm
 rm -rf %{buildroot}/etc/kubevmm/yamls
-install %{SOURCE5} %{buildroot}/etc/kubevmm/yamls
+install %{SOURCE5} %{buildroot}/etc/kubevmm
 
 %clean
 rm -rf %{buildroot}

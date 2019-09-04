@@ -522,17 +522,15 @@ def convert_vmd_to_vmdi(name, pool):
 
     class step_2_delete_source_file(RotatingOperation):
         
-        def __init__(self, vmd, tag):
+        def __init__(self, vmd, pool, tag):
             self.tag = tag
             self.vmd = vmd
-            self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
+            self.source_path = get_volume_path(pool, vmd)
     
         def option(self):
             '''
             Remove source path of template's boot disk
             '''
-            with open(self.store_source_path, 'r') as fr:
-                self.source_path = fr.read()
             if os.path.exists(self.source_path):
                 os.remove(self.source_path)
             done_operations.append(self.tag)
@@ -557,7 +555,7 @@ def convert_vmd_to_vmdi(name, pool):
         os.makedirs(DEFAULT_VMD_TEMPLATE_DIR, 0711)
 #     step1 = step_1_dumpxml_to_path(name, pool, 'step1')
     step1 = step_1_copy_template_to_path(name, pool, 'step1')
-    step2 = step_2_delete_source_file(name, 'step2')
+    step2 = step_2_delete_source_file(name, pool, 'step2')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
         '''

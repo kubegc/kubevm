@@ -148,7 +148,7 @@ def update_online(version='latest'):
     if virtctl_err or virtlet_err:
         sys.exit(1)
     stop(ignore_warning=True)
-    time.sleep(3)
+    time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
 
 def update_offline(pack, ignore_warning=True):

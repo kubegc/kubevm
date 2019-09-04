@@ -785,7 +785,21 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("directory moved from {0} to {1}".format(event.src_path,event.dest_path))
         else:
             logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
-            _,name = os.path.split(event.dest_path)
+#             _,name = os.path.split(event.dest_path)
+#             file_type = os.path.splitext(name)[1]
+#             vmdi = os.path.splitext(os.path.splitext(name)[0])[0]
+#             if file_type == '.qcow2':
+#                 try:
+#                     myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.dest_path, self.group, self.version, self.plural)
+#                 except ApiException:
+#                     logger.error('Oops! ', exc_info=1)
+
+    def on_created(self, event):
+        if event.is_directory:
+            logger.debug("directory created:{0}".format(event.src_path))
+        else:
+            logger.debug("file created:{0}".format(event.src_path))
+            _,name = os.path.split(event.src_path)
             file_type = os.path.splitext(name)[1]
             vmdi = os.path.splitext(os.path.splitext(name)[0])[0]
             if file_type == '.qcow2':
@@ -793,20 +807,6 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
                     myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.dest_path, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
-
-    def on_created(self, event):
-        if event.is_directory:
-            logger.debug("directory created:{0}".format(event.src_path))
-        else:
-            logger.debug("file created:{0}".format(event.src_path))
-#             _,name = os.path.split(event.src_path)
-#             file_type = os.path.splitext(name)[1]
-#             vmi = os.path.splitext(os.path.splitext(name)[0])[0]
-#             if file_type == '.qcow2':
-#                 try:
-#                     myImageLibvirtXmlEventHandler('Create', vmi, event.src_path, self.group, self.version, self.plural)
-#                 except ApiException:
-#                     logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -1080,7 +1080,6 @@ def main():
             observer.schedule(event_handler,ob[1],True)
         observer.start()
 
-        logger.debug(VOL_DIRS)
         OLD_PATH_WATCHERS = {}
         while True:
             try:

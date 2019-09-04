@@ -781,7 +781,7 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("directory moved from {0} to {1}".format(event.src_path,event.dest_path))
         else:
             logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
-            vmdi = os.path.split(os.path.splitext(event.dest_path)[0])[1]
+            vmdi = os.path.split(event.src_path)[1]
             try:
                 myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.dest_path, self.group, self.version, self.plural)
             except ApiException:
@@ -792,7 +792,7 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("directory created:{0}".format(event.src_path))
         else:
             logger.debug("file created:{0}".format(event.src_path))
-            vmdi = os.path.split(os.path.splitext(event.src_path)[0])[1]
+            vmdi = os.path.split(event.src_path)[1]
             try:
                 myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
             except ApiException:
@@ -803,7 +803,7 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             logger.debug("directory deleted:{0}".format(event.src_path))
         else:
             logger.debug("file deleted:{0}".format(event.src_path))
-            vmdi = os.path.split(os.path.splitext(event.src_path)[0])[1]
+            vmdi = os.path.split(event.src_path)[1]
             try:
                 myVmdImageLibvirtXmlEventHandler('Delete', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
             except ApiException:

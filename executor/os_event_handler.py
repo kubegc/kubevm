@@ -788,7 +788,7 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             _,name = os.path.split(event.dest_path)
             file_type = os.path.splitext(name)[1]
             vmdi = os.path.splitext(os.path.splitext(name)[0])[0]
-            if file_type == '.xml':
+            if file_type == '.qcow2':
                 try:
                     myVmdImageLibvirtXmlEventHandler('Create', vmdi, self.pool, event.dest_path, self.group, self.version, self.plural)
                 except ApiException:
@@ -802,7 +802,7 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
 #             _,name = os.path.split(event.src_path)
 #             file_type = os.path.splitext(name)[1]
 #             vmi = os.path.splitext(os.path.splitext(name)[0])[0]
-#             if file_type == '.xml':
+#             if file_type == '.qcow2':
 #                 try:
 #                     myImageLibvirtXmlEventHandler('Create', vmi, event.src_path, self.group, self.version, self.plural)
 #                 except ApiException:
@@ -816,7 +816,7 @@ class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
             _,name = os.path.split(event.src_path)
             file_type = os.path.splitext(name)[1]
             vmdi = os.path.splitext(os.path.splitext(name)[0])[0]
-            if file_type == '.xml':
+            if file_type == '.qcow2':
                 try:
                     myVmdImageLibvirtXmlEventHandler('Delete', vmdi, self.pool, event.src_path, self.group, self.version, self.plural)
                 except ApiException:

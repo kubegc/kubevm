@@ -120,6 +120,7 @@ convertImageToVM = /usr/bin/vmm convert_image_to_vm
 deleteImage = /usr/bin/vmm delete_image
 
 [VirtualMachineDiskImageSupportCmdsWithNameField]
+createDiskImage = /usr/bin/vmm create_vmdi
 convertDiskImageToDisk = /usr/bin/vmm convert_vmdi_to_vmd
 deleteDiskImage = /usr/bin/vmm delete_vmdi
 

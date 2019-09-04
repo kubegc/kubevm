@@ -19,8 +19,8 @@ import shutil
 
 from kubernetes.client.rest import ApiException
 
-from utils.libvirt_util import get_pool_path, is_volume_in_use, is_volume_exists, get_volume_xml, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, report_failure, deleteLifecycleInJson
+from utils.libvirt_util import get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
+from utils.utils import addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -458,30 +458,30 @@ def convert_vmd_to_vmdi(name, pool):
     done_operations = []
     doing = ''
     
-    class step_1_dumpxml_to_path(RotatingOperation):
-        
-        def __init__(self, vmd, pool, tag):
-            self.tag = tag
-            self.vmd = vmd
-            self.pool = pool
-            self.temp_path = '%s/%s.xml.new' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
-            self.path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
+#     class step_1_dumpxml_to_path(RotatingOperation):
+#         
+#         def __init__(self, vmd, pool, tag):
+#             self.tag = tag
+#             self.vmd = vmd
+#             self.pool = pool
+#             self.temp_path = '%s/%s.xml.new' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
+#             self.path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
+#     
+#         def option(self):
+#             vmd_xml = get_volume_xml(self.pool, self.vmd)
+#             with open(self.temp_path, 'w') as fw:
+#                 fw.write(vmd_xml)
+#             shutil.move(self.temp_path, self.path)
+#             done_operations.append(self.tag)
+#             return 
+#     
+#         def rotating_option(self):
+#             if self.tag in done_operations:
+#                 if os.path.exists(self.path):
+#                     os.remove(self.path)
+#             return 
     
-        def option(self):
-            vmd_xml = get_volume_xml(self.pool, self.vmd)
-            with open(self.temp_path, 'w') as fw:
-                fw.write(vmd_xml)
-            shutil.move(self.temp_path, self.path)
-            done_operations.append(self.tag)
-            return 
-    
-        def rotating_option(self):
-            if self.tag in done_operations:
-                if os.path.exists(self.path):
-                    os.remove(self.path)
-            return 
-    
-    class step_2_copy_template_to_path(RotatingOperation):
+    class step_1_copy_template_to_path(RotatingOperation):
         
         def __init__(self, vmd, pool, tag, file_type='qcow2', full_copy=True):
             self.tag = tag
@@ -491,8 +491,8 @@ def convert_vmd_to_vmdi(name, pool):
             self.full_copy = full_copy
             self.source_path = get_volume_path(pool, vmd)
             self.dest_path = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmd, file_type)
-            self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
-            self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
+#             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
+#             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
     
         def option(self):
             '''
@@ -503,23 +503,24 @@ def convert_vmd_to_vmdi(name, pool):
             if self.full_copy:
                 copy_template_cmd = 'cp %s %s' % (self.source_path, self.dest_path)
             runCmd(copy_template_cmd)
-            '''
-            Store source path of template's boot disk to .path file.
-            '''
-            with open(self.store_source_path, 'w') as fw:
-                fw.write(self.source_path)
-            string_switch(self.xml_path, self.source_path, self.dest_path, 'g')
+#             '''
+#             Store source path of template's boot disk to .path file.
+#             '''
+#             with open(self.store_source_path, 'w') as fw:
+#                 fw.write(self.source_path)
+#             string_switch(self.xml_path, self.source_path, self.dest_path, 'g')
             done_operations.append(self.tag)
             return 
     
         def rotating_option(self):
             if self.tag in done_operations:
-                for path in [self.dest_path, self.store_source_path, self.xml_path]:
+                for path in [self.dest_path]:
+#                 for path in [self.dest_path, self.store_source_path, self.xml_path]:
                     if os.path.exists(path):
                         os.remove(path)
             return 
 
-    class step_3_delete_source_file(RotatingOperation):
+    class step_2_delete_source_file(RotatingOperation):
         
         def __init__(self, vmd, tag):
             self.tag = tag
@@ -554,9 +555,9 @@ def convert_vmd_to_vmdi(name, pool):
         raise Exception('Cannot covert vmd in use to image.')
     if not os.path.exists(DEFAULT_VMD_TEMPLATE_DIR):
         os.makedirs(DEFAULT_VMD_TEMPLATE_DIR, 0711)
-    step1 = step_1_dumpxml_to_path(name, pool, 'step1')
-    step2 = step_2_copy_template_to_path(name, pool, 'step2')
-    step3 = step_3_delete_source_file(name, 'step3')
+#     step1 = step_1_dumpxml_to_path(name, pool, 'step1')
+    step1 = step_1_copy_template_to_path(name, pool, 'step1')
+    step2 = step_2_delete_source_file(name, 'step2')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
         '''
@@ -564,11 +565,6 @@ def convert_vmd_to_vmdi(name, pool):
         '''
         doing = step1.tag
         step1.option()
-        '''
-        #Step 2
-        '''
-        doing = step2.tag
-        step2.option()
 #         '''
 #         #Step 4: synchronize information to Kubernetes
 #         '''   
@@ -603,10 +599,10 @@ def convert_vmd_to_vmdi(name, pool):
         if not success:
             raise Exception('Synchronize information in Virtlet failed!')
         '''
-        #Step 3
-        '''       
-        doing = step3.tag
-        step3.option()
+        #Step 2
+        '''
+        doing = step2.tag
+        step2.option()
     except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
@@ -614,14 +610,13 @@ def convert_vmd_to_vmdi(name, pool):
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        step3.rotating_option()
         step2.rotating_option()
         step1.rotating_option()
 
 '''
 A atomic operation: Convert image to vm.
 '''
-def convert_vmdi_to_vmd(name):
+def convert_vmdi_to_vmd(name, pool):
     '''
     A list to record what we already done.
     '''
@@ -630,34 +625,28 @@ def convert_vmdi_to_vmd(name):
     
     class step_1_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vmdi, tag, file_type='qcow2', full_copy=True):
+        def __init__(self, vmdi, pool, tag, file_type='qcow2', full_copy=True):
             self.tag = tag
             self.vmdi = vmdi
+            self.pool = pool
             self.file_type = file_type
             self.full_copy = full_copy
             self.source_path = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi, file_type)
-            self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
-            self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
+            self.dest_path = '%s/%s.%s' % (get_pool_path(self.pool), vmdi, file_type)
+#             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
+#             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
         def option(self):
-            '''
-            Copy template's boot disk to destination dir.
-            '''
-            with open(self.store_target_path, 'r') as fr:
-                self.dest_path = fr.read()
             if os.path.exists(self.dest_path):
                 raise Exception('409, Conflict. File %s already exists, aborting copy.' % self.dest_path)
             if self.full_copy:
                 copy_template_cmd = 'cp %s %s' % (self.source_path, self.dest_path)
             runCmd(copy_template_cmd)
-            string_switch(self.xml_path, self.source_path, self.dest_path, 'g')
             done_operations.append(self.tag)
             return 
     
         def rotating_option(self):
             if self.tag in done_operations:
-                with open(self.store_target_path, 'r') as fr:
-                    self.dest_path = fr.read()
                 if os.path.exists(self.dest_path):
                     os.remove(self.dest_path)
             return 
@@ -668,14 +657,14 @@ def convert_vmdi_to_vmd(name):
             self.tag = tag
             self.vmdi = vmdi
             self.source_path = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi, file_type)
-            self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
-            self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
+#             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
+#             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
         def option(self):
             '''
             Remove source path of template's boot disk
             '''
-            for path in [self.source_path, self.store_target_path, self.xml_path]:
+            for path in [self.source_path]:
                 if os.path.exists(path):
                     os.remove(path)
             done_operations.append(self.tag)
@@ -688,7 +677,7 @@ def convert_vmdi_to_vmd(name):
         
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
 #         group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
-    step1 = step_1_copy_template_to_path(name, 'step1')
+    step1 = step_1_copy_template_to_path(name, pool, 'step1')
     step2 = step_2_delete_source_file(name, 'step2')
     try:
         '''
@@ -743,8 +732,20 @@ def convert_vmdi_to_vmd(name):
         step2.rotating_option()
         step1.rotating_option()
         
-def create_disk_from_vmdi(name, pool, image):
-    source = '%s/%s.qcow2' % (DEFAULT_VMD_TEMPLATE_DIR, image)
+def create_vmdi(name, source, file_type='qcow2'):
+    dest = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, name, file_type)
+    if os.path.exists(dest):
+        raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
+    cmd = 'cp -f %s %s' % (source, dest)
+    try:
+        runCmd(cmd)
+    except:
+        if os.path.exists(dest):
+            runCmd('rm -f %s' % dest)
+        raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
+        
+def create_disk_from_vmdi(name, pool, image, file_type='qcow2'):
+    source = '%s/%s.%s' % (DEFAULT_VMD_TEMPLATE_DIR, image, file_type)
     pool_path = get_pool_path(pool)
     dest = '%s/%s' % (pool_path, name)
     if os.path.exists(dest):
@@ -832,7 +833,7 @@ def addExceptionMessage(jsondict, reason, message):
     return jsondict
 
 def main():
-    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_from_vmdi|delete_image|delete_vmdi|update-os|--help>' % sys.argv[0]
+    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
         print (help_msg)
         sys.exit(1)
@@ -853,11 +854,13 @@ def main():
     elif sys.argv[1] == 'convert_vmd_to_vmdi':
         convert_vmd_to_vmdi(params['--name'], params['--pool'])
     elif sys.argv[1] == 'convert_vmdi_to_vmd':
-        convert_vmdi_to_vmd(params['--name'])    
+        convert_vmdi_to_vmd(params['--name'], params['--pool'])    
     elif sys.argv[1] == 'create_disk_from_vmdi':
         create_disk_from_vmdi(params['--name'], params['--pool'], params['--image'])
     elif sys.argv[1] == 'delete_image':
         delete_image(params['--name'])
+    elif sys.argv[1] == 'create_vmdi':
+        create_vmdi(params['--name'], params['--source'])
     elif sys.argv[1] == 'delete_vmdi':
         delete_vmdi(params['--name'])
     elif sys.argv[1] == 'update-os':

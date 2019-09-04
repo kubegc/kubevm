@@ -34,8 +34,8 @@ mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
 install %{SOURCE3} %{buildroot}/etc/kubevmm
-rm -rf /etc/kubevmm/yamls
-cp -rf %{SOURCE5} %{buildroot}/etc/kubevmm/yamls
+rm -rf %{buildroot}/etc/kubevmm/yamls
+install %{SOURCE5} %{buildroot}/etc/kubevmm/yamls
 
 %clean
 rm -rf %{buildroot}

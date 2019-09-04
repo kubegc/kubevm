@@ -12,6 +12,8 @@ ADD *.sh /home/kubevmm/bin/
 
 ADD utils /home/kubevmm/bin/utils
 
+ADD yamls /home/kubevmm/bin/yamls
+
 ADD config /home/kubevmm/bin/
 
 Add kubeovn-adm /home/kubevmm/bin/

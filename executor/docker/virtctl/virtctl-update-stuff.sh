@@ -22,6 +22,10 @@ mv -f /etc/kubevmm/config.new /etc/kubevmm/config
 cp -f /home/kubevmm/bin/VERSION /etc/kubevmm/VERSION.new
 mv -f /etc/kubevmm/VERSION /etc/kubevmm/VERSION.old
 mv -f /etc/kubevmm/VERSION.new /etc/kubevmm/VERSION
+# update yamls file
+cp -rf /home/kubevmm/bin/yamls /etc/kubevmm/yamls.new
+mv -f /etc/kubevmm/yamls /etc/kubevmm/yamls.old
+mv -f /etc/kubevmm/yamls.new /etc/kubevmm/yamls
 # update kubevmm-adm
 cp -f /home/kubevmm/bin/kubevmm-adm /usr/bin/kubevmm-adm.new
 mv -f /usr/bin/kubevmm-adm /usr/bin/kubevmm-adm.old

@@ -17,6 +17,7 @@ Source1:        vmm
 Source2:        VERSION
 Source3:        config
 Source4:        kubeovn-adm
+Source5:        yamls
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -33,6 +34,7 @@ mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
 install %{SOURCE3} %{buildroot}/etc/kubevmm
+install %{SOURCE5} %{buildroot}/etc/kubevmm
 
 %clean
 rm -rf %{buildroot}

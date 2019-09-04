@@ -40,6 +40,7 @@ fi
 cp -f config ./dist
 chmod +x kubeovn-adm
 cp -f kubeovn-adm ./dist
+cp -rf ../yamls ./dist
 echo ${VERSION} > ./VERSION
 pyinstaller -F kubevmm_adm.py -n kubevmm-adm
 if [ $? -ne 0 ]; then
@@ -57,7 +58,7 @@ else
 fi
 find ${SHELL_FOLDER}/dist -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
-cp -f ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm docker/virtctl
 if [ $? -ne 0 ]; then
     echo "    Failed to copy stuff to docker/virtctl!"
     exit 1

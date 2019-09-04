@@ -176,7 +176,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                     modifyStructure(name, body, group, version, plural)
                 else:
                     logger.error(e)
-                    raise e
                     
         except:
             logger.error('Oops! ', exc_info=1)
@@ -304,7 +303,6 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
                     modifyStructure(name, body, group, version, plural)
                 else:
                     logger.error(e)
-                    raise e
                     
         except:
             logger.error('Oops! ', exc_info=1)
@@ -430,7 +428,6 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
                     modifyStructure(name, body, group, version, plural)
                 else:
                     logger.error(e)
-                    raise e
                     
         except:
             logger.error('Oops! ', exc_info=1)
@@ -542,7 +539,6 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                     modifyStructure(name, body, group, version, plural)  
                 else:
                     logger.error(e)
-                    raise e
                     
         except:
             logger.error('Oops! ', exc_info=1)
@@ -720,7 +716,6 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
                     modifyStructure(name, body, group, version, plural)  
                 else:
                     logger.error(e)
-                    raise e
                     
         except:
             logger.error('Oops! ', exc_info=1)
@@ -871,7 +866,6 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
                     modifyStructure(name, body, group, version, plural)  
                 else:
                     logger.error(e)
-                    raise e
                     
         except:
             logger.error('Oops! ', exc_info=1)

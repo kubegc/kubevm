@@ -24,7 +24,7 @@ from xmljson import badgerfish as bf
 from kubernetes.client.rest import ApiException
 
 from utils.libvirt_util import get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.utils import updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -838,7 +838,7 @@ def create_disk_snapshot(vol, pool, snapshot):
         vol_path = get_volume_path(pool, vol)
         vol_json = toKubeJson(xmlToJson(vol_xml))
         vol_json = addSnapshots(vol_path, loads(vol_json))
-        jsondict = deleteLifecycleInJson(jsondict)
+        jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
@@ -854,12 +854,14 @@ def delete_disk_snapshot(vol, pool, snapshot):
     cmd = 'qemu-img snapshot -d %s %s' % (snapshot, vol_path)
     try:
         runCmd(cmd)
-        jsondict = deleteLifecycleInJson(jsondict)
+        vol_xml = get_volume_xml(pool, vol)
+        vol_path = get_volume_path(pool, vol)
+        vol_json = toKubeJson(xmlToJson(vol_xml))
+        vol_json = addSnapshots(vol_path, loads(vol_json))
+        jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
-        client.CustomObjectsApi().delete_namespaced_custom_object(
-            group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=V1DeleteOptions())
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
@@ -877,7 +879,7 @@ def revert_disk_snapshot(vol, pool, snapshot):
         vol_path = get_volume_path(pool, vol)
         vol_json = toKubeJson(xmlToJson(vol_xml))
         vol_json = addSnapshots(vol_path, loads(vol_json))
-        jsondict = deleteLifecycleInJson(jsondict)
+        jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)

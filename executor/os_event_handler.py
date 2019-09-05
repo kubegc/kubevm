@@ -35,7 +35,7 @@ Import local libs
 '''
 from utils.libvirt_util import get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path
 from utils import logger
-from utils.utils import get_volume_snapshots, runCmdRaiseException, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
+from utils.utils import addSnapshots, get_volume_snapshots, runCmdRaiseException, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -1008,11 +1008,6 @@ def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
             if lifecycle:
                 del spec['lifecycle']
             spec.update(body)
-    return jsondict
-
-def addSnapshots(vol_path, jsondict):
-    snapshot_json = get_volume_snapshots(vol_path)
-    jsondict.get('volume').update(snapshot_json)
     return jsondict
 
 def addNodeName(jsondict):

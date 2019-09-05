@@ -445,6 +445,11 @@ def addExceptionMessage(jsondict, reason, message):
             spec['status'] = status
     return jsondict
 
+def addSnapshots(vol_path, jsondict):
+    snapshot_json = get_volume_snapshots(vol_path)
+    jsondict.get('volume').update(snapshot_json)
+    return jsondict
+
 def updateDomainBackup(vm_json):
     domain = vm_json.get('domain')
     if domain:

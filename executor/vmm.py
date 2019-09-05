@@ -8,6 +8,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of
 from kubernetes import config, client
 from kubernetes.client import V1DeleteOptions
 from json import loads
+from json import dumps
 import sys
 import os
 import time
@@ -16,11 +17,14 @@ import subprocess
 import ConfigParser
 import traceback
 import shutil
+from xml.etree.ElementTree import fromstring
+
+from xmljson import badgerfish as bf
 
 from kubernetes.client.rest import ApiException
 
-from utils.libvirt_util import get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.libvirt_util import get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
+from utils.utils import addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -830,6 +834,10 @@ def create_disk_snapshot(vol, pool, snapshot):
     cmd = 'qemu-img snapshot -c %s %s' % (snapshot, vol_path)
     try:
         runCmd(cmd)
+        vol_xml = get_volume_xml(pool, vol)
+        vol_path = get_volume_path(pool, vol)
+        vol_json = toKubeJson(xmlToJson(vol_xml))
+        vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = deleteLifecycleInJson(jsondict)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         client.CustomObjectsApi().replace_namespaced_custom_object(
@@ -850,6 +858,8 @@ def delete_disk_snapshot(vol, pool, snapshot):
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+        client.CustomObjectsApi().delete_namespaced_custom_object(
+            group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=V1DeleteOptions())
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
@@ -863,6 +873,10 @@ def revert_disk_snapshot(vol, pool, snapshot):
     runCmd(cmd)
     try:
         runCmd(cmd)
+        vol_xml = get_volume_xml(pool, vol)
+        vol_path = get_volume_path(pool, vol)
+        vol_json = toKubeJson(xmlToJson(vol_xml))
+        vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = deleteLifecycleInJson(jsondict)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         client.CustomObjectsApi().replace_namespaced_custom_object(
@@ -879,6 +893,14 @@ def addExceptionMessage(jsondict, reason, message):
         if spec:
             spec['status'] = status
     return jsondict
+
+def xmlToJson(xmlStr):
+    return dumps(bf.data(fromstring(xmlStr)), sort_keys=True, indent=4)
+
+def toKubeJson(json):
+    return json.replace('@', '_').replace('$', 'text').replace(
+            'interface', '_interface').replace('transient', '_transient').replace(
+                    'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
 
 def main():
     help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_snapshot|delete_disk_snapshot|revert_disk_snapshot|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]

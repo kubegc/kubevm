@@ -186,7 +186,11 @@ def get_l3_network_info(name):
 
 def get_volume_snapshots(path):
     cmd = 'qemu-img info -U %s' % path
-    std_out = runCmdRaiseException(cmd)
+    try:
+        std_out = runCmdRaiseException(cmd)
+    except:
+        cmd = 'qemu-img info %s' % path
+        std_out = runCmdRaiseException(cmd)
     start = False
     snapshots = {'snapshot': []}
     for line in std_out:

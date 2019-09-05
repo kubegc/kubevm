@@ -823,14 +823,20 @@ def updateOS(name, source, target):
     client.CustomObjectsApi().replace_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=body)
     
-def create_disk_snapshot(name, pool, snapshot):
-    pass
+def create_disk_snapshot(vol, pool, snapshot):
+    vol_path = get_volume_path(pool, vol)
+    cmd = 'qemu-img snapshot -c %s %s' % (snapshot, vol_path)
+    runCmd(cmd)
 
-def delete_disk_snapshot(name, pool, snapshot):
-    pass
+def delete_disk_snapshot(vol, pool, snapshot):
+    vol_path = get_volume_path(pool, vol)
+    cmd = 'qemu-img snapshot -d %s %s' % (snapshot, vol_path)
+    runCmd(cmd)
 
-def revert_disk_snapshot(name, pool, snapshot):
-    pass
+def revert_disk_snapshot(vol, pool, snapshot):
+    vol_path = get_volume_path(pool, vol)
+    cmd = 'qemu-img snapshot -a %s %s' % (snapshot, vol_path)
+    runCmd(cmd)
         
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:

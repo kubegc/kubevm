@@ -400,15 +400,9 @@ def get_disks(vm_):
         try:
             output = []
             try:
-                qemu_output = subprocess.Popen(['qemu-img', 'info', '-U',
-                    disks[dev]['file']],
-                    shell=False,
-                    stdout=subprocess.PIPE).communicate()[0]
+                qemu_output = runCmdRaiseException('qemu-img info -U %s' % disks[dev]['file'])
             except:
-                qemu_output = subprocess.Popen(['qemu-img', 'info',
-                    disks[dev]['file']],
-                    shell=False,
-                    stdout=subprocess.PIPE).communicate()[0]                
+                qemu_output = runCmdRaiseException('qemu-img info %s' % disks[dev]['file'])             
             snapshots = False
             columns = None
             lines = qemu_output.strip().split('\n')
@@ -844,6 +838,21 @@ def runCmdWithResult(cmd):
                 kv = line.replace(':', '').split()
                 result[kv[0].lower()] = kv[1]
             return result
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+        
+def runCmdRaiseException(cmd):
+    std_err = None
+    if not cmd:
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.read()
+        std_err = p.stderr.read()
+        if std_err:
+            raise Exception(std_err)
+        return std_out
     finally:
         p.stdout.close()
         p.stderr.close()

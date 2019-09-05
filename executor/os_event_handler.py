@@ -1012,12 +1012,7 @@ def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
 
 def addSnapshots(vol_path, jsondict):
     snapshot_json = get_volume_snapshots(vol_path)
-    spec = jsondict['spec']
-    volume = spec.get('volume')
-    if volume:
-        volume.update(snapshot_json)
-    else:
-        logger.warning('***no volume in json')
+    jsondict.get('volume').update(snapshot_json)
     return jsondict
 
 def addNodeName(jsondict):

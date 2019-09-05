@@ -97,7 +97,7 @@ resizeRAM= virsh setmem
 createDisk = virsh vol-create-as
 createDiskSnapshot = /usr/bin/vmm create_disk_snapshot
 deleteDiskSnapshot = /usr/bin/vmm delete_disk_snapshot
-revertDisk = /usr/bin/vmm revert_disk_snapshot
+revertDiskSnapshot = /usr/bin/vmm revert_disk_snapshot
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
 convertDiskToDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 

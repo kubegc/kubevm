@@ -872,7 +872,6 @@ def revert_disk_snapshot(vol, pool, snapshot):
         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
     vol_path = get_volume_path(pool, vol)
     cmd = 'qemu-img snapshot -a %s %s' % (snapshot, vol_path)
-    runCmd(cmd)
     try:
         runCmd(cmd)
         vol_xml = get_volume_xml(pool, vol)

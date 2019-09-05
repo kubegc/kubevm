@@ -183,7 +183,32 @@ def get_l3_network_info(name):
             (_, gatewayInfo['lease_time']) = line.strip().split('=')
     data['gatewayInfo'] = gatewayInfo
     return data
-    
+
+def get_volume_snapshots(path):
+    cmd = 'qemu-img info -U %s' % path
+    std_out = runCmdRaiseException(cmd)
+    start = False
+    snapshots = {'snapshot': []}
+    for line in std_out:
+        line = line.strip()
+        if line.startswith('ID  '):
+            start = True
+            continue
+        if line.startswith('Format '):
+            break;
+        if start:
+            data = line.split(' ')
+            data = [i for i in data if i != '']
+            if len(data) == 6:
+                snapshot = {}
+                snapshot['id'] = data[0].strip()
+                snapshot['name'] = data[1].strip()
+                snapshot['date'] = '%s %s' % (data[3].strip(), data[4].strip())
+                snapshots['snapshot'].append(snapshot)
+                continue
+            else:
+                pass
+    return snapshots
 
 def singleton(pid_filename):
     def decorator(f):
@@ -875,4 +900,5 @@ class CDaemon:
 
 
 if __name__ == '__main__':
-    print(get_l3_network_info('sw12'))
+    print(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
+    print(get_volume_snapshots('/var/lib/libvirt/images/test4.qcow2'))

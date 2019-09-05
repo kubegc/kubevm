@@ -33,9 +33,9 @@ from xmljson import badgerfish as bf
 '''
 Import local libs
 '''
-from utils.libvirt_util import refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path, get_all_vnc_info
+from utils.libvirt_util import get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path
 from utils import logger
-from utils.utils import runCmdRaiseException, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
+from utils.utils import get_volume_snapshots, runCmdRaiseException, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -160,8 +160,10 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}}, 
                         'kind': VMD_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
             vol_xml = get_volume_xml(pool, name)
+            vol_path = get_volume_path(pool, name)
             vol_json = toKubeJson(xmlToJson(vol_xml))
-            jsondict = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+            vol_json = addSnapshots(vol_path, loads(vol_json))
+            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:
                 createStructure(body, group, version, plural)
@@ -172,7 +174,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                                                                               namespace='default', 
                                                                               plural=plural, 
                                                                               name=name)
-                    jsondict = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+                    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     modifyStructure(name, body, group, version, plural)
                 else:
@@ -698,8 +700,10 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}}, 
                         'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name}, 'apiVersion': '%s/%s' % (group, version)}
             vmd_xml = get_volume_xml(pool, name)
+            vol_path = get_volume_path(pool, name)
             vmd_json = toKubeJson(xmlToJson(vmd_xml))
-            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
+            vmd_json = addSnapshots(vol_path, loads(vmd_json))
+            jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vmd_json)
             jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             body = addNodeName(jsondict)
             try:
@@ -711,7 +715,7 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
                                                                               namespace='default', 
                                                                               plural=plural, 
                                                                               name=name)
-                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, loads(vmd_json))
+                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vmd_json)
                     jsondict = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                     body = addNodeName(jsondict)
                     modifyStructure(name, body, group, version, plural)  
@@ -1006,6 +1010,16 @@ def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
             spec.update(body)
     return jsondict
 
+def addSnapshots(vol_path, jsondict):
+    snapshot_json = get_volume_snapshots(vol_path)
+    spec = jsondict['spec']
+    volume = spec.get('volume')
+    if volume:
+        volume.update(snapshot_json)
+    else:
+        logger.warning('***no volume in json')
+    return jsondict
+
 def addNodeName(jsondict):
     if jsondict:
         '''
@@ -1040,11 +1054,11 @@ def main():
                 os.makedirs(ob[1], 0711)
             event_handler = VmSnapshotEventHandler(ob[0], ob[1], GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT, PLURAL_VM_SNAPSHOT)
             observer.schedule(event_handler,ob[1],True)
-        for ob in BLOCK_DEV_DIRS:
-            if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0711)
-            event_handler = VmBlockDevEventHandler(ob[0], ob[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
-            observer.schedule(event_handler,ob[1],True)
+#         for ob in BLOCK_DEV_DIRS:
+#             if not os.path.exists(ob[1]):
+#                 os.makedirs(ob[1], 0711)
+#             event_handler = VmBlockDevEventHandler(ob[0], ob[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
+#             observer.schedule(event_handler,ob[1],True)
         for ob in LIBVIRT_XML_DIRS:
             if not os.path.exists(ob[1]):
                 os.makedirs(ob[1], 0711)

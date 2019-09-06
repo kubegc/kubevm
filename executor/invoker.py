@@ -243,7 +243,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
-                (jsondict, network_operations_queue, disk_operations_queue) = _vm_prepare_step(the_cmd_key, jsondict)
+                (jsondict, network_operations_queue, disk_operations_queue) = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name

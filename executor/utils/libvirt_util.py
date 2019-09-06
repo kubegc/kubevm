@@ -99,11 +99,11 @@ def _get_pool_info(pool_):
         pass
     lines = pool.XMLDesc()
     result = runCmdWithResult('virsh pool-info ' + pool_)
-    result['allocation'] = int(1024*1024*1024*float(result['allocation']))
-    result['available'] = int(1024 * 1024 * 1024 * float(result['available']))
+    # result['allocation'] = int(1024*1024*1024*float(result['allocation']))
+    # result['available'] = int(1024 * 1024 * 1024 * float(result['available']))
     result['capacity'] = int(1024 * 1024 * 1024 * float(result['capacity']))
-    # del result['allocation']
-    # del result['available']
+    del result['allocation']
+    del result['available']
     for line in lines.split():
         if line.find("path") >= 0:
             result['path'] = line.replace('<path>', '').replace('</path>', '')

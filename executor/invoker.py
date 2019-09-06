@@ -1369,7 +1369,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-        return (jsondict, network_operations_queue, disk_operations_queue)
+    return (jsondict, network_operations_queue, disk_operations_queue)
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":

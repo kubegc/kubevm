@@ -302,7 +302,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     except Exception, e:
                                         logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
                                         if not is_vm_exists(metadata_name):
-                                            jsondict = deleteLifecycleInJson(jsondict, {})
+                                            jsondict = deleteLifecycleInJson(jsondict)
                                             modifyStructure(metadata_name, jsondict, group, version, plural)
                                             time.sleep(0.5)
                                             deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
@@ -1262,6 +1262,8 @@ def get_cmd(jsondict, the_cmd_key):
     return cmd
 
 def modifyStructure(name, body, group, version, plural):
+    if body.get('raw_object'):
+        body = body.get('raw_object')
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv

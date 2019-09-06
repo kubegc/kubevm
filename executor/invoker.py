@@ -1322,8 +1322,8 @@ def _vm_priori_step(the_cmd_key, jsondict):
             raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
         
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
-    network_operations_queue = None
-    disk_operations_queue = None
+    network_operations_queue = []
+    disk_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         '''
         Parse network configurations

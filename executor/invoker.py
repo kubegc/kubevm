@@ -10,6 +10,7 @@ Import python libs
 '''
 import os
 import sys
+import re
 import subprocess
 import ConfigParser
 import socket
@@ -241,57 +242,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
             if the_cmd_key and operation_type != 'DELETED':
-                if _isInstallVMFromISO(the_cmd_key):
-                    '''
-                    Parse network configurations
-                    '''
-                    network_config = _get_field(jsondict, the_cmd_key, 'network')
-                    config_dict = _network_config_parser(network_config)
-                    logger.debug(config_dict)
-                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
-                    jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
-                if _isInstallVMFromImage(the_cmd_key):
-                    template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
-                    if not os.path.exists(template_path):
-                        raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
-                    new_vm_path = '%s/%s.qcow2' % (DEFAULT_STORAGE_DIR, metadata_name)
-                    jsondict = _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path)
-                    '''
-                    Parse network configurations
-                    '''
-                    network_config = _get_field(jsondict, the_cmd_key, 'network')
-                    config_dict = _network_config_parser(network_config)
-                    logger.debug(config_dict)
-                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
-                    jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
-                if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key):
-                    '''
-                    Parse network configurations
-                    '''
-                    network_config = _get_fields(jsondict, the_cmd_key)
-                    logger.debug(network_config)
-                    config_dict = _network_config_parser_json(the_cmd_key, network_config)
-                    logger.debug(config_dict)
-                    network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
-                    jsondict = deleteLifecycleInJson(jsondict)
-                if _isPlugDisk(the_cmd_key):
-                    vmd_path = _get_field(jsondict, the_cmd_key, 'source')
-                    if not vmd_path:
-                        raise ExecuteException('VirtctlError', 'Config error: no "source" parameter.')
-                    if is_volume_in_use(path=vmd_path):
-                        raise ExecuteException('VirtctlError', "Cannot plug disk in use %s." % vmd_path)
-                    if os.path.split(vmd_path)[0] == DEFAULT_VMD_TEMPLATE_DIR:
-                        raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
-                if _isPlugDisk(the_cmd_key) or _isUnplugDisk(the_cmd_key):
-                    '''
-                    Parse disk configurations
-                    '''
-                    disk_config = _get_fields(jsondict, the_cmd_key)
-                    logger.debug(disk_config)
-                    config_dict = _disk_config_parser_json(the_cmd_key, disk_config)
-                    logger.debug(config_dict)
-                    disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
-                    jsondict = deleteLifecycleInJson(jsondict)
+#                 _vm_priori_step(the_cmd_key, jsondict)
+                (jsondict, network_operations_queue, disk_operations_queue) = _vm_prepare_step(the_cmd_key, jsondict)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
@@ -322,16 +274,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                 try:
             #             print(jsondict)
                     if operation_type == 'ADDED':
-                        if _isInstallVMFromISO(the_cmd_key):
-                            if cmd:
-                                runCmd(cmd)
-                            if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
-                                create(metadata_name)
-                            time.sleep(2)
-                        elif _isInstallVMFromImage(the_cmd_key):
-        #                     if os.path.exists(new_vm_path):
-        #                         raise Exception("File %s already exists, copy abolish!" % new_vm_path)
-                            runCmd('cp %s %s' %(template_path, new_vm_path))
+                        if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
                             if cmd:
                                 runCmd(cmd)
                             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
@@ -343,12 +286,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         '''
                         Run network operations
                         '''
-                        if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key) or \
-                        _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
-                            if 'network_operations_queue' in dir() and network_operations_queue:
-                                for operation in network_operations_queue:
-                                    logger.debug(operation)
-                                    runCmd(operation)
+                        if network_operations_queue:
+                            for operation in network_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
                     elif operation_type == 'MODIFIED':
                         if is_vm_exists(metadata_name):
                             if _isDeleteVM(the_cmd_key):
@@ -369,20 +310,17 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         '''
                         Run network operations
                         '''
-                        if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key) or \
-                        _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
-                            if 'network_operations_queue' in dir() and network_operations_queue:
-                                for operation in network_operations_queue:
-                                    logger.debug(operation)
-                                    runCmd(operation)
+                        if network_operations_queue:
+                            for operation in network_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
                         '''
                         Run disk operations
                         '''
-                        if _isPlugDisk(the_cmd_key) or _isUnplugDisk(the_cmd_key):
-                            if 'disk_operations_queue' in dir() and disk_operations_queue:
-                                for operation in disk_operations_queue:
-                                    logger.debug(operation)
-                                    runCmd(operation)
+                        if disk_operations_queue:
+                            for operation in disk_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
 #                     elif operation_type == 'DELETED':
 #                         logger.debug('Delete custom object by client.')
     #                     if is_vm_exists(metadata_name):
@@ -1345,6 +1283,65 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         logger.error('Oops! ', exc_info=1)
         raise ExecuteException('VirtctlError', 'write result to apiserver failure')
 
+def _vm_priori_step(the_cmd_key, jsondict):
+    if _isPlugDisk(the_cmd_key):
+        vmd_path = _get_field(jsondict, the_cmd_key, 'source')
+        if not vmd_path:
+            raise ExecuteException('VirtctlError', 'Config error: no "source" parameter.')
+        if is_volume_in_use(path=vmd_path):
+            raise ExecuteException('VirtctlError', "Cannot plug disk in use %s." % vmd_path)
+        if os.path.split(vmd_path)[0] == DEFAULT_VMD_TEMPLATE_DIR:
+            raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
+        
+def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
+    network_operations_queue = None
+    disk_operations_queue = None
+    if _isInstallVMFromISO(the_cmd_key):
+        '''
+        Parse network configurations
+        '''
+        network_config = _get_field(jsondict, the_cmd_key, 'network')
+        config_dict = _network_config_parser(network_config)
+        logger.debug(config_dict)
+        network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+    if _isInstallVMFromImage(the_cmd_key):
+        template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
+        if not os.path.exists(template_path):
+            raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
+        (new_vm_path, jsondict) = _updateRootDiskInJson(jsondict, the_cmd_key, metadata_name)
+#         if os.path.exists(new_vm_path):
+#             raise ExecuteException('VirtctlError', '409, Conflict. File %s already exists, aborting copy.' % new_vm_path)
+        runCmd('cp %s %s' %(template_path, new_vm_path))
+        '''
+        Parse network configurations
+        '''
+        network_config = _get_field(jsondict, the_cmd_key, 'network')
+        config_dict = _network_config_parser(network_config)
+        logger.debug(config_dict)
+        network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+    if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key):
+        '''
+        Parse network configurations
+        '''
+        network_config = _get_fields(jsondict, the_cmd_key)
+        logger.debug(network_config)
+        config_dict = _network_config_parser_json(the_cmd_key, network_config)
+        logger.debug(config_dict)
+        network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
+    if _isPlugDisk(the_cmd_key) or _isUnplugDisk(the_cmd_key):
+        '''
+        Parse disk configurations
+        '''
+        disk_config = _get_fields(jsondict, the_cmd_key)
+        logger.debug(disk_config)
+        config_dict = _disk_config_parser_json(the_cmd_key, disk_config)
+        logger.debug(config_dict)
+        disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
+        return (jsondict, network_operations_queue, disk_operations_queue)
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":
@@ -2022,10 +2019,11 @@ def addDefaultSettings(jsondict, the_cmd_key):
         logger.debug(jsondict)
         return jsondict  
     
-def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
+def _updateRootDiskInJson(jsondict, the_cmd_key, metadata_name):
     '''
     Get target VM name from Json.
     '''
+    new_path = None
     spec = jsondict['raw_object'].get('spec')
     if spec:
         lifecycle = spec.get('lifecycle')
@@ -2036,13 +2034,24 @@ def _updateRootDiskInJson(jsondict, the_cmd_key, new_vm_path):
             if contents:
                 for k, v in contents.items():
                     if k == "disk":
-                        tmp = v.replace('ROOTDISK', new_vm_path)
-                        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = tmp
+                        p1 = r'^(\s*ROOTDISK\s*=\s*)([^,]+)\s*'
+                        p2 = r'^\s*ROOTDISK'
+                        m1 = re.match(p1,v)
+                        if m1:
+                            string_to_remove = m1.group(1)
+                            new_path = m1.group(2)
+                            new_v = v.replace(string_to_remove, '')
+                        elif re.match(p2,v):
+                            new_path = '%s/%s' % (DEFAULT_STORAGE_DIR, metadata_name)
+                            new_v = v.replace('ROOTDISK', new_path)
+                        else:
+                            raise ExecuteException('VirtctlError', '400, Bad Reqeust. Non-supported parameter "%s".' % v)
+                        jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = new_v
                     elif k == 'cdrom':
                         del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
                     else:
                         continue
-    return jsondict    
+    return (new_path, jsondict)    
 
 '''
 Covert chars according to real CMD in back-end.

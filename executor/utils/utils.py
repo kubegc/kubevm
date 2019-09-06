@@ -9,6 +9,7 @@ from libvirt_util import get_graphics
 '''
 Import python libs
 '''
+import re
 import fcntl
 import socket
 import errno
@@ -201,8 +202,7 @@ def get_volume_snapshots(path):
         if line.startswith('Format '):
             break;
         if start:
-            data = line.split(' ')
-            data = [i for i in data if i != '']
+            data = re.split('\s+', line)
             if len(data) == 6:
                 snapshot = {}
                 snapshot['id'] = data[0].strip()

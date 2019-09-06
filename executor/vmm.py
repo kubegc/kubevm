@@ -95,7 +95,7 @@ def convert_vm_to_image(name):
         
     class step_2_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vm, tag, file_type='qcow2', full_copy=True):
+        def __init__(self, vm, tag, full_copy=True):
             self.tag = tag
             self.vm = vm
             self.file_type = file_type
@@ -298,12 +298,11 @@ def convert_image_to_vm(name):
     
     class step_1_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vm, tag, file_type='qcow2', full_copy=True):
+        def __init__(self, vm, tag, full_copy=True):
             self.tag = tag
             self.vm = vm
-            self.file_type = file_type
             self.full_copy = full_copy
-            self.source_path = '%s/%s.%s' % (DEFAULT_TEMPLATE_DIR, vm, file_type)
+            self.source_path = '%s/%s' % (DEFAULT_TEMPLATE_DIR, vm)
             self.store_target_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vm)
             self.xml_path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
     
@@ -369,10 +368,10 @@ def convert_image_to_vm(name):
 
     class final_step_delete_source_file(RotatingOperation):
         
-        def __init__(self, vm, tag, file_type='qcow2'):
+        def __init__(self, vm, tag):
             self.tag = tag
             self.vm = vm
-            self.source_path = '%s/%s.%s' % (DEFAULT_TEMPLATE_DIR, vm, file_type)
+            self.source_path = '%s/%s' % (DEFAULT_TEMPLATE_DIR, vm)
             self.store_target_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vm)
             self.xml_path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
     
@@ -491,11 +490,10 @@ def convert_vmd_to_vmdi(name, pool):
     
     class step_1_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vmd, pool, tag, file_type='qcow2', full_copy=True):
+        def __init__(self, vmd, pool, tag, full_copy=True):
             self.tag = tag
             self.vmd = vmd
             self.pool = pool
-            self.file_type = file_type
             self.full_copy = full_copy
             self.source_path = get_volume_path(pool, vmd)
             self.dest_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
@@ -633,11 +631,10 @@ def convert_vmdi_to_vmd(name, pool):
     
     class step_1_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vmdi, pool, tag, file_type='qcow2', full_copy=True):
+        def __init__(self, vmdi, pool, tag, full_copy=True):
             self.tag = tag
             self.vmdi = vmdi
             self.pool = pool
-            self.file_type = file_type
             self.full_copy = full_copy
             self.source_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
             self.dest_path = '%s/%s' % (get_pool_path(self.pool), vmdi)
@@ -661,7 +658,7 @@ def convert_vmdi_to_vmd(name, pool):
         
     class step_2_delete_source_file(RotatingOperation):
         
-        def __init__(self, vmdi, tag, file_type='qcow2'):
+        def __init__(self, vmdi, tag):
             self.tag = tag
             self.vmdi = vmdi
             self.source_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
@@ -742,7 +739,7 @@ def convert_vmdi_to_vmd(name, pool):
         step2.rotating_option()
         step1.rotating_option()
         
-def create_vmdi(name, source, file_type='qcow2'):
+def create_vmdi(name, source):
     dest = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, name)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
@@ -754,7 +751,7 @@ def create_vmdi(name, source, file_type='qcow2'):
             runCmd('rm -f %s' % dest)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
         
-def create_disk_from_vmdi(name, pool, image, file_type='qcow2'):
+def create_disk_from_vmdi(name, pool, image):
     source = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, image)
     pool_path = get_pool_path(pool)
     dest = '%s/%s' % (pool_path, name)
@@ -798,7 +795,7 @@ def create_disk_from_vmdi(name, pool, image, file_type='qcow2'):
 
 def delete_image(name):
     file1 = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, name)
-    file2 = '%s/%s.qcow2' % (DEFAULT_TEMPLATE_DIR, name)
+    file2 = '%s/%s' % (DEFAULT_TEMPLATE_DIR, name)
     file3 = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, name)
     file4 = '%s/%s-nic-*' % (DEFAULT_TEMPLATE_DIR, name)
     file5 = '%s/%s-disk-*' % (DEFAULT_TEMPLATE_DIR, name)

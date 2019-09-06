@@ -220,8 +220,8 @@ spec:
   - JSONPath: .spec.pool.autostart
     name: AUTOSTART
     type: string
-  - JSONPath: .spec.pool.allocation
-    name: ALLOCATION
+  - JSONPath: .spec.pool.capacity
+    name: CAPACITY
     type: integer
   - JSONPath: .spec.pool.available
     name: AVAILABLE

@@ -17,41 +17,38 @@
 # update config file
 echo "+++ Processing: update config file"
 cp -f /home/kubevmm/bin/config /etc/kubevmm/config.new
-mv -f /etc/kubevmm/config /etc/kubevmm/config.old
+rm -f /etc/kubevmm/config
 mv -f /etc/kubevmm/config.new /etc/kubevmm/config
 echo "--- Done: update config file"
 # update VERSION file
 echo "+++ Processing: update VERSION file"
 cp -f /home/kubevmm/bin/VERSION /etc/kubevmm/VERSION.new
-mv -f /etc/kubevmm/VERSION /etc/kubevmm/VERSION.old
+rm -f /etc/kubevmm/VERSION
 mv -f /etc/kubevmm/VERSION.new /etc/kubevmm/VERSION
 echo "--- Done: update VERSION file"
 # update yamls file
 echo "+++ Processing: update yamls file"
 cp -rf /home/kubevmm/bin/yamls /etc/kubevmm/yamls.new
-mv -f /etc/kubevmm/yamls /etc/kubevmm/yamls.old
+rm -rf /etc/kubevmm/yamls
 mv -f /etc/kubevmm/yamls.new /etc/kubevmm/yamls
 echo "--- Done: update yamls file"
 # update kubevmm-adm
 echo "+++ Processing: update kubevmm-adm"
 cp -f /home/kubevmm/bin/kubevmm-adm /usr/bin/kubevmm-adm.new
-mv -f /usr/bin/kubevmm-adm /usr/bin/kubevmm-adm.old
-chmod -x /usr/bin/kubevmm-adm.old
+rm -f /usr/bin/kubevmm-adm
 mv -f /usr/bin/kubevmm-adm.new /usr/bin/kubevmm-adm
 echo "--- Done: update kubevmm-adm"
 # update kubeovn-adm
 echo "+++ Processing: update kubeovn-adm"
 cp -f /home/kubevmm/bin/kubeovn-adm /usr/bin/kubeovn-adm.new
-mv -f /usr/bin/kubeovn-adm /usr/bin/kubeovn-adm.old
-chmod -x /usr/bin/kubeovn-adm.old
+rm -f /usr/bin/kubeovn-adm
 mv -f /usr/bin/kubeovn-adm.new /usr/bin/kubeovn-adm
 chmod +x /usr/bin/kubeovn-adm
 echo "--- Done: update kubeovn-adm"
 # update vmm
 echo "+++ Processing: update vmm"
 cp -f /home/kubevmm/bin/vmm /usr/bin/vmm.new
-mv -f /usr/bin/vmm /usr/bin/vmm.old
-chmod -x /usr/bin/vmm.old
+rm -f /usr/bin/vmm /usr/bin/vmm
 mv -f /usr/bin/vmm.new /usr/bin/vmm
 echo "--- Done: update vmm"
 # apply kubevirtResource.yaml

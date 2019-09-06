@@ -297,7 +297,19 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     destroy(metadata_name)
                                     time.sleep(1)
                                 if cmd:
-                                    runCmd(cmd)
+                                    try:
+                                        runCmd(cmd)
+                                    except Exception, e:
+                                        logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
+                                        if not is_vm_exists(metadata_name):
+                                            jsondict = updateJsonRemoveLifecycle(jsondict, {})
+                                            modifyStructure(metadata_name, jsondict, group, version, plural)
+                                            time.sleep(0.5)
+                                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                            continue
+                                        else:
+                                            raise e
+                                        
 #                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)
 #                                 mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
@@ -306,7 +318,18 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     runCmd(cmd)
                         else:
                             if cmd:
-                                runCmd(cmd)
+                                try:
+                                    runCmd(cmd)
+                                except Exception, e:
+                                    logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
+                                    if _isDeleteVM(the_cmd_key):
+                                        jsondict = updateJsonRemoveLifecycle(jsondict, {})
+                                        modifyStructure(metadata_name, jsondict, group, version, plural)
+                                        time.sleep(0.5)
+                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                        continue
+                                    else:
+                                        raise e
                         '''
                         Run network operations
                         '''
@@ -1237,6 +1260,11 @@ def get_cmd(jsondict, the_cmd_key):
         raise Exception("error: can't get cmd")
     logger.debug(cmd)
     return cmd
+
+def modifyStructure(name, body, group, version, plural):
+    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    return retv
 
 def deleteStructure(name, body, group, version, plural):
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(

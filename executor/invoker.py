@@ -1908,10 +1908,14 @@ def _disk_config_parser_json(the_cmd_key, data):
 def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key) or _isPlugNIC(the_cmd_key):
         if _isPlugNIC(the_cmd_key):
-            (key, value) = 'live', config_dict.get('live')
-            (live, _) = _convertCharsInJson(key, value)
-            (key, value) = 'config', config_dict.get('config')
-            (config, _) = _convertCharsInJson(key, value)
+            if config_dict.get('live'):
+                live = '--live'
+            else:
+                live = ''
+            if config_dict.get('config'):
+                config = '--config'
+            else:
+                config = ''
         else:
             live = '--live'
             config = '--config'
@@ -1935,10 +1939,14 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
     #         (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
             return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
     elif _isUnplugNIC(the_cmd_key):
-        (key, value) = 'live', config_dict.get('live')
-        (live, _) = _convertCharsInJson(key, value)
-        (key, value) = 'config', config_dict.get('config')
-        (config, _) = _convertCharsInJson(key, value)
+        if config_dict.get('live'):
+            live = '--live'
+        else:
+            live = ''
+        if config_dict.get('config'):
+            config = '--config'
+        else:
+            config = ''
         unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
                                 (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
@@ -1949,10 +1957,14 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
             return [unplugNICCmd]
         
 def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
-    (key, value) = 'live', config_dict.get('live')
-    (live, _) = _convertCharsInJson(key, value)
-    (key, value) = 'config', config_dict.get('config')
-    (config, _) = _convertCharsInJson(key, value) 
+    if config_dict.get('live'):
+        live = '--live'
+    else:
+        live = ''
+    if config_dict.get('config'):
+        config = '--config'
+    else:
+        config = ''
     if _isPlugDisk(the_cmd_key):
         plugDiskCmd = _plugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
         return [plugDiskCmd]
@@ -2096,7 +2108,7 @@ def _convertCharsInJson(key, value):
     elif value == 'False':
         return ('', '')
     else:
-        return ('', '')
+        return ('--%s' % key.replace('_', '-'), value)
    
 
 '''

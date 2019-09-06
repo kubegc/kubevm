@@ -93,16 +93,31 @@ class HostCycler:
         return [node_status_address1, node_status_address2]
     
     def get_status_allocatable(self):
-        cpu_allocatable = freecpu()
-        mem_allocatable = self._format_mem_to_Mi(freemem())
-        active_vms = list_active_vms()
-        return {'cpu': str(cpu_allocatable), 'memory': str(mem_allocatable)+'Mi', 'pods': str(40 - len(active_vms)) if 40 - len(active_vms) >= 0 else 0}
+        try:
+            cpu_allocatable = freecpu()
+        except:
+            cpu_allocatable = "UNKNOWN"
+        try:
+            mem_allocatable = '%sMi' % str(self._format_mem_to_Mi(freemem()))
+        except:
+            mem_allocatable = "UNKNOWN"
+        try:
+            active_vms = list_active_vms()
+        except:
+            active_vms = "UNKNOWN"
+        return {'cpu': str(cpu_allocatable), 'memory': mem_allocatable, 'pods': str(40 - len(active_vms)) if 40 - len(active_vms) >= 0 else 0}
     
     def get_status_capacity(self):
-        node_info_dict = node_info()
-        cpu_capacity = node_info_dict.get('cpus')
-        mem_capacity = self._format_mem_to_Mi(node_info_dict.get('phymemory'))
-        return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)+'Mi', 'pods': '40'}
+        try:
+            node_info_dict = node_info()
+        except:
+            node_info_dict = {}
+        if node_info_dict:
+            cpu_capacity = node_info_dict.get('cpus')
+            mem_capacity = self._format_mem_to_Mi(node_info_dict.get('phymemory'))
+            return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)+'Mi', 'pods': '40'}
+        else:
+            return {'cpu': 'UNKNOWN', 'memory': 'UNKNOWN', 'pods': '40'}
     
     def get_status_daemon_endpoints(self):
         return V1NodeDaemonEndpoints(kubelet_endpoint={'port':0})

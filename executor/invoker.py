@@ -2096,7 +2096,7 @@ def _convertCharsInJson(key, value):
     elif value == 'False':
         return ('', '')
     else:
-        return ('--%s' % key.replace('_', '-'), value)
+        return ('', '')
    
 
 '''

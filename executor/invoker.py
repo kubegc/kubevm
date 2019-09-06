@@ -303,6 +303,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                         logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
                                         if not is_vm_exists(metadata_name):
                                             jsondict = updateJsonRemoveLifecycle(jsondict, {})
+                                            jsondict = jsondict['raw_object']
                                             modifyStructure(metadata_name, jsondict, group, version, plural)
                                             time.sleep(0.5)
                                             deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
@@ -324,6 +325,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
                                     if _isDeleteVM(the_cmd_key):
                                         jsondict = updateJsonRemoveLifecycle(jsondict, {})
+                                        jsondict = jsondict['raw_object']
                                         modifyStructure(metadata_name, jsondict, group, version, plural)
                                         time.sleep(0.5)
                                         deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)

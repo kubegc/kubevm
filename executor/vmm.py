@@ -100,7 +100,7 @@ def convert_vm_to_image(name):
             self.vm = vm
             self.full_copy = full_copy
             self.source_path = get_boot_disk_path(vm)
-            self.dest_path = '%s/%s.%s' % (DEFAULT_TEMPLATE_DIR, vm)
+            self.dest_path = '%s/%s' % (DEFAULT_TEMPLATE_DIR, vm)
             self.store_source_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vm)
             self.xml_path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
     

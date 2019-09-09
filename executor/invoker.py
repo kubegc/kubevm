@@ -459,7 +459,18 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     elif operation_type == 'MODIFIED':
                         if pool_name and is_volume_exists(metadata_name, pool_name):
                             if cmd:
-                                runCmd(cmd)
+                                try:
+                                    runCmd(cmd)
+                                except Exception, e:
+                                    logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
+                                    if not is_volume_exists(metadata_name, pool_name):
+                                        jsondict = deleteLifecycleInJson(jsondict)
+                                        modifyStructure(metadata_name, jsondict, group, version, plural)
+                                        time.sleep(0.5)
+                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                        continue
+                                    else:
+                                        raise e
                             if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
                                 vol_xml = get_volume_xml(pool_name, metadata_name)
                                 vol_json = toKubeJson(xmlToJson(vol_xml))
@@ -467,7 +478,19 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
                                 _reportResutToVirtlet(metadata_name, body, group, version, plural)
                         else:
-                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
+                            if cmd:
+                                try:
+                                    runCmd(cmd)
+                                except Exception, e:
+                                    logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
+                                    if _isDeleteDisk(the_cmd_key):
+                                        jsondict = deleteLifecycleInJson(jsondict)
+                                        modifyStructure(metadata_name, jsondict, group, version, plural)
+                                        time.sleep(0.5)
+                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                        continue
+                                    else:
+                                        raise e
                     elif operation_type == 'DELETED':
                         if pool_name and is_volume_exists(metadata_name, pool_name):
                             if cmd:
@@ -1470,6 +1493,11 @@ def _isDeleteVM(the_cmd_key):
         return True
     return False
 
+def _isDeleteDisk(the_cmd_key):
+    if the_cmd_key == "deleteDisk":
+        return True
+    return False
+
 def _isPlugNIC(the_cmd_key):
     if the_cmd_key == "plugNIC":
         return True
@@ -2076,7 +2104,7 @@ def _updateRootDiskInJson(jsondict, the_cmd_key, metadata_name):
             if contents:
                 for k, v in contents.items():
                     if k == "disk":
-                        p1 = r'^(\s*ROOTDISK\s*=\s*)([^,]+)\s*'
+                        p1 = r'^(\s*ROOTDISK\s*=\s*)([^,^\s*]+)\s*'
                         p2 = r'^\s*ROOTDISK'
                         m1 = re.match(p1,v)
                         if m1:

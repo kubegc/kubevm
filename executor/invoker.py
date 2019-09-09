@@ -41,7 +41,7 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, is_pool_exists, _get_pool_info
+from utils.libvirt_util import is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
 from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
@@ -109,6 +109,8 @@ DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 
 DEFAULT_VMD_TEMPLATE_DIR = config_raw.get('DefaultVirtualMachineDiskTemplateDir', 'vmdi')
+
+DEFAULT_VM_TEMPLATE_DIR = config_raw.get('DefaultTemplateDir', 'default')
 
 LABEL = 'host=%s' % (get_hostname_in_lower_case())
 
@@ -291,45 +293,28 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 logger.debug(operation)
                                 runCmd(operation)
                     elif operation_type == 'MODIFIED':
-                        if is_vm_exists(metadata_name):
-                            if _isDeleteVM(the_cmd_key):
-                                if is_vm_active(metadata_name):
-                                    destroy(metadata_name)
-                                    time.sleep(1)
-                                if cmd:
-                                    try:
-                                        runCmd(cmd)
-                                    except Exception, e:
-                                        logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
-                                        if not is_vm_exists(metadata_name):
-                                            jsondict = deleteLifecycleInJson(jsondict)
-                                            modifyStructure(metadata_name, jsondict, group, version, plural)
-                                            time.sleep(0.5)
-                                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                            continue
-                                        else:
-                                            raise e
+#                         if not is_vm_exists(metadata_name):
+#                             raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % metadata_name)
+                        if _isDeleteVM(the_cmd_key):
+                            if is_vm_active(metadata_name):
+                                destroy(metadata_name)
+                                time.sleep(1)
+                        try:
+                            runCmd(cmd)
+                        except Exception, e:
+                            if _isDeleteVM(the_cmd_key) and not is_vm_exists(metadata_name):
+                                logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
+                                jsondict = deleteLifecycleInJson(jsondict)
+                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                time.sleep(0.5)
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                continue
+                            else:
+                                raise e
                                         
 #                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)
 #                                 mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
-                            else:
-                                if cmd:
-                                    runCmd(cmd)
-                        else:
-                            if cmd:
-                                try:
-                                    runCmd(cmd)
-                                except Exception, e:
-                                    logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
-                                    if _isDeleteVM(the_cmd_key):
-                                        jsondict = deleteLifecycleInJson(jsondict)
-                                        modifyStructure(metadata_name, jsondict, group, version, plural)
-                                        time.sleep(0.5)
-                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                        continue
-                                    else:
-                                        raise e
                         '''
                         Run network operations
                         '''
@@ -457,46 +442,30 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if cmd:
                             runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-                        if pool_name and is_volume_exists(metadata_name, pool_name):
-                            if cmd:
-                                try:
-                                    runCmd(cmd)
-                                except Exception, e:
-                                    logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
-                                    if not is_volume_exists(metadata_name, pool_name):
-                                        jsondict = deleteLifecycleInJson(jsondict)
-                                        modifyStructure(metadata_name, jsondict, group, version, plural)
-                                        time.sleep(0.5)
-                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                        continue
-                                    else:
-                                        raise e
-                            if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
-                                vol_xml = get_volume_xml(pool_name, metadata_name)
-                                vol_json = toKubeJson(xmlToJson(vol_xml))
-                                vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
-                                body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
-                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
-                        else:
-                            if cmd:
-                                try:
-                                    runCmd(cmd)
-                                except Exception, e:
-                                    logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
-                                    if _isDeleteDisk(the_cmd_key):
-                                        jsondict = deleteLifecycleInJson(jsondict)
-                                        modifyStructure(metadata_name, jsondict, group, version, plural)
-                                        time.sleep(0.5)
-                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                        continue
-                                    else:
-                                        raise e
-                    elif operation_type == 'DELETED':
-                        if pool_name and is_volume_exists(metadata_name, pool_name):
-                            if cmd:
-                                runCmd(cmd)
-                        else:
-                            raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
+                        try:
+                            runCmd(cmd)
+                        except Exception, e:
+                            if _isDeleteDisk(the_cmd_key) and not is_volume_exists(metadata_name, pool_name):
+                                logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
+                                jsondict = deleteLifecycleInJson(jsondict)
+                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                time.sleep(0.5)
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                continue
+                            else:
+                                raise e
+                        if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
+                            vol_xml = get_volume_xml(pool_name, metadata_name)
+                            vol_json = toKubeJson(xmlToJson(vol_xml))
+                            vol_json = updateJsonRemoveLifecycle(jsondict, loads(vol_json))
+                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
+#                     elif operation_type == 'DELETED':
+#                         if pool_name and is_volume_exists(metadata_name, pool_name):
+#                             if cmd:
+#                                 runCmd(cmd)
+#                         else:
+#                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -601,11 +570,21 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                         if cmd:
                             runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-                        if cmd:
+                        try:
                             runCmd(cmd)
-                    elif operation_type == 'DELETED':
-                        if cmd:
-                            runCmd(cmd)
+                        except Exception, e:
+                            if _isDeleteDiskImage(the_cmd_key) and not is_volume_exists(metadata_name, DEFAULT_VMD_TEMPLATE_DIR):
+                                logger.warning("***Disk image %s not exists, delete it from virtlet" % metadata_name)
+                                jsondict = deleteLifecycleInJson(jsondict)
+                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                time.sleep(0.5)
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                continue
+                            else:
+                                raise e
+#                     elif operation_type == 'DELETED':
+#                         if cmd:
+#                             runCmd(cmd)
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -720,13 +699,23 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                             if cmd:
                                 runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-                        if cmd:
+                        try:
                             runCmd(cmd)
-                    elif operation_type == 'DELETED':
-                        if is_vm_active(metadata_name):
-                            destroy(metadata_name)
-                        if cmd:
-                            runCmd(cmd)
+                        except Exception, e:
+                            if _isDeleteImage(the_cmd_key):
+                                logger.warning("***VM image %s not exists, delete it from virtlet" % metadata_name)
+                                jsondict = deleteLifecycleInJson(jsondict)
+                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                time.sleep(0.5)
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                continue
+                            else:
+                                raise e
+#                     elif operation_type == 'DELETED':
+#                         if is_vm_active(metadata_name):
+#                             destroy(metadata_name)
+#                         if cmd:
+#                             runCmd(cmd)
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -834,13 +823,22 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                         if cmd:
                             runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-#                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
-                        if cmd:
+                        try:
                             runCmd(cmd)
-                    elif operation_type == 'DELETED':
-#                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
-                        if cmd:
-                            runCmd(cmd)
+                        except Exception, e:
+                            if _isDeleteVMSnapshot(the_cmd_key) and not is_snapshot_exists(metadata_name, vm_name):
+                                logger.warning("***VM snapshot %s not exists, delete it from virtlet" % metadata_name)
+                                jsondict = deleteLifecycleInJson(jsondict)
+                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                time.sleep(0.5)
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                continue
+                            else:
+                                raise e
+#                     elif operation_type == 'DELETED':
+# #                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
+#                         if cmd:
+#                             runCmd(cmd)
                     status = 'Done(Success)'
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -1057,8 +1055,18 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         if cmd:
                             runCmd(cmd)
                     elif operation_type == 'MODIFIED':
-                        if cmd:
+                        try:
                             runCmd(cmd)
+                        except Exception, e:
+                            if _isDeleteNetwork(the_cmd_key):
+                                logger.warning("***Network %s not exists, delete it from virtlet" % metadata_name)
+                                jsondict = deleteLifecycleInJson(jsondict)
+                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                time.sleep(0.5)
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                continue
+                            else:
+                                raise e
                     elif operation_type == 'DELETED':
                         if cmd:
                             runCmd(cmd)
@@ -1189,23 +1197,25 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             except:
                                 logger.warning('Oops! report_success fail', exc_info=1)
                     elif operation_type == 'MODIFIED':
-                        if is_pool_exists(pool_name):
+                        try:
                             runCmd(cmd)
-                            if the_cmd_key != "deletePool":
-                                poolJson = _get_pool_info(pool_name)
-                                write_result_to_server(group, version, 'default', plural,
-                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                                try:
-                                    report_success(metadata_name, jsondict, 'success', the_cmd_key + pool_name + ' pool success!', group, version, plural)
-                                except:
-                                    logger.warning('Oops! report_success fail', exc_info=1)
-                            else:
+                        except Exception, e:
+                            if _isDeletePool(the_cmd_key) and not is_pool_exists(metadata_name):
+                                logger.warning("***Pool %s not exists, delete it from virtlet" % metadata_name)
+                                jsondict = deleteLifecycleInJson(jsondict)
+                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                            # else:
-                            #     cmd = 'virsh pool-undefine ' + pool_name
-                            #     runCmd(cmd)
-                        else:
-                            raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
+                                continue
+                            else:
+                                raise e
+                        poolJson = _get_pool_info(pool_name)
+                        write_result_to_server(group, version, 'default', plural,
+                                            involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                        try:
+                            report_success(metadata_name, jsondict, 'success', the_cmd_key + pool_name + ' pool success!', group, version, plural)
+                        except:
+                            logger.warning('Oops! report_success fail', exc_info=1)
                     # elif operation_type == 'DELETED':
                     #     if is_pool_exists(pool_name):
                     #         runCmd(cmd)
@@ -1493,8 +1503,28 @@ def _isDeleteVM(the_cmd_key):
         return True
     return False
 
+def _isDeleteVMSnapshot(the_cmd_key):
+    if the_cmd_key == "deleteSnapshot":
+        return True
+    return False
+
 def _isDeleteDisk(the_cmd_key):
     if the_cmd_key == "deleteDisk":
+        return True
+    return False
+
+def _isDeletePool(the_cmd_key):
+    if the_cmd_key == "deletePool":
+        return True
+    return False
+
+def _isDeleteDiskImage(the_cmd_key):
+    if the_cmd_key == "deleteDiskImage":
+        return True
+    return False
+
+def _isDeleteNetwork(the_cmd_key):
+    if the_cmd_key == "deleteSwitch":
         return True
     return False
 

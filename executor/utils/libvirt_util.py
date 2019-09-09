@@ -15,6 +15,7 @@ import re
 import subprocess
 import time
 import collections
+import os
 from pprint import pprint
 from xml.dom import minidom
 from StringIO import StringIO as _StringIO
@@ -398,6 +399,8 @@ def get_disks(vm_):
                     'file': qemu_target}
     for dev in disks:
         try:
+            if not os.path.exists(disks[dev]['file']):
+                continue
             output = []
             try:
                 qemu_output = runCmdRaiseException('qemu-img info -U %s' % disks[dev]['file'])

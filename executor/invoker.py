@@ -573,7 +573,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                         try:
                             runCmd(cmd)
                         except Exception, e:
-                            if _isDeleteDiskImage(the_cmd_key) and not is_volume_exists(metadata_name, DEFAULT_VMD_TEMPLATE_DIR):
+                            if _isDeleteDiskImage(the_cmd_key):
                                 logger.warning("***Disk image %s not exists, delete it from virtlet" % metadata_name)
                                 jsondict = deleteLifecycleInJson(jsondict)
                                 modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -826,7 +826,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                         try:
                             runCmd(cmd)
                         except Exception, e:
-                            if _isDeleteVMSnapshot(the_cmd_key) and not is_snapshot_exists(metadata_name, vm_name):
+                            if _isDeleteVMSnapshot(the_cmd_key):
                                 logger.warning("***VM snapshot %s not exists, delete it from virtlet" % metadata_name)
                                 jsondict = deleteLifecycleInJson(jsondict)
                                 modifyStructure(metadata_name, jsondict, group, version, plural)

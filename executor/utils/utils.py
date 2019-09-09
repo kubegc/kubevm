@@ -909,7 +909,8 @@ class CDaemon:
 
 
 if __name__ == '__main__':
-    volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}
-    volume.get('volume').update(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
-    print(volume)
-    print(get_volume_snapshots('/var/lib/libvirt/images/test4.qcow2'))
+    print(get_l3_network_info("sw121234"))
+#     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}
+#     volume.get('volume').update(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
+#     print(volume)
+#     print(get_volume_snapshots('/var/lib/libvirt/images/test4.qcow2'))

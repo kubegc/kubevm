@@ -60,15 +60,15 @@ function create-switch()
   if [[ -z $1 || -z $name || -z $subn || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name  \tswitch name"
-    echo -e "--subnet\tIP range. for example, 192.168.1.0/24" 
+    echo -e "--name  \tswitch name" >&1
+    echo -e "--subnet\tIP range. for example, 192.168.1.0/24" >&1
     exit 1
   fi
 
   sid=$($NB_CMD ls-list | grep "($name)" | awk '{print$1}')
   if [[ -n $sid ]]
   then
-    echo "cannot connect the master or the switch name exists"
+    echo "cannot connect the master or the switch name exists" >&1
     exit 1
   fi
   
@@ -104,14 +104,14 @@ function remove-switch()
   if [[ -z $1 || -z $name || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name  \tswitch name"
+    echo -e "--name  \tswitch name" >&1
     exit 1
   fi
 
   sid=$($NB_CMD ls-list | grep "($name)" | awk '{print$1}')
   if [[ -z $sid ]]
   then
-    echo "cannot connect the master or the switch name does not exist"
+    echo "cannot connect the master or the switch name does not exist" >&1
     exit 1
   fi
   
@@ -133,9 +133,9 @@ function bind-swport()
   if [[ -z $1 || -z $mac || -z $switch || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--switch    \tswitch name"
-    echo -e "--mac       \tvirtual NIC mac"
-    echo -e "--ip        \tvirtual NIC IP (optional)"
+    echo -e "--switch    \tswitch name" >&1
+    echo -e "--mac       \tvirtual NIC mac" >&1
+    echo -e "--ip        \tvirtual NIC IP (optional)" >&1
     exit 1
   fi
 
@@ -150,14 +150,14 @@ function bind-swport()
   sid=$($NB_CMD ls-list | grep "($switch)" |awk '{print$1}')
   if [[ -z $sid ]]
   then
-    echo "cannot connect the master or the switch name does not exist"
+    echo "cannot connect the master or the switch name does not exist" >&1
     exit 1
   fi
 
   nic=$(ovs-vsctl show | grep \""$name\"")
   if [[ -z $nic ]]
   then
-    echo "NIC does not exist"
+    echo "NIC does not exist" >&1
     exit 1
   fi
 
@@ -180,14 +180,14 @@ function unbind-swport()
   if [[ -z $1 || -z $mac || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--mac      \tvirtual NIC mac"
+    echo -e "--mac      \tvirtual NIC mac" >&1
     exit 1
   fi
 
   iface=$($NB_CMD show | grep -B 1 "$mac"  | grep port | awk 'NR==1{print$2}')
   if [[ -z $iface ]]
   then
-    echo "mac does not exist"
+    echo "mac does not exist" >&1
     exit 1
   fi
   $NB_CMD --if-exists lsp-del $iface
@@ -203,8 +203,8 @@ function setport-vlan()
   if [[ -z $1 || -z $mac || -z $vlan || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--mac      \tvirtual NIC mac"
-    echo -e "--vlan      \tvlan id"
+    echo -e "--mac      \tvirtual NIC mac" >&1
+    echo -e "--vlan      \tvlan id" >&1
     exit 1
   fi
 
@@ -212,7 +212,7 @@ function setport-vlan()
   
   if [[ -z $name ]]
   then
-    echo "NIC not exist."
+    echo "NIC not exist." >&1
     exit 1
   fi
 
@@ -228,7 +228,7 @@ function delport-vlan()
   if [[ -z $1 || -z $mac || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--mac      \tvirtual NIC mac"
+    echo -e "--mac      \tvirtual NIC mac" >&1
     exit 1
   fi
 
@@ -236,7 +236,7 @@ function delport-vlan()
 
   if [[ -z $name ]]
   then
-    echo "NIC not exist."
+    echo "NIC not exist." >&1
     exit 1
   fi
 
@@ -261,8 +261,8 @@ function setport-vxlan()
   if [[ -z $1 || -z $mac || -z $vxlan || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--mac      \tvirtual NIC mac"
-    echo -e "--vxlan      \tvlan id"
+    echo -e "--mac      \tvirtual NIC mac" >&1
+    echo -e "--vxlan      \tvlan id" >&1
     exit 1
   fi
 
@@ -270,7 +270,7 @@ function setport-vxlan()
   
   if [[ -z $name ]]
   then
-    echo "NIC not exist."
+    echo "NIC not exist." >&1
     exit 1
   fi
 
@@ -286,7 +286,7 @@ function delport-vxlan()
   if [[ -z $1 || -z $mac || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--mac      \tvirtual NIC mac"
+    echo -e "--mac      \tvirtual NIC mac" >&1
     exit 1
   fi
 
@@ -294,7 +294,7 @@ function delport-vxlan()
 
   if [[ -z $name ]]
   then
-    echo "NIC not exist."
+    echo "NIC not exist." >&1
     exit 1
   fi
 
@@ -357,8 +357,8 @@ function start-worker()
     ie=$(ip a | grep $ip)
     if [[ -z $ie ]]
     then
-      echo "the NIC does not exist, please assign a correct UP using --ip "
-      exit 1
+    	echo "the NIC does not exist, please assign a correct UP using --ip " >&1
+    	exit 1
     fi 
   fi
 
@@ -406,22 +406,22 @@ function create-fip()
   if [[ -z $1 || -z $name || -z $ip || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name      \tPhysical NIC name"
-    echo -e "--ip        \tFloating IP"
+    echo -e "--name      \tPhysical NIC name" >&1
+    echo -e "--ip        \tFloating IP" >&1
     exit 1
   fi
 
   ne=$(ip a | grep $name)
   if [[ -z $ne ]]
   then
-    echo "Physical NIC not exist"
+    echo "Physical NIC not exist" >&1
     exit 1
   fi
 
   ie=$(ip a | grep $ip)
   if [[ -n $ie ]]
   then
-    echo "IP exist"
+    echo "IP exist" >&1
     exit 1
   fi 
 
@@ -444,8 +444,8 @@ function create-fip()
     exit 0
   done
 
-  echo "too much floating IPs"
-  exit 1   
+	echo "too much floating IPs" >&1
+	exit 1   
 
 }
 
@@ -458,13 +458,13 @@ function delete-fip()
   if [[ -z $1 || -z $ip || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--ip        \tFloating IP"
+    echo -e "--ip        \tFloating IP" >&1
     exit 1
   fi
 
   if [[ -z $fname ]]
   then
-    echo "wrong IP, cannot find a NIC with the IP"
+    echo "wrong IP, cannot find a NIC with the IP" >&1
     exit 1
   fi
 
@@ -481,9 +481,9 @@ function bind-fip()
   if [[ -z $1 || -z $switch || -z $vmmac || -z $fip || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--switch  \tswitch name"
-    echo -e "--vmmac   \tvm mac"
-    echo -e "--fip     \tflating ip"
+    echo -e "--switch  \tswitch name" >&1
+    echo -e "--vmmac   \tvm mac" >&1
+    echo -e "--fip     \tflating ip" >&1
     exit 1
   fi
 
@@ -492,14 +492,14 @@ function bind-fip()
   ne=$(ovs-vsctl show | grep "\"$name\"" | grep Port)
   if [[ -z $ne ]]
   then
-    echo "mac does not exist"
+    echo "mac does not exist" >&1
     exit 1
   fi
 
   nuuid=$($SB_CMD show | grep -B 1 "$node" | grep Chassis | awk -F"\"" '{print$2}')
   if [[ -z $nuuid ]]
   then
-    echo "wrong node name"
+    echo "wrong node name" >&1
     exit 1
   fi
 
@@ -539,8 +539,8 @@ function unbind-fip()
   if [[ -z $1 || -z $switch || -z $vmmac || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--switch  \tswitch name"
-    echo -e "--vmmac   \tvm mac"
+    echo -e "--switch  \tswitch name" >&1
+    echo -e "--vmmac   \tvm mac" >&1
     exit 1
   fi
 
@@ -548,7 +548,7 @@ function unbind-fip()
   ne=$(ovs-vsctl show | grep "\"$name\"" | grep Port)
   if [[ -z $ne ]]
   then
-    echo "mac does not exist"
+    echo "mac does not exist" >&1
     exit 1
   fi
 

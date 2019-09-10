@@ -637,8 +637,7 @@ class VmLibvirtXmlEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
             _,name = os.path.split(event.dest_path)
-            file_type = os.path.splitext(name)[1]
-            vm = os.path.splitext(os.path.splitext(name)[0])[0]
+            vm, file_type = os.path.splitext(name)
             if file_type == '.xml' and is_vm_exists(vm):
                 try:
                     myVmLibvirtXmlEventHandler('Create', vm, event.dest_path, self.group, self.version, self.plural)
@@ -665,8 +664,7 @@ class VmLibvirtXmlEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file deleted:{0}".format(event.src_path))
             _,name = os.path.split(event.src_path)
-            file_type = os.path.splitext(name)[1]
-            vm = os.path.splitext(os.path.splitext(name)[0])[0]
+            vm, file_type = os.path.splitext(name)
             if file_type == '.xml' and not is_vm_exists(vm):
                 try:
                     myVmLibvirtXmlEventHandler('Delete', vm, event.src_path, self.group, self.version, self.plural)
@@ -680,8 +678,7 @@ class VmLibvirtXmlEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file modified:{0}".format(event.src_path))
             _,name = os.path.split(event.src_path)
-            file_type = os.path.splitext(name)[1]
-            vm = os.path.splitext(os.path.splitext(name)[0])[0]
+            vm, file_type = os.path.splitext(name)
             if file_type == '.xml' and is_vm_exists(vm):
                 try:
                     myVmLibvirtXmlEventHandler('Modify', vm, event.src_path, self.group, self.version, self.plural)

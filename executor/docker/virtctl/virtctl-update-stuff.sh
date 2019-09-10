@@ -62,4 +62,4 @@ else
 fi
 # run virtctl service
 echo "Now starting virtctl service..."
-python virtctl_in_docker.py
+python virtctl_in_docker.pyc

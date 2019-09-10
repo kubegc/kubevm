@@ -73,8 +73,8 @@ python -m py_compile utils/*.py
 ##############################patch image#########################################
 
 # step 1 copy file
-cp -rf utils config arraylist.cfg invoker.pyc virtctl.pyc docker/virtctl
-cp -rf utils config arraylist.cfg host_cycler.pyc libvirt_event_handler.pyc os_event_handler.pyc virtlet.pyc docker/virtlet
+cp -rf utils config arraylist.cfg virtctl_in_docker.pyc invoker.pyc virtctl.pyc docker/virtctl
+cp -rf utils config arraylist.cfg virtlet_in_docker.pyc host_cycler.pyc libvirt_event_handler.pyc os_event_handler.pyc virtlet.pyc docker/virtlet
 
 rm -rf *.pyc
 rm -rf utils/*.pyc

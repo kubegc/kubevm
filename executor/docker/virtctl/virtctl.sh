@@ -15,4 +15,4 @@
 #cp -f dist/vmm /usr/bin
 
 echo "Now starting virtctl service..."
-python virtctl_in_docker.py
+python virtctl_in_docker.pyc

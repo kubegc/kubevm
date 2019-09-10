@@ -8,4 +8,4 @@
 ################################################################
 
 echo "Now starting virtlet service..."
-python virtlet_in_docker.py
+python virtlet_in_docker.pyc

@@ -278,8 +278,8 @@ def main():
                     print(help_update)
                     sys.exit(1)
                 elif len(params) == 2:
-                    version = params[1]
-                    update_online(version)
+                    ver = params[1]
+                    update_online(ver)
                 else:
                     print('error: invalid arguments!\n')
                     print(help_update)

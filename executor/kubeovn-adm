@@ -326,7 +326,7 @@ function start-central()
   sudo ovs-vsctl set open . external-ids:ovn-encap-ip=127.0.0.1
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
 
-  $create-br-c-br
+#create-br-c-br
 }
 
 function stop-central()
@@ -366,7 +366,7 @@ function start-worker()
   sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$master:6642
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
   sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$thisip
-  $create-br-c-br
+  create-br-c-br
 }
 
 

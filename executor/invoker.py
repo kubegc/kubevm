@@ -2178,7 +2178,7 @@ def _convertCharsInJson(key, value):
 
 def _snapshot_file_exists(snapshot):
     xml_file = '%s.xml' % (snapshot)
-    for _,_,files in os.walk(DEFAULT_SNAPSHOT_DIR):
+    for _,_,files in os.walk(DEFAULT_SNAPSHOT_DIR, topdown = False):
         if xml_file in files:
             return True
         else:

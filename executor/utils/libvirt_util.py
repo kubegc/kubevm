@@ -861,11 +861,12 @@ def runCmdRaiseException(cmd):
         p.stderr.close()
 
 if __name__ == '__main__':
+    print(freecpu())
     # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))
     # print _get_pool("pool1").info()
-    print list_all_volumes()
-    print list_volumes('vmdi')
+#     print list_all_volumes()
+#     print list_volumes('vmdi')
 #     print(list_volumes('volumes'))
 #     print(get_volume_xml('volumes', 'ddd.qcow2'))

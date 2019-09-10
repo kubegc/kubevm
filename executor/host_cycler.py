@@ -95,6 +95,8 @@ class HostCycler:
     def get_status_allocatable(self):
         try:
             cpu_allocatable = freecpu()
+            if int(cpu_allocatable) <= 0:
+                cpu_allocatable = 0
         except:
             cpu_allocatable = "UNKNOWN"
         try:

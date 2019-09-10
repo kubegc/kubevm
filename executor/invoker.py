@@ -291,7 +291,13 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         if network_operations_queue:
                             for operation in network_operations_queue:
                                 logger.debug(operation)
-                                runCmd(operation)
+                                if operation.find('kubeovn-adm unbind-swport') != -1:
+                                    try:
+                                        runCmd(operation)
+                                    except:
+                                        pass
+                                else:
+                                    runCmd(operation)
                     elif operation_type == 'MODIFIED':
 #                         if not is_vm_exists(metadata_name):
 #                             raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % metadata_name)

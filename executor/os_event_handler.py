@@ -349,19 +349,28 @@ class VmSnapshotEventHandler(FileSystemEventHandler):
             logger.debug("directory moved from {0} to {1}".format(event.src_path,event.dest_path))
         else:
             logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
+            dirs,snap_file = os.path.split(event.dest_path)
+            _,vm = os.path.split(dirs)
+            snap, file_type = os.path.splitext(snap_file)
+            if file_type == '.xml':
+                try:
+                    myVmSnapshotEventHandler('Create', vm, snap, self.group, self.version, self.plural)
+                except ApiException:
+                    logger.error('Oops! ', exc_info=1)
 
     def on_created(self, event):
         if event.is_directory:
             logger.debug("directory created:{0}".format(event.src_path))
         else:
             logger.debug("file created:{0}".format(event.src_path))
-            dirs,snap_file = os.path.split(event.src_path)
-            _,vm = os.path.split(dirs)
-            snap = os.path.splitext(os.path.splitext(snap_file)[0])[0]
-            try:
-                myVmSnapshotEventHandler('Create', vm, snap, self.group, self.version, self.plural)
-            except ApiException:
-                logger.error('Oops! ', exc_info=1)
+#             dirs,snap_file = os.path.split(event.src_path)
+#             _,vm = os.path.split(dirs)
+#             snap, file_type = os.path.splitext(snap_file)
+#             if file_type == '.xml':
+#                 try:
+#                     myVmSnapshotEventHandler('Create', vm, snap, self.group, self.version, self.plural)
+#                 except ApiException:
+#                     logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -370,11 +379,12 @@ class VmSnapshotEventHandler(FileSystemEventHandler):
             logger.debug("file deleted:{0}".format(event.src_path))
             dirs,snap_file = os.path.split(event.src_path)
             _,vm = os.path.split(dirs)
-            snap = os.path.splitext(os.path.splitext(snap_file)[0])[0]
-            try:
-                myVmSnapshotEventHandler('Delete', vm, snap, self.group, self.version, self.plural)
-            except ApiException:
-                logger.error('Oops! ', exc_info=1)
+            snap, file_type = os.path.splitext(snap_file)
+            if file_type == '.xml':
+                try:
+                    myVmSnapshotEventHandler('Delete', vm, snap, self.group, self.version, self.plural)
+                except ApiException:
+                    logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
         if event.is_directory:
@@ -943,8 +953,7 @@ class ImageLibvirtXmlEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file moved from {0} to {1}".format(event.src_path,event.dest_path))
             _,name = os.path.split(event.dest_path)
-            file_type = os.path.splitext(name)[1]
-            vmi = os.path.splitext(os.path.splitext(name)[0])[0]
+            vmi, file_type = os.path.splitext(name)
             if file_type == '.xml':
                 try:
                     myImageLibvirtXmlEventHandler('Create', vmi, event.dest_path, self.group, self.version, self.plural)
@@ -971,8 +980,7 @@ class ImageLibvirtXmlEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file deleted:{0}".format(event.src_path))
             _,name = os.path.split(event.src_path)
-            file_type = os.path.splitext(name)[1]
-            vmi = os.path.splitext(os.path.splitext(name)[0])[0]
+            vmi, file_type = os.path.splitext(name)
             if file_type == '.xml':
                 try:
                     myImageLibvirtXmlEventHandler('Delete', vmi, event.src_path, self.group, self.version, self.plural)
@@ -986,8 +994,7 @@ class ImageLibvirtXmlEventHandler(FileSystemEventHandler):
         else:
 #             logger.debug("file modified:{0}".format(event.src_path))
             _,name = os.path.split(event.src_path)
-            file_type = os.path.splitext(name)[1]
-            vmi = os.path.splitext(os.path.splitext(name)[0])[0]
+            vmi, file_type = os.path.splitext(name)
             if file_type == '.xml':
                 try:
                     myImageLibvirtXmlEventHandler('Modify', vmi, event.src_path, self.group, self.version, self.plural)

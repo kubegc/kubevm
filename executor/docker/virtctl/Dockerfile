@@ -4,7 +4,7 @@ RUN mkdir -p /home/kubevmm/bin
 
 RUN mkdir -p /etc/kubevmm
 
-ADD *.py /home/kubevmm/bin/
+ADD *.pyc /home/kubevmm/bin/
 
 ADD *.cfg /home/kubevmm/bin/
 

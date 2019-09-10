@@ -2177,11 +2177,13 @@ def _convertCharsInJson(key, value):
         return ('--%s' % key.replace('_', '-'), value)
 
 def _snapshot_file_exists(snapshot):
-    xml_file = '%s/%s.xml' % (DEFAULT_SNAPSHOT_DIR, snapshot)
-    if os.path.exists(xml_file):
-        return True
-    else:
-        return False
+    xml_file = '%s.xml' % (snapshot)
+    for _,_,files in os.walk(DEFAULT_SNAPSHOT_DIR):
+        if xml_file in files:
+            return True
+        else:
+            return False
+    return False
 
 '''
 Unpack the CMD that will be executed in Json format.

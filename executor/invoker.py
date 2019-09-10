@@ -816,6 +816,8 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                 vm_name = _get_field(jsondict, the_cmd_key, 'domain')
                 if not vm_name:
                     raise ExecuteException('VirtctlError', 'error: no "domain" parameter')
+                if not is_vm_exists(vm_name):
+                    raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % vm_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())

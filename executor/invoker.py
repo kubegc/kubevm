@@ -107,7 +107,7 @@ GROUP_UIT_SNAPSHOT = config_raw.get('UITSnapshot', 'group')
 
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
-
+DEFAULT_SNAPSHOT_DIR = config_raw.get('DefaultSnapshotDir', 'snapshot')
 DEFAULT_VMD_TEMPLATE_DIR = config_raw.get('DefaultVirtualMachineDiskTemplateDir', 'vmdi')
 
 DEFAULT_VM_TEMPLATE_DIR = config_raw.get('DefaultTemplateDir', 'default')
@@ -834,7 +834,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                         try:
                             runCmd(cmd)
                         except Exception, e:
-                            if _isDeleteVMSnapshot(the_cmd_key):
+                            if _isDeleteVMSnapshot(the_cmd_key) and not _snapshot_file_exists(metadata_name):
                                 logger.warning("***VM snapshot %s not exists, delete it from virtlet" % metadata_name)
                                 jsondict = deleteLifecycleInJson(jsondict)
                                 modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -2175,7 +2175,13 @@ def _convertCharsInJson(key, value):
         return ('', '')
     else:
         return ('--%s' % key.replace('_', '-'), value)
-   
+
+def _snapshot_file_exists(snapshot):
+    xml_file = '%s/%s.xml' % (DEFAULT_SNAPSHOT_DIR, snapshot)
+    if os.path.exists(xml_file):
+        return True
+    else:
+        return False
 
 '''
 Unpack the CMD that will be executed in Json format.

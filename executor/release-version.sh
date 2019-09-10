@@ -67,11 +67,17 @@ else
     echo "    Success copy stuff to docker/virtctl."
 fi
 
+python -m py_compile *.py
+python -m py_compile utils/*.py
+
 ##############################patch image#########################################
 
 # step 1 copy file
-cp -rf utils config arraylist.cfg invoker.py virtctl.py docker/virtctl
-cp -rf utils config arraylist.cfg host_cycler.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
+cp -rf utils config arraylist.cfg invoker.pyc virtctl.pyc docker/virtctl
+cp -rf utils config arraylist.cfg host_cycler.pyc libvirt_event_handler.pyc os_event_handler.pyc virtlet.pyc docker/virtlet
+
+rm -rf *.pyc
+rm -rf utils/*.pyc
 
 #step 2 docker build
 cd docker

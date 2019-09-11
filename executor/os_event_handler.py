@@ -152,8 +152,16 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             logger.debug('Delete vm disk %s, report to virtlet' % name)
 
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
     elif event == "Create":
         try:
             logger.debug('Create vm disk %s, report to virtlet' % name)
@@ -281,8 +289,16 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
         try:
             logger.debug('Delete vm snapshot %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM snapshot %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
     elif event == "Create":
         try:
             logger.debug('Create vm snapshot %s, report to virtlet' % name)
@@ -418,8 +434,16 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
         try:
             logger.debug('Delete vm block %s, report to virtlet' % name)
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM block %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
     elif event == "Create":
         try:
             logger.debug('Create vm block %s, report to virtlet' % name)
@@ -627,6 +651,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                 logger.debug('**VM %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
             try:
                 report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
             except:
@@ -775,8 +800,16 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
 #                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vmd_json)
 #                 body = addExceptionMessage(jsondict, 'VirtletError', 'VM has been deleted in back-end.')
 #                 modifyStructure(name, body, group, version, plural)   
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM disk image %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 class VmdImageLibvirtXmlEventHandler(FileSystemEventHandler):
     def __init__(self, pool, target, group, version, plural):
@@ -935,8 +968,16 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
 #                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
 #                 body = addExceptionMessage(jsondict, 'VirtletError', 'VM has been deleted in back-end.')
 #                 modifyStructure(name, body, group, version, plural)   
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM image %s already deleted, ignore this 404 error.' % name)
         except:
             logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
 
 class ImageLibvirtXmlEventHandler(FileSystemEventHandler):
     def __init__(self, field, target, group, version, plural):

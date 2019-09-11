@@ -24,7 +24,7 @@ from xmljson import badgerfish as bf
 from kubernetes.client.rest import ApiException
 
 from utils.libvirt_util import get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.utils import get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -827,6 +827,16 @@ def create_disk_snapshot(vol, pool, snapshot):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
     vol_path = get_volume_path(pool, vol)
+    snapshots = get_volume_snapshots(vol_path)['snapshot']
+    name_conflict = False
+    for sn in snapshots:
+        if sn.get('name') == snapshot:
+            name_conflict = True
+            break;
+        else:
+            continue
+    if name_conflict:
+        raise Exception('409, Conflict. Snapshot name %s already in use.' % snapshot)
     cmd = 'qemu-img snapshot -c %s %s' % (snapshot, vol_path)
     try:
         runCmd(cmd)

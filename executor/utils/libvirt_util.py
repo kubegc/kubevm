@@ -788,7 +788,7 @@ def is_volume_in_use(vol=None, pool=None, path=None):
         return True
     else:
         return False
-
+    
 def is_snapshot_exists(snap_, vm_):
     if snap_ in _get_all_snapshots(vm_):
         return True

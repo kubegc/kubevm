@@ -13,7 +13,7 @@ spec:
   - JSONPath: .spec.domain._type
     name: TYPE
     type: string
-  - JSONPath: .spec.domain.vcpu.text
+  - JSONPath: .spec.domain.vcpu.current
     name: CPU
     type: string
   - JSONPath: .spec.domain.memory.text

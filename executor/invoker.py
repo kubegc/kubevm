@@ -298,6 +298,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                         pass
                                 else:
                                     runCmd(operation)
+                                time.sleep(1)
                     elif operation_type == 'MODIFIED':
 #                         if not is_vm_exists(metadata_name):
 #                             raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % metadata_name)
@@ -328,6 +329,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             for operation in network_operations_queue:
                                 logger.debug(operation)
                                 runCmd(operation)
+                                time.sleep(1)
                         '''
                         Run disk operations
                         '''
@@ -335,6 +337,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             for operation in disk_operations_queue:
                                 logger.debug(operation)
                                 runCmd(operation)
+                                time.sleep(1)
 #                     elif operation_type == 'DELETED':
 #                         logger.debug('Delete custom object by client.')
     #                     if is_vm_exists(metadata_name):

@@ -98,15 +98,15 @@ class HostCycler:
             if int(cpu_allocatable) <= 0:
                 cpu_allocatable = 0
         except:
-            cpu_allocatable = "UNKNOWN"
+            cpu_allocatable = 0
         try:
             mem_allocatable = '%sMi' % str(self._format_mem_to_Mi(freemem()))
         except:
-            mem_allocatable = "UNKNOWN"
+            mem_allocatable = '0Mi'
         try:
             active_vms = list_active_vms()
         except:
-            active_vms = "UNKNOWN"
+            active_vms = []
         return {'cpu': str(cpu_allocatable), 'memory': mem_allocatable, 'pods': str(40 - len(active_vms)) if 40 - len(active_vms) >= 0 else 0}
     
     def get_status_capacity(self):

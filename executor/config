@@ -128,10 +128,10 @@ convertDiskImageToDisk = /usr/bin/vmm convert_vmdi_to_vmd
 deleteDiskImage = /usr/bin/vmm delete_vmdi
 
 [VirtualMahcinePoolSupportCmdsWithNameField]
-createPool = virsh pool-create-as
+createPool = kubesds-adm createPool
 
 [VirtualMahcinePoolSupportCmdsWithPoolField]
-deletePool = virsh pool-destroy
+deletePool = kubesds-adm deletePool
 startPool = virsh pool-start
 autoStart = virsh pool-autostart
 unregisterPool = virsh pool-undefine

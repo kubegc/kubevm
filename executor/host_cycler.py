@@ -60,6 +60,8 @@ def main():
             time.sleep(8)
         except:
             logger.error('Oops! ', exc_info=1)
+            time.sleep(8)
+            continue
 
 class HostCycler:
     

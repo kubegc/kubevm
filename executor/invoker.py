@@ -220,13 +220,6 @@ def main():
     except:
         logger.error('Oops! ', exc_info=1)
         
-def test():
-    try:
-        vMBlockDevWatcher()
-    except:
-        traceback.print_exc()
-        logger.error('Oops! ', exc_info=1)
-        
 def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     watcher = watch.Watch()
     kwargs = {}
@@ -239,12 +232,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
-        except:
-            logger.warning('Oops! ', exc_info=1)
-        try:
             logger.debug('metadata name: %s' % metadata_name)
             the_cmd_key = _getCmdKey(jsondict)
             logger.debug('cmd key is: %s' % the_cmd_key)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
             if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
                 (jsondict, network_operations_queue, disk_operations_queue) = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
@@ -361,6 +354,13 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     event.set_event_type(event_type)
                 except ExecuteException, e:
                     logger.error('Oops! ', exc_info=1)
+                    if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+                        try:
+                            if is_vm_exists(metadata_name) and is_vm_active(metadata_name):
+                                destroy(metadata_name)
+                                time.sleep(0.5)
+                        except:
+                            logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
                     try:
                         report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
@@ -2356,5 +2356,3 @@ def runCmdWithResult(cmd):
 if __name__ == '__main__':
     config.load_kube_config(config_file=TOKEN)
     main()
-    # runCmdWithResult('cstor-cli dev-list --type localfs --url all')
-#     test()

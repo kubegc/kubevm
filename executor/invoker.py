@@ -1176,7 +1176,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                 except:
                     logger.error('Oops! ', exc_info=1)
                 pool_name = metadata_name
+                pool_type = getPoolType(jsondict)
                 logger.debug("pool_name is :"+pool_name)
+                logger.debug("pool_type is :" + pool_type)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if cmd is None:
@@ -1189,41 +1191,34 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         # file_dir = os.path.split(POOL_PATH)[0]
                         if not os.path.isdir(POOL_PATH):
                             os.makedirs(POOL_PATH)
-
-                        if not is_kubesds_pool_exists(getPoolType(jsondict), pool_name):
+                        result, poolJson = None, None
+                        if not is_kubesds_pool_exists(pool_type, pool_name):
                             result, poolJson = runCmdWithResult(cmd)
-                            if result['code'] == 0:
-                                write_result_to_server(group, version, 'default', plural,
-                                                       involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                                try:
-                                    report_success(metadata_name, jsondict, 'success',
-                                                   'create ' + pool_name + ' pool success!', group, version, plural)
-                                except:
-                                    logger.warning('Oops! report_success fail', exc_info=1)
-                            else:
-                                raise ExecuteException('VirtctlError', result['msg'])
                         else:
-                            result, poolJson = get_kubesds_pool_info(getPoolType(jsondict), pool_name)
-                            if result['code'] == 0:
-                                write_result_to_server(group, version, 'default', plural,
-                                                       involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                                try:
-                                    report_success(metadata_name, jsondict, 'success',
-                                                   'has exist ' + pool_name + ' pool!', group, version, plural)
-                                except:
-                                    logger.warning('Oops! report_success fail', exc_info=1)
-                            else:
-                                raise ExecuteException('VirtctlError', result['msg'])
+                            result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
+                        if result['code'] == 0:
+                            write_result_to_server(group, version, 'default', plural,
+                                                   involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
+                            try:
+                                report_success(metadata_name, jsondict, 'success',
+                                               'has exist ' + pool_name + ' pool!', group, version, plural)
+                            except:
+                                logger.warning('Oops! report_success fail', exc_info=1)
+                        else:
+                            raise ExecuteException('VirtctlError', result['msg'])
                     elif operation_type == 'MODIFIED':
                         try:
-                            if getPoolType(jsondict) == 'dir':
-                                runCmd(cmd)
-                            else:
+                            if the_cmd_key == 'deletePool':
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
+                            else:
+                                if pool_type == 'uus':
+                                    pass
+                                else:
+                                    runCmd(cmd)
                         except Exception, e:
-                            if _isDeletePool(the_cmd_key) and not is_kubesds_pool_exists(getPoolType(jsondict), pool_name):
+                            if _isDeletePool(the_cmd_key) and not is_kubesds_pool_exists(pool_type, pool_name):
                                 logger.warning("***Pool %s not exists, delete it from virtlet" % metadata_name)
                                 jsondict = deleteLifecycleInJson(jsondict)
                                 modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -1233,7 +1228,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             else:
                                 raise e
 
-                        result, poolJson = get_kubesds_pool_info(getPoolType(jsondict), pool_name)
+                        result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                         write_result_to_server(group, version, 'default', plural,
                                             involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
                         try:

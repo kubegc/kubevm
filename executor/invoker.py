@@ -2333,6 +2333,7 @@ Run back-end command in subprocess.
 '''
 def runCmdWithResult(cmd):
     std_err = None
+    logger.debug(cmd)
     if not cmd:
         #         logger.debug('No CMD to execute.')
         return

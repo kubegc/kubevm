@@ -43,7 +43,7 @@ Import local libs
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
     undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, \
-    is_pool_exists, _get_pool_info, is_kubesds_pool_exists, get_kubesds_pool_info, is_kubesds_vol_exists
+    is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
 from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
@@ -1181,7 +1181,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                 except:
                     logger.error('Oops! ', exc_info=1)
                 pool_name = metadata_name
-                pool_type = getPoolType(jsondict)
+                pool_type = getPoolType(the_cmd_key, jsondict)
                 logger.debug("pool_name is :"+pool_name)
                 logger.debug("pool_type is :" + pool_type)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -1300,6 +1300,21 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                 report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
             except:
                 logger.warning('Oops! ', exc_info=1)
+
+def is_kubesds_pool_exists(type, pool):
+    result, poolJson = runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
+    if result['code'] == 0:
+        return True
+    return False
+
+def is_kubesds_vol_exists(type, pool, vol):
+    result, poolJson = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
+    if result['code'] == 0:
+        return True
+    return False
+
+def get_kubesds_pool_info(type, pool):
+    return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
 
 def get_cmd(jsondict, the_cmd_key):
     cmd = None
@@ -1471,12 +1486,12 @@ def getPoolPathWhenCreate(jsondict):
     else:
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!')
 
-def getPoolType(jsondict):
+def getPoolType(the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']
     lifecycle = spec.get('lifecycle')
 
     if lifecycle:
-        return lifecycle['createPool']['type']
+        return lifecycle[the_cmd_key]['type']
     else:
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No found pool type!')
 
@@ -2317,6 +2332,8 @@ def runCmdWithResult(cmd):
                     continue
                 msg = msg + str.strip(line)
             msg = str.strip(msg)
+            logger.debug(msg)
+            msg = msg.replace("'", '"')
             logger.debug(msg)
             try:
                 result = loads(msg)

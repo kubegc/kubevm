@@ -115,6 +115,9 @@ spec:
   - JSONPath: .spec.volume.target.path.text
     name: PATH
     type: string  
+  - JSONPath: .spec.volume.backingStore.path.text
+    name: BACKING STORE
+    type: string 
   - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string

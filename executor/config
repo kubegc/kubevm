@@ -91,7 +91,11 @@ unplugDisk = virsh detach-device
 plugNIC = virsh attach-device
 unplugNIC = virsh detach-device
 changeNumberOfCPU = virsh setvcpus
-resizeRAM= virsh setmem
+resizeRAM = virsh setmem
+pullSnapshot = virsh blockpull
+commitSnapshot = virsh blockcommit
+copySnapshot = virsh blockcopy
+resizeDiskLive = virsh blockresize
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDisk = virsh vol-create-as

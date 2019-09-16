@@ -440,7 +440,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 except:
                     logger.error('Oops! ', exc_info=1)
                 pool_name = _get_field(jsondict, the_cmd_key, 'pool')
-                pool_type = _get_field(jsondict, the_cmd_key, 'type')
+                disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -452,9 +452,16 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 try:
                     if operation_type == 'ADDED':
                         if cmd:
-                            result, diskdict = runCmdWithResult(cmd)
-                            if result['code'] != 0:
-                                raise ExecuteException('VirtctlError', result['msg'])
+                            result, data = None, None
+                            if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                                result, data = runCmdWithResult(cmd)
+                                if result['code'] != 0:
+                                    raise ExecuteException('VirtctlError', result['msg'])
+                            else:
+                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                            vol_json = updateJsonRemoveLifecycle(jsondict, data)
+                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     elif operation_type == 'MODIFIED':
                         result, data = None, None
                         try:
@@ -462,7 +469,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             if result['code'] != 0:
                                 raise ExecuteException('VirtctlError', result['msg'])
                         except Exception, e:
-                            if _isDeleteDisk(the_cmd_key) and not is_kubesds_vol_exists(pool_type, pool_name, metadata_name):
+                            if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
                                 jsondict = deleteLifecycleInJson(jsondict)
                                 modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -1217,6 +1224,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
+                                else:
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                    return
                             else:
                                 if pool_type == 'uus':
                                     pass
@@ -1307,7 +1317,7 @@ def is_kubesds_pool_exists(type, pool):
         return True
     return False
 
-def is_kubesds_vol_exists(type, pool, vol):
+def is_kubesds_disk_exists(type, pool, vol):
     result, poolJson = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
     if result['code'] == 0:
         return True
@@ -1315,6 +1325,9 @@ def is_kubesds_vol_exists(type, pool, vol):
 
 def get_kubesds_pool_info(type, pool):
     return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
+
+def get_kubesds_disk_info(type, pool, vol):
+    return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
 
 def get_cmd(jsondict, the_cmd_key):
     cmd = None

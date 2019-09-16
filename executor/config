@@ -91,7 +91,11 @@ unplugDisk = virsh detach-device
 plugNIC = virsh attach-device
 unplugNIC = virsh detach-device
 changeNumberOfCPU = virsh setvcpus
-resizeRAM= virsh setmem
+resizeRAM = virsh setmem
+resizeVM = virsh blockresize
+mergeSnapshotToTop = virsh blockpull
+mergeSnapshotToBase = virsh blockcommit
+copySnapshot = virsh blockcopy
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskSnapshot = /usr/bin/vmm create_disk_snapshot

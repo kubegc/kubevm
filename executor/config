@@ -94,7 +94,7 @@ changeNumberOfCPU = virsh setvcpus
 resizeRAM= virsh setmem
 
 [VirtualMachineDiskSupportCmdsWithNameField]
-createDisk = virsh vol-create-as
+createDisk = kubesds-adm createDisk
 createDiskSnapshot = /usr/bin/vmm create_disk_snapshot
 deleteDiskSnapshot = /usr/bin/vmm delete_disk_snapshot
 revertDiskSnapshot = /usr/bin/vmm revert_disk_snapshot
@@ -106,9 +106,9 @@ createUITDisk = /bin/bash /usr/bin/fucli
 deleteUITDisk = /bin/bash /usr/bin/ducli
 
 [VirtualMachineDiskSupportCmdsWithVolField]
-resizeDisk = virsh vol-resize
-cloneDisk = virsh vol-clone
-deleteDisk = virsh vol-delete
+resizeDisk = kubesds-adm resizeDisk
+cloneDisk = kubesds-adm cloneDisk
+deleteDisk = kubesds-adm deleteDisk
 
 [VirtualMachineSnapshotSupportCmdsWithNameField]
 createSnapshot = virsh snapshot-create-as

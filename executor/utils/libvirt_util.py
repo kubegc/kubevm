@@ -148,6 +148,12 @@ def is_kubesds_pool_exists(type, pool):
         return True
     return False
 
+def is_kubesds_vol_exists(type, pool, vol):
+    result, poolJson = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
+    if result['code'] == 0:
+        return True
+    return False
+
 def get_kubesds_pool_info(type, pool):
     return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
 

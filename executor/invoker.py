@@ -1206,8 +1206,10 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         result, poolJson = None, None
                         if not is_kubesds_pool_exists(pool_type, pool_name):
                             result, poolJson = runCmdWithResult(cmd)
+                            logger.debug('create pool')
                         else:
                             result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
+                            logger.debug('get pool info')
                         if result['code'] == 0:
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)

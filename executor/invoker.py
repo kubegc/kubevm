@@ -479,8 +479,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             else:
                                 raise e
                         # update disk info
-                        if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
+                        if _isResizeDisk(the_cmd_key):
                             vol_json = updateJsonRemoveLifecycle(jsondict, data)
+                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                        elif _isCloneDisk(the_cmd_key):
+                            vol_json = deleteLifecycleInJson(jsondict)
                             body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
 #                     elif operation_type == 'DELETED':

@@ -48,7 +48,7 @@ def run_virtctl(update_stuff=False, version=VERSION):
         script = 'virtctl-update-stuff.sh'
     else:
         script = 'virtctl.sh'
-    return runCmd('docker run -itd --restart=always -h %s --net=host -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /etc/sysconfig/cstor:/etc/sysconfig/cstor -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash %s' % (HOSTNAME, version, script))
+    return runCmd('docker run -itd --restart=always -h %s --net=host -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /etc/sysconfig/cstor:/etc/sysconfig/cstor -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash %s' % (HOSTNAME, version, script))
 
 def run_virtlet(update_stuff=False, version=VERSION):
     if update_stuff:

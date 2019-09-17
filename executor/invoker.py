@@ -1199,10 +1199,10 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     if operation_type == 'ADDED':
                         # judge pool path exist or not
 
-                        POOL_PATH = getPoolPathWhenCreate(jsondict)
-                        # file_dir = os.path.split(POOL_PATH)[0]
-                        if not os.path.isdir(POOL_PATH):
-                            os.makedirs(POOL_PATH)
+                        # POOL_PATH = getPoolPathWhenCreate(jsondict)
+                        # # file_dir = os.path.split(POOL_PATH)[0]
+                        # if not os.path.isdir(POOL_PATH):
+                        #     os.makedirs(POOL_PATH)
                         result, poolJson = None, None
                         if not is_kubesds_pool_exists(pool_type, pool_name):
                             result, poolJson = runCmdWithResult(cmd)

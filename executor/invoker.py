@@ -41,12 +41,12 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
+from utils.libvirt_util import _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
     undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, \
     is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import Domain, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success
 
@@ -240,7 +240,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         try:
             if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
-                (jsondict, network_operations_queue, disk_operations_queue) = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
+                (jsondict, network_operations_queue, disk_operations_queue, snapshot_operations_queue) \
+                    = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
@@ -1432,6 +1433,7 @@ def _vm_priori_step(the_cmd_key, jsondict):
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
     network_operations_queue = []
     disk_operations_queue = []
+    snapshot_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         '''
         Parse network configurations
@@ -1477,7 +1479,12 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    return (jsondict, network_operations_queue, disk_operations_queue)
+    if _isMergeSnapshotToTop(the_cmd_key) or _isMergeSnapshotToBase(the_cmd_key):
+        base = _get_field(jsondict, the_cmd_key, "base")
+        top = _get_field(jsondict, the_cmd_key, "top")
+        current = _get_field(jsondict, the_cmd_key, "current")
+        snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, base, top, current, metadata_name)
+    return (jsondict, network_operations_queue, disk_operations_queue, snapshot_operations_queue)
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":
@@ -1593,6 +1600,16 @@ Install VM from ISO.
 '''
 def _isInstallVMFromISO(the_cmd_key):
     if the_cmd_key == "createAndStartVMFromISO":
+        return True
+    return False
+
+def _isMergeSnapshotToTop(the_cmd_key):
+    if the_cmd_key == "mergeSnapshotToTop":
+        return True
+    return False
+
+def _isMergeSnapshotToBase(the_cmd_key):
+    if the_cmd_key == "mergeSnapshotToBase":
         return True
     return False
 
@@ -2127,6 +2144,10 @@ def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
     elif _isUnplugDisk(the_cmd_key):
         unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
         return [unplugDiskCmd]
+    
+def _get_snapshot_operations_queue(the_cmd_key, base, top, current, metadata_name):
+    domain = Domain(_get_dom(metadata_name))
+    return 
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':

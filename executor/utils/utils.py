@@ -12,6 +12,7 @@ Import python libs
 import re
 import fcntl
 import socket
+import shlex
 import errno
 from functools import wraps
 import os, sys, time, signal, atexit, subprocess
@@ -24,6 +25,8 @@ import ConfigParser
 from dateutil.tz import gettz
 from pprint import pformat
 from six import iteritems
+from xml.etree import ElementTree
+from collections import namedtuple
 
 '''
 Import third party libs
@@ -567,6 +570,99 @@ def randomMAC():
         random.randint(0x00, 0xff) ]
     return ':'.join(map(lambda x: "%02x" % x, mac))
 
+class Domain(object):
+    def __init__(self, libvirt_domain):
+        self.libvirt_domain = libvirt_domain
+        self.name = libvirt_domain.name()
+        self.libvirt_snapshot = None
+
+    def get_disks(self):
+        """ Gets all domain disk as namedtuple('DiskInfo', ['device', 'file', 'format']) """
+        # root node
+        root = ElementTree.fromstring(self.libvirt_domain.XMLDesc())
+
+        # search <disk type='file' device='disk'> entries
+        disks = root.findall("./devices/disk[@device='disk']")
+
+        # for every disk get drivers, sources and targets
+        drivers = [disk.find("driver").attrib for disk in disks]
+        sources = [disk.find("source").attrib for disk in disks]
+        targets = [disk.find("target").attrib for disk in disks]
+
+        # iterate drivers, sources and targets
+        if len(drivers) != len(sources) != len(targets):
+            raise RuntimeError("Drivers, sources and targets lengths are different %s:%s:%s" % (
+                len(drivers), len(sources), len(targets)))
+
+        disk_info = namedtuple('DiskInfo', ['device', 'file', 'format'])
+
+        # all disks info
+        disks_info = []
+
+        for i in range(len(sources)):
+            disks_info.append(disk_info(targets[i]["dev"], sources[i]["file"], drivers[i]["type"]))
+
+        return disks_info
+    
+    def merge_snapshot(self, current, base, top):
+        """ Merges base to snapshot and removes old disk files """
+        disk_to_remove = []
+        current_disk_files = [current]
+        current_disk_files += (DiskImageHelper.get_backing_files_tree(current))
+        if len(current_disk_files) == 1:
+            return disk_to_remove
+        if not top:
+            top = current_disk_files[1]
+        if not base:
+            base = current_disk_files[-1]
+        if base not in current_disk_files or top not in current_disk_files:
+            raise ExecuteException('VirtctlError', 'Wrong parameter "base" or "top", not in current tree [%s]' % " ".join(current_disk_files))
+        start_it = False
+        for disk in current_disk_files:
+            if disk == top:
+                start_it = True
+                disk_to_remove.append(disk)
+            elif disk == base:
+                break;
+            elif start_it:
+                disk_to_remove.append(disk)
+            else:
+                continue
+        # remove old disk device files without current ones
+        return disk_to_remove
+            
+class DiskImageHelper(object):
+    @staticmethod
+    def get_backing_file(file):
+        """ Gets backing file for disk image """
+        get_backing_file_cmd = "qemu-img info %s" % file
+        try:
+            out = subprocess.check_output(shlex.split(get_backing_file_cmd))
+        except:
+            get_backing_file_cmd = "qemu-img info -U %s" % file
+            out = subprocess.check_output(shlex.split(get_backing_file_cmd))
+        lines = out.decode('utf-8').split('\n')
+        for line in lines:
+            if re.search("backing file:", line):
+                return str(line.strip().split()[2])
+        return None
+
+    @staticmethod
+    def get_backing_files_tree(file):
+        """ Gets all backing files (snapshot tree) for disk image """
+        backing_files = []
+        backing_file = DiskImageHelper.get_backing_file(file)
+        while backing_file is not None:
+            backing_files.append(backing_file)
+            backing_file = DiskImageHelper.get_backing_file(backing_file)
+        return backing_files
+
+    @staticmethod
+    def set_backing_file(backing_file, file):
+        """ Sets backing file for disk image """
+        set_backing_file_cmd = "qemu-img rebase -u -b %s %s" % (backing_file, file)
+        subprocess.check_output(shlex.split(set_backing_file_cmd))
+
 class UserDefinedEvent(object):
     
     swagger_types = {
@@ -909,7 +1005,11 @@ class CDaemon:
 
 
 if __name__ == '__main__':
-    print(get_l3_network_info("sw121234"))
+#     print(get_l3_network_info("sw121234"))
+    from libvirt_util import _get_dom
+    domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e001"))
+    print(domain.merge_snapshot("/var/lib/libvirt/images/snapshot9", None, "/var/lib/libvirt/images/snapshot6"))
+    print(domain.merge_snapshot("/var/lib/libvirt/images/snapshot9", None, None))
 #     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}
 #     volume.get('volume').update(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
 #     print(volume)

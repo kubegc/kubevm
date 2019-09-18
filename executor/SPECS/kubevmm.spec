@@ -1,7 +1,7 @@
 %if 0%{?_version:1}
 %define         _verstr      %{_version}
 %else
-%define         _verstr      v1.2.7
+%define         _verstr      v1.2.6
 %endif
  
 Name:           kubevmm
@@ -21,7 +21,7 @@ Source5:        yamls
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
-"kubevmm-adm is a command for service managent in KubeVMM platform."
+"KubeVMM is a Kubernetes-based virtual machine management platform."
 
 %setup -c -n kubevmm
  

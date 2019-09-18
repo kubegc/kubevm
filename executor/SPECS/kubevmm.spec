@@ -21,7 +21,7 @@ Source5:        yamls
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
-"kubevmm-adm is a command for service managent in KubeVMM platform."
+"KubeVMM is a Kubernetes-based virtual machine management platform."
 
 %setup -c -n kubevmm
  

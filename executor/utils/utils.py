@@ -632,54 +632,75 @@ class Domain(object):
 
         return disks_info
     
-    def merge_snapshot(self, base):
+    def verify_disk_write_lock(self, file_path):
+        DiskImageHelper.get_backing_file(file_path)
+        return
+    
+    def merge_snapshot(self, base=None):
         """ Merges base to snapshot and removes old disk files """
         disks = self.get_disks()
-        snapshot_disks = self.get_snapshot_disks(base)
-        disks_to_remove = ''
-        snapshots_to_delete = ''
+        if base:
+            snapshot_disks = self.get_snapshot_disks(base)
+        else:
+            snapshot_disks = []
+        disks_to_remove = []
+        merge_snapshots_cmd = ''
+        disks_to_remove_cmd = ''
+        snapshots_to_delete_cmd = ''
         for disk in disks:
             current_disk_files = [disk.file]
             current_disk_files += (DiskImageHelper.get_backing_files_tree(disk.file))
             if len(current_disk_files) == 1:
-                return disks_to_remove
-            target_snapshot_disk = ''
-            for snapshot_disk in snapshot_disks:
-                if snapshot_disk.file in current_disk_files:
-                    target_snapshot_disk = snapshot_disk.file
-                else:
-                    continue
-            if not target_snapshot_disk:
-                disks_to_remove.append(a_disk for a_disk in current_disk_files)
+                continue
+            base_disk = ''
+            if not snapshot_disks:
+                base_disk = current_disk_files[-1]
+            else:
+                for snapshot_disk in snapshot_disks:
+                    if snapshot_disk.file in current_disk_files:
+                        base_disk = snapshot_disk.file
+                    else:
+                        continue
+            if not base_disk:
+#                 disks_to_remove.append(a_disk for a_disk in current_disk_files)
+                continue
             else:
                 start_it = False
                 for a_disk in current_disk_files:
-                    if a_disk == disk.file:
+                    if a_disk == disk.file and a_disk != base_disk:
                         start_it = True
-                    elif a_disk == target_snapshot_disk:
+                    elif a_disk == base_disk:
                         break;
                     elif start_it:
-                        disks_to_remove += 'rm -f %s;' % a_disk
+                        disks_to_remove.append(a_disk)
                     else:
                         continue
-            for disk_to_remove in disks_to_remove:
-                snapshot_name1 = os.path.basename(disk_to_remove)
-                if is_snapshot_exists(snapshot_name1, self.name):
-                    snapshots_to_delete += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name1)
-                snapshot_name2 = os.path.splitext(os.path.basename(disk_to_remove))[1]
-                if snapshot_name2 and is_snapshot_exists(snapshot_name2, self.name):
-                    snapshots_to_delete += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name2)
+                merge_snapshots_cmd += 'virsh blockpull --domain %s --path %s --base %s --wait;' % (self.name, disk.file, base_disk)
+        for disk_to_remove in disks_to_remove:
+            self.verify_disk_write_lock(disk_to_remove)
+            disks_to_remove_cmd += 'rm -f %s;' % disk_to_remove
+            snapshot_name = os.path.basename(disk_to_remove)
+            if not is_snapshot_exists(snapshot_name, self.name):
+                snapshot_name = os.path.splitext(os.path.basename(disk_to_remove))[1][1:] \
+                if len(os.path.splitext(os.path.basename(disk_to_remove))) == 2 else None
+            if snapshot_name and is_snapshot_exists(snapshot_name, self.name):
+                if snapshots_to_delete_cmd.find('--snapshotname %s' % snapshot_name) != -1:
+                    continue
+                else:
+                    snapshots_to_delete_cmd += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name)
             # remove old disk device files without current ones
-        return (disks_to_remove, snapshots_to_delete)
+        return (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd)
             
 class DiskImageHelper(object):
     @staticmethod
-    def get_backing_file(file):
+    def get_backing_file(file, raise_it=False):
         """ Gets backing file for disk image """
         get_backing_file_cmd = "qemu-img info %s" % file
         try:
             out = subprocess.check_output(shlex.split(get_backing_file_cmd))
-        except:
+        except Exception, e:
+            if raise_it:
+                raise e
             get_backing_file_cmd = "qemu-img info -U %s" % file
             out = subprocess.check_output(shlex.split(get_backing_file_cmd))
         lines = out.decode('utf-8').split('\n')
@@ -1048,10 +1069,9 @@ class CDaemon:
 if __name__ == '__main__':
 #     print(get_l3_network_info("sw121234"))
     from libvirt_util import _get_dom
-    import traceback
     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e001"))
     try:
-        print(domain.merge_snapshot("snapshot9"))
+        print(domain.merge_snapshot("snapshot1"))
     except Exception, e:
         print e.message
 #     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}

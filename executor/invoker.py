@@ -334,6 +334,14 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 logger.debug(operation)
                                 runCmd(operation)
                                 time.sleep(1)
+                        '''
+                        Run disk operations
+                        '''
+                        if snapshot_operations_queue:
+                            for operation in snapshot_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
+                                time.sleep(1)
 #                     elif operation_type == 'DELETED':
 #                         logger.debug('Delete custom object by client.')
     #                     if is_vm_exists(metadata_name):
@@ -1482,6 +1490,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
     if _isMergeSnapshot(the_cmd_key):
         base = _get_field(jsondict, the_cmd_key, "base")
         snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, base, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, network_operations_queue, disk_operations_queue, snapshot_operations_queue)
 
 def _isCreatePool(the_cmd_key):
@@ -2140,8 +2149,8 @@ def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
     
 def _get_snapshot_operations_queue(the_cmd_key, base, metadata_name):
     domain = Domain(_get_dom(metadata_name))
-    (disks_to_remove, snapshots_to_delete) = domain.merge_snapshot(base)
-    return 
+    (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain.merge_snapshot(base)
+    return [merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':

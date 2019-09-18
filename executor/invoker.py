@@ -485,9 +485,24 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
                         elif _isCloneDisk(the_cmd_key):
-                            vol_json = deleteLifecycleInJson(jsondict)
-                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
-                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                            if disk_type == 'uus':
+                                # uus disk type register to server by hand
+                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                if result['code'] == 0:
+                                    newname = getCloneDiskName(the_cmd_key, jsondict)
+                                    jsoncopy = jsondict.copy()
+                                    jsoncopy['kind'] = 'VirtualMachineDisk'
+                                    jsoncopy['metadata']['kind'] = 'VirtualMachineDisk'
+                                    jsoncopy['metadata']['name'] = newname
+                                    del jsoncopy['metadata']['resourceVersion']
+                                    del jsoncopy['spec']['lifecycle']
+                                    jsoncopy['spec']['volume'] = data
+                                    addResourceToServer(newname, jsoncopy, group, version, plural)
+                            else:
+                                # other disk type auto register to server
+                                vol_json = deleteLifecycleInJson(jsondict)
+                                body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
 #                     elif operation_type == 'DELETED':
 #                         if pool_name and is_volume_exists(metadata_name, pool_name):
 #                             if cmd:
@@ -1521,6 +1536,15 @@ def getPoolType(the_cmd_key, jsondict):
     else:
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No found pool type!')
 
+def getCloneDiskName(the_cmd_key, jsondict):
+    spec = jsondict['raw_object']['spec']
+    lifecycle = spec.get('lifecycle')
+
+    if lifecycle:
+        return lifecycle[the_cmd_key]['newname']
+    else:
+        raise ExecuteException('VirtctlError', 'FATAL ERROR! No found clone disk name!')
+
 def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']
     lifecycle = spec.get('lifecycle')
@@ -1561,6 +1585,13 @@ def _reportResutToVirtlet(metadata_name, body, group, version, plural):
     body = body.get('raw_object')
     try:
         client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+    except:
+        logger.error('Oops! ', exc_info=1)
+
+def addResourceToServer(new_name, body, group, version, plural):
+    body = body.get('raw_object')
+    try:
+        client.CustomObjectsApi().create_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=new_name, body=body)
     except:
         logger.error('Oops! ', exc_info=1)
 

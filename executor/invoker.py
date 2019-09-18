@@ -1479,11 +1479,9 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    if _isMergeSnapshotToTop(the_cmd_key) or _isMergeSnapshotToBase(the_cmd_key):
+    if _isMergeSnapshot(the_cmd_key):
         base = _get_field(jsondict, the_cmd_key, "base")
-        top = _get_field(jsondict, the_cmd_key, "top")
-        current = _get_field(jsondict, the_cmd_key, "current")
-        snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, base, top, current, metadata_name)
+        snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, base, metadata_name)
     return (jsondict, network_operations_queue, disk_operations_queue, snapshot_operations_queue)
 
 def _isCreatePool(the_cmd_key):
@@ -1603,13 +1601,8 @@ def _isInstallVMFromISO(the_cmd_key):
         return True
     return False
 
-def _isMergeSnapshotToTop(the_cmd_key):
-    if the_cmd_key == "mergeSnapshotToTop":
-        return True
-    return False
-
-def _isMergeSnapshotToBase(the_cmd_key):
-    if the_cmd_key == "mergeSnapshotToBase":
+def _isMergeSnapshot(the_cmd_key):
+    if the_cmd_key == "mergeSnapshot":
         return True
     return False
 
@@ -2145,8 +2138,9 @@ def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
         unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
         return [unplugDiskCmd]
     
-def _get_snapshot_operations_queue(the_cmd_key, base, top, current, metadata_name):
+def _get_snapshot_operations_queue(the_cmd_key, base, metadata_name):
     domain = Domain(_get_dom(metadata_name))
+    (disks_to_remove, snapshots_to_delete) = domain.merge_snapshot(base)
     return 
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):

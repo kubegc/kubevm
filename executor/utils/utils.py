@@ -4,7 +4,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
-from libvirt_util import get_graphics
+from libvirt_util import get_graphics, is_snapshot_exists
 
 '''
 Import python libs
@@ -604,32 +604,73 @@ class Domain(object):
 
         return disks_info
     
-    def merge_snapshot(self, current, base, top):
+    def get_snapshot_disks(self, snapshot):
+        """ Gets all domain disk as namedtuple('DiskInfo', ['device', 'file', 'format']) """
+        # root node
+        root = ElementTree.fromstring(self.libvirt_domain.snapshotLookupByName(snapshot).getXMLDesc())
+        
+        # search <disk type='file' device='disk'> entries
+        disks = root.findall("./disks/disk[@snapshot='external']")
+
+        # for every disk get drivers, sources and targets
+        drivers = [disk.find("driver").attrib for disk in disks]
+        sources = [disk.find("source").attrib for disk in disks]
+        targets = [disk.attrib for disk in disks]
+
+        # iterate drivers, sources and targets
+        if len(drivers) != len(sources) != len(targets):
+            raise RuntimeError("Drivers, sources and targets lengths are different %s:%s:%s" % (
+                len(drivers), len(sources), len(targets)))
+
+        disk_info = namedtuple('DiskInfo', ['device', 'file', 'format'])
+
+        # all disks info
+        disks_info = []
+
+        for i in range(len(sources)):
+            disks_info.append(disk_info(targets[i]["name"], sources[i]["file"], drivers[i]["type"]))
+
+        return disks_info
+    
+    def merge_snapshot(self, base):
         """ Merges base to snapshot and removes old disk files """
-        disk_to_remove = []
-        current_disk_files = [current]
-        current_disk_files += (DiskImageHelper.get_backing_files_tree(current))
-        if len(current_disk_files) == 1:
-            return disk_to_remove
-        if not top:
-            top = current_disk_files[1]
-        if not base:
-            base = current_disk_files[-1]
-        if base not in current_disk_files or top not in current_disk_files:
-            raise ExecuteException('VirtctlError', 'Wrong parameter "base" or "top", not in current tree [%s]' % " ".join(current_disk_files))
-        start_it = False
-        for disk in current_disk_files:
-            if disk == top:
-                start_it = True
-                disk_to_remove.append(disk)
-            elif disk == base:
-                break;
-            elif start_it:
-                disk_to_remove.append(disk)
+        disks = self.get_disks()
+        snapshot_disks = self.get_snapshot_disks(base)
+        disks_to_remove = ''
+        snapshots_to_delete = ''
+        for disk in disks:
+            current_disk_files = [disk.file]
+            current_disk_files += (DiskImageHelper.get_backing_files_tree(disk.file))
+            if len(current_disk_files) == 1:
+                return disks_to_remove
+            target_snapshot_disk = ''
+            for snapshot_disk in snapshot_disks:
+                if snapshot_disk.file in current_disk_files:
+                    target_snapshot_disk = snapshot_disk.file
+                else:
+                    continue
+            if not target_snapshot_disk:
+                disks_to_remove.append(a_disk for a_disk in current_disk_files)
             else:
-                continue
-        # remove old disk device files without current ones
-        return disk_to_remove
+                start_it = False
+                for a_disk in current_disk_files:
+                    if a_disk == disk.file:
+                        start_it = True
+                    elif a_disk == target_snapshot_disk:
+                        break;
+                    elif start_it:
+                        disks_to_remove += 'rm -f %s;' % a_disk
+                    else:
+                        continue
+            for disk_to_remove in disks_to_remove:
+                snapshot_name1 = os.path.basename(disk_to_remove)
+                if is_snapshot_exists(snapshot_name1, self.name):
+                    snapshots_to_delete += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name1)
+                snapshot_name2 = os.path.splitext(os.path.basename(disk_to_remove))[1]
+                if snapshot_name2 and is_snapshot_exists(snapshot_name2, self.name):
+                    snapshots_to_delete += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name2)
+            # remove old disk device files without current ones
+        return (disks_to_remove, snapshots_to_delete)
             
 class DiskImageHelper(object):
     @staticmethod
@@ -1007,9 +1048,12 @@ class CDaemon:
 if __name__ == '__main__':
 #     print(get_l3_network_info("sw121234"))
     from libvirt_util import _get_dom
+    import traceback
     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e001"))
-    print(domain.merge_snapshot("/var/lib/libvirt/images/snapshot9", None, "/var/lib/libvirt/images/snapshot6"))
-    print(domain.merge_snapshot("/var/lib/libvirt/images/snapshot9", None, None))
+    try:
+        print(domain.merge_snapshot("snapshot9"))
+    except Exception, e:
+        print e.message
 #     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}
 #     volume.get('volume').update(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
 #     print(volume)

@@ -93,8 +93,7 @@ unplugNIC = virsh detach-device
 changeNumberOfCPU = virsh setvcpus
 resizeRAM = virsh setmem
 resizeVM = virsh blockresize
-mergeSnapshotToTop = virsh blockpull
-mergeSnapshotToBase = virsh blockcommit
+mergeSnapshot = virsh blockpull
 copySnapshot = virsh blockcopy
 
 [VirtualMachineDiskSupportCmdsWithNameField]

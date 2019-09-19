@@ -1619,6 +1619,11 @@ def _isMergeSnapshot(the_cmd_key):
         return True
     return False
 
+def _isRevertVirtualMachine(the_cmd_key):
+    if the_cmd_key == "revertVirtualMachine":
+        return True
+    return False
+
 def _isDeleteVM(the_cmd_key):
     if the_cmd_key == "deleteVM":
         return True
@@ -2152,9 +2157,15 @@ def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
         return [unplugDiskCmd]
     
 def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
-    domain_obj = Domain(_get_dom(domain))
-    (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.merge_snapshot(metadata_name)
-    return [merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
+    if _isMergeSnapshot(the_cmd_key):
+        domain_obj = Domain(_get_dom(domain))
+        (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.merge_snapshot(metadata_name)
+        return [merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
+    elif _isRevertVirtualMachine(the_cmd_key):
+        domain_obj = Domain(_get_dom(domain))
+        (merge_snapshots_cmd, _, _) = domain_obj.merge_snapshot(metadata_name)
+        (revert_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name)
+        return [merge_snapshots_cmd, revert_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':

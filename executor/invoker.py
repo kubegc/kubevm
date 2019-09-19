@@ -240,7 +240,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         try:
             if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
-                (jsondict, network_operations_queue, disk_operations_queue, snapshot_operations_queue) \
+                (jsondict, network_operations_queue, disk_operations_queue) \
                     = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -331,14 +331,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         '''
                         if disk_operations_queue:
                             for operation in disk_operations_queue:
-                                logger.debug(operation)
-                                runCmd(operation)
-                                time.sleep(1)
-                        '''
-                        Run disk operations
-                        '''
-                        if snapshot_operations_queue:
-                            for operation in snapshot_operations_queue:
                                 logger.debug(operation)
                                 runCmd(operation)
                                 time.sleep(1)
@@ -863,6 +855,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                     raise ExecuteException('VirtctlError', 'error: no "domain" parameter')
                 if not is_vm_exists(vm_name):
                     raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % vm_name)
+                (jsondict, snapshot_operations_queue) = _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -888,6 +881,14 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                                 continue
                             else:
                                 raise e
+                        '''
+                        Run snapshot operations
+                        '''
+                        if snapshot_operations_queue:
+                            for operation in snapshot_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
+                                time.sleep(1)
 #                     elif operation_type == 'DELETED':
 # #                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
 #                         if cmd:
@@ -1487,11 +1488,14 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
+    return (jsondict, network_operations_queue, disk_operations_queue)
+
+def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     if _isMergeSnapshot(the_cmd_key):
         domain = _get_field(jsondict, the_cmd_key, "domain")
         snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    return (jsondict, network_operations_queue, disk_operations_queue, snapshot_operations_queue)
+    return (jsondict, snapshot_operations_queue)
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":

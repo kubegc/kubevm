@@ -503,6 +503,8 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 vol_json = deleteLifecycleInJson(jsondict)
                                 body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
                                 _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                        elif _isDeleteDisk(the_cmd_key) and disk_type == 'uus':
+                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
 #                     elif operation_type == 'DELETED':
 #                         if pool_name and is_volume_exists(metadata_name, pool_name):
 #                             if cmd:
@@ -1743,6 +1745,11 @@ def _isCloneDisk(the_cmd_key):
 
 def _isResizeDisk(the_cmd_key):
     if the_cmd_key == "resizeDisk":
+        return True
+    return False
+
+def _isDeleteDisk(the_cmd_key):
+    if the_cmd_key == "deleteDisk":
         return True
     return False
 

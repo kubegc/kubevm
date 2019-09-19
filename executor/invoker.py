@@ -1444,7 +1444,6 @@ def _vm_priori_step(the_cmd_key, jsondict):
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
     network_operations_queue = []
     disk_operations_queue = []
-    snapshot_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         '''
         Parse network configurations
@@ -1493,6 +1492,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
     return (jsondict, network_operations_queue, disk_operations_queue)
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
+    snapshot_operations_queue = []
     if _isMergeSnapshot(the_cmd_key):
         domain = _get_field(jsondict, the_cmd_key, "domain")
         snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
@@ -1750,11 +1750,6 @@ def _isCloneDisk(the_cmd_key):
 
 def _isResizeDisk(the_cmd_key):
     if the_cmd_key == "resizeDisk":
-        return True
-    return False
-
-def _isDeleteDisk(the_cmd_key):
-    if the_cmd_key == "deleteDisk":
         return True
     return False
 

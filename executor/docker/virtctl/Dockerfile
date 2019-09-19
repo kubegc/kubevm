@@ -22,6 +22,8 @@ Add kubevmm-adm /home/kubevmm/bin/
 
 Add vmm /home/kubevmm/bin/
 
+ADD kubesds-adm /home/kubevmm/bin/
+
 Add VERSION /home/kubevmm/bin
 
 RUN rm -fr /tmp/*

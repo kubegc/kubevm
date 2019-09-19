@@ -48,8 +48,14 @@ echo "--- Done: update kubeovn-adm"
 # update vmm
 echo "+++ Processing: update vmm"
 cp -f /home/kubevmm/bin/vmm /usr/bin/vmm.new
-rm -f /usr/bin/vmm /usr/bin/vmm
+rm -f /usr/bin/vmm
 mv -f /usr/bin/vmm.new /usr/bin/vmm
+echo "--- Done: update vmm"
+# update kubesds-adm
+echo "+++ Processing: update vmm"
+cp -f /home/kubevmm/bin/kubesds-adm /usr/bin/kubesds-adm.new
+rm -f /usr/bin/kubesds-adm
+mv -f /usr/bin/kubesds-adm.new /usr/bin/kubesds-adm
 echo "--- Done: update vmm"
 # apply kubevirtResource.yaml
 if [ -f "/etc/kubevmm/yamls/kubevirtResource.yaml" ];then

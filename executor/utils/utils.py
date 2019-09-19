@@ -651,7 +651,9 @@ class Domain(object):
                 continue
             base_disk = ''
             for snapshot_disk in snapshot_disks:
-                if snapshot_disk.file in current_disk_files:
+                if snapshot_disk.file == disk.file:
+                    raise ExecuteException('VirtctlError', '400, Bad Request! Cannot merge current disk %s to itself.' % snapshot_disk.file)
+                elif snapshot_disk.file in current_disk_files:
                     base_disk = DiskImageHelper.get_backing_file(snapshot_disk.file)
                 else:
                     continue
@@ -700,8 +702,10 @@ class Domain(object):
                 continue
             base_disk = ''
             for snapshot_disk in snapshot_disks:
-                if snapshot_disk.file in current_disk_files:
-                    base_disk = DiskImageHelper.get_backing_file(snapshot_disk.file)
+                if snapshot_disk.file == disk.file:
+                    raise ExecuteException('VirtctlError', '400, Bad Request! Cannot revert current disk %s to itself.' % snapshot_disk.file)
+                elif snapshot_disk.file in current_disk_files:
+                    base_disk = snapshot_disk.file
                 else:
                     continue
             if not base_disk:
@@ -714,13 +718,14 @@ class Domain(object):
                     if a_disk == base_disk:
                         start_it = True
                     elif a_disk == disk.file:
+                        disks_to_remove.append(a_disk)
                         break;
                     elif start_it:
+                        self.verify_disk_write_lock(a_disk)
                         disks_to_remove.append(a_disk)
                     else:
                         continue
         for disk_to_remove in disks_to_remove:
-            self.verify_disk_write_lock(disk_to_remove)
             disks_to_remove_cmd += 'rm -f %s;' % disk_to_remove
             snapshot_name = os.path.basename(disk_to_remove)
             if not is_snapshot_exists(snapshot_name, self.name):
@@ -1112,8 +1117,8 @@ if __name__ == '__main__':
     from libvirt_util import _get_dom
     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e001"))
     try:
-        print(domain.merge_snapshot("snapshot1"))
-        print(domain.revert_snapshot("snapshot1"))
+        print(domain.merge_snapshot("snapshot3"))
+        print(domain.revert_snapshot("snapshot3"))
     except Exception, e:
         print e.message
 #     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}

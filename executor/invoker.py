@@ -1488,8 +1488,8 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
     if _isMergeSnapshot(the_cmd_key):
-        base = _get_field(jsondict, the_cmd_key, "base")
-        snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, base, metadata_name)
+        domain = _get_field(jsondict, the_cmd_key, "domain")
+        snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, network_operations_queue, disk_operations_queue, snapshot_operations_queue)
 
@@ -2147,9 +2147,9 @@ def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
         unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
         return [unplugDiskCmd]
     
-def _get_snapshot_operations_queue(the_cmd_key, base, metadata_name):
-    domain = Domain(_get_dom(metadata_name))
-    (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain.merge_snapshot(base)
+def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
+    domain_obj = Domain(_get_dom(domain))
+    (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.merge_snapshot(metadata_name)
     return [merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):

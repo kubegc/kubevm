@@ -93,8 +93,6 @@ unplugNIC = virsh detach-device
 changeNumberOfCPU = virsh setvcpus
 resizeRAM = virsh setmem
 resizeVM = virsh blockresize
-mergeSnapshot = virsh blockpull
-copySnapshot = virsh blockcopy
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskSnapshot = /usr/bin/vmm create_disk_snapshot
@@ -119,6 +117,8 @@ createSnapshot = virsh snapshot-create-as
 [VirtualMachineSnapshotSupportCmdsWithSnapNameField]
 revertVirtualMachine = virsh snapshot-revert
 deleteSnapshot = virsh snapshot-delete
+mergeSnapshot = virsh blockpull
+copySnapshot = virsh blockcopy
 
 [VirtualMachineImageSupportCmdsWithNameField]
 createImage = virt-install

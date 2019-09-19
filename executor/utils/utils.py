@@ -633,16 +633,13 @@ class Domain(object):
         return disks_info
     
     def verify_disk_write_lock(self, file_path):
-        DiskImageHelper.get_backing_file(file_path)
-        return
+        backing_file = DiskImageHelper.get_backing_file(file_path, True)
+        return backing_file
     
-    def merge_snapshot(self, base=None):
+    def merge_snapshot(self, base):
         """ Merges base to snapshot and removes old disk files """
         disks = self.get_disks()
-        if base:
-            snapshot_disks = self.get_snapshot_disks(base)
-        else:
-            snapshot_disks = []
+        snapshot_disks = self.get_snapshot_disks(base)
         disks_to_remove = []
         merge_snapshots_cmd = ''
         disks_to_remove_cmd = ''
@@ -653,14 +650,11 @@ class Domain(object):
             if len(current_disk_files) == 1:
                 continue
             base_disk = ''
-            if not snapshot_disks:
-                base_disk = current_disk_files[-1]
-            else:
-                for snapshot_disk in snapshot_disks:
-                    if snapshot_disk.file in current_disk_files:
-                        base_disk = snapshot_disk.file
-                    else:
-                        continue
+            for snapshot_disk in snapshot_disks:
+                if snapshot_disk.file in current_disk_files:
+                    base_disk = DiskImageHelper.get_backing_file(snapshot_disk.file)
+                else:
+                    continue
             if not base_disk:
 #                 disks_to_remove.append(a_disk for a_disk in current_disk_files)
                 continue
@@ -1063,8 +1057,6 @@ class CDaemon:
     def run(self, *args, **kwargs):
         'NOTE: override the method in subclass'
         print 'base class run()'
-
-
 
 if __name__ == '__main__':
 #     print(get_l3_network_info("sw121234"))

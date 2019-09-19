@@ -1493,7 +1493,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     snapshot_operations_queue = []
-    if _isMergeSnapshot(the_cmd_key):
+    if _isMergeSnapshot(the_cmd_key) or _isRevertVirtualMachine(the_cmd_key):
         domain = _get_field(jsondict, the_cmd_key, "domain")
         snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)

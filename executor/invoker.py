@@ -451,6 +451,8 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
     #             except:
     #                 logger.warning('Oops! ', exc_info=1)
                 try:
+                    if disk_type is None or pool_name is None:
+                        raise ExecuteException('VirtctlError', "disk type and pool must be set")
                     if operation_type == 'ADDED':
                         if cmd:
                             result, data = None, None

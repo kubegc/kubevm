@@ -6,7 +6,7 @@ RUN yum install virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++
 
 RUN pip install --upgrade pip
 
-RUN pip install --ignore-installed kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller
+RUN pip install --ignore-installed kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil
 
 RUN yum clean all
 

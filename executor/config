@@ -95,9 +95,12 @@ resizeRAM = virsh setmem
 resizeVM = virsh blockresize
 
 [VirtualMachineDiskSupportCmdsWithNameField]
-createDiskSnapshot = /usr/bin/vmm create_disk_snapshot
-deleteDiskSnapshot = /usr/bin/vmm delete_disk_snapshot
-revertDiskSnapshot = /usr/bin/vmm revert_disk_snapshot
+createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
+createDiskExternalSnapshot = kubesds-adm createDisk
+deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
+deleteDiskExternalSnapshot = kubesds-adm deleteDisk
+revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_snapshot
+revertDiskExternalSnapshot = qemu-img commit
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
 convertDiskToDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 

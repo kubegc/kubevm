@@ -41,12 +41,12 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
+from utils.libvirt_util import _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
     undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, \
     is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import Domain, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success
 
@@ -240,7 +240,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         try:
             if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
-                (jsondict, network_operations_queue, disk_operations_queue) = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
+                (jsondict, network_operations_queue, disk_operations_queue) \
+                    = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 involved_object_name = metadata_name
@@ -440,7 +441,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 except:
                     logger.error('Oops! ', exc_info=1)
                 pool_name = _get_field(jsondict, the_cmd_key, 'pool')
-                pool_type = _get_field(jsondict, the_cmd_key, 'type')
+                disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -450,11 +451,20 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
     #             except:
     #                 logger.warning('Oops! ', exc_info=1)
                 try:
+                    if disk_type is None or pool_name is None:
+                        raise ExecuteException('VirtctlError', "disk type and pool must be set")
                     if operation_type == 'ADDED':
                         if cmd:
-                            result, diskdict = runCmdWithResult(cmd)
-                            if result['code'] != 0:
-                                raise ExecuteException('VirtctlError', result['msg'])
+                            result, data = None, None
+                            if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                                result, data = runCmdWithResult(cmd)
+                                if result['code'] != 0:
+                                    raise ExecuteException('VirtctlError', result['msg'])
+                            else:
+                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                            vol_json = updateJsonRemoveLifecycle(jsondict, data)
+                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     elif operation_type == 'MODIFIED':
                         result, data = None, None
                         try:
@@ -462,7 +472,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             if result['code'] != 0:
                                 raise ExecuteException('VirtctlError', result['msg'])
                         except Exception, e:
-                            if _isDeleteDisk(the_cmd_key) and not is_kubesds_vol_exists(pool_type, pool_name, metadata_name):
+                            if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
                                 jsondict = deleteLifecycleInJson(jsondict)
                                 modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -472,10 +482,31 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             else:
                                 raise e
                         # update disk info
-                        if _isCloneDisk(the_cmd_key) or _isResizeDisk(the_cmd_key):
+                        if _isResizeDisk(the_cmd_key):
                             vol_json = updateJsonRemoveLifecycle(jsondict, data)
                             body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                        elif _isCloneDisk(the_cmd_key):
+                            if disk_type == 'uus':
+                                # uus disk type register to server by hand
+                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                if result['code'] == 0:
+                                    newname = getCloneDiskName(the_cmd_key, jsondict)
+                                    jsoncopy = jsondict.copy()
+                                    jsoncopy['kind'] = 'VirtualMachineDisk'
+                                    jsoncopy['metadata']['kind'] = 'VirtualMachineDisk'
+                                    jsoncopy['metadata']['name'] = newname
+                                    del jsoncopy['metadata']['resourceVersion']
+                                    del jsoncopy['spec']['lifecycle']
+                                    jsoncopy['spec']['volume'] = data
+                                    addResourceToServer(newname, jsoncopy, group, version, plural)
+                            else:
+                                # other disk type auto register to server
+                                vol_json = deleteLifecycleInJson(jsondict)
+                                body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                        elif _isDeleteDisk(the_cmd_key) and disk_type == 'uus':
+                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
 #                     elif operation_type == 'DELETED':
 #                         if pool_name and is_volume_exists(metadata_name, pool_name):
 #                             if cmd:
@@ -828,6 +859,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                     raise ExecuteException('VirtctlError', 'error: no "domain" parameter')
                 if not is_vm_exists(vm_name):
                     raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % vm_name)
+                (jsondict, snapshot_operations_queue) = _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -853,6 +885,14 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                                 continue
                             else:
                                 raise e
+                        '''
+                        Run snapshot operations
+                        '''
+                        if snapshot_operations_queue:
+                            for operation in snapshot_operations_queue:
+                                logger.debug(operation)
+                                runCmd(operation)
+                                time.sleep(1)
 #                     elif operation_type == 'DELETED':
 # #                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
 #                         if cmd:
@@ -1192,15 +1232,17 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     if operation_type == 'ADDED':
                         # judge pool path exist or not
 
-                        POOL_PATH = getPoolPathWhenCreate(jsondict)
-                        # file_dir = os.path.split(POOL_PATH)[0]
-                        if not os.path.isdir(POOL_PATH):
-                            os.makedirs(POOL_PATH)
+                        # POOL_PATH = getPoolPathWhenCreate(jsondict)
+                        # # file_dir = os.path.split(POOL_PATH)[0]
+                        # if not os.path.isdir(POOL_PATH):
+                        #     os.makedirs(POOL_PATH)
                         result, poolJson = None, None
                         if not is_kubesds_pool_exists(pool_type, pool_name):
                             result, poolJson = runCmdWithResult(cmd)
+                            logger.debug('create pool')
                         else:
                             result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
+                            logger.debug('get pool info')
                         if result['code'] == 0:
                             write_result_to_server(group, version, 'default', plural,
                                                    involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
@@ -1217,6 +1259,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
+                                else:
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                    return
                             else:
                                 if pool_type == 'uus':
                                     pass
@@ -1307,7 +1352,7 @@ def is_kubesds_pool_exists(type, pool):
         return True
     return False
 
-def is_kubesds_vol_exists(type, pool, vol):
+def is_kubesds_disk_exists(type, pool, vol):
     result, poolJson = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
     if result['code'] == 0:
         return True
@@ -1315,6 +1360,9 @@ def is_kubesds_vol_exists(type, pool, vol):
 
 def get_kubesds_pool_info(type, pool):
     return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
+
+def get_kubesds_disk_info(type, pool, vol):
+    return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
 
 def get_cmd(jsondict, the_cmd_key):
     cmd = None
@@ -1445,6 +1493,14 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, network_operations_queue, disk_operations_queue)
 
+def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
+    snapshot_operations_queue = []
+    if _isMergeSnapshot(the_cmd_key) or _isRevertVirtualMachine(the_cmd_key):
+        domain = _get_field(jsondict, the_cmd_key, "domain")
+        snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
+    return (jsondict, snapshot_operations_queue)
+
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":
         return True
@@ -1495,6 +1551,15 @@ def getPoolType(the_cmd_key, jsondict):
     else:
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No found pool type!')
 
+def getCloneDiskName(the_cmd_key, jsondict):
+    spec = jsondict['raw_object']['spec']
+    lifecycle = spec.get('lifecycle')
+
+    if lifecycle:
+        return lifecycle[the_cmd_key]['newname']
+    else:
+        raise ExecuteException('VirtctlError', 'FATAL ERROR! No found clone disk name!')
+
 def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']
     lifecycle = spec.get('lifecycle')
@@ -1538,11 +1603,28 @@ def _reportResutToVirtlet(metadata_name, body, group, version, plural):
     except:
         logger.error('Oops! ', exc_info=1)
 
+def addResourceToServer(new_name, body, group, version, plural):
+    body = body.get('raw_object')
+    try:
+        client.CustomObjectsApi().create_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=new_name, body=body)
+    except:
+        logger.error('Oops! ', exc_info=1)
+
 '''
 Install VM from ISO.
 '''
 def _isInstallVMFromISO(the_cmd_key):
     if the_cmd_key == "createAndStartVMFromISO":
+        return True
+    return False
+
+def _isMergeSnapshot(the_cmd_key):
+    if the_cmd_key == "mergeSnapshot":
+        return True
+    return False
+
+def _isRevertVirtualMachine(the_cmd_key):
+    if the_cmd_key == "revertVirtualMachine":
         return True
     return False
 
@@ -2077,6 +2159,17 @@ def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
     elif _isUnplugDisk(the_cmd_key):
         unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
         return [unplugDiskCmd]
+    
+def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
+    if _isMergeSnapshot(the_cmd_key):
+        domain_obj = Domain(_get_dom(domain))
+        (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.merge_snapshot(metadata_name)
+        return [merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
+    elif _isRevertVirtualMachine(the_cmd_key):
+        domain_obj = Domain(_get_dom(domain))
+        (merge_snapshots_cmd, _, _) = domain_obj.merge_snapshot(metadata_name)
+        (revert_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name)
+        return [merge_snapshots_cmd, revert_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':
@@ -2318,6 +2411,7 @@ Run back-end command in subprocess.
 '''
 def runCmdWithResult(cmd):
     std_err = None
+    logger.debug(cmd)
     if not cmd:
         #         logger.debug('No CMD to execute.')
         return

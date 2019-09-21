@@ -93,14 +93,14 @@ unplugNIC = virsh detach-device
 changeNumberOfCPU = virsh setvcpus
 resizeRAM = virsh setmem
 resizeVM = virsh blockresize
-mergeSnapshotToTop = virsh blockpull
-mergeSnapshotToBase = virsh blockcommit
-copySnapshot = virsh blockcopy
 
 [VirtualMachineDiskSupportCmdsWithNameField]
-createDiskSnapshot = /usr/bin/vmm create_disk_snapshot
-deleteDiskSnapshot = /usr/bin/vmm delete_disk_snapshot
-revertDiskSnapshot = /usr/bin/vmm revert_disk_snapshot
+createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
+createDiskExternalSnapshot = kubesds-adm createDisk
+deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
+deleteDiskExternalSnapshot = kubesds-adm deleteDisk
+revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_snapshot
+revertDiskExternalSnapshot = qemu-img commit
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
 convertDiskToDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 
@@ -120,6 +120,8 @@ createSnapshot = virsh snapshot-create-as
 [VirtualMachineSnapshotSupportCmdsWithSnapNameField]
 revertVirtualMachine = virsh snapshot-revert
 deleteSnapshot = virsh snapshot-delete
+mergeSnapshot = virsh blockpull
+copySnapshot = virsh blockcopy
 
 [VirtualMachineImageSupportCmdsWithNameField]
 createImage = virt-install

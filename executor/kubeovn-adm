@@ -197,12 +197,14 @@ function unbind-swport()
 
 function setport-vlan()
 {
+	switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
   mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
   vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $mac || -z $vlan || $2 == "--help" ]]
+if [[ -z $1 || -z $switch || -z $mac || -z $vlan || $2 == "--help" ]]
   then
     cmddesc
+    echo -e "--switch    \tswitch name" >&2
     echo -e "--mac      \tvirtual NIC mac" >&2
     echo -e "--vlan      \tvlan id" >&2
     exit 1
@@ -223,11 +225,13 @@ function setport-vlan()
 
 function delport-vlan()
 {
+	switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
   mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $mac || $2 == "--help" ]]
+  if [[ -z $1 || -z $switch || -z $mac || $2 == "--help" ]]
   then
     cmddesc
+    echo -e "--switch    \tswitch name" >&2
     echo -e "--mac      \tvirtual NIC mac" >&2
     exit 1
   fi

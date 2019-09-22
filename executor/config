@@ -96,9 +96,7 @@ resizeVM = virsh blockresize
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
-createDiskExternalSnapshot = kubesds-adm createDisk
 deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
-deleteDiskExternalSnapshot = kubesds-adm deleteDisk
 revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_snapshot
 revertDiskExternalSnapshot = qemu-img commit
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
@@ -109,10 +107,12 @@ createUITDisk = /bin/bash /usr/bin/fucli
 deleteUITDisk = /bin/bash /usr/bin/ducli
 
 [VirtualMachineDiskSupportCmdsWithVolField]
+createDiskExternalSnapshot = kubesds-adm createDisk
 createDisk = kubesds-adm createDisk
 resizeDisk = kubesds-adm resizeDisk
 cloneDisk = kubesds-adm cloneDisk
 deleteDisk = kubesds-adm deleteDisk
+deleteDiskExternalSnapshot = kubesds-adm deleteDisk
 
 [VirtualMachineSnapshotSupportCmdsWithNameField]
 createSnapshot = virsh snapshot-create-as

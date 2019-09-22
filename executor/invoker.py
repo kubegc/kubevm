@@ -462,8 +462,9 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                     raise ExecuteException('VirtctlError', result['msg'])
                             else:
                                 result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                            vol_json = updateJsonRemoveLifecycle(jsondict, data)
-                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            del jsondict['spec']['lifecycle']
+                            jsondict['spec']['volume'] = data
+                            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     elif operation_type == 'MODIFIED':
                         result, data = None, None
@@ -483,8 +484,9 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 raise e
                         # update disk info
                         if _isResizeDisk(the_cmd_key):
-                            vol_json = updateJsonRemoveLifecycle(jsondict, data)
-                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            del jsondict['spec']['lifecycle']
+                            jsondict['spec']['volume'] = data
+                            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
                         elif _isCloneDisk(the_cmd_key):
                             if disk_type == 'uus':

@@ -867,7 +867,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                     raise ExecuteException('VirtctlError', 'error: no "domain" parameter')
                 if not is_vm_exists(vm_name):
                     raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % vm_name)
-                (jsondict, snapshot_operations_queue) = _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name)
+                (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue) = _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -897,9 +897,24 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                         Run snapshot operations
                         '''
                         if snapshot_operations_queue:
+                            index = 0
                             for operation in snapshot_operations_queue:
                                 logger.debug(operation)
-                                runCmd(operation)
+                                try:
+                                    runCmd(operation)
+                                except ExecuteException, e:
+                                    if index >= len(snapshot_operations_rollback_queue):
+                                        index = len(snapshot_operations_rollback_queue)
+                                    snapshot_operations_rollback_queue = snapshot_operations_rollback_queue[:index]
+                                    snapshot_operations_rollback_queue.reverse()
+                                    for operation in snapshot_operations_rollback_queue:
+                                        logger.debug("do rollback: %s" % operation)
+                                        try:
+                                            runCmd(operation)
+                                        except:
+                                            logger.debug('Oops! ', exc_info=1)
+                                    raise e
+                                index += 1
                                 time.sleep(1)
 #                     elif operation_type == 'DELETED':
 # #                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
@@ -1503,6 +1518,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     snapshot_operations_queue = []
+    snapshot_operations_rollback_queue = []
     if _isMergeSnapshot(the_cmd_key) or _isRevertVirtualMachine(the_cmd_key):
         logger.debug(jsondict)
         domain = _get_field(jsondict, the_cmd_key, "domain")
@@ -1511,9 +1527,9 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
             return (jsondict, [])
         elif isExternal and is_vm_active(domain):
             raise ExecuteException('VirtctlError', '400, Bad Request. Cannot revert external snapshot when vm is running.')
-        snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
+        (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    return (jsondict, snapshot_operations_queue)
+    return (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue)
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":
@@ -2178,12 +2194,12 @@ def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
     if _isMergeSnapshot(the_cmd_key):
         domain_obj = Domain(_get_dom(domain))
         (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.merge_snapshot(metadata_name)
-        return [merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
+        return ([merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd], [])
     elif _isRevertVirtualMachine(the_cmd_key):
         domain_obj = Domain(_get_dom(domain))
 #         (merge_snapshots_cmd, _, _) = domain_obj.merge_snapshot(metadata_name)
-        (unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name)
-        return [unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
+        (unplug_disks_cmd, unplug_disks_rollback_cmd, plug_disks_cmd, plug_disks_rollback_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name)
+        return ([unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd], [unplug_disks_rollback_cmd, plug_disks_rollback_cmd])
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':

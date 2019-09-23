@@ -692,7 +692,9 @@ class Domain(object):
         disks = self.get_disks()
         snapshot_disks = self.get_snapshot_disks(snapshot)
         unplug_disks_cmd = ''
+        unplug_disks_rollback_cmd = ''
         plug_disks_cmd = ''
+        plug_disks_rollback_cmd = ''
         disks_to_remove = []
 #         revert_snapshot_cmd = 'virsh snapshot-revert --domain %s --snapshotname %s' % (self.name, snapshot)
         disks_to_remove_cmd = ''
@@ -703,11 +705,13 @@ class Domain(object):
             if len(current_disk_files) == 1:
                 continue
             base_disk = ''
+            base_disk_target = ''
             for snapshot_disk in snapshot_disks:
                 if snapshot_disk.file == disk.file:
                     raise ExecuteException('VirtctlError', '400, Bad Request! Cannot revert current disk %s to itself.' % snapshot_disk.file)
                 elif snapshot_disk.file in current_disk_files:
                     base_disk = snapshot_disk.file
+                    base_disk_target = snapshot_disk.device
                 else:
                     continue
             if not base_disk:
@@ -728,7 +732,9 @@ class Domain(object):
                     else:
                         continue
                 unplug_disks_cmd += 'virsh detach-disk --domain %s --target %s --config;' % (self.name, disk.file)
-                plug_disks_cmd += 'virsh detach-disk --domain %s --target %s --config;' % (self.name, base_disk)
+                unplug_disks_rollback_cmd += 'virsh attach-disk --domain %s --source %s --target %s --config;' % (self.name, disk.file, disk.device)
+                plug_disks_cmd += 'virsh attach-disk --domain %s --source %s --target %s --config;' % (self.name, base_disk, base_disk_target)
+                plug_disks_rollback_cmd += 'virsh detach-disk --domain %s --target %s --config;' % (self.name, base_disk)
         for disk_to_remove in disks_to_remove:
             disks_to_remove_cmd += 'rm -f %s;' % disk_to_remove
             snapshot_name = os.path.basename(disk_to_remove)
@@ -741,7 +747,7 @@ class Domain(object):
                 else:
                     snapshots_to_delete_cmd += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name)
             # remove old disk device files without current ones
-        return (unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd)
+        return (unplug_disks_cmd, unplug_disks_rollback_cmd, plug_disks_cmd, plug_disks_rollback_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd)
             
 class DiskImageHelper(object):
     @staticmethod

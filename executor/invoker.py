@@ -444,6 +444,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+                if cmd.find('backing-vol-format') >= 0:
+                    cmd = cmd.replace('backing-vol-format', 'backing_vol_format')
+                if cmd.find('backing-vol') >= 0:
+                    cmd = cmd.replace('backing-vol', 'backing_vol')
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
     #             body = jsondict['raw_object']
     #             try:
@@ -457,10 +461,6 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if cmd:
                             result, data = None, None
                             if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
-                                if cmd.find('backing-vol-format') >= 0:
-                                    cmd.replace('backing-vol-format', 'backing_vol_format')
-                                if cmd.find('backing-vol') >= 0:
-                                    cmd.replace('backing-vol', 'backing_vol')
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])

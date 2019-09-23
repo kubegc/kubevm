@@ -727,8 +727,8 @@ class Domain(object):
                         disks_to_remove.append(a_disk)
                     else:
                         continue
-                unplug_disks_cmd += 'virsh unplug-disk --domain %s --target %s --config;' % (self.name, disk.file)
-                plug_disks_cmd += 'virsh plug-disk --domain %s --target %s --config;' % (self.name, base_disk)
+                unplug_disks_cmd += 'virsh detach-disk --domain %s --target %s --config;' % (self.name, disk.file)
+                plug_disks_cmd += 'virsh detach-disk --domain %s --target %s --config;' % (self.name, base_disk)
         for disk_to_remove in disks_to_remove:
             disks_to_remove_cmd += 'rm -f %s;' % disk_to_remove
             snapshot_name = os.path.basename(disk_to_remove)

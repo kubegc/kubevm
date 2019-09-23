@@ -2189,8 +2189,12 @@ def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
 def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':
         file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
+        if not os.path.exists(file_path):
+            file_path = _createNICXml(metadata_name, data)
     elif device_type == 'disk':
         file_path = '%s/%s-disk-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('target'))
+        if not os.path.exists(file_path):
+            file_path = _createDiskXml(metadata_name, data)
     return 'virsh detach-device --domain %s --file %s %s %s' % (metadata_name, file_path, live, config)
 
 def _createNICFromXml(metadata_name, jsondict, the_cmd_key):

@@ -457,6 +457,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if cmd:
                             result, data = None, None
                             if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                                if cmd.find('backing-vol-format') >= 0:
+                                    cmd.replace('backing-vol-format', 'backing_vol_format')
+                                if cmd.find('backing-vol') >= 0:
+                                    cmd.replace('backing-vol', 'backing_vol')
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])

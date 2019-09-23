@@ -869,4 +869,5 @@ if __name__ == '__main__':
 #     print list_all_volumes()
 #     print list_volumes('vmdi')
 #     print(list_volumes('volumes'))
-#     print(get_volume_xml('volumes', 'ddd.qcow2'))
+    vol_xml = get_volume_xml('poolb', 'diskass')
+    print vol_xml

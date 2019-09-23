@@ -1448,7 +1448,8 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))
         else:
             jsonDict = addPowerStatusMessage(jsonDict, 'Ready', 'The resource is ready.')
-        del jsonDict['spec']['lifecycle']
+        if jsonDict['spec'].get('lifecycle'):
+            del jsonDict['spec']['lifecycle']
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
 

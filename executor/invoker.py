@@ -1504,7 +1504,13 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     snapshot_operations_queue = []
     if _isMergeSnapshot(the_cmd_key) or _isRevertVirtualMachine(the_cmd_key):
+        logger.debug(jsondict)
         domain = _get_field(jsondict, the_cmd_key, "domain")
+        isExternal = _get_field(jsondict, the_cmd_key, "is_external")
+        if not isExternal:
+            return (jsondict, [])
+        elif isExternal and is_vm_active(domain):
+            raise ExecuteException('VirtctlError', '400, Bad Request. Cannot revert external snapshot when vm is running.')
         snapshot_operations_queue = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, snapshot_operations_queue)
@@ -2175,9 +2181,9 @@ def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
         return [merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
     elif _isRevertVirtualMachine(the_cmd_key):
         domain_obj = Domain(_get_dom(domain))
-        (merge_snapshots_cmd, _, _) = domain_obj.merge_snapshot(metadata_name)
-        (revert_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name)
-        return [merge_snapshots_cmd, revert_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
+#         (merge_snapshots_cmd, _, _) = domain_obj.merge_snapshot(metadata_name)
+        (unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name)
+        return [unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd]
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':
@@ -2302,7 +2308,7 @@ def _updateRootDiskInJson(jsondict, the_cmd_key, metadata_name):
                             new_path = '%s/%s' % (DEFAULT_STORAGE_DIR, metadata_name)
                             new_v = v.replace('ROOTDISK', new_path)
                         else:
-                            raise ExecuteException('VirtctlError', '400, Bad Reqeust. Non-supported parameter "%s".' % v)
+                            raise ExecuteException('VirtctlError', '400, Bad Request. Non-supported parameter "%s".' % v)
                         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = new_v
                     elif k == 'cdrom':
                         del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]

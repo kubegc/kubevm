@@ -691,8 +691,10 @@ class Domain(object):
         """ Revert snapshot and removes invalid snapshots and their disk files """
         disks = self.get_disks()
         snapshot_disks = self.get_snapshot_disks(snapshot)
+        unplug_disks_cmd = ''
+        plug_disks_cmd = ''
         disks_to_remove = []
-        revert_snapshot_cmd = 'virsh snapshot-revert --domain %s --snapshotname %s' % (self.name, snapshot)
+#         revert_snapshot_cmd = 'virsh snapshot-revert --domain %s --snapshotname %s' % (self.name, snapshot)
         disks_to_remove_cmd = ''
         snapshots_to_delete_cmd = ''
         for disk in disks:
@@ -725,6 +727,8 @@ class Domain(object):
                         disks_to_remove.append(a_disk)
                     else:
                         continue
+                unplug_disks_cmd += 'virsh unplug-disk --domain %s --target %s --config;' % (self.name, disk.file)
+                plug_disks_cmd += 'virsh plug-disk --domain %s --target %s --config;' % (self.name, base_disk)
         for disk_to_remove in disks_to_remove:
             disks_to_remove_cmd += 'rm -f %s;' % disk_to_remove
             snapshot_name = os.path.basename(disk_to_remove)
@@ -737,7 +741,7 @@ class Domain(object):
                 else:
                     snapshots_to_delete_cmd += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name)
             # remove old disk device files without current ones
-        return (revert_snapshot_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd)
+        return (unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd)
             
 class DiskImageHelper(object):
     @staticmethod

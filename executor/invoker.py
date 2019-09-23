@@ -921,6 +921,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
+                    write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1152,7 +1153,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         if cmd:
                             runCmd(cmd)
                     status = 'Done(Success)'
-                    write_result_to_server(GROUP_VM_NETWORK, VERSION_VM_NETWORK, 'default', PLURAL_VM_NETWORK, metadata_name)
+                    write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1520,7 +1521,6 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     snapshot_operations_queue = []
     snapshot_operations_rollback_queue = []
     if _isMergeSnapshot(the_cmd_key) or _isRevertVirtualMachine(the_cmd_key):
-        logger.debug(jsondict)
         domain = _get_field(jsondict, the_cmd_key, "domain")
         isExternal = _get_field(jsondict, the_cmd_key, "isExternal")
         if not isExternal:

@@ -48,7 +48,7 @@ from utils import logger
 from utils.uit_utils import is_block_dev_exists
 from utils.utils import Domain, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
-    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success
+    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec
 
 
 class parser(ConfigParser.ConfigParser):
@@ -457,13 +457,19 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if cmd:
                             result, data = None, None
                             if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                                if cmd.find('backing-vol-format') >= 0:
+                                    cmd.replace('backing-vol-format', 'backing_vol_format')
+                                if cmd.find('backing-vol') >= 0:
+                                    cmd.replace('backing-vol', 'backing_vol')
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
                             else:
                                 result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                            vol_json = updateJsonRemoveLifecycle(jsondict, data)
-                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            logger.debug(jsondict)
+                            del jsondict['raw_object']['spec']['lifecycle']
+                            jsondict['raw_object']['spec']['volume'] = data
+                            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     elif operation_type == 'MODIFIED':
                         result, data = None, None
@@ -483,22 +489,24 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 raise e
                         # update disk info
                         if _isResizeDisk(the_cmd_key):
-                            vol_json = updateJsonRemoveLifecycle(jsondict, data)
-                            body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
+                            del jsondict['raw_object']['spec']['lifecycle']
+                            jsondict['raw_object']['spec']['volume'] = data
+                            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                             _reportResutToVirtlet(metadata_name, body, group, version, plural)
                         elif _isCloneDisk(the_cmd_key):
                             if disk_type == 'uus':
                                 # uus disk type register to server by hand
                                 result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                                 if result['code'] == 0:
+                                    del jsondict['raw_object']['spec']['lifecycle']
+
                                     newname = getCloneDiskName(the_cmd_key, jsondict)
                                     jsoncopy = jsondict.copy()
-                                    jsoncopy['kind'] = 'VirtualMachineDisk'
-                                    jsoncopy['metadata']['kind'] = 'VirtualMachineDisk'
-                                    jsoncopy['metadata']['name'] = newname
+                                    jsoncopy['raw_object']['kind'] = 'VirtualMachineDisk'
+                                    jsoncopy['raw_object']['metadata']['kind'] = 'VirtualMachineDisk'
+                                    jsoncopy['raw_object']['metadata']['name'] = newname
                                     del jsoncopy['metadata']['resourceVersion']
-                                    del jsoncopy['spec']['lifecycle']
-                                    jsoncopy['spec']['volume'] = data
+                                    jsoncopy['raw_object']['spec']['volume'] = data
                                     addResourceToServer(newname, jsoncopy, group, version, plural)
                             else:
                                 # other disk type auto register to server

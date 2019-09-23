@@ -105,10 +105,17 @@ def stop(ignore_warning=False):
             print('warning: %s\n' % (virtlet_err))
     if virtctl_err or virtlet_err:
         sys.exit(1)
+        
+def restart_kubesds_rpc():
+    (_, _err) = runCmd('kubesds-rpc restart')
+    if _err:
+        print('warning: %s\n' % (_err))
+        sys.exit(1)
 
 def restart(ignore_warning=False):
     stop(ignore_warning=ignore_warning)
     start(ignore_warning=ignore_warning)
+    restart_kubesds_rpc()
 
 def status(print_result=False, ignore_warning=False):
     (virtctl_running_version, virtlet_running_version) = check_version(ignore_warning=ignore_warning)
@@ -150,6 +157,7 @@ def update_online(version='latest'):
     stop(ignore_warning=True)
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
+    restart_kubesds_rpc()
 
 def update_offline(pack, ignore_warning=True):
     print('updating from package \'%s\'' % pack)

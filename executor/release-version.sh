@@ -65,8 +65,17 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <kubesds-adm>."
 fi
+pyinstaller -F kubesds-rpc.py
+if [ $? -ne 0 ]; then
+    echo "    Failed to compile <kubesds-rpc>!"
+    exit 1
+else
+    echo "    Success compile <kubesds-rpc>."
+fi
 cp -f ./dist/kubesds-adm ../docker/virtctl
 cp -f ./dist/kubesds-adm ../dist
+cp -f ./dist/kubesds-rpc ../docker/virtctl
+cp -f ./dist/kubesds-rpc ../dist
 cd ..
 rm -rf ./kubeSDS
 

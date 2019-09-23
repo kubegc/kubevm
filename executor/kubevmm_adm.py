@@ -81,6 +81,7 @@ def start(ignore_warning=False, update_stuff=False, version=VERSION):
             print('error: a different version of service \'virtlet(%s)\' is running in container \'%s\'\n' % (virtlet_running_version, str(virtlet_container_id)))
         else:
             print('do noting: service \'virtlet\' is running in container \'%s\'\n' % str(virtlet_container_id))
+    runCmd('kubesds-rpc start')
     if virtctl_err or virtlet_err:
         sys.exit(1)
 
@@ -103,19 +104,20 @@ def stop(ignore_warning=False):
         (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
         if virtlet_err:
             print('warning: %s\n' % (virtlet_err))
+    runCmd('kubesds-rpc stop')
     if virtctl_err or virtlet_err:
         sys.exit(1)
         
-def restart_kubesds_rpc():
+def restart_kubesds_rpc(ignore_warning=False):
     (_, _err) = runCmd('kubesds-rpc restart')
-    if _err:
+    if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
         sys.exit(1)
 
 def restart(ignore_warning=False):
     stop(ignore_warning=ignore_warning)
     start(ignore_warning=ignore_warning)
-    restart_kubesds_rpc()
+    restart_kubesds_rpc(ignore_warning=ignore_warning)
 
 def status(print_result=False, ignore_warning=False):
     (virtctl_running_version, virtlet_running_version) = check_version(ignore_warning=ignore_warning)
@@ -138,6 +140,8 @@ def status(print_result=False, ignore_warning=False):
             print('service \'virtlet\' is not running')
         else:
             print('service \'virtlet(%s)\' is running in container \'%s\'' % (virtlet_running_version, str(virtlet_container_id)))
+        (kubesds_rpc_status, _) =  runCmd('kubesds-rpc status')
+        print('service \'kubesds-rpc\' %s' % kubesds_rpc_status)
     if virtctl_err or virtlet_err:
         sys.exit(1)
     return (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version)
@@ -157,7 +161,7 @@ def update_online(version='latest'):
     stop(ignore_warning=True)
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
-    restart_kubesds_rpc()
+    restart_kubesds_rpc(ignore_warning=True)
 
 def update_offline(pack, ignore_warning=True):
     print('updating from package \'%s\'' % pack)

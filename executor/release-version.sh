@@ -39,7 +39,10 @@ if [ ! -d "./dist" ]; then
 fi
 cp -f config ./dist
 chmod +x kubeovn-adm
+gzexe ./kubeovn-adm
 cp -f kubeovn-adm ./dist
+gzexe -d ./kubeovn-adm
+rm -f ./kubeovn-adm~
 cp -rf ../yamls ./dist
 echo ${VERSION} > ./VERSION
 pyinstaller -F kubevmm_adm.py -n kubevmm-adm

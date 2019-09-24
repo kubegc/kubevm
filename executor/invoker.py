@@ -307,9 +307,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         except Exception, e:
                             if _isDeleteVM(the_cmd_key) and not is_vm_exists(metadata_name):
                                 logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
-                                jsondict = deleteLifecycleInJson(jsondict)
-                                modifyStructure(metadata_name, jsondict, group, version, plural)
-                                time.sleep(0.5)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue
                             else:
@@ -480,12 +480,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         except Exception, e:
                             if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
-                                jsondict = deleteLifecycleInJson(jsondict)
-                                try:
-                                    modifyStructure(metadata_name, jsondict, group, version, plural)
-                                except Exception:
-                                    pass
-                                time.sleep(0.5)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # try:
+                                #     modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # except Exception:
+                                #     pass
+                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue
                             else:
@@ -633,9 +633,9 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                         except Exception, e:
                             if _isDeleteDiskImage(the_cmd_key):
                                 logger.warning("***Disk image %s not exists, delete it from virtlet" % metadata_name)
-                                jsondict = deleteLifecycleInJson(jsondict)
-                                modifyStructure(metadata_name, jsondict, group, version, plural)
-                                time.sleep(0.5)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue
                             else:
@@ -762,9 +762,9 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                         except Exception, e:
                             if _isDeleteImage(the_cmd_key):
                                 logger.warning("***VM image %s not exists, delete it from virtlet" % metadata_name)
-                                jsondict = deleteLifecycleInJson(jsondict)
-                                modifyStructure(metadata_name, jsondict, group, version, plural)
-                                time.sleep(0.5)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue
                             else:
@@ -889,9 +889,9 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                         except Exception, e:
                             if _isDeleteVMSnapshot(the_cmd_key) and not _snapshot_file_exists(metadata_name):
                                 logger.warning("***VM snapshot %s not exists, delete it from virtlet" % metadata_name)
-                                jsondict = deleteLifecycleInJson(jsondict)
-                                modifyStructure(metadata_name, jsondict, group, version, plural)
-                                time.sleep(0.5)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue
                             else:
@@ -1145,9 +1145,9 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         except Exception, e:
                             if _isDeleteNetwork(the_cmd_key):
                                 logger.warning("***Network %s not exists, delete it from virtlet" % metadata_name)
-                                jsondict = deleteLifecycleInJson(jsondict)
-                                modifyStructure(metadata_name, jsondict, group, version, plural)
-                                time.sleep(0.5)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue
                             else:
@@ -1297,9 +1297,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         except Exception, e:
                             if _isDeletePool(the_cmd_key) and not is_kubesds_pool_exists(pool_type, pool_name):
                                 logger.warning("***Pool %s not exists, delete it from virtlet" % metadata_name)
-                                jsondict = deleteLifecycleInJson(jsondict)
-                                modifyStructure(metadata_name, jsondict, group, version, plural)
-                                time.sleep(0.5)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue
                             else:

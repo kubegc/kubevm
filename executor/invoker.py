@@ -1576,8 +1576,8 @@ def getPoolPathWhenCreate(jsondict):
 def getPoolType(the_cmd_key, jsondict):
     spec = jsondict['raw_object']['spec']
     lifecycle = spec.get('lifecycle')
-
-    if lifecycle:
+    
+    if lifecycle and 'type' in lifecycle[the_cmd_key].keys():
         return lifecycle[the_cmd_key]['type']
     else:
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No found pool type!')

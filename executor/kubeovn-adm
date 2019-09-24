@@ -157,7 +157,7 @@ function create-br-c-br()
 
 ###########################################################
 ##
-##  
+##  L2 bridge
 ##
 ##########################################################
 
@@ -165,28 +165,30 @@ function create-br-c-br()
 function create-bridge()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+  nic=$(echo $* | awk -F"--nic" '{print$2}' | awk '{print$1}')
+  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $name || $2 == "--help" ]]
+  if [[ -z $1 || -z $name || -z $nic || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name  \tNIC name" >&2
-    echo -e "--bridge\tbrdige name(optinal), default is br-name" >&2
+    echo -e "--name  \tbridge name" >&2
+    echo -e "--nic   \tnic name" >&2
+    echo -e "--vlan  \tvlan id, default is \"vlan=0\"" >&2
     exit 1
   fi
 
-  if [[ -z $bridge ]]
+  if [[ -z $vlan ]]
   then
-    bridge="br-"$name
+    vlan=0
   fi
 
   ################################
   if [[ ! -f $IFCFG"ifcfg-BRX" ]]
   then
-     echo DEVICE=BRX     >> /etc/sysconfig/network-scripts/ifcfg-BRX
-     echo DEVICETYPE=ovs >> /etc/sysconfig/network-scripts/ifcfg-BRX
-     echo TYPE=OVSBridge >> /etc/sysconfig/network-scripts/ifcfg-BRX
-     echo ONBOOT=yes >> /etc/sysconfig/network-scripts/ifcfg-BRX
+     echo DEVICE=BRX           >> /etc/sysconfig/network-scripts/ifcfg-BRX
+     echo DEVICETYPE=ovs       >> /etc/sysconfig/network-scripts/ifcfg-BRX
+     echo TYPE=OVSBridge       >> /etc/sysconfig/network-scripts/ifcfg-BRX
+     echo ONBOOT=yes           >> /etc/sysconfig/network-scripts/ifcfg-BRX
   fi
 
   if [[ ! -f $IFCFG"ifcfg-ORG" ]]
@@ -195,11 +197,9 @@ function create-bridge()
      echo DEVICE=ORG           >> /etc/sysconfig/network-scripts/ifcfg-ORG
      echo ONBOOT=yes           >> /etc/sysconfig/network-scripts/ifcfg-ORG
      echo DEVICETYPE=ovs       >> /etc/sysconfig/network-scripts/ifcfg-ORG
-     echo OVS_BRIDGE=BRX >> /etc/sysconfig/network-scripts/ifcfg-ORG
+     echo OVS_BRIDGE=BRX       >> /etc/sysconfig/network-scripts/ifcfg-ORG
   fi
   ################################
-
-
   ################################
   res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
   if [[ $res != "active" ]]
@@ -208,65 +208,64 @@ function create-bridge()
     exit 1
   fi
 
-  if [[ ! -f $IFCFG"ifcfg-$name" ]]
+  if [[ ! -f $IFCFG"ifcfg-$nic" ]]
   then
     echo "wrong NIC name" >&2
     exit 1
   fi  
 
   ################################
-  
   ################################
-  if [[ ! -f $IFCFG"ifcfg-$name.bak" ]]
+  
+  if [[ ! -f $IFCFG"ifcfg-$nic.bak" ]]
   then
-    cp $IFCFG"ifcfg-$name" $IFCFG"ifcfg-$name.bak"
+    cp $IFCFG"ifcfg-$nic" $IFCFG"ifcfg-$nic.bak"
   fi
 
+  rm -rf $IFCFG"ifcfg-$nic"
   rm -rf $IFCFG"ifcfg-$name"
-  rm -rf $IFCFG"ifcfg-$bridge"
 
-  cp $IFCFG"ifcfg-ORG" $IFCFG"ifcfg-$name"
-  cp $IFCFG"ifcfg-BRX" $IFCFG"ifcfg-$bridge"
+  mv $IFCFG"ifcfg-ORG" $IFCFG"ifcfg-$nic"
+  mv $IFCFG"ifcfg-BRX" $IFCFG"ifcfg-$name"
 
-  ovs-vsctl --if-exist del-br $bridge
-  ovs-vsctl add-br $bridge
+  ovs-vsctl --if-exist del-br $name
+  ovs-vsctl add-br $name
+  ovs-vsctl add-br $name"-"$vlan $name $vlan
+  ovs-vsctl set interface $name"-"$vlan type=internal
 
-  static=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep static)
-  ip=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep IPADDR)
-  mask=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep NETMASK)
-  gw=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep GATEWAY)
+  static=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep static)
+  ip=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep IPADDR)
+  mask=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep NETMASK)
+  prefix=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep PREFIX)
+  gw=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep GATEWAY)
   
-  sed -i "s/BRX/$bridge/g" $IFCFG"ifcfg-$bridge"
-  sed -i "s/BRX/$bridge/g" $IFCFG"ifcfg-$name"
-  sed -i "s/ORG/$name/g" $IFCFG"ifcfg-$name"
+  sed -i "s/BRX/$name/g" $IFCFG"ifcfg-$name"
+  sed -i "s/BRX/$name/g" $IFCFG"ifcfg-$nic"
+  sed -i "s/ORG/$nic/g" $IFCFG"ifcfg-$nic"
   if [[ -z $static ]]
   then
-    echo "BOOTPROTO=dhcp" >> $IFCFG"ifcfg-$bridge"
+    echo "BOOTPROTO=dhcp" >> $IFCFG"ifcfg-$name"
   else
-    echo $ip >> $IFCFG"ifcfg-$bridge"
-    echo $mask >> $IFCFG"ifcfg-$bridge"
-    echo $gw >> $IFCFG"ifcfg-$bridge"
+    echo $ip >> $IFCFG"ifcfg-$name"
+    echo $mask >> $IFCFG"ifcfg-$name"
+    echo $prefix >> $IFCFG"ifcfg-$name"
+    echo $gw >> $IFCFG"ifcfg-$name"
   fi
 
-  ovs-vsctl add-port $bridge $name; systemctl restart network
+  ovs-vsctl add-port $name $nic && systemctl restart network
 }
 
 function delete-bridge()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+  nic=$(echo $* | awk -F"--nic" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $name || $2 == "--help" ]]
+  if [[ -z $1 || -z $nic || -z $nic || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name  \tNIC name" >&2
-    echo -e "--bridge\tbrdige name(optinal), default is br-name" >&2
+    echo -e "--name  \tbridge name" >&2
+    echo -e "--nic   \tnic name" >&2
     exit 1
-  fi
-
-  if [[ -z $bridge ]]
-  then
-    bridge="br-"$name
   fi
 
   ################################
@@ -277,7 +276,7 @@ function delete-bridge()
     exit 1
   fi
 
-  if [[ ! -f $IFCFG"ifcfg-$name" ]]
+  if [[ ! -f $IFCFG"ifcfg-$nic" ]]
   then
     echo "wrong NIC name" >&2
     exit 1
@@ -285,18 +284,207 @@ function delete-bridge()
 
   ################################
 
+  rm -rf $IFCFG"ifcfg-$nic"
   rm -rf $IFCFG"ifcfg-$name"
-  rm -rf $IFCFG"ifcfg-$bridge"
-  
-  mv -f $IFCFG"ifcfg-$name.bak" $IFCFG"ifcfg-$name"
 
-  ovs-vsctl --if-exist del-br  $bridge; systemctl restart network
+  if [[ ! -f $IFCFG"ifcfg-$nic.bak" ]]
+  then
+    echo "$nic is not a part of openvswitch" >&2
+    exit 1
+  fi 
+ 
+  mv -f $IFCFG"ifcfg-$nic.bak" $IFCFG"ifcfg-$nic"
+
+  ovs-vsctl --if-exist del-br $name && systemctl restart network
 
 }
 
+function create-fip()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $ip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name      \tPhysical NIC name" >&2
+    echo -e "--ip        \tFloating IP" >&2
+    exit 1
+  fi
+
+  ne=$(ip a | grep $name)
+  if [[ -z $ne ]]
+  then
+    echo "Physical NIC not exist" >&2
+    exit 1
+  fi
+
+  ie=$(ip a | grep $ip)
+  if [[ -n $ie ]]
+  then
+    echo "IP exist" >&2
+    exit 1
+  fi 
+
+  for i in `seq 1 1000`
+  do
+    fname=$name":"$i
+    if [[ -f /etc/sysconfig/network-scripts/ifcfg-$fname ]]
+    then
+      continue
+    fi
+    mask=$(ip a | grep -A 1 $name | grep inet | awk 'NR==1' |awk '{print$2}' | awk -F"/" '{print$2}')
+    rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "DEVICE=$fname" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "BOOTPROTO=static" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "ONBOOT=yes" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "NM_CONTROLLED=no" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "IPADDR=$ip" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "PREFIX=$mask" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    ifup $fname
+    exit 0
+  done
+
+  echo "too much floating IPs" >&2
+  exit 1   
+
+}
+
+
+function delete-fip()
+{
+  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
+  fname=$(ip a | grep $ip | awk '{print$8}')
+
+  if [[ -z $1 || -z $ip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--ip        \tFloating IP" >&2
+    exit 1
+  fi
+
+  if [[ -z $fname ]]
+  then
+    echo "wrong IP, cannot find a NIC with the IP" >&2
+    exit 1
+  fi
+
+  ifconfig $fname down
+  rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
+}
+
+# Set vlan id for port
+
+function setbridge-vlan()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $vlan || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name     \tbridge name" >&2
+    echo -e "--vlan     \tvlan id" >&2
+    exit 1
+  fi
+
+
+  ovs-vsctl add-br $name"-"$vlan $name $vlan
+  ovs-vsctl set interface $name"-"$vlan type=internal  
+}
+
+# Delete port's vlan id
+
+function delbridge-vlan()
+{
+
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $vlan || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name    \tbridge name" >&2
+    echo -e "--vlan    \tvlan" >&2
+    exit 1
+  fi
+
+  res=$(ovs-vsctl br-to-parent $name"-"$vlan)
+
+  if [[ $res != $name ]]
+  then
+    echo "wrong vlan id in bridge $name" >&2
+    exit 1
+  fi
+
+  ovs-vsctl --if-exist del-br $name"-"$vlan
+}
+
+# Set vlan id for port
+
+function setport-vlan()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
+  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $mac || -z $vlan || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name    \tvm name" >&2
+    echo -e "--mac      \tvirtual NIC mac" >&2
+    echo -e "--vlan      \tvlan id" >&2
+    exit 1
+  fi
+
+  port_name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
+  
+  if [[ -z $port_name ]]
+  then
+    echo "NIC not exist." >&2
+    exit 1
+  fi
+
+  ovs-vsctl set port $port_name tag=$vlan
+}
+
+# Delete port's vlan id
+
+function delport-vlan()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $mac || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name    \tvm name" >&2
+    echo -e "--mac      \tvirtual NIC mac" >&2
+    exit 1
+  fi
+
+  port_name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
+
+  if [[ -z $port_name ]]
+  then
+    echo "NIC not exist." >&2
+    exit 1
+  fi
+
+  vlan=$(ovs-vsctl get port $port_name tag)
+
+  if echo $vlan | grep -q '[^0-9]'
+  then
+    exit 0
+  fi
+  
+  ovs-vsctl remove port $port_name tag $vlan
+}
+
+
 ###########################################################
 ##
-##  l2
+##  l3 switch
 ##
 ###########################################################
 
@@ -444,68 +632,6 @@ function unbind-swport()
   $NB_CMD --if-exists lsp-del $iface
 }
 
-# Set vlan id for port
-
-function setport-vlan()
-{
-	switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
-  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
-  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
-
-if [[ -z $1 || -z $switch || -z $mac || -z $vlan || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--switch    \tswitch name" >&2
-    echo -e "--mac      \tvirtual NIC mac" >&2
-    echo -e "--vlan      \tvlan id" >&2
-    exit 1
-  fi
-
-  name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
-  
-  if [[ -z $name ]]
-  then
-    echo "NIC not exist." >&2
-    exit 1
-  fi
-
-  ovs-vsctl set port $name tag=$vlan
-}
-
-# Delete port's vlan id
-
-function delport-vlan()
-{
-	switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
-  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
-
-  if [[ -z $1 || -z $switch || -z $mac || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--switch    \tswitch name" >&2
-    echo -e "--mac      \tvirtual NIC mac" >&2
-    exit 1
-  fi
-
-  name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
-
-  if [[ -z $name ]]
-  then
-    echo "NIC not exist." >&2
-    exit 1
-  fi
-
-  vlan=$(ovs-vsctl get port $name tag)
-
-  if echo $vlan | grep -q '[^0-9]'
-  then
-    exit 0
-  fi
-  
-  ovs-vsctl remove port $name tag $vlan
-}
-
-
 # Set vxlan id for port
 
 function setport-vxlan()
@@ -562,81 +688,6 @@ function delport-vxlan()
   
   ovs-vsctl remove port $name tag $vxlan
   ovs-vsctl set interface $name type=internal
-}
-
-
-function create-fip()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-
-  if [[ -z $1 || -z $name || -z $ip || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name      \tPhysical NIC name" >&2
-    echo -e "--ip        \tFloating IP" >&2
-    exit 1
-  fi
-
-  ne=$(ip a | grep $name)
-  if [[ -z $ne ]]
-  then
-    echo "Physical NIC not exist" >&2
-    exit 1
-  fi
-
-  ie=$(ip a | grep $ip)
-  if [[ -n $ie ]]
-  then
-    echo "IP exist" >&2
-    exit 1
-  fi 
-
-  for i in `seq 1 1000`
-  do
-    fname=$name":"$i
-    if [[ -f /etc/sysconfig/network-scripts/ifcfg-$fname ]]
-    then
-      continue
-    fi
-    mask=$(ip a | grep -A 1 $name | grep inet | awk 'NR==1' |awk '{print$2}' | awk -F"/" '{print$2}')
-    rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "DEVICE=$fname" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "BOOTPROTO=static" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "ONBOOT=yes" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "NM_CONTROLLED=no" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "IPADDR=$ip" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "PREFIX=$mask" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    ifup $fname
-    exit 0
-  done
-
-  echo "too much floating IPs" >&2
-  exit 1   
-
-}
-
-
-function delete-fip()
-{
-  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-  fname=$(ip a | grep $ip | awk '{print$8}')
-
-  if [[ -z $1 || -z $ip || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--ip        \tFloating IP" >&2
-    exit 1
-  fi
-
-  if [[ -z $fname ]]
-  then
-    echo "wrong IP, cannot find a NIC with the IP" >&2
-    exit 1
-  fi
-
-  ifconfig $fname down
-  rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
 }
 
 function bind-fip()
@@ -744,23 +795,23 @@ function help()
 {
   cmddesc
   echo -e "Commands:"
-  echo -e "  create-bridge:\tCreate L2 bridge"
-  echo -e "  delete-bridge:\tDelete L2 bridge"
-  echo -e "  start-central:\tStart central node"
-  echo -e "  stop-central :\tStop central node"
-  echo -e "  start-worker :\tStart worker node"
-  echo -e "  stop-worker  :\tStop worker node"
-  echo -e "  create-switch:\tCreate a switch with a dhcp"
-  echo -e "  create-vpc   :\tCreate a switch with a dhcp, see create-switch"
-  echo -e "  remove-switch:\tRemove a switch and the related dhcp"
-  echo -e "  delete-switch:\tRemove a switch and the related dhcp, see remove-switch"
-  echo -e "  delete-vpc   :\tRemove a switch and the related dhcp, see delete-vpc"
-  echo -e "  bind-swport  :\tBind a switch port"
-  echo -e "  unbind-swport:\tUnbind a switch port"
-  echo -e "  setport-vlan :\tSet port with vlan ID"
-  echo -e "  delport-vlan :\tDelete port's vlan ID"
-  echo -e "  create-fip   :\tCreate floating IP"
-  echo -e "  delete-fip   :\tDelete floating IP"
+  echo -e "  start-central :\t(Init): Start central node"
+  echo -e "  stop-central  :\t(Init): Stop central node"
+  echo -e "  start-worker  :\t(Init): Start worker node"
+  echo -e "  stop-worker   :\t(Init): Stop worker node"
+  echo -e "  create-bridge :\t(L2  ): Create L2 bridge"
+  echo -e "  delete-bridge :\t(L2  ): Delete L2 bridge"
+  echo -e "  setbridge-vlan:\t(L2  ): Set a vlan id for L2 bridge's port"
+  echo -e "  delbridge-vlan:\t(L2  ): Unset a vlan id for L2 brodge's port"
+  echo -e "  create-fip    :\t(L2  ): Create L2's floating IP"
+  echo -e "  delete-fip    :\t(L2  ): Delete L2's floating IP"
+  echo -e "  create-switch :\t(L3  ): Create L3 switch and gateway"
+  echo -e "  create-vpc    :\t(L3  ): Create L3 switch and gateway, see create-switch"
+  echo -e "  remove-switch :\t(L3  ): Remove L3 switch and gateway"
+  echo -e "  delete-switch :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
+  echo -e "  delete-vpc    :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
+  echo -e "  bind-swport   :\t(L3  ): Bind a L3's port to a public IP"
+  echo -e "  unbind-swport :\t(L3  ): Unbind a L3's port from a public IP"
 }
 
 
@@ -804,11 +855,11 @@ case $1 in
   "unbind-swport")
     unbind-swport $*
     ;;
-  "setport-vlan")
-    setport-vlan $*
+  "setbridge-vlan")
+    setbridge-vlan $*
     ;;
-  "delport-vlan")
-    delport-vlan $*
+  "delbridge-vlan")
+    delbridge-vlan $*
     ;;
   "create-fip")
     create-fip $*

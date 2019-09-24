@@ -46,7 +46,7 @@ from utils.libvirt_util import _get_dom, is_snapshot_exists, is_volume_in_use, g
     is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import Domain, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec
 
@@ -1440,7 +1440,16 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             else:
                 jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
         elif plural == PLURAL_VM_NETWORK:
-            jsonDict['spec']['VirtualMachineNetwork'] = {'type': 'layer3', 'data': get_l3_network_info(name)}
+            try:
+                net_type = 'layer3'
+                data = get_l3_network_info(name)
+            except Exception, e1:
+                try:
+                    net_type = 'layer2'
+                    data = get_l2_network_info(name)
+                except Exception, e2:
+                    raise e2
+            jsonDict['spec']['VirtualMachineNetwork'] = {'type': net_type, 'data': data}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
 

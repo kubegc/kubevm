@@ -71,6 +71,32 @@ def modify_token(vm_name, op):
                 newline = vm_name + ': ' + vnc_info['listen'] + ':' + vnc_info['port'] +'\n'
                 f.write(newline)
 
+def get_l2_network_info(name):
+    data = {'bridgeInfo': {}}
+    '''
+    Get bridge informations.
+    '''
+    data['bridgeInfo']['name'] = name
+    data['bridgeInfo']['uuid'] = runCmdRaiseException('ovs-vsctl get bridge %s _uuid' % name)[0].strip()
+    ports = runCmdRaiseException('ovs-vsctl get bridge %s ports' % name)[0].strip().replace('[', '').replace(']','').replace(' ','').split(',')
+    list_ports = []
+    for port in ports:
+        a_port = {}
+        a_port['uuid'] = port
+        a_port['name'] = runCmdRaiseException('ovs-vsctl get port %s name' % port)[0].strip()
+        a_port['vlan'] = runCmdRaiseException('ovs-vsctl get port %s tag' % port)[0].strip()
+        list_interfaces = []
+        interfaces = runCmdRaiseException('ovs-vsctl get port %s interfaces' % port)[0].strip().replace('[', '').replace(']','').replace(' ','').split(',')
+        for interface in interfaces:
+            a_interface = {}
+            a_interface['uuid'] = interface
+            a_interface['mac'] = runCmdRaiseException('ovs-vsctl get interface %s mac_in_use' % interface)[0].strip()
+            a_interface['name'] = runCmdRaiseException('ovs-vsctl get interface %s name' % interface)[0].strip()
+            list_interfaces.append(a_interface)
+        a_port['interfaces'] = list_interfaces
+        list_ports.append(a_port)
+    data['bridgeInfo']['ports'] = list_ports
+    return data
 
 def get_l3_network_info(name):
     cfg = "/etc/kubevmm/config"
@@ -367,6 +393,7 @@ def runCmd(cmd):
         p.stderr.close()
 
 def runCmdRaiseException(cmd, head='VirtctlError'):
+    print(cmd)
     std_err = None
     if not cmd:
         return
@@ -375,6 +402,7 @@ def runCmdRaiseException(cmd, head='VirtctlError'):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_err:
+            print(std_err)
             raise ExecuteException(head, std_err)
         return std_out
     finally:
@@ -1123,14 +1151,15 @@ class CDaemon:
         print 'base class run()'
 
 if __name__ == '__main__':
-#     print(get_l3_network_info("sw121234"))
-    from libvirt_util import _get_dom
-    domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e001"))
-    try:
-        print(domain.merge_snapshot("snapshot3"))
-        print(domain.revert_snapshot("snapshot3"))
-    except Exception, e:
-        print e.message
+    pprint.pprint(get_l3_network_info("switch8888"))
+    pprint.pprint(get_l2_network_info("br-native"))
+#     from libvirt_util import _get_dom
+#     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e001"))
+#     try:
+#         print(domain.merge_snapshot("snapshot3"))
+#         print(domain.revert_snapshot("snapshot3"))
+#     except Exception, e:
+#         print e.message
 #     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}
 #     volume.get('volume').update(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
 #     print(volume)

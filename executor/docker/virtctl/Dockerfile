@@ -16,15 +16,17 @@ ADD yamls /home/kubevmm/bin/yamls
 
 ADD config /home/kubevmm/bin/
 
-Add kubeovn-adm /home/kubevmm/bin/
+ADD kubeovn-adm /home/kubevmm/bin/
 
-Add kubevmm-adm /home/kubevmm/bin/
+ADD kubevmm-adm /home/kubevmm/bin/
 
-Add vmm /home/kubevmm/bin/
+ADD vmm /home/kubevmm/bin/
 
 ADD kubesds-adm /home/kubevmm/bin/
 
-Add VERSION /home/kubevmm/bin
+ADD kubesds-rpc /home/kubevmm/bin/
+
+ADD VERSION /home/kubevmm/bin
 
 RUN rm -fr /tmp/*
 

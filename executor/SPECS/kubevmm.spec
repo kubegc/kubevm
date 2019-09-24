@@ -19,6 +19,7 @@ Source3:        config
 Source4:        kubeovn-adm
 Source5:        yamls
 Source6:        kubesds-adm
+Source7:        kubesds-rpc
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -32,6 +33,7 @@ install %{SOURCE0} %{buildroot}/%{_usr}/bin/kubevmm-adm
 install %{SOURCE1} %{buildroot}/%{_usr}/bin/vmm
 install %{SOURCE4} %{buildroot}/%{_usr}/bin/kubeovn-adm
 install %{SOURCE6} %{buildroot}/%{_usr}/bin/kubesds-adm
+install %{SOURCE7} %{buildroot}/%{_usr}/bin/kubesds-rpc
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
@@ -49,6 +51,7 @@ rm -rf %{buildroot}
 /%{_usr}/bin/vmm
 /%{_usr}/bin/kubeovn-adm
 /%{_usr}/bin/kubesds-adm
+/%{_usr}/bin/kubesds-rpc
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 /etc/kubevmm/config

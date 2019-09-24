@@ -183,17 +183,19 @@ group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinenetworks
 
-[NetworkSupportCmdsWithNameField]
-createSwitch = kubeovn-adm create-switch
-deleteSwitch = kubeovn-adm remove-switch
+[L2NetworkSupportCmdsWithNameField]
 createBridge = kubeovn-adm create-bridge
 deleteBridge = kubeovn-adm delete-bridge
 setPortVlan = kubeovn-adm setport-vlan
 delPortVlan = kubeovn-adm delport-vlan
+
+[L3NetworkSupportCmdsWithNameField]
+createSwitch = kubeovn-adm create-switch
+deleteSwitch = kubeovn-adm remove-switch
 setPortVxlan = kubeovn-adm setport-vxlan
 delPortVxlan = kubeovn-adm delport-vxlan
 
-[NetworkSupportCmdsWithSwitchField]
+[L3NetworkSupportCmdsWithSwitchField]
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
 createFloatIP = todo

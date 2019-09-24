@@ -114,6 +114,15 @@ DEFAULT_VMD_TEMPLATE_DIR = config_raw.get('DefaultVirtualMachineDiskTemplateDir'
 
 DEFAULT_VM_TEMPLATE_DIR = config_raw.get('DefaultTemplateDir', 'default')
 
+L2NETWORKSUPPORTCMDS = []
+for k,v in config_raw.items('L2NetworkSupportCmdsWithNameField'):
+    L2NETWORKSUPPORTCMDS.append(k)
+L3NETWORKSUPPORTCMDS = []
+for k,v in config_raw.items('L3NetworkSupportCmdsWithNameField'):
+    L3NETWORKSUPPORTCMDS.append(k)
+for k,v in config_raw.items('L3NetworkSupportCmdsWithSwitchField'):
+    L3NETWORKSUPPORTCMDS.append(k)
+
 LABEL = 'host=%s' % (get_hostname_in_lower_case())
 
 TIMEOUT = config_raw.get('WatcherTimeout', 'timeout')
@@ -1159,7 +1168,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         if cmd:
                             runCmd(cmd)
                     status = 'Done(Success)'
-                    write_result_to_server(group, version, 'default', plural, metadata_name)
+                    write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1423,7 +1432,7 @@ def deleteStructure(name, body, group, version, plural):
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
 
-def write_result_to_server(group, version, namespace, plural, name, result=None, data=None):
+def write_result_to_server(group, version, namespace, plural, name, result=None, data=None, the_cmd_key=None):
     jsonDict = None
     try:
         # involved_object_name actually is nodeerror occurred during processing json data from apiserver
@@ -1446,16 +1455,13 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             else:
                 jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
         elif plural == PLURAL_VM_NETWORK:
-            try:
+            if the_cmd_key in L3NETWORKSUPPORTCMDS:
                 net_type = 'layer3'
-                data = get_l3_network_info(name)
-            except Exception, e1:
-                try:
-                    net_type = 'layer2'
-                    data = get_l2_network_info(name)
-                except Exception, e2:
-                    raise e2
-            jsonDict['spec']['VirtualMachineNetwork'] = {'type': net_type, 'data': data}
+                retv = get_l3_network_info(name)
+            else:
+                net_type = 'layer2'
+                retv = get_l2_network_info(name)
+            jsonDict['spec']['VirtualMachineNetwork'] = {'type': net_type, 'data': retv}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
 
@@ -1549,6 +1555,11 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
 
 def _isCreatePool(the_cmd_key):
     if the_cmd_key == "createUITPool":
+        return True
+    return False
+
+def _isCreateSwitch(the_cmd_key):
+    if the_cmd_key == "createSwitch":
         return True
     return False
 

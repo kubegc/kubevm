@@ -422,44 +422,73 @@ function delbridge-vlan()
 
 # Set vlan id for port
 
-function setport-vlan()
+function bindport-vlan()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
   mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
   vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $name || -z $mac || -z $vlan || $2 == "--help" ]]
+  if [[ -z $1 || -z $name || -z $mac || -z $bridge || $2 == "--help" ]]
   then
     cmddesc
     echo -e "--name    \tvm name" >&2
-    echo -e "--mac      \tvirtual NIC mac" >&2
-    echo -e "--vlan      \tvlan id" >&2
+    echo -e "--bridge  \tbridge" >&2
+    echo -e "--mac     \tvirtual NIC mac" >&2
+    echo -e "--vlan    \tvlan (optional)" >&2
+    exit 1
+  fi
+
+  if [[ -z $vlan ]]
+  then
+    vlan="0"
+  fi
+
+  res=$(virsh dumpxml $name | grep "$mac")
+  if [[ -z $res ]]
+  then
+    echo "the mac is not a part of VM." >&2
     exit 1
   fi
 
   port_name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
-  
   if [[ -z $port_name ]]
   then
-    echo "NIC not exist." >&2
+    echo "virtual NIC not exist." >&2
     exit 1
   fi
 
-  ovs-vsctl set port $port_name tag=$vlan
+  ovs-vsctl add-port $bridge"-"$vlan $port_name
 }
 
 # Delete port's vlan id
 
-function delport-vlan()
+function unbindport-vlan()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
   mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $name || -z $mac || $2 == "--help" ]]
+  if [[ -z $1 || -z $name ||  -z $mac  || -z $bridge || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name    \tvm name" >&2
+    echo -e "--name     \tvm name" >&2
+    echo -e "--bridge   \tbridge" >&2
     echo -e "--mac      \tvirtual NIC mac" >&2
+    echo -e "--vlan     \tvlan(optional)" >&2
+    exit 1
+  fi
+
+  if [[ -z $vlan ]]
+  then
+    vlan="0"
+  fi
+
+  res=$(virsh dumpxml $name | grep "$mac")
+  if [[ -z $res ]]
+  then
+    echo "the mac is not a part of VM." >&2
     exit 1
   fi
 
@@ -467,18 +496,11 @@ function delport-vlan()
 
   if [[ -z $port_name ]]
   then
-    echo "NIC not exist." >&2
+    echo "virtual NIC not exist." >&2
     exit 1
   fi
 
-  vlan=$(ovs-vsctl get port $port_name tag)
-
-  if echo $vlan | grep -q '[^0-9]'
-  then
-    exit 0
-  fi
-  
-  ovs-vsctl remove port $port_name tag $vlan
+  ovs-vsctl --if-exists del-port $bridge$vlan $port_name
 }
 
 
@@ -795,23 +817,25 @@ function help()
 {
   cmddesc
   echo -e "Commands:"
-  echo -e "  start-central :\t(Init): Start central node"
-  echo -e "  stop-central  :\t(Init): Stop central node"
-  echo -e "  start-worker  :\t(Init): Start worker node"
-  echo -e "  stop-worker   :\t(Init): Stop worker node"
-  echo -e "  create-bridge :\t(L2  ): Create L2 bridge"
-  echo -e "  delete-bridge :\t(L2  ): Delete L2 bridge"
-  echo -e "  setbridge-vlan:\t(L2  ): Set a vlan id for L2 bridge's port"
-  echo -e "  delbridge-vlan:\t(L2  ): Unset a vlan id for L2 brodge's port"
-  echo -e "  create-fip    :\t(L2  ): Create L2's floating IP"
-  echo -e "  delete-fip    :\t(L2  ): Delete L2's floating IP"
-  echo -e "  create-switch :\t(L3  ): Create L3 switch and gateway"
-  echo -e "  create-vpc    :\t(L3  ): Create L3 switch and gateway, see create-switch"
-  echo -e "  remove-switch :\t(L3  ): Remove L3 switch and gateway"
-  echo -e "  delete-switch :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
-  echo -e "  delete-vpc    :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
-  echo -e "  bind-swport   :\t(L3  ): Bind a L3's port to a public IP"
-  echo -e "  unbind-swport :\t(L3  ): Unbind a L3's port from a public IP"
+  echo -e "  start-central  :\t(Init): Start central node"
+  echo -e "  stop-central   :\t(Init): Stop  central node"
+  echo -e "  start-worker   :\t(Init): Start worker  node"
+  echo -e "  stop-worker    :\t(Init): Stop  worker  node"
+  echo -e "  create-bridge  :\t(L2  ): Create L2 bridge"
+  echo -e "  delete-bridge  :\t(L2  ): Delete L2 bridge"
+  echo -e "  setbridge-vlan :\t(L2  ): Set a vlan for a L2 bridge"
+  echo -e "  delbridge-vlan :\t(L2  ): Unset a vlan id of a L2 bridge"
+  echo -e "  bindport-vlan  :\t(L2  ): Set a vlan id for a  port"
+  echo -e "  unbindport-vlan:\t(L2  ): Unset a vlan id for a port"
+  echo -e "  create-fip     :\t(L2  ): Create L2's floating IP"
+  echo -e "  delete-fip     :\t(L2  ): Delete L2's floating IP"
+  echo -e "  create-switch  :\t(L3  ): Create L3 switch and gateway"
+  echo -e "  create-vpc     :\t(L3  ): Create L3 switch and gateway, see create-switch"
+  echo -e "  remove-switch  :\t(L3  ): Remove L3 switch and gateway"
+  echo -e "  delete-switch  :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
+  echo -e "  delete-vpc     :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
+  echo -e "  bind-swport    :\t(L3  ): Bind a L3's port to a public IP"
+  echo -e "  unbind-swport  :\t(L3  ): Unbind a L3's port from a public IP"
 }
 
 
@@ -821,6 +845,12 @@ case $1 in
     ;;
   "delete-bridge")
     delete-bridge $*
+    ;;
+  "bindport-vlan")
+    bindport-vlan $*
+    ;;
+  "unbindport-vlan")
+    unbindport-vlan $*
     ;;
   "start-central")
     start-central $*

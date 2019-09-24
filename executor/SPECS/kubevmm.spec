@@ -1,7 +1,7 @@
 %if 0%{?_version:1}
 %define         _verstr      %{_version}
 %else
-%define         _verstr      v1.2.9
+%define         _verstr      v1.3.0
 %endif
  
 Name:           kubevmm
@@ -20,6 +20,7 @@ Source4:        kubeovn-adm
 Source5:        yamls
 Source6:        kubesds-adm
 Source7:        kubesds-rpc
+Source8:        ovn-ovsdb.service
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -34,6 +35,7 @@ install %{SOURCE1} %{buildroot}/%{_usr}/bin/vmm
 install %{SOURCE4} %{buildroot}/%{_usr}/bin/kubeovn-adm
 install %{SOURCE6} %{buildroot}/%{_usr}/bin/kubesds-adm
 install %{SOURCE7} %{buildroot}/%{_usr}/bin/kubesds-rpc
+install %{SOURCE8} %{buildroot}/%{_usr}/lib/systemd/system/ovn-ovsdb.service
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
@@ -55,5 +57,6 @@ rm -rf %{buildroot}
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 /etc/kubevmm/config
+/%{_usr}/lib/systemd/system/ovn-ovsdb.service
 %defattr(755, -, -)
 /etc/kubevmm/yamls

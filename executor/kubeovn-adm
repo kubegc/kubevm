@@ -3,14 +3,21 @@
 ##
 ##  Copyright (2019, ) Institute of Software
 ##      Chinese Academy of Sciences
-##          wuheng@iscas.ac.cn
-##              2019-8-17
+##          wuheng@otcaixiscas.ac.cn
+##         wuyuewen@otcaix.iscas.ac.cn
+##              2019-9-24
 ##
 ###############################################
 
 ## Locate library
 
 export LD_LIBRARY_PATH="/usr/lib64"
+
+
+## OVN plugin version
+
+VERSION="1.1.0"
+IFCFG="/etc/sysconfig/network-scripts/"
 
 ## OVN Tables
 
@@ -37,7 +44,11 @@ TABLE_SSL="SSL"
 TABLE_DHCP="DHCP_Options"
 
 
-## OVN core
+
+
+
+
+## OVN core, please install Kubernetes first
 MASTER=$(cat /root/.kube/config  | grep server |awk -F"server:" '{print$2}' | awk -F"https://" '{print$2}' | awk -F":" '{print$1}')
 
 NB_PORT="6641"
@@ -46,8 +57,248 @@ SB_PORT="6642"
 NB_CMD="ovn-nbctl --db=tcp:$MASTER:$NB_PORT"
 SB_CMD="ovn-sbctl --db=tcp:$MASTER:$SB_PORT"
 
-## OVN plugin version
-VERSION="1.0.0"
+
+
+###########################################################
+##
+##  init env
+##
+##########################################################
+
+function start-central()
+{
+  systemctl start  openvswitch
+  systemctl enable openvswitch
+  systemctl start  ovn-ovsdb
+  systemctl enable ovn-ovsdb
+  systemctl start  ovn-northd
+  systemctl enable ovn-northd
+  systemctl start  ovn-controller
+  systemctl enable ovn-controller
+
+  sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
+  sudo ovs-vsctl set open . external-ids:ovn-remote=unix:/usr/var/run/openvswitch/ovnsb_db.sock
+  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=127.0.0.1
+  sudo ovs-vsctl set open . external-ids:ovn-encap-type=vxlan
+
+  master=$(cat /root/.kube/config  | grep server | awk -F":" '{print$3}' | awk -F"//" '{print$2}')
+  thisip=$(ip a | grep "br-native" | grep inet | awk '{print$2}' |awk -F"/" 'NR==1{print$1}')
+
+  if [[ -z $master ]]
+  then
+    echo "undeployed Kubernetes or missing /root/.kube/config" >&2
+    exit 1
+  fi
+
+  if [[ -z $thisip ]]
+  then
+    echo "the NIC does not exist, please initial br-native " >&2
+    exit 1
+  fi
+
+  sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$master:6642
+  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$thisip
+}
+
+function stop-central()
+{
+  systemctl stop    openvswitch
+  systemctl disable openvswitch
+  systemctl stop    ovn-ovsdb
+  systemctl disable ovn-ovsdb
+  systemctl stop    ovn-northd
+  systemctl disable ovn-northd
+  systemctl stop    ovn-controller
+  systemctl disable ovn-controller
+}
+
+function start-worker()
+{
+  systemctl start  openvswitch
+  systemctl enable openvswitch
+  systemctl start  ovn-controller
+  systemctl enable ovn-controller
+
+  master=$(cat /root/.kube/config  | grep server | awk -F":" '{print$3}' | awk -F"//" '{print$2}')
+  thisip=$(ip a | grep "br-native" | grep inet | awk '{print$2}' |awk -F"/" 'NR==1{print$1}')
+
+  if [[ -z $master ]]
+  then
+    echo "undeployed Kubernetes or missing /root/.kube/config" >&2
+    exit 1
+  fi
+
+  if [[ -z $thisip ]]
+  then
+    echo "the NIC does not exist, please initial br-native " >&2
+    exit 1
+  fi
+
+  sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
+  sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$master:6642
+  sudo ovs-vsctl set open . external-ids:ovn-encap-type=vxlan
+  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$thisip
+  
+  create-br-c-br br-native br-int
+}
+
+function stop-worker()
+{
+  systemctl stop    ovn-controller
+  systemctl disable ovn-controller
+}
+
+function create-br-c-br()
+{
+  ovs-vsctl --may-exist add-port $1 patch-$2 -- set interface patch-$2 type=patch -- set interface patch-$2 option:peer=patch-$1
+  ovs-vsctl --may-exist add-port $2 patch-$1 -- set interface patch-$1 type=patch -- set interface patch-$1 option:peer=patch-$2
+}
+
+
+###########################################################
+##
+##  
+##
+##########################################################
+
+
+function create-bridge()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name  \tNIC name" >&2
+    echo -e "--bridge\tbrdige name(optinal), default is br-name" >&2
+    exit 1
+  fi
+
+  if [[ -z $bridge ]]
+  then
+    bridge="br-"$name
+  fi
+
+  ################################
+  if [[ ! -f $IFCFG"ifcfg-BRX" ]]
+  then
+     echo DEVICE=BRX     >> /etc/sysconfig/network-scripts/ifcfg-BRX
+     echo DEVICETYPE=ovs >> /etc/sysconfig/network-scripts/ifcfg-BRX
+     echo TYPE=OVSBridge >> /etc/sysconfig/network-scripts/ifcfg-BRX
+     echo ONBOOT=yes >> /etc/sysconfig/network-scripts/ifcfg-BRX
+  fi
+
+  if [[ ! -f $IFCFG"ifcfg-ORG" ]]
+  then
+     echo TYPE=OVSPort         >> /etc/sysconfig/network-scripts/ifcfg-ORG
+     echo DEVICE=ORG           >> /etc/sysconfig/network-scripts/ifcfg-ORG
+     echo ONBOOT=yes           >> /etc/sysconfig/network-scripts/ifcfg-ORG
+     echo DEVICETYPE=ovs       >> /etc/sysconfig/network-scripts/ifcfg-ORG
+     echo OVS_BRIDGE=BRX >> /etc/sysconfig/network-scripts/ifcfg-ORG
+  fi
+  ################################
+
+
+  ################################
+  res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
+  if [[ $res != "active" ]]
+  then
+    echo "please start openvswitch first" >&2
+    exit 1
+  fi
+
+  if [[ ! -f $IFCFG"ifcfg-$name" ]]
+  then
+    echo "wrong NIC name" >&2
+    exit 1
+  fi  
+
+  ################################
+  
+  ################################
+  if [[ ! -f $IFCFG"ifcfg-$name.bak" ]]
+  then
+    cp $IFCFG"ifcfg-$name" $IFCFG"ifcfg-$name.bak"
+  fi
+
+  rm -rf $IFCFG"ifcfg-$name"
+  rm -rf $IFCFG"ifcfg-$bridge"
+
+  cp $IFCFG"ifcfg-ORG" $IFCFG"ifcfg-$name"
+  cp $IFCFG"ifcfg-BRX" $IFCFG"ifcfg-$bridge"
+
+  ovs-vsctl --if-exist del-br $bridge
+  ovs-vsctl add-br $bridge
+
+  static=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep static)
+  ip=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep IPADDR)
+  mask=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep NETMASK)
+  gw=$(cat ifcfg-$name.bak | grep BOOTPROTO | grep GATEWAY)
+  
+  sed -i "s/BRX/$bridge/g" $IFCFG"ifcfg-$bridge"
+  sed -i "s/BRX/$bridge/g" $IFCFG"ifcfg-$name"
+  sed -i "s/ORG/$name/g" $IFCFG"ifcfg-$name"
+  if [[ -z $static ]]
+  then
+    echo "BOOTPROTO=dhcp" >> $IFCFG"ifcfg-$bridge"
+  else
+    echo $ip >> $IFCFG"ifcfg-$bridge"
+    echo $mask >> $IFCFG"ifcfg-$bridge"
+    echo $gw >> $IFCFG"ifcfg-$bridge"
+  fi
+
+  ovs-vsctl add-port $bridge $name; systemctl restart network
+}
+
+function delete-bridge()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name  \tNIC name" >&2
+    echo -e "--bridge\tbrdige name(optinal), default is br-name" >&2
+    exit 1
+  fi
+
+  if [[ -z $bridge ]]
+  then
+    bridge="br-"$name
+  fi
+
+  ################################
+  res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
+  if [[ $res != "active" ]]
+  then
+    echo "please start openvswitch first" >&2
+    exit 1
+  fi
+
+  if [[ ! -f $IFCFG"ifcfg-$name" ]]
+  then
+    echo "wrong NIC name" >&2
+    exit 1
+  fi
+
+  ################################
+
+  rm -rf $IFCFG"ifcfg-$name"
+  rm -rf $IFCFG"ifcfg-$bridge"
+  
+  mv -f $IFCFG"ifcfg-$name.bak" $IFCFG"ifcfg-$name"
+
+  ovs-vsctl --if-exist del-br  $bridge; systemctl restart network
+
+}
+
+###########################################################
+##
+##  l2
+##
+###########################################################
 
 
 ## Create a switch with a default DHCP
@@ -61,7 +312,7 @@ function create-switch()
   then
     cmddesc
     echo -e "--name  \tswitch name" >&2
-    echo -e "--subnet\tIP range. for example, 192.168.1.0/24" >&2
+    echo -e "--subnet\tIP range. for example, 192.168.1.0/24"  >&2
     exit 1
   fi
 
@@ -117,9 +368,9 @@ function remove-switch()
   
   router='r4'$name
   dhcpid=$($NB_CMD show $name | grep "dhcpv4id-$name-" | awk -F"dhcpv4id-$name-" '{print$2}')
-  $NB_CMD ls-del $name
-  $NB_CMD lr-del $router
-  $NB_CMD dhcp-options-del $dhcpid
+  $NB_CMD ls-del $name  >/dev/null  2>&1 
+  $NB_CMD lr-del $router >/dev/null  2>&1 
+  $NB_CMD dhcp-options-del $dhcpid >/dev/null  2>&1  
 }
 
 
@@ -314,94 +565,6 @@ function delport-vxlan()
 }
 
 
-function start-central()
-{
-  systemctl start openvswitch
-  systemctl enable openvswitch
-  systemctl start ovn-ovsdb
-  systemctl enable ovn-ovsdb
-  systemctl start ovn-northd
-  systemctl enable ovn-northd
-  systemctl start ovn-controller
-  systemctl enable ovn-controller
-
-  sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
-  sudo ovs-vsctl set open . external-ids:ovn-remote=unix:/usr/var/run/openvswitch/ovnsb_db.sock
-  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=127.0.0.1
-  sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
-
-#create-br-c-br
-}
-
-function stop-central()
-{
-  systemctl stop openvswitch
-  systemctl disable openvswitch
-  systemctl stop ovn-ovsdb
-  systemctl disable ovn-ovsdb
-  systemctl stop ovn-northd
-  systemctl disable ovn-northd
-  systemctl stop ovn-controller
-  systemctl disable ovn-controller
-}
-
-function start-worker()
-{
-  systemctl start openvswitch
-  systemctl enable openvswitch
-  systemctl start ovn-controller
-  systemctl enable ovn-controller
-
-  master=$(cat /root/.kube/config  | grep server | awk -F":" '{print$3}' | awk -F"//" '{print$2}')
-  thisip=$(ip a | grep "br-native" | grep inet | awk '{print$2}' |awk -F"/" 'NR==1{print$1}')
-
-  if [[ -z $thisip ]]
-  then
-    thisip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-    ie=$(ip a | grep $ip)
-    if [[ -z $ie ]]
-    then
-    	echo "the NIC does not exist, please assign a correct UP using --ip " >&2
-    	exit 1
-    fi 
-  fi
-
-  sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
-  sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$master:6642
-  sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
-  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$thisip
-  create-br-c-br
-}
-
-
-function stop-worker()
-{
-  systemctl stop ovn-controller
-  systemctl disable ovn-controller
-}
-
-## All helps
-
-function help()
-{
-  cmddesc
-  echo -e "Commands:"
-  echo -e "  start-central:\tStart central node"
-  echo -e "  stop-central :\tStop central node"
-  echo -e "  start-worker :\tStart worker node"
-  echo -e "  stop-worker  :\tStop worker node"
-  echo -e "  create-switch:\tCreate a switch with a dhcp"
-  echo -e "  remove-switch:\tRemove a switch and the related dhcp"
-  echo -e "  delete-switch:\tRemove a switch and the related dhcp, see remove-switch"
-  echo -e "  bind-swport  :\tBind a switch port"
-  echo -e "  unbind-swport:\tUnbind a switch port"
-  echo -e "  setport-vlan :\tSet port with vlan ID"
-  echo -e "  delport-vlan :\tDelete port's vlan ID"
-  echo -e "  create-fip   :\tCreate floating IP"
-  echo -e "  delete-fip   :\tDelete floating IP"
-}
-
-
 function create-fip()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
@@ -448,8 +611,8 @@ function create-fip()
     exit 0
   done
 
-	echo "too much floating IPs" >&2
-	exit 1   
+  echo "too much floating IPs" >&2
+  exit 1   
 
 }
 
@@ -457,7 +620,7 @@ function create-fip()
 function delete-fip()
 {
   ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-  fname=$(ip a | grep $ip | awk '{print$7}')
+  fname=$(ip a | grep $ip | awk '{print$8}')
 
   if [[ -z $1 || -z $ip || $2 == "--help" ]]
   then
@@ -472,7 +635,7 @@ function delete-fip()
     exit 1
   fi
 
-  ifdown $fname
+  ifconfig $fname down
   rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
 }
 
@@ -563,11 +726,12 @@ function unbind-fip()
   $NB_CMD lsp-del $sport
 }
 
-function create-br-c-br()
-{
-  ovs-vsctl --may-exist add-port br-native patch-br-int -- set interface patch-br-int type=patch -- set interface patch-br-int option:peer=patch-br-native
-  ovs-vsctl --may-exist add-port br-int patch-br-native -- set interface patch-br-native type=patch -- set interface patch-br-native option:peer=patch-br-int
-}
+
+###########################################################
+##
+##  help
+##
+##########################################################
 
 function cmddesc()
 {
@@ -575,7 +739,38 @@ function cmddesc()
   echo -e "ovnctl($VERSION): missing command name (use --help for help)\n"
 }
 
+
+function help()
+{
+  cmddesc
+  echo -e "Commands:"
+  echo -e "  create-bridge:\tCreate L2 bridge"
+  echo -e "  delete-bridge:\tDelete L2 bridge"
+  echo -e "  start-central:\tStart central node"
+  echo -e "  stop-central :\tStop central node"
+  echo -e "  start-worker :\tStart worker node"
+  echo -e "  stop-worker  :\tStop worker node"
+  echo -e "  create-switch:\tCreate a switch with a dhcp"
+  echo -e "  create-vpc   :\tCreate a switch with a dhcp, see create-switch"
+  echo -e "  remove-switch:\tRemove a switch and the related dhcp"
+  echo -e "  delete-switch:\tRemove a switch and the related dhcp, see remove-switch"
+  echo -e "  delete-vpc   :\tRemove a switch and the related dhcp, see delete-vpc"
+  echo -e "  bind-swport  :\tBind a switch port"
+  echo -e "  unbind-swport:\tUnbind a switch port"
+  echo -e "  setport-vlan :\tSet port with vlan ID"
+  echo -e "  delport-vlan :\tDelete port's vlan ID"
+  echo -e "  create-fip   :\tCreate floating IP"
+  echo -e "  delete-fip   :\tDelete floating IP"
+}
+
+
 case $1 in
+  "create-bridge")
+    create-bridge $*
+    ;;
+  "delete-bridge")
+    delete-bridge $*
+    ;;
   "start-central")
     start-central $*
     ;;
@@ -591,10 +786,16 @@ case $1 in
   "create-switch")
     create-switch $*
     ;;
+  "create-vpc")
+    create-switch $*
+    ;;
   "remove-switch")
     remove-switch $*
     ;;
   "delete-switch")
+    remove-switch $*
+    ;;
+  "delete-vpc")
     remove-switch $*
     ;;
   "bind-swport")

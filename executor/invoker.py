@@ -481,7 +481,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
                                 jsondict = deleteLifecycleInJson(jsondict)
-                                modifyStructure(metadata_name, jsondict, group, version, plural)
+                                try:
+                                    modifyStructure(metadata_name, jsondict, group, version, plural)
+                                except Exception:
+                                    pass
                                 time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 continue

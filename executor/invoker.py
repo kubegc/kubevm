@@ -474,9 +474,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     elif operation_type == 'MODIFIED':
                         result, data = None, None
                         try:
-                            result, data = runCmdWithResult(cmd)
-                            if result['code'] != 0:
-                                raise ExecuteException('VirtctlError', result['msg'])
+                            if cmd.find("kubesds-adm") >=0:
+                                result, data = runCmdWithResult(cmd)
+                                if result['code'] != 0:
+                                    raise ExecuteException('VirtctlError', result['msg'])
+                            else:
+                                runCmd(cmd)
                         except Exception, e:
                             if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)

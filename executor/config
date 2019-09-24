@@ -188,6 +188,8 @@ createSwitch = kubeovn-adm create-switch
 deleteSwitch = kubeovn-adm remove-switch
 
 [NetworkSupportCmdsWithSwitchField]
+createBridge = kubeovn-adm create-bridge
+deleteBridge = kubeovn-adm delete-bridge
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
 setPortVlan = kubeovn-adm setport-vlan

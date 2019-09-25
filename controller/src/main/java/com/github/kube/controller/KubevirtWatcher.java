@@ -56,6 +56,11 @@ public abstract class KubevirtWatcher {
 	}
 	
 	
+	/************************************************************************
+	 * 
+	 *                       Core
+	 * 
+	 ************************************************************************/
 	/**
 	 * @param spec            spec
 	 * @return                container's resource requirements
@@ -64,18 +69,16 @@ public abstract class KubevirtWatcher {
 
 	/**
 	 * @param action           action
-	 * @param om               om
+	 * @param meta             meta
 	 * @param spec             spec
 	 */
-	public void eventReceived(Action action, ObjectMeta om, Object spec) {
+	public void eventReceived(Action action, ObjectMeta meta, Object spec) {
 		try {
-			ExtendedCustomResourceDefinitionSpec extSpec = (ExtendedCustomResourceDefinitionSpec) spec;
-			Pod pod = convertor.createPod(om, createAnnotations(om), 
-					                     spec, getResourceDemands(spec), 
-					                     extSpec.getNodeSelector(), 
-					                     extSpec.getAffinity(), 
-					                     getPodName(om));
-			executor.execute(client, action, getWatcherType(), pod);
+			ExtendedCustomResourceDefinitionSpec espec = (ExtendedCustomResourceDefinitionSpec) spec;
+			Pod pod = convertor.createPod(meta, createAnnotations(meta.getName(), meta.getNamespace()), 
+											espec, getResourceDemands(espec), espec.getNodeSelector(), 
+											espec.getAffinity(), getPodName(meta));
+			executor.execute(client, action, getKind(), pod);
 		} catch (Exception ex) {
 			m_logger.log(Level.SEVERE, ex.toString());
 		}
@@ -85,42 +88,49 @@ public abstract class KubevirtWatcher {
 	 * 
 	 * convert CRD to Pod annotations
 	 * 
-	 * @param om               CRD objectMeta
+	 * @param name             name
+	 * @param namespace        namespace
 	 * @return                 annotations
 	 * @throws Exception       wrong JSON format or invalid value in JSON
 	 */
-	protected Map<String, String> createAnnotations(ObjectMeta om) throws Exception {
+	protected Map<String, String> createAnnotations(String name, String namespace) throws Exception {
 		Map<String, String> annotations = new HashMap<String, String>();
 		annotations.put(KubevirtConstants.KIND_ANNOTATION, getPlural());
 		annotations.put(KubevirtConstants.GROUP_ANNOTATION, getGroup());
 		annotations.put(KubevirtConstants.VERSION_ANNOTATION, getVersion());
-		annotations.put(KubevirtConstants.NAME_ANNOTATION, om.getName());
-		annotations.put(KubevirtConstants.NS_ANNOTATION, om.getNamespace());
+		annotations.put(KubevirtConstants.NAME_ANNOTATION,name);
+		annotations.put(KubevirtConstants.NS_ANNOTATION, namespace);
 		return annotations;
+	}
+	
+	/************************************************************************
+	 * 
+	 *                       Commons
+	 * 
+	 ************************************************************************/
+	
+	/**
+	 * @return              kind
+	 */
+	protected String getKind() {
+		String classname = getClass().getSimpleName();
+		return classname.substring(0, classname.length() - "Watcher".length());
 	}
 	
 	/**
 	 * @return               plural
 	 */
 	public String getPlural() {
-		return getWatcherType() + "s";
+		return getKind().toLowerCase() + "s";
 	}
 	
 	/**
-	 * @param data            Metadata
+	 * @param meta            Metadata
 	 * @return                pod name
 	 */
-	public String getPodName(ObjectMeta data) {
-		return getWatcherType() + "-" + data.getName() 
-					+ "-" + data.getNamespace();
-	}
-	
-	/**
-	 * @return
-	 */
-	protected String getWatcherType() {
-		String classname = getClass().getSimpleName().toLowerCase();
-		return classname.substring(0, classname.length() - "Watcher".length());
+	public String getPodName(ObjectMeta meta) {
+		return getKind().toLowerCase() + "-" 
+				+ meta.getName() + "-" + meta.getNamespace();
 	}
 	
 	/**

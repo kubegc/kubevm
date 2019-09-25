@@ -6,6 +6,7 @@ package com.github.kube.controller.watchers;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.kube.controller.KubevirtWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachine;
 import com.github.kubesys.kubernetes.api.model.VirtualMachineSpec;
@@ -23,7 +24,7 @@ import io.fabric8.kubernetes.client.Watcher;
  * 
  * convert VirtualMachine to Pod. 
  **/
-public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<VirtualMachine> {
+public class VirtualMachineWatcher extends KubevirtWatcher implements Watcher<VirtualMachine> {
 
 	/**
 	 * @param client            client
@@ -34,10 +35,6 @@ public class VirtualMachineWatcher extends AbstractWatcher implements Watcher<Vi
 
 	public void eventReceived(Action action, VirtualMachine vm) {
 		doConvert(action.toString(), vm.getMetadata(), vm.getSpec());
-	}
-
-	public void onClose(KubernetesClientException cause) {
-		logStopInfo(cause);
 	}
 
 	@Override

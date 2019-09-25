@@ -6,6 +6,7 @@ package com.github.kube.controller.watchers;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.kube.controller.KubevirtWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachineDisk;
 
@@ -22,7 +23,7 @@ import io.fabric8.kubernetes.client.Watcher;
  * 
  * convert VirtualMachineDisk to Pod. 
  **/
-public class VirtualMachineDiskWatcher extends AbstractWatcher implements Watcher<VirtualMachineDisk> {
+public class VirtualMachineDiskWatcher extends KubevirtWatcher implements Watcher<VirtualMachineDisk> {
 
 
 	/**
@@ -35,11 +36,6 @@ public class VirtualMachineDiskWatcher extends AbstractWatcher implements Watche
 
 	public void eventReceived(Action action, VirtualMachineDisk disk) {
 		doConvert(action.toString(), disk.getMetadata(), disk.getSpec());
-	}
-
-
-	public void onClose(KubernetesClientException cause) {
-		logStopInfo(cause);
 	}
 
 

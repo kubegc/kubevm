@@ -1,9 +1,8 @@
-# Scheduler
+# Scheduler (GA)
 
 Queue-oriented, Model-free Kubernetes's scheduler for Various Application Lifecycle Management
 
 Please see project [kubeext-scheduler](https://github.com/kubesys/kubeext-scheduler)
-
 
 # Prerequisite
 
@@ -11,7 +10,6 @@ Ensure you have configured GOROOT and GOPATH
 
 - IDE: GoLand 
 - Go: >= 1.12.9
-
 
 # Deploy Steps
 #### Prerequisite

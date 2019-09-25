@@ -2,7 +2,8 @@
 
 Queue-oriented, Model-free Kubernetes's scheduler for Various Application Lifecycle Management
 
-Please see project [kubeext-scheduler](https://github.com/kubesys/kubeext-scheduler)
+Note that this is a stable solution from ISCAS, please see project [kubeext-scheduler](https://github.com/kubesys/kubeext-scheduler).
+So what we need to do is release it for a specific Kubernetes' version
 
 # Prerequisite
 
@@ -10,6 +11,12 @@ Ensure you have configured GOROOT and GOPATH
 
 - IDE: GoLand 
 - Go: >= 1.12.9
+
+# Roadmap
+
+- for Kubernetes 1.14.1 (20190630)
+- for Kubernetes 1.14.6 (20190930)
+- for Kubernetes 1.15.6 (20191230, final)
 
 # Deploy Steps
 #### Prerequisite

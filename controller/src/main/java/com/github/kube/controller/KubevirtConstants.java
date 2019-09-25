@@ -3,15 +3,6 @@
  */
 package com.github.kube.controller;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
-
-import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.client.Watcher.Action;
-
 /**
  * @author wuheng@otcaix.iscas.ac.cn
  * @author shizhonghao17@otcaix.iscas.ac.cn

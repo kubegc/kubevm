@@ -468,7 +468,8 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         raise ExecuteException('VirtctlError', "disk type and pool must be set")
                     if operation_type == 'ADDED':
                         if cmd:
-                            if cmd.find("kubesds-adm") >=0:
+                            if cmd.find("kubesds-adm") >= 0:
+                                logger.debug(cmd)
                                 result, data = None, None
                                 if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                     result, data = runCmdWithResult(cmd)
@@ -482,6 +483,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
                                 _reportResutToVirtlet(metadata_name, body, group, version, plural)
                             else:
+                                logger.debug(cmd)
                                 runCmd(cmd)
                                 logger.debug(jsondict)
                                 del jsondict['raw_object']['spec']['lifecycle']
@@ -491,10 +493,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         result, data = None, None
                         try:
                             if cmd.find("kubesds-adm") >=0:
+                                logger.debug(cmd)
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
                             else:
+                                logger.debug(cmd)
                                 runCmd(cmd)
                         except Exception, e:
                             if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):

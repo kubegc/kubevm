@@ -30,6 +30,7 @@ BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %install
 mkdir -p %{buildroot}/%{_usr}/bin
+mkdir -p %{buildroot}/%{_usr}/lib/systemd/system
 install %{SOURCE0} %{buildroot}/%{_usr}/bin/kubevmm-adm
 install %{SOURCE1} %{buildroot}/%{_usr}/bin/vmm
 install %{SOURCE4} %{buildroot}/%{_usr}/bin/kubeovn-adm

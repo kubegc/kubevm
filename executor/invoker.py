@@ -1166,7 +1166,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         try:
                             runCmd(cmd)
                         except Exception, e:
-                            if _isDeleteNetwork(the_cmd_key):
+                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key):
                                 logger.warning("***Network %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -1723,6 +1723,11 @@ def _isDeleteDiskImage(the_cmd_key):
 
 def _isDeleteNetwork(the_cmd_key):
     if the_cmd_key == "deleteSwitch":
+        return True
+    return False
+
+def _isDeleteBridge(the_cmd_key):
+    if the_cmd_key == "deleteBridge":
         return True
     return False
 

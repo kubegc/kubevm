@@ -500,7 +500,7 @@ function unbindport-vlan()
     exit 1
   fi
 
-  ovs-vsctl --if-exists del-port $bridge$vlan $port_name
+  ovs-vsctl --if-exists del-port $bridge"-"$vlan $port_name
 }
 
 

@@ -38,11 +38,11 @@ public class KubevirtConvertor {
 	 * @return                           Pod
 	 * @throws Exception                 exception
 	 */
-	protected Pod createPod(ObjectMeta om, Map<String, String> annotations, Object spec, ResourceRequirements resInfo, Map<String, String> nodeSelector, Affinity affinity, String podName) throws Exception {
+	protected Pod createPod(ObjectMeta om, Map<String, String> annotations, Object spec, String nodeName, ResourceRequirements resInfo, Map<String, String> nodeSelector, Affinity affinity, String podName) throws Exception {
 		Pod pod = new Pod();
 		// metadata and podSpec
 		pod.setMetadata(createMetadataFrom(om, annotations, spec, podName));
-		pod.setSpec(createPodSpecFrom(resInfo, nodeSelector, affinity, podName));
+		pod.setSpec(createPodSpecFrom(resInfo, nodeName, nodeSelector, affinity, podName));
 		return pod;
 	}
 	
@@ -92,10 +92,11 @@ public class KubevirtConvertor {
 	public final static String DEFAULT_SCHEDULER        = "kubevirt-scheduler";
 	
 	
-	protected PodSpec createPodSpecFrom(ResourceRequirements resInfo, Map<String, String> nodeSelector, Affinity affinity, String podName) {
+	protected PodSpec createPodSpecFrom(ResourceRequirements resInfo, String nodeName, Map<String, String> nodeSelector, Affinity affinity, String podName) {
 		PodSpec spec = new PodSpec();
 		spec.setNodeSelector(nodeSelector);
 		spec.setAffinity(affinity);
+		spec.setNodeName(nodeName);
 		spec.setContainers(createContainerFrom(resInfo, podName));
 		spec.setSchedulerName(System.getProperty(
 							"scheduler-name", DEFAULT_SCHEDULER));

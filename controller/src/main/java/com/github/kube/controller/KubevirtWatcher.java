@@ -76,8 +76,8 @@ public abstract class KubevirtWatcher {
 		try {
 			ExtendedCustomResourceDefinitionSpec espec = (ExtendedCustomResourceDefinitionSpec) spec;
 			Pod pod = convertor.createPod(meta, createAnnotations(meta.getName(), meta.getNamespace()), 
-											espec, getResourceDemands(espec), espec.getNodeSelector(), 
-											espec.getAffinity(), getPodName(meta));
+											espec, espec.getNodeName(), getResourceDemands(espec), 
+											espec.getNodeSelector(), espec.getAffinity(), getPodName(meta));
 			executor.execute(client, action, getKind(), pod);
 		} catch (Exception ex) {
 			m_logger.log(Level.SEVERE, ex.toString());

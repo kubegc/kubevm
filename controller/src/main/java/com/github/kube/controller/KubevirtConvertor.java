@@ -46,35 +46,35 @@ public class KubevirtConvertor {
 		return pod;
 	}
 	
-	/*************************************
+	/************************************************************************
 	 * 
-	 *  convert CRD to Pod's metadata
+	 *                       Pod's ObjectMeta
 	 * 
-	 *************************************/
+	 ************************************************************************/
 	
 	/**
-	 * @param om                         CRD's ObjectMeta
-	 * @param annotations                annotations
+	 * @param meta                       CRD's ObjectMeta
+	 * @param anns                       annotations
 	 * @param spec                       CRD's Spec
-	 * @param podName                    pod name
+	 * @param name                       pod name
 	 * @return                           pod ObjectMeta
 	 * @throws Exception                 exception
 	 */
-	protected ObjectMeta createMetadataFrom(ObjectMeta om, Map<String, String> annotations, 
-											Object spec, String podName) throws Exception {
+	protected ObjectMeta createMetadataFrom(ObjectMeta meta, Map<String, String> anns, 
+											Object spec, String name) throws Exception {
 		ObjectMeta metadata = new ObjectMeta();
-		metadata.setName(podName);
-		metadata.setLabels(om.getLabels());
-		metadata.setAnnotations(annotations);
+		metadata.setName(name);
+		metadata.setLabels(meta.getLabels());
+		metadata.setAnnotations(anns);
 		return metadata;
 	}
 	
 	
-	/*************************************
+	/************************************************************************
 	 * 
-	 *  convert CRD to Pod's spec
+	 *                       Pod's Spec
 	 * 
-	 *************************************/
+	 ************************************************************************/
 	
 	/**
 	 * convert CRD to Pod spec
@@ -97,7 +97,8 @@ public class KubevirtConvertor {
 		spec.setNodeSelector(nodeSelector);
 		spec.setAffinity(affinity);
 		spec.setContainers(createContainerFrom(resInfo, podName));
-		spec.setSchedulerName(System.getProperty("scheduler-name", DEFAULT_SCHEDULER));
+		spec.setSchedulerName(System.getProperty(
+							"scheduler-name", DEFAULT_SCHEDULER));
 		return spec;
 	}
 	

@@ -68,8 +68,6 @@ plural = virtualmachinepools
 createAndStartVMFromISO = virt-install
 createAndStartVMFromImage = virt-install
 convertVMToImage = /usr/bin/vmm convert_vm_to_image
-setPortVlan = kubeovn-adm setport-vlan
-delPortVlan = kubeovn-adm delport-vlan
 
 [VirtualMachineSupportCmdsWithDomainField]
 createVM = virsh create
@@ -190,6 +188,8 @@ createBridge = kubeovn-adm create-bridge
 setBridgeVlan = kubeovn-adm setbridge-vlan
 delBridgeVlan = kubeovn-adm delbridge-vlan
 deleteBridge = kubeovn-adm delete-bridge
+bindPortVlan = kubeovn-adm setport-vlan
+unbindPortVlan = kubeovn-adm delport-vlan
 
 [L3NetworkSupportCmdsWithNameField]
 createSwitch = kubeovn-adm create-switch

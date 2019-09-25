@@ -284,14 +284,14 @@ function delete-bridge()
 
   ################################
 
+  rm -rf $IFCFG"ifcfg-$name"
+
   if [[ ! -f $IFCFG"ifcfg-$nic.bak" ]]
   then
     echo "$nic is not a part of openvswitch" >&2
     exit 1
   fi 
-
   rm -rf $IFCFG"ifcfg-$nic"
-  rm -rf $IFCFG"ifcfg-$name"
 
  
   mv -f $IFCFG"ifcfg-$nic.bak" $IFCFG"ifcfg-$nic"
@@ -426,15 +426,15 @@ function delbridge-vlan()
 function bindport-vlan()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+ domain=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
   mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
   vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $name || -z $mac || -z $bridge || $2 == "--help" ]]
+if [[ -z $1 || -z $name || -z $mac || -z $domain || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name    \tvm name" >&2
-    echo -e "--bridge  \tbridge" >&2
+    echo -e "--name    \tbridge" >&2
+    echo -e "--domain  \tvm name" >&2
     echo -e "--mac     \tvirtual NIC mac" >&2
     echo -e "--vlan    \tvlan (optional)" >&2
     exit 1
@@ -445,7 +445,7 @@ function bindport-vlan()
     vlan="0"
   fi
 
-  res=$(virsh dumpxml $name | grep "$mac")
+  res=$(virsh dumpxml $domain | grep "$mac")
   if [[ -z $res ]]
   then
     echo "the mac is not a part of VM." >&2
@@ -459,7 +459,7 @@ function bindport-vlan()
     exit 1
   fi
 
-  ovs-vsctl add-port $bridge"-"$vlan $port_name
+  ovs-vsctl add-port $name"-"$vlan $port_name
 }
 
 # Delete port's vlan id
@@ -467,15 +467,15 @@ function bindport-vlan()
 function unbindport-vlan()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+domain=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
   vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
   mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
 
-  if [[ -z $1 || -z $name ||  -z $mac  || -z $bridge || $2 == "--help" ]]
+if [[ -z $1 || -z $name ||  -z $mac  || -z $domain || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--name     \tvm name" >&2
-    echo -e "--bridge   \tbridge" >&2
+    echo -e "--name    \tbridge" >&2
+    echo -e "--domain  \tvm name" >&2
     echo -e "--mac      \tvirtual NIC mac" >&2
     echo -e "--vlan     \tvlan(optional)" >&2
     exit 1
@@ -486,7 +486,7 @@ function unbindport-vlan()
     vlan="0"
   fi
 
-  res=$(virsh dumpxml $name | grep "$mac")
+  res=$(virsh dumpxml $domain | grep "$mac")
   if [[ -z $res ]]
   then
     echo "the mac is not a part of VM." >&2
@@ -501,7 +501,7 @@ function unbindport-vlan()
     exit 1
   fi
 
-  ovs-vsctl --if-exists del-port $bridge"-"$vlan $port_name
+ovs-vsctl --if-exists del-port $name"-"$vlan $port_name
 }
 
 

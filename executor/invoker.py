@@ -468,18 +468,25 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         raise ExecuteException('VirtctlError', "disk type and pool must be set")
                     if operation_type == 'ADDED':
                         if cmd:
-                            result, data = None, None
-                            if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
-                                result, data = runCmdWithResult(cmd)
-                                if result['code'] != 0:
-                                    raise ExecuteException('VirtctlError', result['msg'])
+                            if cmd.find("kubesds-adm") >=0:
+                                result, data = None, None
+                                if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                                    result, data = runCmdWithResult(cmd)
+                                    if result['code'] != 0:
+                                        raise ExecuteException('VirtctlError', result['msg'])
+                                else:
+                                    result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                logger.debug(jsondict)
+                                del jsondict['raw_object']['spec']['lifecycle']
+                                jsondict['raw_object']['spec']['volume'] = data
+                                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
                             else:
-                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                            logger.debug(jsondict)
-                            del jsondict['raw_object']['spec']['lifecycle']
-                            jsondict['raw_object']['spec']['volume'] = data
-                            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                                runCmd(cmd)
+                                logger.debug(jsondict)
+                                del jsondict['raw_object']['spec']['lifecycle']
+                                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
                     elif operation_type == 'MODIFIED':
                         result, data = None, None
                         try:

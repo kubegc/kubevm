@@ -252,7 +252,7 @@ function create-bridge()
     echo $gw >> $IFCFG"ifcfg-$name"
   fi
 
-  ovs-vsctl add-port $name $nic && systemctl restart network
+ovs-vsctl add-port $name $nic && ifdown $nic && ifup $nic && ifup $name
 }
 
 function delete-bridge()
@@ -295,7 +295,7 @@ function delete-bridge()
  
   mv -f $IFCFG"ifcfg-$nic.bak" $IFCFG"ifcfg-$nic"
 
-  ovs-vsctl --if-exist del-br $name && systemctl restart network
+  ovs-vsctl --if-exist del-br $name && ifdown $nic && ifup $nic
 
 }
 

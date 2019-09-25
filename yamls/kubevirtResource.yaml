@@ -53,6 +53,9 @@ spec:
   - JSONPath: .spec.type
     name: TYPE
     type: string
+  - JSONPath: .spec.status.conditions.state.waiting.reason
+    name: STATUS
+    type: string
   - JSONPath: .spec.nodeName
     name: NODE
     type: string

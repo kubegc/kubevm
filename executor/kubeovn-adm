@@ -284,14 +284,15 @@ function delete-bridge()
 
   ################################
 
-  rm -rf $IFCFG"ifcfg-$nic"
-  rm -rf $IFCFG"ifcfg-$name"
-
   if [[ ! -f $IFCFG"ifcfg-$nic.bak" ]]
   then
     echo "$nic is not a part of openvswitch" >&2
     exit 1
   fi 
+
+  rm -rf $IFCFG"ifcfg-$nic"
+  rm -rf $IFCFG"ifcfg-$name"
+
  
   mv -f $IFCFG"ifcfg-$nic.bak" $IFCFG"ifcfg-$nic"
 

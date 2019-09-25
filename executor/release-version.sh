@@ -43,6 +43,7 @@ gzexe ./kubeovn-adm
 cp -f kubeovn-adm ./dist
 gzexe -d ./kubeovn-adm
 rm -f ./kubeovn-adm~
+cp ovn-ovsdb.service ./dist
 cp -rf ../yamls ./dist
 echo ${VERSION} > ./VERSION
 pyinstaller -F kubevmm_adm.py -n kubevmm-adm

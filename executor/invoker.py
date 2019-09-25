@@ -1472,7 +1472,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             else:
                 net_type = 'layer2'
                 retv = get_l2_network_info(name)
-            jsonDict['spec'] = {'type': net_type, 'data': retv}
+            jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'type': net_type, 'data': retv}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
 

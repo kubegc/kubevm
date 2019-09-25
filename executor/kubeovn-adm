@@ -445,13 +445,6 @@ if [[ -z $1 || -z $name || -z $mac || -z $domain || $2 == "--help" ]]
     vlan="0"
   fi
 
-  res=$(virsh dumpxml $domain | grep "$mac")
-  if [[ -z $res ]]
-  then
-    echo "the mac is not a part of VM." >&2
-    exit 1
-  fi
-
   port_name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
 if [[ -n $port_name ]]
   then
@@ -460,8 +453,13 @@ if [[ -n $port_name ]]
   fi
 
 port_name=$(echo $mac | awk -F":" '{print "fe"$2$3$4$5$6}')
+mac_in_short=$(echo $mac | awk -F":" '{print $1$2$3$4$5$6}')
 
-  ovs-vsctl add-port $name"-"$vlan $port_name
+#ovs-vsctl add-port $name"-"$vlan $port_name
+nic_xml_file="/var/lib/libvirt/devices/"$domain"-nic-"$mac_in_short".xml"
+sed -r 's/(<source bridge=").*("\/>)/\1'$name"-"$vlan'\2/g' $nic_xml_file > $nic_xml_file".new"
+mv -f $nic_xml_file".new" $nic_xml_file
+virsh attach-device --domain $domain --file $nic_xml_file --live --config
 }
 
 # Delete port's vlan id
@@ -503,7 +501,8 @@ if [[ -z $1 || -z $name ||  -z $mac  || -z $domain || $2 == "--help" ]]
     exit 1
   fi
 
-ovs-vsctl --if-exists del-port $name"-"$vlan $port_name
+#ovs-vsctl --if-exists del-port $name"-"$vlan $port_name
+virsh detach-interface --domain $domain --type bridge --mac $mac --live --config
 }
 
 

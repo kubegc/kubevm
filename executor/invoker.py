@@ -509,7 +509,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 # except Exception:
                                 #     pass
                                 # time.sleep(0.5)
-                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                try:
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                except Exception:
+                                    pass
                                 continue
                             else:
                                 raise e
@@ -1310,7 +1313,10 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
                                 else:
-                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                    try:
+                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                    except Exception:
+                                        pass
                                     continue
                             else:
                                 if pool_type == 'uus':
@@ -1323,7 +1329,10 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
                                 # time.sleep(0.5)
-                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                try:
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                except Exception:
+                                    pass
                                 continue
                             else:
                                 raise e

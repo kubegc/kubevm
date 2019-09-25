@@ -6,6 +6,7 @@ package com.github.kube.controller.watchers;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.kube.controller.KubevirtWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachineImage;
 
@@ -22,7 +23,7 @@ import io.fabric8.kubernetes.client.Watcher;
  * 
  * convert VirtualMachineImage to Pod. 
  **/
-public class VirtualMachineImageWatcher extends AbstractWatcher implements Watcher<VirtualMachineImage> {
+public class VirtualMachineImageWatcher extends KubevirtWatcher implements Watcher<VirtualMachineImage> {
 
 
 	/**
@@ -34,10 +35,6 @@ public class VirtualMachineImageWatcher extends AbstractWatcher implements Watch
 
 	public void eventReceived(Action action, VirtualMachineImage image) {
 		doConvert(action.toString(), image.getMetadata(), image.getSpec());
-	}
-
-	public void onClose(KubernetesClientException cause) {
-		logStopInfo(cause);
 	}
 
 	@Override

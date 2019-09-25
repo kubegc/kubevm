@@ -1,7 +1,7 @@
 /**
  * Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
  */
-package com.github.kube.controller.watchers;
+package com.github.kube.controller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.github.kube.controller.watchers.VirtualMachineWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.ExtendedCustomResourceDefinitionSpec;
 
@@ -29,7 +30,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
  * 
  * AbstractWatcher provides a common method to convert VM-related CRD to Pod. 
  **/
-public abstract class AbstractWatcher {
+public abstract class KubevirtWatcher {
 
 	/**
 	 * m_logger
@@ -59,7 +60,7 @@ public abstract class AbstractWatcher {
 	/**
 	 * @param client           client
 	 */
-	public AbstractWatcher(ExtendedKubernetesClient client) {
+	public KubevirtWatcher(ExtendedKubernetesClient client) {
 		super();
 		this.client = client;
 	}
@@ -348,5 +349,12 @@ public abstract class AbstractWatcher {
 			client.pods().inNamespace(POD_NAMESPACE).create(pod);
 			logCreateInfo(podName);
 		}
+	}
+	
+	/**
+	 * @param cause               cause
+ 	 */
+	public void onClose(KubernetesClientException cause) {
+		logStopInfo(cause);
 	}
 }

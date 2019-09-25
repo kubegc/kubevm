@@ -25,16 +25,14 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 
 /**
  * @author wuheng@otcaix.iscas.ac.cn
- * @author shizhonghao17@otcaix.iscas.ac.cn
  * 
- * @version 1.0.0
- * @since Wed Aug 29 17:26:22 CST 2019
+ * @version 1.3.0
+ * @since Wed Sep 25 17:26:22 CST 2019
  * 
+ * KubevirtController is used for starting various wacthers.
  * 
- * KubevirtController is used for converting VM-related CRD to Pod.
- * 
- * Note that this progress must be running on the master node of Kubernetes.
- * And you should firstly install the related CRDs.
+ * Note that this progress is running on the master node of Kubernetes
+ * with pre-installed CRDs.
  **/
 public class KubevirtController {
 	
@@ -49,7 +47,7 @@ public class KubevirtController {
 	public final static String DEFAULT_TOKEN = "/etc/kubernetes/admin.conf";
 	
 	/**
-	 * Kubernetes client, please see https://github.com/kubesys/kubeext-jdk
+	 * Kubernetes client, please see https://github.com/uit-plus/kubeext-jdk
 	 */
 	protected ExtendedKubernetesClient client;
 	
@@ -65,15 +63,18 @@ public class KubevirtController {
 	 * @param token               token
 	 * @throws Exception          token file does not exist or wrong token
 	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public KubevirtController(String token) throws Exception {
-		super();
-		Map<String, Object> map = new Yaml().load(new FileInputStream(new File(token)));
-		Map<String, Map<String, Object>> clusdata = (Map<String, Map<String, Object>>)
-													((List) map.get("clusters")).get(0);
-		Map<String, Map<String, Object>> userdata = (Map<String, Map<String, Object>>)
-													((List) map.get("users")).get(0);
+		Map<String, Object> config = new Yaml().load(
+							new FileInputStream(new File(token)));
+		Map<String, Map<String, Object>> clusdata = get(config, "clusters");
+		Map<String, Map<String, Object>> userdata = get(config, "users");
 		initKubeClient(clusdata, userdata);
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	protected Map<String, Map<String, Object>> get(Map<String, Object> map, String key) {
+		return (Map<String, Map<String, Object>>)
+					((List) map.get(key)).get(0);
 	}
 
 	/**
@@ -82,6 +83,7 @@ public class KubevirtController {
 	 */
 	protected void initKubeClient(Map<String, Map<String, Object>> clusdata,
 									Map<String, Map<String, Object>> userdata) {
+		
 		Config config = new ConfigBuilder()
 				.withApiVersion("v1")
 				.withCaCertData((String) clusdata.get("cluster").get("certificate-authority-data"))
@@ -117,5 +119,4 @@ public class KubevirtController {
 			m_logger.log(Level.SEVERE, "Fail to start controller:" + ex);
 		}
 	}
-
 }

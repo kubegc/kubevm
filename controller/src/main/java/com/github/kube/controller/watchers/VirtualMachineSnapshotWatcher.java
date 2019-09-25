@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import com.github.kube.controller.KubevirtWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachineSnapshot;
 
@@ -23,7 +24,7 @@ import io.fabric8.kubernetes.client.Watcher;
  * 
  * convert VirtualMachineSnapshot to Pod. 
  **/
-public class VirtualMachineSnapshotWatcher extends AbstractWatcher implements Watcher<VirtualMachineSnapshot> {
+public class VirtualMachineSnapshotWatcher extends KubevirtWatcher implements Watcher<VirtualMachineSnapshot> {
 
 	/**
 	 * m_logger
@@ -41,11 +42,6 @@ public class VirtualMachineSnapshotWatcher extends AbstractWatcher implements Wa
 	public void eventReceived(Action action, VirtualMachineSnapshot snapshot) {
 		doConvert(action.toString(), snapshot.getMetadata(), snapshot.getSpec());
 	}
-
-	public void onClose(KubernetesClientException cause) {
-		logStopInfo(cause);
-	}
-
 
 	@Override
 	public ResourceRequirements getResourceDemands(Object spec) {

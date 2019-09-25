@@ -453,11 +453,13 @@ if [[ -z $1 || -z $name || -z $mac || -z $domain || $2 == "--help" ]]
   fi
 
   port_name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
-  if [[ -z $port_name ]]
+if [[ -n $port_name ]]
   then
-    echo "virtual NIC not exist." >&2
+    echo "virtual NIC already in use, unbind it first." >&2
     exit 1
   fi
+
+port_name=$(echo $mac | awk -F":" '{print "fe"$2$3$4$5$6}')
 
   ovs-vsctl add-port $name"-"$vlan $port_name
 }

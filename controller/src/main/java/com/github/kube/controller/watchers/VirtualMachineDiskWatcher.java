@@ -6,13 +6,13 @@ package com.github.kube.controller.watchers;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.kube.controller.KubevirtConstants;
 import com.github.kube.controller.KubevirtWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachineDisk;
 
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
 
 /**
@@ -35,7 +35,7 @@ public class VirtualMachineDiskWatcher extends KubevirtWatcher implements Watche
 
 
 	public void eventReceived(Action action, VirtualMachineDisk disk) {
-		doConvert(action.toString(), disk.getMetadata(), disk.getSpec());
+		eventReceived(action, disk.getMetadata(), disk.getSpec());
 	}
 
 
@@ -43,8 +43,8 @@ public class VirtualMachineDiskWatcher extends KubevirtWatcher implements Watche
 	public ResourceRequirements getResourceDemands(Object spec) {
 		ResourceRequirements resources = new ResourceRequirements();
 		Map<String, Quantity> requests = new HashMap<String, Quantity>();
-		requests.put(CPU_RESOURCE, new Quantity("100m"));
-		requests.put(RAM_RESOURCE, new Quantity("64Mi"));
+		requests.put(KubevirtConstants.CPU_RESOURCE, new Quantity("100m"));
+		requests.put(KubevirtConstants.RAM_RESOURCE, new Quantity("64Mi"));
 		resources.setRequests(requests);
 		return resources;
 	}

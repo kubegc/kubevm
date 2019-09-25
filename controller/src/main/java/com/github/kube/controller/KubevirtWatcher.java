@@ -21,8 +21,8 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 /**
  * @author wuheng@otcaix.iscas.ac.cn
  * 
- * @version 1.0.0
- * @since Wed Aug 29 17:26:22 CST 2019
+ * @version 1.3.0
+ * @since Wed Sep 25 17:26:22 CST 2019
  * 
  * AbstractWatcher provides a common method to convert VM-related CRD to Pod. 
  **/
@@ -52,7 +52,6 @@ public abstract class KubevirtWatcher {
 	 * @param client           client
 	 */
 	public KubevirtWatcher(ExtendedKubernetesClient client) {
-		super();
 		this.client = client;
 	}
 	
@@ -101,7 +100,7 @@ public abstract class KubevirtWatcher {
 	}
 	
 	/**
-	 * @return       plural
+	 * @return               plural
 	 */
 	public String getPlural() {
 		return getWatcherType() + "s";
@@ -125,14 +124,14 @@ public abstract class KubevirtWatcher {
 	}
 	
 	/**
-	 * @return       group
+	 * @return                 group
 	 */
 	public String getGroup() {
 		return "cloudplus.io";
 	}
 	
 	/**
-	 * @return       version
+	 * @return                  version
 	 */
 	public String getVersion() {
 		return "v1alpha3";

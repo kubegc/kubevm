@@ -16,12 +16,19 @@ cp /etc/kubernetes/admin.conf docker/
 docker build docker/ -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-controller-manager:v1.0.0
 ```
 
-## Versions
+## RoadMap
 
-- 1.0.0 (20190829)
+- 1.0.0 (20190701)
   - Support VirtualMachine
   - Support VirtualMachineDisk
-  - Support VirtualMachinePool
-  - Support VirtualMachineImage
   - Support VirtualMachineSnapshot
+- 1.1.0 (20190729)
+  - Support VirtualMachineDiskImage
+  - Support VirtualMachineImage
+- 1.2.0 (20190829)
+  - Support VirtualMachinePool
   - Support VirtualMachineNetwork
+- 1.3.0 (20190925)
+  - Reengineering and now it is a framework
+- 1.4.0 (20191007, final)
+  - support HA 

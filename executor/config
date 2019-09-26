@@ -93,6 +93,7 @@ unplugNIC = virsh detach-device
 changeNumberOfCPU = virsh setvcpus
 resizeRAM = virsh setmem
 resizeVM = virsh blockresize
+tuneDiskQoS = virsh blkdeviotune
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot

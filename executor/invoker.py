@@ -301,9 +301,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         except Exception, e:
                             if _isDeleteVM(the_cmd_key) and not is_vm_exists(metadata_name):
                                 logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
-                                # jsondict = deleteLifecycleInJson(jsondict)
-                                # modifyStructure(metadata_name, jsondict, group, version, plural)
-                                # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             else:
                                 raise e
@@ -466,7 +463,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     elif operation_type == 'MODIFIED':
                         _, data = None, None
                         try:
-                            if cmd.find("kubesds-adm") >=0:
+                            if cmd.find("kubesds-adm") >= 0:
                                 _, data = runCmdWithResult(cmd)
                             else:
                                 logger.debug(cmd)
@@ -481,10 +478,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 # except Exception:
                                 #     pass
                                 # time.sleep(0.5)
-                                try:
-                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                except Exception:
-                                    pass
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             else:
                                 raise e
                         # update disk info
@@ -504,7 +498,8 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                         else:
 #                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
-                    write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
+                    if not _isDeleteDisk(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1138,10 +1133,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         try:
                             if _isDeletePool(the_cmd_key):
                                 runCmdWithResult(cmd)
-                                try:
-                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                except Exception:
-                                    pass
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             else:
                                 if pool_type == 'uus':
                                     pass
@@ -1153,10 +1145,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
                                 # time.sleep(0.5)
-                                try:
-                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                except Exception:
-                                    pass
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             else:
                                 raise e
                         if not _isDeletePool(the_cmd_key):

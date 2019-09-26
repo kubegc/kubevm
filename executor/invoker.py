@@ -471,7 +471,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 runCmd(cmd)
                                 _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                         except Exception, e:
-                            if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                            if _isDeleteDisk(the_cmd_key) or _isDeleteDiskExternalSnapshot(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # try:
@@ -1009,6 +1009,8 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                     elif operation_type == 'MODIFIED':
                         try:
                             runCmd(cmd)
+                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key):
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                         except Exception, e:
                             if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key):
                                 logger.warning("***Network %s not exists, delete it from virtlet" % metadata_name)
@@ -1022,8 +1024,8 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         if cmd:
                             runCmd(cmd)
                     status = 'Done(Success)'
-
-                    write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
+                    if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()

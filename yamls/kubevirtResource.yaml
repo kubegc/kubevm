@@ -16,7 +16,7 @@ spec:
   - JSONPath: .spec.domain.vcpu._current
     name: CPU
     type: string
-  - JSONPath: .spec.domain.memory.text
+  - JSONPath: .spec.domain.currentMemory.text
     name: RAM(KB)
     type: string
   - JSONPath: .spec.status.conditions.state.waiting.reason

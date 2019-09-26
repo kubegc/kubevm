@@ -310,7 +310,7 @@ def get_hostname_in_lower_case():
         return 'vm.%s' % socket.gethostname().lower()
     else:
         return socket.gethostname().lower()
-
+    
 def normlize(s):
     return s[:1].upper() + s[1:]
 
@@ -458,6 +458,10 @@ def updateJsonRemoveLifecycle(jsondict, body):
             if lifecycle:
                 del spec['lifecycle']
             spec.update(body)
+    return jsondict
+
+def updateResourceVersion(jsondict):
+    jsondict['metadata']['resourceVersion'] = str(int(jsondict['metadata']['resourceVersion']) + 1)
     return jsondict
         
 def addPowerStatusMessage(jsondict, reason, message):

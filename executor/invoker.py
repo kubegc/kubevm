@@ -41,12 +41,12 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
+from utils.libvirt_util import get_xml, vm_state, _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
     undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, \
     is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import updateResourceVersion, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec
 
@@ -352,6 +352,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     #                         if cmd:
     #                             runCmd(cmd)
                     status = 'Done(Success)'
+                    write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1484,20 +1485,29 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'type': net_type, 'data': retv}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
+            
+        elif plural == PLURAL_VM:
+            vm_xml = get_xml(name)
+            vm_power_state = vm_state(name).get(name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            vm_json = updateJsonRemoveLifecycle(jsonDict, vm_json)
+            jsonDict = addPowerStatusMessage(vm_json, vm_power_state, 'The VM is %s' % vm_power_state)
 
         if result:
             jsonDict = addPowerStatusMessage(jsonDict, result.get('code'), result.get('msg'))
-        else:
+        elif plural != PLURAL_VM:
             jsonDict = addPowerStatusMessage(jsonDict, 'Ready', 'The resource is ready.')
         if jsonDict['spec'].get('lifecycle'):
             del jsonDict['spec']['lifecycle']
+        jsonDict = updateResourceVersion(jsonDict)
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
 
     except:
-        logger.debug("error occurred during write result to apiserver")
         logger.error('Oops! ', exc_info=1)
-        raise ExecuteException('VirtctlError', 'write result to apiserver failure')
+        info=sys.exc_info()
+        raise ExecuteException('VirtctlError', 'write result to apiserver failure %s' % info[1])
 
 def _vm_priori_step(the_cmd_key, jsondict):
     if _isPlugDisk(the_cmd_key):
@@ -2348,7 +2358,7 @@ def addDefaultSettings(jsondict, the_cmd_key):
         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['noautoconsole'] = "True"
         jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['boot'] = "hd"
         logger.debug(jsondict)
-        return jsondict  
+        return jsondict
     
 def _updateRootDiskInJson(jsondict, the_cmd_key, metadata_name):
     '''

@@ -1159,6 +1159,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                     pass
                             else:
                                 raise e
+
                         _, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                     # elif operation_type == 'DELETED':
                     #     if is_pool_exists(pool_name):
@@ -1166,8 +1167,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     #     else:
                     #         raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
                     status = 'Done(Success)'
-                    write_result_to_server(group, version, 'default', plural,
-                                            metadata_name, {'code': 0, 'msg': 'success'}, poolJson)
+                    if not _isDeletePool(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural,
+                                               metadata_name, {'code': 0, 'msg': 'success'}, poolJson)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1236,10 +1238,10 @@ def is_kubesds_disk_exists(type, pool, vol):
     return False
 
 def get_kubesds_pool_info(type, pool):
-    return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
+    return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool, raise_it=False)
 
 def get_kubesds_disk_info(type, pool, vol):
-    return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
+    return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol, raise_it=False)
 
 def modifyStructure(name, body, group, version, plural):
     if body.get('raw_object'):

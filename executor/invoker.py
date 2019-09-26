@@ -1159,8 +1159,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                     pass
                             else:
                                 raise e
-
-                        _, poolJson = get_kubesds_pool_info(pool_type, pool_name)
+                        result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
+                        if not _isDeletePool(the_cmd_key) and result['code'] != 0:
+                            raise ExecuteException('VirtctlError', the_cmd_key + ' modify success, but can not get pool info. reason: '+result['msg'])
                     # elif operation_type == 'DELETED':
                     #     if is_pool_exists(pool_name):
                     #         runCmd(cmd)

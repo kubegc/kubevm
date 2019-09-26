@@ -1293,9 +1293,14 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         if jsonDict['spec'].get('lifecycle'):
             del jsonDict['spec']['lifecycle']
         jsonDict = updateDescription(jsonDict)
-        client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
-
+        try:
+            client.CustomObjectsApi().replace_namespaced_custom_object(
+                group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                return
+            else:
+                raise e
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()

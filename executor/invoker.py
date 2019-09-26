@@ -1159,9 +1159,8 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                     pass
                             else:
                                 raise e
-                        result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
-                        if not _isDeletePool(the_cmd_key) and result['code'] != 0:
-                            raise ExecuteException('VirtctlError', the_cmd_key + ' modify success, but can not get pool info. reason: '+result['msg'])
+                        if not _isDeletePool(the_cmd_key):
+                            result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                     # elif operation_type == 'DELETED':
                     #     if is_pool_exists(pool_name):
                     #         runCmd(cmd)
@@ -1239,7 +1238,7 @@ def is_kubesds_disk_exists(type, pool, vol):
     return False
 
 def get_kubesds_pool_info(type, pool):
-    return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool, raise_it=False)
+    return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
 
 def get_kubesds_disk_info(type, pool, vol):
     return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol, raise_it=False)

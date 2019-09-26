@@ -455,27 +455,23 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if cmd:
                             if cmd.find("kubesds-adm") >= 0:
                                 logger.debug(cmd)
-#                                 result, data = None, None
-#                                 if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
-                                result, data = runCmdWithResult(cmd)
-                                if result['code'] != 0:
-                                    raise ExecuteException('VirtctlError', result['msg'])
-#                                 else:
-#                                     result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                _, data = None, None
+                                if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                                    _, data = runCmdWithResult(cmd)
+                                else:
+                                    _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                             else:
                                 runCmd(cmd)
-                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                     elif operation_type == 'MODIFIED':
-                        result, data = None, None
+                        _, data = None, None
                         try:
                             if cmd.find("kubesds-adm") >=0:
-                                result, data = runCmdWithResult(cmd)
-                                if result['code'] != 0:
-                                    raise ExecuteException('VirtctlError', result['msg'])
+                                _, data = runCmdWithResult(cmd)
                             else:
                                 logger.debug(cmd)
                                 runCmd(cmd)
-                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                         except Exception, e:
                             if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
@@ -495,10 +491,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if _isCloneDisk(the_cmd_key):
                             if disk_type == 'uus':
                                 # uus disk type register to server by hand
-                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                                if result['code'] == 0:
-                                    del jsondict['raw_object']['spec']['lifecycle']
-                                    addResourceToServer(the_cmd_key, jsondict, data, group, version, plural)
+                                _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                newname = getCloneDiskName(the_cmd_key, jsondict)
+                                _, newdata = get_kubesds_disk_info(disk_type, pool_name, newname)
+                                addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version, plural)
                         elif _isDeleteDisk(the_cmd_key) and disk_type == 'uus':
                             deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
 #                     elif operation_type == 'DELETED':
@@ -1133,24 +1129,19 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         # if not os.path.isdir(POOL_PATH):
                         #     os.makedirs(POOL_PATH)
                         if not is_kubesds_pool_exists(pool_type, pool_name):
-                            result, poolJson = runCmdWithResult(cmd)
+                            _, poolJson = runCmdWithResult(cmd)
                             logger.debug('create pool')
-                            if result['code'] != 0:
-                                raise ExecuteException('VirtctlError', result['msg'])
                         else:
-                            result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
+                            _, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                             logger.debug('get pool info')
                     elif operation_type == 'MODIFIED':
                         try:
                             if _isDeletePool(the_cmd_key):
-                                result, _ = runCmdWithResult(cmd)
-                                if result['code'] != 0:
-                                    raise ExecuteException('VirtctlError', result['msg'])
-                                else:
-                                    try:
-                                        deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                    except Exception:
-                                        pass
+                                runCmdWithResult(cmd)
+                                try:
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                except Exception:
+                                    pass
                             else:
                                 if pool_type == 'uus':
                                     pass
@@ -1168,7 +1159,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                     pass
                             else:
                                 raise e
-                        result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
+                        _, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                     # elif operation_type == 'DELETED':
                     #     if is_pool_exists(pool_name):
                     #         runCmd(cmd)
@@ -1233,13 +1224,13 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                 logger.warning('Oops! ', exc_info=1)
 
 def is_kubesds_pool_exists(type, pool):
-    result, _ = runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
+    result, _ = runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool, False)
     if result['code'] == 0:
         return True
     return False
 
 def is_kubesds_disk_exists(type, pool, vol):
-    result, _ = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
+    result, _ = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol, False)
     if result['code'] == 0:
         return True
     return False
@@ -1469,13 +1460,14 @@ def _injectEventIntoLifecycle(jsondict, eventdict):
 #                 del metadata['resourceVersion']
     return jsondict
 
-def addResourceToServer(the_cmd_key, jsondict, data, group, version, plural):
-    newname = getCloneDiskName(the_cmd_key, jsondict)
+def addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version, plural):
     jsoncopy = jsondict.copy()
     jsoncopy['raw_object']['kind'] = 'VirtualMachineDisk'
     jsoncopy['raw_object']['metadata']['kind'] = 'VirtualMachineDisk'
     jsoncopy['raw_object']['metadata']['name'] = newname
-    jsoncopy['raw_object']['spec']['volume'] = data
+    jsoncopy['raw_object']['spec']['volume'] = newdata
+    if jsoncopy['raw_object']['spec'].get('lifecycle'):
+        del jsoncopy['raw_object']['spec']['lifecycle']
     jsoncopy = jsoncopy.get('raw_object')
     try:
         body = updateDescription(jsoncopy)
@@ -2297,7 +2289,7 @@ def runCmdIgnoreError(cmd):
 '''
 Run back-end command in subprocess.
 '''
-def runCmdWithResult(cmd):
+def runCmdWithResult(cmd, raise_it=True):
     std_err = None
     logger.debug(cmd)
     if not cmd:
@@ -2320,6 +2312,8 @@ def runCmdWithResult(cmd):
             try:
                 result = loads(msg)
                 # print result
+                if result['result']['code'] != 0 and raise_it:
+                    raise ExecuteException('VirtctlError', result['result']['msg'])
                 return result['result'], result['data']
             except Exception:
                 error_msg = ''

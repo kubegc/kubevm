@@ -333,7 +333,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     #                         if cmd:
     #                             runCmd(cmd)
                     status = 'Done(Success)'
-                    write_result_to_server(group, version, 'default', plural, metadata_name)
+                    if not _isDeleteVM(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -498,7 +499,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                         else:
 #                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
-                    if not _isDeleteDisk(the_cmd_key):
+                    if not _isDeleteDisk(the_cmd_key) and not _isDeleteDiskExternalSnapshot(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -618,7 +619,8 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
-                    write_result_to_server(group, version, 'default', plural, metadata_name)
+                    if not _isDeleteDiskImage(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -749,7 +751,8 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
-                    write_result_to_server(group, version, 'default', plural, metadata_name)
+                    if not _isDeleteVMImage(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -898,7 +901,8 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
-                    write_result_to_server(group, version, 'default', plural, metadata_name)
+                    if not _isDeleteVMSnapshot(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1018,6 +1022,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         if cmd:
                             runCmd(cmd)
                     status = 'Done(Success)'
+
                     write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -1491,6 +1496,11 @@ def _isDeleteVM(the_cmd_key):
         return True
     return False
 
+def _isDeleteVMImage(the_cmd_key):
+    if the_cmd_key == "deleteImage":
+        return True
+    return False
+
 def _isDeleteVMSnapshot(the_cmd_key):
     if the_cmd_key == "deleteSnapshot":
         return True
@@ -1498,6 +1508,11 @@ def _isDeleteVMSnapshot(the_cmd_key):
 
 def _isDeleteDisk(the_cmd_key):
     if the_cmd_key == "deleteDisk":
+        return True
+    return False
+
+def _isDeleteDiskExternalSnapshot(the_cmd_key):
+    if the_cmd_key == "deleteDiskExternalSnapshot":
         return True
     return False
 

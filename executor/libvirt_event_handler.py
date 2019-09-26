@@ -116,6 +116,8 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                     except ApiException, e:
                         if e.reason == 'Not Found':
                             logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+                        if e.reason == 'Conflict':
+                            logger.debug('**Other process updated %s, ignore this 409 error.' % vm_name)
                         else:
                             logger.error('Oops! ', exc_info=1)
                     except Exception, e:

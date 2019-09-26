@@ -1239,14 +1239,6 @@ def get_kubesds_pool_info(type, pool):
 def get_kubesds_disk_info(type, pool, vol):
     return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol, raise_it=False)
 
-def modifyStructure(name, body, group, version, plural):
-    if body.get('raw_object'):
-        body = body.get('raw_object')
-    body = updateDescription(body)
-    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-    return retv
-
 def deleteStructure(name, body, group, version, plural):
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
@@ -1261,6 +1253,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
                 group=group, version=version, namespace=namespace, plural=plural, name=name)
         except ApiException, e:
             if e.reason == 'Not Found':
+                logger.debug('**Object %s already deleted, ignore this 404 error.' % name)
                 return
             else:
                 raise e
@@ -1300,6 +1293,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
                 group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
         except ApiException, e:
             if e.reason == 'Conflict':
+                logger.debug('**Other process updated %s, ignore this 409 error.' % name)
                 return
             else:
                 raise e

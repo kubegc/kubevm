@@ -5,12 +5,11 @@ package com.github.kube.controller.watchers;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import com.github.kube.controller.KubevirtConstants;
 import com.github.kube.controller.KubevirtWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
-import com.github.kubesys.kubernetes.api.model.VirtualMachineSnapshot;
+import com.github.kubesys.kubernetes.api.model.VirtualMachineDiskImage;
 
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
@@ -19,28 +18,23 @@ import io.fabric8.kubernetes.client.Watcher;
 /**
  * @author wuheng@otcaix.iscas.ac.cn
  * 
- * @version 1.0.0
- * @since Wed Aug 29 17:26:22 CST 2019
+ * @version 1.3.0
+ * @since Wed Sep 25 17:26:22 CST 2019
  * 
- * convert VirtualMachineSnapshot to Pod. 
+ * convert VirtualMachineImage to Pod. 
  **/
-public class VirtualMachineSnapshotWatcher extends KubevirtWatcher implements Watcher<VirtualMachineSnapshot> {
+public class VirtualMachineDiskImageWatcher extends KubevirtWatcher implements Watcher<VirtualMachineDiskImage> {
+
 
 	/**
-	 * m_logger
+	 * @param client         client
 	 */
-	protected final static Logger m_logger = Logger.getLogger(VirtualMachineSnapshotWatcher.class.getName());
-
-	/**
-	 * @param client              client
-	 */
-	public VirtualMachineSnapshotWatcher(ExtendedKubernetesClient client) {
+	public VirtualMachineDiskImageWatcher(ExtendedKubernetesClient client) {
 		super(client);
 	}
 
-
-	public void eventReceived(Action action, VirtualMachineSnapshot snapshot) {
-		eventReceived(action, snapshot.getMetadata(), snapshot.getSpec());
+	public void eventReceived(Action action, VirtualMachineDiskImage image) {
+		eventReceived(action, image.getMetadata(), image.getSpec());
 	}
 
 	@Override

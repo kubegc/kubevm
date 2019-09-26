@@ -19,7 +19,7 @@ public class KubevirtControllerTest {
 	
 	public static void main(String[] args) throws Exception {
 		KubevirtController scheduler = new KubevirtController("admin.conf");
-		scheduler.start();
+		scheduler.startAllWatchers();
 	}
 
 }

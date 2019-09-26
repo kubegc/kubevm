@@ -54,11 +54,6 @@ group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinesnapshots
 
-[VirtualMahcineBlockDevUit]
-group = cloudplus.io
-version = v1alpha3
-plural = virtualmachineuitdisks
-
 [VirtualMahcinePool]
 group = cloudplus.io
 version = v1alpha3
@@ -102,10 +97,6 @@ revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_snapshot
 revertDiskExternalSnapshot = qemu-img commit
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
 convertDiskToDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
-
-[VirtualMahcineBlockDevUitSupportCmdsWithNameField]
-createUITDisk = /bin/bash /usr/bin/fucli
-deleteUITDisk = /bin/bash /usr/bin/ducli
 
 [VirtualMachineDiskSupportCmdsWithVolField]
 createDiskExternalSnapshot = kubesds-adm createDisk

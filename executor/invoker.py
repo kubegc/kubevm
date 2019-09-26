@@ -76,9 +76,6 @@ GROUP_VM_DISK = config_raw.get('VirtualMachineDisk', 'group')
 PLURAL_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'plural')
 VERSION_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'version')
 GROUP_VM_SNAPSHOT = config_raw.get('VirtualMachineSnapshot', 'group')
-PLURAL_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'plural')
-VERSION_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'version')
-GROUP_BLOCK_DEV_UIT = config_raw.get('VirtualMahcineBlockDevUit', 'group')
 PLURAL_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'plural')
 VERSION_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'version')
 GROUP_VM_NETWORK = config_raw.get('VirtualMachineNetwork', 'group')
@@ -94,18 +91,6 @@ RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
 PLURAL_VM_POOL = config_raw.get('VirtualMahcinePool', 'plural')
 VERSION_VM_POOL = config_raw.get('VirtualMahcinePool', 'version')
 GROUP_VM_POOL = config_raw.get('VirtualMahcinePool', 'group')
-
-PLURAL_UIT_POOL = config_raw.get('UITStoragePool', 'plural')
-VERSION_UIT_POOL = config_raw.get('UITStoragePool', 'version')
-GROUP_UIT_POOL = config_raw.get('UITStoragePool', 'group')
-
-PLURAL_UIT_DISK = config_raw.get('UITDisk', 'plural')
-VERSION_UIT_DISK = config_raw.get('UITDisk', 'version')
-GROUP_UIT_DISK = config_raw.get('UITDisk', 'group')
-
-PLURAL_UIT_SNAPSHOT = config_raw.get('UITSnapshot', 'plural')
-VERSION_UIT_SNAPSHOT = config_raw.get('UITSnapshot', 'version')
-GROUP_UIT_SNAPSHOT = config_raw.get('UITSnapshot', 'group')
 
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
@@ -978,117 +963,6 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             except:
                 logger.warning('Oops! ', exc_info=1)
 
-def vMBlockDevWatcher(group=GROUP_BLOCK_DEV_UIT, version=VERSION_BLOCK_DEV_UIT, plural=PLURAL_BLOCK_DEV_UIT):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                   group=group, version=version, plural=plural, **kwargs):
-        try:
-            operation_type = jsondict.get('type')
-            logger.debug(operation_type)
-            metadata_name = getMetadataName(jsondict)
-        except:
-            logger.warning('Oops! ', exc_info=1)
-        try:
-            logger.debug('metadata name: %s' % metadata_name)
-            the_cmd_key = _getCmdKey(jsondict)
-            logger.debug('cmd key is: %s' % the_cmd_key)
-            if the_cmd_key and operation_type != 'DELETED':
-                involved_object_name = metadata_name
-                involved_object_kind = 'VirtualMachineBlockDev'
-                event_metadata_name = randomUUID()
-                event_type = 'Normal'
-                status = 'Doing(Success)'
-                reporter = 'virtctl'
-                event_id = _getEventId(jsondict)
-                time_now = now_to_datetime()
-                time_start = time_now
-                time_end = time_now
-                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
-                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
-                try:
-                    event.registerKubernetesEvent()
-                except:
-                    logger.error('Oops! ', exc_info=1)
-                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-    #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
-    #             body = jsondict['raw_object']
-    #             try:
-    #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
-    #             except:
-    #                 logger.warning('Oops! ', exc_info=1)
-                try:
-                    if operation_type == 'ADDED':
-                        if cmd:
-                            runCmd(cmd)
-                    elif operation_type == 'MODIFIED':
-                        if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
-                            if cmd:
-                                runCmd(cmd)
-                    elif operation_type == 'DELETED':
-                        if is_block_dev_exists('/dev/%s/%s' % (metadata_name, metadata_name)):
-                            if cmd:
-                                runCmd(cmd)
-                    status = 'Done(Success)'
-                except libvirtError:
-                    logger.error('Oops! ', exc_info=1)
-                    info=sys.exc_info()
-                    try:
-                        report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
-                    except:
-                        logger.warning('Oops! ', exc_info=1)
-                    status = 'Done(Error)'
-                    event_type = 'Warning'
-                    event.set_event_type(event_type)
-                except ExecuteException, e:
-                    logger.error('Oops! ', exc_info=1)
-                    info=sys.exc_info()
-                    try:
-                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
-                    except:
-                        logger.warning('Oops! ', exc_info=1)
-                    status = 'Done(Error)'
-                    event_type = 'Warning'
-                    event.set_event_type(event_type)
-                except:
-                    logger.error('Oops! ', exc_info=1)
-                    info=sys.exc_info()
-                    try:
-                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-                    except:
-                        logger.warning('Oops! ', exc_info=1)
-                    status = 'Done(Error)'
-                    event_type = 'Warning'
-                    event.set_event_type(event_type)
-                finally:
-                    if the_cmd_key and operation_type != 'DELETED':
-                        time_end = now_to_datetime()
-                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
-                        event.set_message(message)
-                        event.set_time_end(time_end)
-                        try:
-                            event.updateKubernetesEvent()
-                        except:
-                            logger.warning('Oops! ', exc_info=1)
-        except ExecuteException, e:
-            logger.error('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            try:
-                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
-            except:
-                logger.warning('Oops! ', exc_info=1)
-        except:
-            logger.warning('Oops! ', exc_info=1)
-            info=sys.exc_info()
-            try:
-                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
-            except:
-                logger.warning('Oops! ', exc_info=1)
-            
 def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK):
     watcher = watch.Watch()
     kwargs = {}
@@ -1376,23 +1250,6 @@ def get_kubesds_pool_info(type, pool):
 def get_kubesds_disk_info(type, pool, vol):
     return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
 
-def get_cmd(jsondict, the_cmd_key):
-    cmd = None
-    if _isCreatePool(the_cmd_key) and 'poolType' in jsondict['raw_object']['spec']['lifecycle'][the_cmd_key].keys():
-        poolType = jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['poolType']
-        if poolType != None:
-            del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key]['poolType']
-            realCmd = ALL_SUPPORT_CMDS[the_cmd_key] + '-' + poolType
-            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-            cmd = cmd.replace(ALL_SUPPORT_CMDS[the_cmd_key], realCmd)
-            logger.debug(cmd)
-    else:
-        cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-    if cmd is None:
-        raise Exception("error: can't get cmd")
-    logger.debug(cmd)
-    return cmd
-
 def modifyStructure(name, body, group, version, plural):
     if body.get('raw_object'):
         body = body.get('raw_object')
@@ -1531,27 +1388,8 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
         jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue)
 
-def _isCreatePool(the_cmd_key):
-    if the_cmd_key == "createUITPool":
-        return True
-    return False
-
 def _isCreateSwitch(the_cmd_key):
     if the_cmd_key == "createSwitch":
-        return True
-    return False
-
-def _isCreateUITSnapshot(the_cmd_key):
-    if the_cmd_key == "createUITSnapshot":
-        return True
-    return False
-
-def _isDeleteUITSnapshot(the_cmd_key):
-    if the_cmd_key == "deleteUITSnapshot":
-        return True
-    return False
-def _isRecoveryUITSnapshot(the_cmd_key):
-    if the_cmd_key == "recoveryUITSnapshot":
         return True
     return False
 

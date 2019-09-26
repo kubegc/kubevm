@@ -461,7 +461,10 @@ def updateJsonRemoveLifecycle(jsondict, body):
     return jsondict
 
 def updateResourceVersion(jsondict):
-    jsondict['metadata']['resourceVersion'] = str(int(jsondict['metadata']['resourceVersion']) + 1)
+    if jsondict:
+        spec = _getSpec(jsondict)    
+        if spec:
+            spec['description'] = {'lastOperationTimeStamp': int(round(time.time()*1000))}
     return jsondict
         
 def addPowerStatusMessage(jsondict, reason, message):

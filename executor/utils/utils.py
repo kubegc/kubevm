@@ -392,15 +392,19 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
 
-def runCmdRaiseException(cmd, head='VirtctlError'):
+def runCmdRaiseException(cmd, head='VirtctlError', use_read=False):
     print(cmd)
     std_err = None
     if not cmd:
         return
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        std_out = p.stdout.readlines()
-        std_err = p.stderr.readlines()
+        if use_read:
+            std_out = p.stdout.read()
+            std_err = p.stderr.read()
+        else:
+            std_out = p.stdout.readlines()
+            std_err = p.stderr.readlines()
         if std_err:
             print(std_err)
             raise ExecuteException(head, std_err)
@@ -408,7 +412,7 @@ def runCmdRaiseException(cmd, head='VirtctlError'):
     finally:
         p.stdout.close()
         p.stderr.close()
-        
+
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
                                                                       version=version, 
@@ -792,12 +796,12 @@ class DiskImageHelper(object):
         """ Gets backing file for disk image """
         get_backing_file_cmd = "qemu-img info %s" % file
         try:
-            out = subprocess.check_output(shlex.split(get_backing_file_cmd))
+            out = runCmdRaiseException(get_backing_file_cmd, use_read=True)
         except Exception, e:
             if raise_it:
                 raise e
             get_backing_file_cmd = "qemu-img info -U %s" % file
-            out = subprocess.check_output(shlex.split(get_backing_file_cmd))
+            out = runCmdRaiseException(get_backing_file_cmd, use_read=True)
         lines = out.decode('utf-8').split('\n')
         for line in lines:
             if re.search("backing file:", line):
@@ -818,7 +822,7 @@ class DiskImageHelper(object):
     def set_backing_file(backing_file, file):
         """ Sets backing file for disk image """
         set_backing_file_cmd = "qemu-img rebase -u -b %s %s" % (backing_file, file)
-        subprocess.check_output(shlex.split(set_backing_file_cmd))
+        runCmdRaiseException(set_backing_file_cmd)
 
 class UserDefinedEvent(object):
     
@@ -1162,13 +1166,14 @@ class CDaemon:
 if __name__ == '__main__':
     pprint.pprint(get_l3_network_info("switch8888"))
     pprint.pprint(get_l2_network_info("br-native"))
-#     from libvirt_util import _get_dom
-#     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e001"))
-#     try:
+    from libvirt_util import _get_dom
+    domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))
+    try:
+        print(DiskImageHelper.get_backing_file("/var/lib/libvirt/images/950646e8c17a49d0b83c1c797811e004"))
 #         print(domain.merge_snapshot("snapshot3"))
 #         print(domain.revert_snapshot("snapshot3"))
-#     except Exception, e:
-#         print e.message
+    except Exception, e:
+        print e.message
 #     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}
 #     volume.get('volume').update(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
 #     print(volume)

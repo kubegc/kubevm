@@ -416,6 +416,7 @@ def report_failure(name, jsondict, error_reason, error_message, group, version, 
                                                                       plural=plural, 
                                                                       name=name)
     jsondict = deleteLifecycleInJson(jsondict)
+    jsondict = updateDescription(jsondict)
     body = addExceptionMessage(jsondict, error_reason, error_message)
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
@@ -428,6 +429,7 @@ def report_success(name, jsondict, success_reason, success_message, group, versi
                                                                       plural=plural,
                                                                       name=name)
     jsondict = deleteLifecycleInJson(jsondict)
+    jsondict = updateDescription(jsondict)
     body = addExceptionMessage(jsondict, success_reason, success_message)
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
@@ -460,7 +462,7 @@ def updateJsonRemoveLifecycle(jsondict, body):
             spec.update(body)
     return jsondict
 
-def updateResourceVersion(jsondict):
+def updateDescription(jsondict):
     if jsondict:
         spec = _getSpec(jsondict)    
         if spec:

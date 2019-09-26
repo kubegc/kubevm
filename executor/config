@@ -143,42 +143,6 @@ startPool = virsh pool-start
 autoStart = virsh pool-autostart
 unregisterPool = virsh pool-undefine
 
-[UITStoragePool]
-group = cloudplus.io
-version = v1alpha3
-plural = uitstoragepools
-
-[UITStoragePoolSupportCmdsWithPoolNameField]
-listAllPhyPool = cstor-cli dev-list
-listAllStoragePool = cstor-cli pool-list
-showStoragePoolInfo = cstor-cli pool-show
-createUITPool = cstor-cli pooladd
-deleteUITPool = cstor-cli pool-remove
-
-[UITDisk]
-group = cloudplus.io
-version = v1alpha3
-plural = uitdisks
-
-[UITDiskSupportCmdsWithNameField]
-createUITDisk = cstor-cli vdisk-create
-expandUITDisk = cstor-cli vdisk-expand
-deleteUITDisk = cstor-cli vdisk-remove
-releaseUITDisk = cstor-cli vdisk-release
-prepareUITDisk = cstor-cli vdisk-prepare
-showUITDiskInfo = cstor-cli vdisk-show
-
-[UITSnapshot]
-group = cloudplus.io
-version = v1alpha3
-plural = uitsnapshots
-
-[UITSnapshotSupportCmdsWithSnameField]
-createUITSnapshot = cstor-cli vdisk-add-ss
-removeUITSnapshot = cstor-cli vdisk-rm-ss
-recoveryUITSnapshot = cstor-cli vdisk-rr-ss
-showUITSnapshot = cstor-cli vdisk-show-ss
-
 [VirtualMachineNetwork]
 group = cloudplus.io
 version = v1alpha3

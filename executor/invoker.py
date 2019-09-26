@@ -46,7 +46,7 @@ from utils.libvirt_util import get_xml, vm_state, _get_dom, is_snapshot_exists, 
     is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import updateResourceVersion, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import updateDescription, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec
 
@@ -320,7 +320,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
                                 # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                continue
                             else:
                                 raise e
                                         
@@ -471,36 +470,27 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         if cmd:
                             if cmd.find("kubesds-adm") >= 0:
                                 logger.debug(cmd)
-                                result, data = None, None
-                                if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
-                                    result, data = runCmdWithResult(cmd)
-                                    if result['code'] != 0:
-                                        raise ExecuteException('VirtctlError', result['msg'])
-                                else:
-                                    result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                                logger.debug(jsondict)
-                                del jsondict['raw_object']['spec']['lifecycle']
-                                jsondict['raw_object']['spec']['volume'] = data
-                                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
+#                                 result, data = None, None
+#                                 if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                                result, data = runCmdWithResult(cmd)
+                                if result['code'] != 0:
+                                    raise ExecuteException('VirtctlError', result['msg'])
+#                                 else:
+#                                     result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                             else:
-                                logger.debug(cmd)
                                 runCmd(cmd)
-                                logger.debug(jsondict)
-                                del jsondict['raw_object']['spec']['lifecycle']
-                                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                     elif operation_type == 'MODIFIED':
                         result, data = None, None
                         try:
                             if cmd.find("kubesds-adm") >=0:
-                                logger.debug(cmd)
                                 result, data = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
                             else:
                                 logger.debug(cmd)
                                 runCmd(cmd)
+                                result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                         except Exception, e:
                             if _isDeleteDisk(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
@@ -514,35 +504,16 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                     deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 except Exception:
                                     pass
-                                continue
                             else:
                                 raise e
                         # update disk info
-                        if _isResizeDisk(the_cmd_key):
-                            del jsondict['raw_object']['spec']['lifecycle']
-                            jsondict['raw_object']['spec']['volume'] = data
-                            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                            _reportResutToVirtlet(metadata_name, body, group, version, plural)
-                        elif _isCloneDisk(the_cmd_key):
+                        if _isCloneDisk(the_cmd_key):
                             if disk_type == 'uus':
                                 # uus disk type register to server by hand
                                 result, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                                 if result['code'] == 0:
                                     del jsondict['raw_object']['spec']['lifecycle']
-
-                                    newname = getCloneDiskName(the_cmd_key, jsondict)
-                                    jsoncopy = jsondict.copy()
-                                    jsoncopy['raw_object']['kind'] = 'VirtualMachineDisk'
-                                    jsoncopy['raw_object']['metadata']['kind'] = 'VirtualMachineDisk'
-                                    jsoncopy['raw_object']['metadata']['name'] = newname
-                                    del jsoncopy['metadata']['resourceVersion']
-                                    jsoncopy['raw_object']['spec']['volume'] = data
-                                    addResourceToServer(newname, jsoncopy, group, version, plural)
-                            else:
-                                # other disk type auto register to server
-                                vol_json = deleteLifecycleInJson(jsondict)
-                                body = addPowerStatusMessage(vol_json, 'Ready', 'The resource is ready.')
-                                _reportResutToVirtlet(metadata_name, body, group, version, plural)
+                                    addResourceToServer(the_cmd_key, jsondict, data, group, version, plural)
                         elif _isDeleteDisk(the_cmd_key) and disk_type == 'uus':
                             deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
 #                     elif operation_type == 'DELETED':
@@ -552,6 +523,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                         else:
 #                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
+                    write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -664,13 +636,13 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
                                 # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                continue
                             else:
                                 raise e
 #                     elif operation_type == 'DELETED':
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
+                    write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -793,7 +765,6 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
                                 # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                continue
                             else:
                                 raise e
 #                     elif operation_type == 'DELETED':
@@ -802,6 +773,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
+                    write_result_to_server(group, version, 'default', plural, metadata_name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -920,7 +892,6 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
                                 # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                continue
                             else:
                                 raise e
                         '''
@@ -1176,7 +1147,6 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
                                 # time.sleep(0.5)
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                continue
                             else:
                                 raise e
                     elif operation_type == 'DELETED':
@@ -1280,8 +1250,6 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                 logger.debug("pool_type is :" + pool_type)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-                if cmd is None:
-                    break
                 try:
                     if operation_type == 'ADDED':
                         # judge pool path exist or not
@@ -1290,27 +1258,18 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         # # file_dir = os.path.split(POOL_PATH)[0]
                         # if not os.path.isdir(POOL_PATH):
                         #     os.makedirs(POOL_PATH)
-                        result, poolJson = None, None
                         if not is_kubesds_pool_exists(pool_type, pool_name):
                             result, poolJson = runCmdWithResult(cmd)
                             logger.debug('create pool')
+                            if result['code'] != 0:
+                                raise ExecuteException('VirtctlError', result['msg'])
                         else:
                             result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                             logger.debug('get pool info')
-                        if result['code'] == 0:
-                            write_result_to_server(group, version, 'default', plural,
-                                                   involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                            try:
-                                report_success(metadata_name, jsondict, 'success',
-                                               'create ' + pool_name + ' pool successful!', group, version, plural)
-                            except:
-                                logger.warning('Oops! report_success fail', exc_info=1)
-                        else:
-                            raise ExecuteException('VirtctlError', result['msg'])
                     elif operation_type == 'MODIFIED':
                         try:
-                            if the_cmd_key == 'deletePool':
-                                result, data = runCmdWithResult(cmd)
+                            if _isDeletePool(the_cmd_key):
+                                result, _ = runCmdWithResult(cmd)
                                 if result['code'] != 0:
                                     raise ExecuteException('VirtctlError', result['msg'])
                                 else:
@@ -1318,7 +1277,6 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                         deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                     except Exception:
                                         pass
-                                    continue
                             else:
                                 if pool_type == 'uus':
                                     pass
@@ -1334,23 +1292,17 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                     deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 except Exception:
                                     pass
-                                continue
                             else:
                                 raise e
-
                         result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
-                        write_result_to_server(group, version, 'default', plural,
-                                            involved_object_name, {'code': 0, 'msg': 'success'}, poolJson)
-                        try:
-                            report_success(metadata_name, jsondict, 'success', the_cmd_key + pool_name + ' pool success!', group, version, plural)
-                        except:
-                            logger.warning('Oops! report_success fail', exc_info=1)
                     # elif operation_type == 'DELETED':
                     #     if is_pool_exists(pool_name):
                     #         runCmd(cmd)
                     #     else:
                     #         raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
                     status = 'Done(Success)'
+                    write_result_to_server(group, version, 'default', plural,
+                                            metadata_name, {'code': 0, 'msg': 'success'}, poolJson)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1407,13 +1359,13 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                 logger.warning('Oops! ', exc_info=1)
 
 def is_kubesds_pool_exists(type, pool):
-    result, poolJson = runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
+    result, _ = runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
     if result['code'] == 0:
         return True
     return False
 
 def is_kubesds_disk_exists(type, pool, vol):
-    result, poolJson = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
+    result, _ = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol)
     if result['code'] == 0:
         return True
     return False
@@ -1444,6 +1396,7 @@ def get_cmd(jsondict, the_cmd_key):
 def modifyStructure(name, body, group, version, plural):
     if body.get('raw_object'):
         body = body.get('raw_object')
+    body = updateDescription(body)
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
@@ -1457,25 +1410,19 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
     jsonDict = None
     try:
         # involved_object_name actually is nodeerror occurred during processing json data from apiserver
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=name)
+        try:
+            jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+                group=group, version=version, namespace=namespace, plural=plural, name=name)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                return
+            else:
+                raise e
         # logger.debug(dumps(jsonStr))
 #         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
-
-        if plural == PLURAL_UIT_POOL:
-            jsonDict['spec']['virtualMachineUITPool'] = {'result': result, 'data': data}
-        elif plural == PLURAL_UIT_DISK:
-            jsonDict['spec']['virtualMachineUITDisk'] = {'result': result, 'data': data}
-        elif plural == PLURAL_UIT_SNAPSHOT:
-            if 'virtualMachineUITSnapshot' in jsonDict['spec'].keys():
-                if data:
-                    jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
-                else:
-                    jsonDict['spec']['virtualMachineUITSnapshot']['result'] = result
-            else:
-                jsonDict['spec']['virtualMachineUITSnapshot'] = {'result': result, 'data': data}
-        elif plural == PLURAL_VM_NETWORK:
+        
+        if plural == PLURAL_VM_NETWORK:
             if the_cmd_key in L3NETWORKSUPPORTCMDS:
                 net_type = 'layer3'
                 retv = get_l3_network_info(name)
@@ -1485,7 +1432,8 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'type': net_type, 'data': retv}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
-            
+        elif plural == PLURAL_VM_DISK:   
+            jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM:
             vm_xml = get_xml(name)
             vm_power_state = vm_state(name).get(name)
@@ -1500,14 +1448,14 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict = addPowerStatusMessage(jsonDict, 'Ready', 'The resource is ready.')
         if jsonDict['spec'].get('lifecycle'):
             del jsonDict['spec']['lifecycle']
-        jsonDict = updateResourceVersion(jsonDict)
+        jsonDict = updateDescription(jsonDict)
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
 
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
-        raise ExecuteException('VirtctlError', 'write result to apiserver failure %s' % info[1])
+        raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
 
 def _vm_priori_step(the_cmd_key, jsondict):
     if _isPlugDisk(the_cmd_key):
@@ -1683,19 +1631,21 @@ def _injectEventIntoLifecycle(jsondict, eventdict):
 #                 del metadata['resourceVersion']
     return jsondict
 
-def _reportResutToVirtlet(metadata_name, body, group, version, plural):
-    body = body.get('raw_object')
+def addResourceToServer(the_cmd_key, jsondict, data, group, version, plural):
+    newname = getCloneDiskName(the_cmd_key, jsondict)
+    jsoncopy = jsondict.copy()
+    jsoncopy['raw_object']['kind'] = 'VirtualMachineDisk'
+    jsoncopy['raw_object']['metadata']['kind'] = 'VirtualMachineDisk'
+    jsoncopy['raw_object']['metadata']['name'] = newname
+    jsoncopy['raw_object']['spec']['volume'] = data
+    jsoncopy = jsoncopy.get('raw_object')
     try:
-        client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+        body = updateDescription(jsoncopy)
+        client.CustomObjectsApi().create_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=newname, body=body)
     except:
         logger.error('Oops! ', exc_info=1)
-
-def addResourceToServer(new_name, body, group, version, plural):
-    body = body.get('raw_object')
-    try:
-        client.CustomObjectsApi().create_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=new_name, body=body)
-    except:
-        logger.error('Oops! ', exc_info=1)
+        info=sys.exc_info()
+        raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
 
 '''
 Install VM from ISO.

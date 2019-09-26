@@ -35,7 +35,7 @@ Import local libs
 '''
 from utils.libvirt_util import get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, vm_state, _get_all_pool_path
 from utils import logger
-from utils.utils import addSnapshots, get_volume_snapshots, runCmdRaiseException, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
+from utils.utils import updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
 class parser(ConfigParser.ConfigParser):  
@@ -91,11 +91,13 @@ HOSTNAME = get_hostname_in_lower_case()
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 def createStructure(body, group, version, plural):
+    body = updateDescription(body)
     retv = client.CustomObjectsApi().create_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, body=body)
     return retv
 
 def modifyStructure(name, body, group, version, plural):
+    body = updateDescription(body)
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv

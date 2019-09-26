@@ -24,7 +24,7 @@ from xmljson import badgerfish as bf
 from kubernetes.client.rest import ApiException
 
 from utils.libvirt_util import get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.utils import updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -820,6 +820,7 @@ def updateOS(name, source, target):
     jsonDict = deleteLifecycleInJson(jsonDict)
     vm_power_state = vm_state(name).get(name)
     body = addPowerStatusMessage(jsonDict, vm_power_state, 'The VM is %s' % vm_power_state)
+    body = updateDescription(body)
     client.CustomObjectsApi().replace_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=body)
     
@@ -846,6 +847,7 @@ def create_disk_snapshot(vol, pool, snapshot):
         vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+        body = updateDescription(body)
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
     except:
@@ -866,6 +868,7 @@ def delete_disk_snapshot(vol, pool, snapshot):
         vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+        body = updateDescription(body)
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
     except:
@@ -886,6 +889,7 @@ def revert_disk_snapshot(vol, pool, snapshot):
         vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+        body = updateDescription(body)
         client.CustomObjectsApi().replace_namespaced_custom_object(
             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
     except:

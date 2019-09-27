@@ -465,13 +465,15 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         _, data = None, None
                         try:
                             if cmd.find("kubesds-adm") >= 0:
-                                _, data = runCmdWithResult(cmd)
+                                result, data = runCmdWithResult(cmd, raise_it=False)
+                                if result['code'] != 0:
+                                    raise ExecuteException('virtctl', 'error when delete pool ' + result['msg'])
                             else:
                                 logger.debug(cmd)
                                 runCmd(cmd)
                                 _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                         except Exception, e:
-                            if _isDeleteDisk(the_cmd_key) or _isDeleteDiskExternalSnapshot(the_cmd_key) and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                            if _isDeleteDisk(the_cmd_key) or _isDeleteDiskExternalSnapshot(the_cmd_key) and result['code'] != 21 and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # try:
@@ -1144,7 +1146,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 if result['code'] == 0:
                                     deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                                 else:
-                                    raise ExecuteException('virtctl', 'error when delete pool '+ result['msg'])
+                                    raise ExecuteException('virtctl', 'error when delete pool ' + result['msg'])
                             else:
                                 if pool_type == 'uus':
                                     pass

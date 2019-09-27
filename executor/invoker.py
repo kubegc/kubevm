@@ -1363,17 +1363,14 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
     return (jsondict, network_operations_queue, disk_operations_queue)
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
-    snapshot_operations_queue = []
-    snapshot_operations_rollback_queue = []
-    if _isMergeSnapshot(the_cmd_key) or _isRevertVirtualMachine(the_cmd_key):
-        domain = _get_field(jsondict, the_cmd_key, "domain")
-        isExternal = _get_field(jsondict, the_cmd_key, "isExternal")
-        if not isExternal:
-            return (jsondict, [])
-        elif isExternal and is_vm_active(domain):
-            raise ExecuteException('VirtctlError', '400, Bad Request. Cannot revert external snapshot when vm is running.')
-        (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
-        jsondict = deleteLifecycleInJson(jsondict)
+    domain = _get_field(jsondict, the_cmd_key, "domain")
+    isExternal = _get_field(jsondict, the_cmd_key, "isExternal")
+    if not isExternal:
+        return (jsondict, [])
+    elif isExternal and is_vm_active(domain):
+        raise ExecuteException('VirtctlError', '400, Bad Request. Cannot revert external snapshot when vm is running.')
+    (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
+    jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue)
 
 def _isCreateSwitch(the_cmd_key):
@@ -2049,6 +2046,9 @@ def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
 #         (merge_snapshots_cmd, _, _) = domain_obj.merge_snapshot(metadata_name)
         (unplug_disks_cmd, unplug_disks_rollback_cmd, plug_disks_cmd, plug_disks_rollback_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name)
         return ([unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd], [unplug_disks_rollback_cmd, plug_disks_rollback_cmd])
+    elif _isDeleteVMSnapshot(the_cmd_key):
+        domain_obj = Domain(_get_dom(domain))
+        domain_obj.delete_snapshot(metadata_name, True)
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':

@@ -728,7 +728,7 @@ class Domain(object):
             # remove old disk device files without current ones
         return (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd)
     
-    def revert_snapshot(self, snapshot):
+    def revert_snapshot(self, snapshot, revert_to_backing_file=False):
         """ Revert snapshot and removes invalid snapshots and their disk files """
         disks = self.get_disks()
         snapshot_disks = self.get_snapshot_disks(snapshot)
@@ -751,7 +751,10 @@ class Domain(object):
                 if snapshot_disk.file == disk.file:
                     raise ExecuteException('VirtctlError', '400, Bad Request! Cannot revert current disk %s to itself.' % snapshot_disk.file)
                 elif snapshot_disk.file in current_disk_files:
-                    base_disk = snapshot_disk.file
+                    if revert_to_backing_file:
+                        base_disk = DiskImageHelper.get_backing_file(snapshot_disk.file)
+                    else:
+                        base_disk = snapshot_disk.file
                     base_disk_target = snapshot_disk.device
                 else:
                     continue
@@ -789,7 +792,7 @@ class Domain(object):
                     snapshots_to_delete_cmd += 'virsh snapshot-delete --domain %s --snapshotname %s --metadata;' % (self.name, snapshot_name)
             # remove old disk device files without current ones
         return (unplug_disks_cmd, unplug_disks_rollback_cmd, plug_disks_cmd, plug_disks_rollback_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd)
-            
+    
 class DiskImageHelper(object):
     @staticmethod
     def get_backing_file(file, raise_it=False):

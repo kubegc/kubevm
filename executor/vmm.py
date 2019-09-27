@@ -821,8 +821,15 @@ def updateOS(name, source, target):
     vm_power_state = vm_state(name).get(name)
     body = addPowerStatusMessage(jsonDict, vm_power_state, 'The VM is %s' % vm_power_state)
     body = updateDescription(body)
-    client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=body)
+    try:
+        client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=body)
+    except ApiException, e:
+        if e.reason == 'Conflict':
+            logger.debug('**Other process updated %s, ignore this 409 error.' % name) 
+        else:
+            logger.error(e)
+            raise e   
     
 def create_disk_snapshot(vol, pool, snapshot):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -848,8 +855,15 @@ def create_disk_snapshot(vol, pool, snapshot):
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         body = updateDescription(body)
-        client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+        try:
+            client.CustomObjectsApi().replace_namespaced_custom_object(
+                group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                logger.debug('**Other process updated %s, ignore this 409 error.' % vol) 
+            else:
+                logger.error(e)
+                raise e   
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
@@ -869,8 +883,15 @@ def delete_disk_snapshot(vol, pool, snapshot):
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         body = updateDescription(body)
-        client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+        try:
+            client.CustomObjectsApi().replace_namespaced_custom_object(
+                group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                logger.debug('**Other process updated %s, ignore this 409 error.' % vol) 
+            else:
+                logger.error(e)
+                raise e   
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
@@ -890,8 +911,15 @@ def revert_disk_snapshot(vol, pool, snapshot):
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         body = updateDescription(body)
-        client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+        try:
+            client.CustomObjectsApi().replace_namespaced_custom_object(
+                group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                logger.debug('**Other process updated %s, ignore this 409 error.' % vol) 
+            else:
+                logger.error(e)
+                raise e         
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()

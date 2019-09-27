@@ -95,8 +95,15 @@ def createStructure(body, group, version, plural):
 
 def modifyStructure(name, body, group, version, plural):
     body = updateDescription(body)
-    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    try:
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    except ApiException, e:
+        if e.reason == 'Conflict':
+            logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+            return None
+        else:
+            raise e
     return retv
 
 def deleteStructure(name, body, group, version, plural):
@@ -149,7 +156,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 logger.warning('Oops! ', exc_info=1)
         try:
             logger.debug('Delete vm disk %s, report to virtlet' % name)
-
             deleteStructure(name, V1DeleteOptions(), group, version, plural)
         except ApiException, e:
             if e.reason == 'Not Found':

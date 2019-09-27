@@ -481,7 +481,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 # except Exception:
                                 #     pass
                                 # time.sleep(0.5)
-                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                # if the disk path is alive, do not delete (the reason maybe caused by give the wrong poolname)
+                                DISK_PATH = get_disk_path_from_server(metadata_name)
+                                if DISK_PATH is None or not os.path.exists(DISK_PATH):
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                else:
+                                    raise e
                             else:
                                 raise e
                         # update disk info
@@ -1229,6 +1234,23 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                 report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
             except:
                 logger.warning('Oops! ', exc_info=1)
+
+
+def get_disk_path_from_server(metadata_name):
+    logger.debug("try get disk path from server")
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=GROUP_VM_DISK, version=VERSION_VM_DISK, namespace='default', plural=PLURAL_VM_DISK,
+            name=metadata_name)
+        if 'volume' in jsondict['spec'].keys():
+            return jsondict['spec']['volume']['target']['path']['text']
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**Object %s already deleted, ignore this 404 error.' % metadata_name)
+            return
+        else:
+            raise e
+    return None
 
 def is_kubesds_pool_exists(type, pool):
     result, _ = runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool, False)

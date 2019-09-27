@@ -1139,7 +1139,9 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     elif operation_type == 'MODIFIED':
                         try:
                             if _isDeletePool(the_cmd_key):
-                                runCmdWithResult(cmd)
+                                result, _ = runCmdWithResult(cmd, raise_it=False)
+                                # fix pool type not match
+                                if result['code'] == 14
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             else:
                                 if pool_type == 'uus':

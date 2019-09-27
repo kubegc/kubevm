@@ -1139,15 +1139,22 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     elif operation_type == 'MODIFIED':
                         try:
                             if _isDeletePool(the_cmd_key):
-                                runCmdWithResult(cmd)
-                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                result, _ = runCmdWithResult(cmd, raise_it=False)
+                                # fix pool type not match
+                                if result['code'] == 0:
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                                else:
+                                    raise ExecuteException('virtctl', 'error when delete pool '+ result['msg'])
                             else:
                                 if pool_type == 'uus':
                                     pass
                                 else:
                                     runCmd(cmd)
                         except Exception, e:
-                            if _isDeletePool(the_cmd_key) and not is_kubesds_pool_exists(pool_type, pool_name):
+                            # only two case has exception when delete pool
+                            # case 1: pool exist but not pool type not match(code is 21)
+                            # case 2: pool not exist, only this case delete pool info from api server
+                            if _isDeletePool(the_cmd_key) and result['code'] != 21 and not is_kubesds_pool_exists(pool_type, pool_name):
                                 logger.warning("***Pool %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)

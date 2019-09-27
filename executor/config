@@ -87,6 +87,7 @@ plugNIC = virsh attach-device
 unplugNIC = virsh detach-device
 changeNumberOfCPU = virsh setvcpus
 resizeRAM = virsh setmem
+resizeMaxRAM = virsh setmaxmem
 resizeVM = virsh blockresize
 tuneDiskQoS = virsh blkdeviotune
 

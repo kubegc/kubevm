@@ -278,7 +278,7 @@ def main():
                 sys.exit(1)   
             status(True)
         elif sys.argv[2] == 'update':
-            if params[0] == '--help':
+            if len(params) == 0 or params[0] == '--help':
                 if len(params) != 1:
                     print('error: invalid arguments!\n')
                     print(help_update)

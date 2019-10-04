@@ -82,7 +82,7 @@ function start-central()
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=vxlan
 
   master=$(cat /root/.kube/config  | grep server | awk -F":" '{print$3}' | awk -F"//" '{print$2}')
-  thisip=$(ip a | grep "br-native" | grep inet | awk '{print$2}' |awk -F"/" 'NR==1{print$1}')
+  thisip=$master
 
   if [[ -z $master ]]
   then
@@ -234,10 +234,10 @@ function create-bridge()
   ovs-vsctl set interface $name"-"$vlan type=internal
 
   static=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep static)
-  ip=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep IPADDR)
-  mask=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep NETMASK)
-  prefix=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep PREFIX)
-  gw=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep GATEWAY)
+  ip=$(cat $IFCFG"ifcfg-$nic.bak" | grep IPADDR)
+  mask=$(cat $IFCFG"ifcfg-$nic.bak" | grep NETMASK)
+  prefix=$(cat $IFCFG"ifcfg-$nic.bak" |  grep PREFIX)
+  gw=$(cat $IFCFG"ifcfg-$nic.bak" | grep GATEWAY)
   
   sed -i "s/BRX/$name/g" $IFCFG"ifcfg-$name"
   sed -i "s/BRX/$name/g" $IFCFG"ifcfg-$nic"
@@ -836,8 +836,8 @@ function help()
   echo -e "  remove-switch  :\t(L3  ): Remove L3 switch and gateway"
   echo -e "  delete-switch  :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
   echo -e "  delete-vpc     :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
-  echo -e "  bind-swport    :\t(L3  ): Bind a L3's port to a public IP"
-  echo -e "  unbind-swport  :\t(L3  ): Unbind a L3's port from a public IP"
+  echo -e "  bind-swport    :\t(L3  ): Bind a L3's port to OVN"
+  echo -e "  unbind-swport  :\t(L3  ): Unbind a L3's port from OVN"
 }
 
 

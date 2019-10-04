@@ -121,7 +121,7 @@ class HostCycler:
             mem_capacity = self._format_mem_to_Mi(node_info_dict.get('phymemory'))
             return {'cpu': str(cpu_capacity), 'memory': str(mem_capacity)+'Mi', 'pods': '40'}
         else:
-            return {'cpu': 'UNKNOWN', 'memory': 'UNKNOWN', 'pods': '40'}
+            return {'cpu': 0, 'memory': '0Mi', 'pods': '40'}
     
     def get_status_daemon_endpoints(self):
         return V1NodeDaemonEndpoints(kubelet_endpoint={'port':0})

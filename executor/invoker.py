@@ -598,6 +598,8 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
+                (jsondict, operation_queue) \
+                    = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -1403,6 +1405,14 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
     jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue)
+
+def _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name):
+    operation_queue = []
+    target = _get_field(jsondict, the_cmd_key, "target")
+    if target:
+        operation_queue = _get_snapshot_operations_queue(the_cmd_key, target, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
+    return (jsondict, operation_queue)
 
 def _isCreateSwitch(the_cmd_key):
     if the_cmd_key == "createSwitch":

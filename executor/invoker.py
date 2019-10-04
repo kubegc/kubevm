@@ -46,7 +46,7 @@ from utils.libvirt_util import get_xml, vm_state, _get_dom, is_snapshot_exists, 
     is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import updateDescription, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec
 
@@ -598,7 +598,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                (jsondict, operation_queue) \
+                (jsondict, operation_queue, rollback_operation_queue) \
                     = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -627,6 +627,29 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
 #                     elif operation_type == 'DELETED':
 #                         if cmd:
 #                             runCmd(cmd)
+                        '''
+                        Run operations
+                        '''
+                        if operation_queue:
+                            index = 0
+                            for operation in operation_queue:
+                                logger.debug(operation)
+                                try:
+                                    runCmd(operation)
+                                except ExecuteException, e:
+                                    if index >= len(rollback_operation_queue):
+                                        index = len(rollback_operation_queue)
+                                    operations_rollback_queue = rollback_operation_queue[:index]
+                                    operations_rollback_queue.reverse()
+                                    for operation in operations_rollback_queue:
+                                        logger.debug("do rollback: %s" % operation)
+                                        try:
+                                            runCmd(operation)
+                                        except:
+                                            logger.debug('Oops! ', exc_info=1)
+                                    raise e
+                                index += 1
+                                time.sleep(1)
                     status = 'Done(Success)'
                     if not _isDeleteDiskImage(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name)
@@ -1408,11 +1431,12 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
 
 def _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name):
     operation_queue = []
+    rollback_operation_queue = []
     target = _get_field(jsondict, the_cmd_key, "target")
     if target:
-        operation_queue = _get_snapshot_operations_queue(the_cmd_key, target, metadata_name)
+        (operation_queue, rollback_operation_queue) = _get_vmdi_operations_queue(jsondict, the_cmd_key, target, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    return (jsondict, operation_queue)
+    return (jsondict, operation_queue, rollback_operation_queue)
 
 def _isCreateSwitch(the_cmd_key):
     if the_cmd_key == "createSwitch":
@@ -1654,6 +1678,26 @@ def _isInstallVMFromImage(the_cmd_key):
 
 def _isCreateImage(the_cmd_key):
     if the_cmd_key == "createImage":
+        return True
+    return False
+
+def _isCreateVmdi(the_cmd_key):
+    if the_cmd_key == "createDiskImage":
+        return True
+    return False
+
+def _isConvertDiskToDiskImage(the_cmd_key):
+    if the_cmd_key == "convertDiskToDiskImage":
+        return True
+    return False
+
+def _isDeleteVmdi(the_cmd_key):
+    if the_cmd_key == "deleteDiskImage":
+        return True
+    return False
+
+def _isConvertDiskImageToDisk(the_cmd_key):
+    if the_cmd_key == "convertDiskImageToDisk":
         return True
     return False
 
@@ -2060,6 +2104,8 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
             return [unbindSwPortCmd, unplugNICCmd]
         else:
             return [unplugNICCmd]
+    else:
+        return []
         
 def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
     if config_dict.get('live'):
@@ -2076,6 +2122,8 @@ def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
     elif _isUnplugDisk(the_cmd_key):
         unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
         return [unplugDiskCmd]
+    else:
+        return []
     
 def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
     if _isMergeSnapshot(the_cmd_key):
@@ -2089,7 +2137,27 @@ def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
         return ([unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd], [unplug_disks_rollback_cmd, plug_disks_rollback_cmd])
     elif _isDeleteVMSnapshot(the_cmd_key):
         domain_obj = Domain(_get_dom(domain))
-        domain_obj.delete_snapshot(metadata_name, True)
+        (unplug_disks_cmd, unplug_disks_rollback_cmd, plug_disks_cmd, plug_disks_rollback_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.revert_snapshot(metadata_name, True)
+        return ([unplug_disks_cmd, plug_disks_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd], [unplug_disks_rollback_cmd, plug_disks_rollback_cmd])
+    else:
+        return ([], [])
+    
+def _get_vmdi_operations_queue(jsondict, the_cmd_key, target, metadata_name):
+    operation_queue = []
+    rollback_operation_queue = []
+    if _isConvertDiskToDiskImage(the_cmd_key) or _isCreateVmdi(the_cmd_key):
+        (operation_queue, rollback_operation_queue) = createVmdi(metadata_name, target)
+        jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+        cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+        operation_queue.append(cmd)
+        return (operation_queue, rollback_operation_queue)
+    elif _isDeleteVmdi(the_cmd_key):
+        (operation_queue, rollback_operation_queue) = deleteVmdi(metadata_name, target)
+        jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+        cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+        operation_queue.append(cmd)
+    else:
+        return (operation_queue, rollback_operation_queue)
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':

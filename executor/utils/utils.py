@@ -41,6 +41,7 @@ class parser(ConfigParser.ConfigParser):
         return optionstr
 
 DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
+RESOURCE_FILE_PATH = '/etc/kubevmm/resource'
 
 def get_IP():
     myname = socket.getfqdn(socket.gethostname())
@@ -610,6 +611,18 @@ def randomMAC():
         random.randint(0x00, 0xff),
         random.randint(0x00, 0xff) ]
     return ':'.join(map(lambda x: "%02x" % x, mac))
+
+def createVmdi(metadata_name, target):
+    if not os.path.isdir(target):
+        raise ExecuteException('Wrong "target" %s: no such directory.' % target)
+    return (['echo "vmdi = %s" >> %s' % (target, RESOURCE_FILE_PATH)], 
+            ['sed -i \'/vmdi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)])
+
+def deleteVmdi(metadata_name, target):
+    if not os.path.isdir(target):
+        raise ExecuteException('Wrong "target" %s: no such directory.' % target)
+    return (['sed -i \'/vmdi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)], 
+            ['echo "vmdi = %s" >> %s' % (target, RESOURCE_FILE_PATH)])
 
 class Domain(object):
     def __init__(self, libvirt_domain):

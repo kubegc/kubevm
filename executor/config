@@ -134,6 +134,7 @@ deletePool = kubesds-adm deletePool
 startPool = virsh pool-start
 autoStart = virsh pool-autostart
 unregisterPool = virsh pool-undefine
+stopPool = virsh pool-destroy
 
 [VirtualMachineNetwork]
 group = cloudplus.io

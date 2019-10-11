@@ -612,6 +612,18 @@ def randomMAC():
         random.randint(0x00, 0xff) ]
     return ':'.join(map(lambda x: "%02x" % x, mac))
 
+def createVmi(metadata_name, target):
+    if not os.path.isdir(target):
+        raise ExecuteException('Wrong "target" %s: no such directory.' % target)
+    return (['echo "vmi = %s" >> %s' % (target, RESOURCE_FILE_PATH)], 
+            ['sed -i \'/vmi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)])
+
+def deleteVmi(metadata_name, target):
+    if not os.path.isdir(target):
+        raise ExecuteException('Wrong "target" %s: no such directory.' % target)
+    return (['sed -i \'/vmi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)], 
+            ['echo "vmi = %s" >> %s' % (target, RESOURCE_FILE_PATH)])
+
 def createVmdi(metadata_name, target):
     if not os.path.isdir(target):
         raise ExecuteException('Wrong "target" %s: no such directory.' % target)

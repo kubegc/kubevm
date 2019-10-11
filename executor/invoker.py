@@ -46,7 +46,7 @@ from utils.libvirt_util import get_xml, vm_state, _get_dom, is_snapshot_exists, 
     is_pool_exists, _get_pool_info
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec
 
@@ -1438,6 +1438,15 @@ def _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name):
         jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, operation_queue, rollback_operation_queue)
 
+def _vmi_prepare_step(the_cmd_key, jsondict, metadata_name):
+    operation_queue = []
+    rollback_operation_queue = []
+    target = _get_field(jsondict, the_cmd_key, "target")
+    if target:
+        (operation_queue, rollback_operation_queue) = _get_vmi_operations_queue(jsondict, the_cmd_key, target, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
+    return (jsondict, operation_queue, rollback_operation_queue)
+
 def _isCreateSwitch(the_cmd_key):
     if the_cmd_key == "createSwitch":
         return True
@@ -1688,6 +1697,11 @@ def _isCreateVmdi(the_cmd_key):
 
 def _isConvertDiskToDiskImage(the_cmd_key):
     if the_cmd_key == "convertDiskToDiskImage":
+        return True
+    return False
+
+def _isConvertVMToImage(the_cmd_key):
+    if the_cmd_key == "convertVMToImage":
         return True
     return False
 
@@ -2158,6 +2172,23 @@ def _get_vmdi_operations_queue(jsondict, the_cmd_key, target, metadata_name):
         operation_queue.append(cmd)
     else:
         return (operation_queue, rollback_operation_queue)
+    
+def _get_vmi_operations_queue(jsondict, the_cmd_key, target, metadata_name):
+    operation_queue = []
+    rollback_operation_queue = []
+    if _isConvertVMToImage(the_cmd_key) or _isCreateImage(the_cmd_key):
+        (operation_queue, rollback_operation_queue) = createVmi(metadata_name, target)
+        jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+        cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+        operation_queue.append(cmd)
+        return (operation_queue, rollback_operation_queue)
+    elif _isDeleteImage(the_cmd_key):
+        (operation_queue, rollback_operation_queue) = deleteVmi(metadata_name, target)
+        jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+        cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+        operation_queue.append(cmd)
+    else:
+        return (operation_queue, rollback_operation_queue)
 
 def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
     if device_type == 'nic':
@@ -2303,7 +2334,7 @@ def _convertCharsInJson(key, value):
     elif value == 'False':
         return ('', '')
     else:
-        return ('--%s' % key.replace('_', '-'), value)
+        return ('--%s' % key.replace('_', '-'), value.replace(" ", ""))
 
 def _snapshot_file_exists(snapshot):
     xml_file = '%s.xml' % (snapshot)

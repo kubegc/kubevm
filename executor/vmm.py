@@ -24,7 +24,7 @@ from xmljson import badgerfish as bf
 from kubernetes.client.rest import ApiException
 
 from utils.libvirt_util import get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.utils import DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -897,7 +897,7 @@ def delete_disk_snapshot(vol, pool, snapshot):
         info=sys.exc_info()
         report_failure(vol, jsondict, 'VirtletError', str(info[1]), VMD_GROUP, VMD_VERSION, VMD_PLURAL)
 
-def revert_disk_snapshot(vol, pool, snapshot):
+def revert_disk_internal_snapshot(vol, pool, snapshot):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
     vol_path = get_volume_path(pool, vol)
@@ -925,6 +925,28 @@ def revert_disk_snapshot(vol, pool, snapshot):
         info=sys.exc_info()
         report_failure(vol, jsondict, 'VirtletError', str(info[1]), VMD_GROUP, VMD_VERSION, VMD_PLURAL)
         
+def revert_disk_external_snapshot(vol, pool, snapshot, leaves_str):
+#     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+#         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
+    snapshot_path = get_volume_path(pool, snapshot)
+    leaves = leaves_str.replace(' ', '').split(',')
+    disks_to_delete = []
+    for leaf in leaves:
+        leaf_path = get_volume_path(pool, leaf)
+        backing_chain = [leaf_path]
+        backing_chain += DiskImageHelper.get_backing_files_tree(leaf_path)
+        for backing_file in backing_chain:
+            if backing_file == snapshot_path:
+                break;
+            else:
+                disks_to_delete.append(backing_file)
+    disks_to_delete = list(set(disks_to_delete))
+    cmd1 = 'rm -f '
+    for disk_to_delete in disks_to_delete:
+        cmd1 = cmd1 + disk_to_delete + " "
+    print(cmd1)
+    runCmd(cmd1)
+        
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:
         status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
@@ -942,7 +964,7 @@ def toKubeJson(json):
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
 
 def main():
-    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_snapshot|delete_disk_snapshot|revert_disk_snapshot|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]
+    help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_snapshot|delete_disk_snapshot|revert_disk_internal_snapshot|revert_disk_external_snapshot|merge_disk_snapshot|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
         print (help_msg)
         sys.exit(1)
@@ -970,8 +992,10 @@ def main():
         create_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
     elif sys.argv[1] == 'delete_disk_snapshot':
         delete_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
-    elif sys.argv[1] == 'revert_disk_snapshot':
-        revert_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
+    elif sys.argv[1] == 'revert_disk_internal_snapshot':
+        revert_disk_internal_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
+    elif sys.argv[1] == 'revert_disk_external_snapshot':
+        revert_disk_external_snapshot(params['--name'], params['--pool'], params['--snapshotname'], params['--leaves'])
     elif sys.argv[1] == 'delete_image':
         delete_image(params['--name'])
     elif sys.argv[1] == 'create_vmdi':

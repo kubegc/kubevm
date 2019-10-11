@@ -94,8 +94,8 @@ tuneDiskQoS = virsh blkdeviotune
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
 deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
-revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_snapshot
-revertDiskExternalSnapshot = qemu-img commit
+revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_internal_snapshot
+revertDiskExternalSnapshot = /usr/bin/vmm revert_disk_external_snapshot
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
 convertDiskToDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 

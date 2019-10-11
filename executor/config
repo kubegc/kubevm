@@ -90,6 +90,7 @@ resizeRAM = virsh setmem
 resizeMaxRAM = virsh setmaxmem
 resizeVM = virsh blockresize
 tuneDiskQoS = virsh blkdeviotune
+tuneNICQoS = virsh domiftune
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot

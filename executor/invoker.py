@@ -2334,6 +2334,8 @@ def _convertCharsInJson(key, value):
     elif value == 'False':
         return ('', '')
     else:
+        if key.startswith("_"):
+            key = str(key).replace('_', '')
         return ('--%s' % key.replace('_', '-'), value.replace(" ", ""))
 
 def _snapshot_file_exists(snapshot):

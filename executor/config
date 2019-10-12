@@ -132,10 +132,10 @@ createPool = kubesds-adm createPool
 
 [VirtualMahcinePoolSupportCmdsWithPoolField]
 deletePool = kubesds-adm deletePool
-startPool = virsh pool-start
-autoStartPool = virsh pool-autostart
-unregisterPool = virsh pool-undefine
-stopPool = virsh pool-destroy
+startPool = kubesds-adm startPool
+autoStartPool = kubesds-adm autoStartPool
+unregisterPool = kubesds-adm unregisterPool
+stopPool = kubesds-adm stopPool
 
 [VirtualMachineNetwork]
 group = cloudplus.io

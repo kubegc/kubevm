@@ -134,7 +134,6 @@ createPool = kubesds-adm createPool
 deletePool = kubesds-adm deletePool
 startPool = kubesds-adm startPool
 autoStartPool = kubesds-adm autoStartPool
-unregisterPool = kubesds-adm unregisterPool
 stopPool = kubesds-adm stopPool
 
 [VirtualMachineNetwork]

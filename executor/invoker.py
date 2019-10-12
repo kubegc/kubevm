@@ -234,7 +234,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         try:
             if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
-                (jsondict, network_operations_queue, disk_operations_queue) \
+                (jsondict, operations_queue) \
                     = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -276,10 +276,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if cmd:
                                 runCmd(cmd)
                         '''
-                        Run network operations
+                        Run operations
                         '''
-                        if network_operations_queue:
-                            for operation in network_operations_queue:
+                        if operations_queue:
+                            for operation in operations_queue:
                                 logger.debug(operation)
                                 if operation.find('kubeovn-adm unbind-swport') != -1:
                                     try:
@@ -309,18 +309,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
 #                                 mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
                         '''
-                        Run network operations
+                        Run operations
                         '''
-                        if network_operations_queue:
-                            for operation in network_operations_queue:
-                                logger.debug(operation)
-                                runCmd(operation)
-                                time.sleep(1)
-                        '''
-                        Run disk operations
-                        '''
-                        if disk_operations_queue:
-                            for operation in disk_operations_queue:
+                        if operations_queue:
+                            for operation in operations_queue:
                                 logger.debug(operation)
                                 runCmd(operation)
                                 time.sleep(1)
@@ -1369,8 +1361,10 @@ def _vm_priori_step(the_cmd_key, jsondict):
             raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
         
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
+    operations_queue = []
     network_operations_queue = []
     disk_operations_queue = []
+    graphic_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         '''
         Parse network configurations
@@ -1416,7 +1410,16 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    return (jsondict, network_operations_queue, disk_operations_queue)
+    if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key):
+        '''
+        Parse disk configurations
+        '''
+        graphic_operations_queue = _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
+    operations_queue.extend(network_operations_queue)
+    operations_queue.extend(disk_operations_queue)
+    operations_queue.extend(graphic_operations_queue)
+    return (jsondict, operations_queue)
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     domain = _get_field(jsondict, the_cmd_key, "domain")
@@ -1605,6 +1608,16 @@ def _isDeleteNetwork(the_cmd_key):
 
 def _isDeleteBridge(the_cmd_key):
     if the_cmd_key == "deleteBridge":
+        return True
+    return False
+
+def _isSetVncPassword(the_cmd_key):
+    if the_cmd_key == "setVncPassword":
+        return True
+    return False
+
+def _isUnsetVncPassword(the_cmd_key):
+    if the_cmd_key == "unsetVncPassword":
         return True
     return False
 
@@ -1972,6 +1985,34 @@ def _createDiskXml(metadata_name, data):
     
     return file_path
 
+def _createGraphicXml(metadata_name, data):   
+    '''
+    Write disk Xml file to DEFAULT_DEVICE_DIR dir.
+    '''
+    doc = Document()
+    root = doc.createElement('graphics')
+    root.setAttribute('type', 'vnc')
+    root.setAttribute('passwd', data.get('password') if data.get('password') else '')
+    doc.appendChild(root)
+    node = doc.createElement('listen')
+    node.setAttribute('type', 'address')
+    node.setAttribute('address', '0.0.0.0')
+    root.appendChild(node)
+    
+    '''
+    If DEFAULT_DEVICE_DIR not exists, create it.
+    '''
+    if not os.path.exists(DEFAULT_DEVICE_DIR):
+        os.makedirs(DEFAULT_DEVICE_DIR, 0711)
+    file_path = '%s/%s-graphic.xml' % (DEFAULT_DEVICE_DIR, metadata_name)
+    try:
+        with open(file_path, 'w') as f:
+            f.write(doc.toprettyxml(indent='\t'))
+    except:
+        raise ExecuteException('VirtctlError', 'Execute plugDisk error: cannot create disk XML file \'%s\'' % file_path)  
+    
+    return file_path
+
 # def _validate_network_params(data): 
 #     if data:
 #         for key in data.keys():
@@ -2071,27 +2112,29 @@ def _disk_config_parser_json(the_cmd_key, data):
 def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key) or _isPlugNIC(the_cmd_key):
         if _isPlugNIC(the_cmd_key):
+            args = ''
             if config_dict.get('live'):
-                live = '--live'
-            else:
-                live = ''
+                args = args + '--live '
             if config_dict.get('config'):
-                config = '--config'
-            else:
-                config = ''
+                args = args + '--config '
+            if config_dict.get('persistent'):
+                args = args + '--persistent '
+            if config_dict.get('current'):
+                args = args + '--current '
+            if config_dict.get('force'):
+                args = args + '--force '
         else:
-            live = '--live'
-            config = '--config'
+            args = '--live --config'
         if config_dict.get('type') == 'bridge':
-            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
+            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
             return [plugNICCmd]
         elif config_dict.get('type') == 'l2bridge':
-            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
+            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
             return [plugNICCmd]
         elif config_dict.get('type') == 'l3bridge':
             if not config_dict.get('switch'):
                 raise ExecuteException('VirtctlError', 'Network config error: no "switch" parameter.')
-            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
+            plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
             unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
             bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
             recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
@@ -2102,15 +2145,18 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
     #         (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
             return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
     elif _isUnplugNIC(the_cmd_key):
+        args = ''
         if config_dict.get('live'):
-            live = '--live'
-        else:
-            live = ''
+            args = args + '--live '
         if config_dict.get('config'):
-            config = '--config'
-        else:
-            config = ''
-        unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, live, config)
+            args = args + '--config '
+        if config_dict.get('persistent'):
+            args = args + '--persistent '
+        if config_dict.get('current'):
+            args = args + '--current '
+        if config_dict.get('force'):
+            args = args + '--force '
+        unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
                                 (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
         if os.path.exists(net_cfg_file_path):
@@ -2122,23 +2168,47 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
         return []
         
 def _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name):
+    args = ''
     if config_dict.get('live'):
-        live = '--live'
-    else:
-        live = ''
+        args = args + '--live '
     if config_dict.get('config'):
-        config = '--config'
-    else:
-        config = ''
+        args = args + '--config '
+    if config_dict.get('persistent'):
+        args = args + '--persistent '
+    if config_dict.get('current'):
+        args = args + '--current '
+    if config_dict.get('force'):
+        args = args + '--force '
     if _isPlugDisk(the_cmd_key):
-        plugDiskCmd = _plugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
+        plugDiskCmd = _plugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, args)
         return [plugDiskCmd]
     elif _isUnplugDisk(the_cmd_key):
-        unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, live, config)
+        unplugDiskCmd = _unplugDeviceFromXmlCmd(metadata_name, 'disk', config_dict, args)
         return [unplugDiskCmd]
     else:
         return []
     
+def _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name):
+    args = ''
+    if config_dict.get('live'):
+        args = args + '--live '
+    if config_dict.get('config'):
+        args = args + '--config '
+    if config_dict.get('persistent'):
+        args = args + '--persistent '
+    if config_dict.get('current'):
+        args = args + '--current '
+    if config_dict.get('force'):
+        args = args + '--force '
+    if _isSetVncPassword(the_cmd_key):
+        plugDiskCmd = _updateDeviceFromXmlCmd(metadata_name, 'graphic', config_dict, args)
+        return [plugDiskCmd]
+    elif _isUnsetVncPassword(the_cmd_key):
+        unplugDiskCmd = _updateDeviceFromXmlCmd(metadata_name, 'graphic', config_dict, args)
+        return [unplugDiskCmd]
+    else:
+        return []
+
 def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
     if _isMergeSnapshot(the_cmd_key):
         domain_obj = Domain(_get_dom(domain))
@@ -2190,14 +2260,20 @@ def _get_vmi_operations_queue(jsondict, the_cmd_key, target, metadata_name):
     else:
         return (operation_queue, rollback_operation_queue)
 
-def _plugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
+def _plugDeviceFromXmlCmd(metadata_name, device_type, data, args):
     if device_type == 'nic':
         file_path = _createNICXml(metadata_name, data)
     elif device_type == 'disk':
         file_path = _createDiskXml(metadata_name, data)
-    return 'virsh attach-device --domain %s --file %s %s %s' % (metadata_name, file_path, live, config)
+    return 'virsh attach-device --domain %s --file %s %s' % (metadata_name, file_path, args)
 
-def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
+def _updateDeviceFromXmlCmd(metadata_name, device_type, data, args):
+    if device_type == 'graphic':
+        file_path = _createGraphicXml(metadata_name, data)
+    cmd = 'virsh update-device --domain %s --file %s ' % (metadata_name, file_path)
+    return cmd
+
+def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, args):
     if device_type == 'nic':
         file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
         if not os.path.exists(file_path):
@@ -2205,12 +2281,12 @@ def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, live, config):
                 net_type = 'bridge'
             else:
                 net_type = data.get('type')
-            return 'virsh detach-interface --domain %s --type %s --mac %s %s %s' (metadata_name, net_type, data.get('mac'), live, config)
+            return 'virsh detach-interface --domain %s --type %s --mac %s %s' (metadata_name, net_type, data.get('mac'), args)
     elif device_type == 'disk':
         file_path = '%s/%s-disk-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('target'))
         if not os.path.exists(file_path):
-            return 'virsh detach-disk --domain %s --target %s %s %s' % (metadata_name, data.get('target'), live, config)
-    return 'virsh detach-device --domain %s --file %s %s %s' % (metadata_name, file_path, live, config)
+            return 'virsh detach-disk --domain %s --target %s %s' % (metadata_name, data.get('target'), args)
+    return 'virsh detach-device --domain %s --file %s %s' % (metadata_name, file_path, args)
 
 def _createNICFromXml(metadata_name, jsondict, the_cmd_key):
     spec = jsondict['raw_object'].get('spec')

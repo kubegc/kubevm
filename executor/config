@@ -91,6 +91,9 @@ resizeMaxRAM = virsh setmaxmem
 resizeVM = virsh blockresize
 tuneDiskQoS = virsh blkdeviotune
 tuneNICQoS = virsh domiftune
+setBootOrder = virsh update-device
+setVncPassword = virsh update-device
+unsetVncPassword = virsh update-device
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot

@@ -1414,6 +1414,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         '''
         Parse disk configurations
         '''
+        config_dict = _get_fields(jsondict, the_cmd_key)
         graphic_operations_queue = _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
     operations_queue.extend(network_operations_queue)

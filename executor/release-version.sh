@@ -60,8 +60,8 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <vmm>."
 fi
-git clone https://github.com/kubesys/kubeSDS.git
-cd ./kubeSDS
+git clone https://github.com/kubesys/kubeext-SDS.git
+cd ./kubeext-SDS
 pyinstaller -F kubesds-adm.py
 if [ $? -ne 0 ]; then
     echo "    Failed to compile <kubesds-adm>!"
@@ -81,7 +81,7 @@ cp -f ./dist/kubesds-adm ../dist
 cp -f ./dist/kubesds-rpc ../docker/virtctl
 cp -f ./dist/kubesds-rpc ../dist
 cd ..
-rm -rf ./kubeSDS
+rm -rf ./kubeext-SDS
 
 find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;

@@ -1415,6 +1415,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         Parse disk configurations
         '''
         config_dict = _get_fields(jsondict, the_cmd_key)
+        logger.debug(config_dict)
         graphic_operations_queue = _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
     operations_queue.extend(network_operations_queue)
@@ -2271,8 +2272,7 @@ def _plugDeviceFromXmlCmd(metadata_name, device_type, data, args):
 def _updateDeviceFromXmlCmd(metadata_name, device_type, data, args):
     if device_type == 'graphic':
         file_path = _createGraphicXml(metadata_name, data)
-    cmd = 'virsh update-device --domain %s --file %s ' % (metadata_name, file_path)
-    return cmd
+    return 'virsh update-device --domain %s --file %s %s' % (metadata_name, file_path, args)
 
 def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, args):
     if device_type == 'nic':

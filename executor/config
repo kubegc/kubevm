@@ -133,7 +133,7 @@ createPool = kubesds-adm createPool
 [VirtualMahcinePoolSupportCmdsWithPoolField]
 deletePool = kubesds-adm deletePool
 startPool = virsh pool-start
-autoStart = virsh pool-autostart
+autoStartPool = virsh pool-autostart
 unregisterPool = virsh pool-undefine
 stopPool = virsh pool-destroy
 

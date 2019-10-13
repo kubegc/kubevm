@@ -801,8 +801,8 @@ class Domain(object):
                     else:
                         continue
                 unplug_disks_cmd += 'virsh detach-disk --domain %s --target %s --config;' % (self.name, disk.file)
-                unplug_disks_rollback_cmd += 'virsh attach-disk --domain %s --source %s --target %s --config;' % (self.name, disk.file, disk.device)
-                plug_disks_cmd += 'virsh attach-disk --domain %s --source %s --target %s --config;' % (self.name, base_disk, base_disk_target)
+                unplug_disks_rollback_cmd += 'virsh attach-disk --subdriver qcow2 --domain %s --source %s --target %s --config;' % (self.name, disk.file, disk.device)
+                plug_disks_cmd += 'virsh attach-disk --subdriver qcow2 --domain %s --source %s --target %s --config;' % (self.name, base_disk, base_disk_target)
                 plug_disks_rollback_cmd += 'virsh detach-disk --domain %s --target %s --config;' % (self.name, base_disk)
         for disk_to_remove in disks_to_remove:
             disks_to_remove_cmd += 'rm -f %s;' % disk_to_remove

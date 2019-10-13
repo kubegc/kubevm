@@ -1429,7 +1429,7 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     if not isExternal:
         return (jsondict, [], [])
     elif isExternal and is_vm_active(domain):
-        raise ExecuteException('VirtctlError', '400, Bad Request. Cannot revert external snapshot when vm is running.')
+        raise ExecuteException('VirtctlError', '400, Bad Request. Cannot operate external snapshot when vm is running.')
     (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
     jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue)

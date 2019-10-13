@@ -773,7 +773,7 @@ class Domain(object):
             base_disk = ''
             base_disk_target = ''
             for snapshot_disk in snapshot_disks:
-                if snapshot_disk.file == disk.file:
+                if snapshot_disk.file == disk.file and not revert_to_backing_file:
                     raise ExecuteException('VirtctlError', '400, Bad Request! Cannot revert current disk %s to itself.' % snapshot_disk.file)
                 elif snapshot_disk.file in current_disk_files:
                     if revert_to_backing_file:

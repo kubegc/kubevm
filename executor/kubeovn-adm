@@ -520,11 +520,11 @@ function create-switch()
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
   subn=$(echo $* | awk -F"--subnet" '{print$2}' | awk '{print$1}')
   
-  if [[ -z $1 || -z $name || -z $subn || $2 == "--help" ]]
+  if [[ -z $1 || -z $name || $2 == "--help" ]]
   then
     cmddesc
     echo -e "--name  \tswitch name" >&2
-    echo -e "--subnet\tIP range. for example, 192.168.1.0/24"  >&2
+    echo -e "--subnet\toptinal, IP range. for example, 192.168.1.0/24"  >&2
     exit 1
   fi
 
@@ -534,27 +534,31 @@ function create-switch()
     echo "cannot connect the master or the switch name exists" >&2
     exit 1
   fi
-  
-  router='r4'$name
-  rport='rp4'$name
-  rmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
-  rip=$(echo $subn | awk -F"." '{print$1"."$2"."$3}')".1"
-  rmk=$(echo $subn | awk -F"/" '{print$2}')
-  $NB_CMD lr-add $router
-  $NB_CMD lrp-add $router $rport $rmac $rip"/"$rmk
-  
-  sport='sp4'$name
+ 
   $NB_CMD ls-add $name
-  $NB_CMD set Logical_Switch $name other_config:subnet=$subn
-  $NB_CMD lsp-add $name $sport
-  $NB_CMD lsp-set-type $sport router
-  $NB_CMD lsp-set-addresses $sport $rmac
-  $NB_CMD lsp-set-options $sport router-port=$rport
+ 
+  if [[ -n $subn ]]
+  then
+    router='r4'$name
+    rport='rp4'$name
+    rmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
+    rip=$(echo $subn | awk -F"." '{print$1"."$2"."$3}')".1"
+    rmk=$(echo $subn | awk -F"/" '{print$2}')
+    $NB_CMD lr-add $router
+    $NB_CMD lrp-add $router $rport $rmac $rip"/"$rmk
+  
+    sport='sp4'$name
+    $NB_CMD set Logical_Switch $name other_config:subnet=$subn
+    $NB_CMD lsp-add $name $sport
+    $NB_CMD lsp-set-type $sport router
+    $NB_CMD lsp-set-addresses $sport $rmac
+    $NB_CMD lsp-set-options $sport router-port=$rport
 
-  #dmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
-  #dip=$(echo $subn | awk -F"." '{print$1"."$2"."$3}')".128" 
-  did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$rip\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$rip\"")
-  $NB_CMD lsp-add $name "dhcpv4id-$name-"$did
+    #dmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
+    #dip=$(echo $subn | awk -F"." '{print$1"."$2"."$3}')".128" 
+    did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$rip\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$rip\"")
+    $NB_CMD lsp-add $name "dhcpv4id-$name-"$did
+  fi
 }
 
 

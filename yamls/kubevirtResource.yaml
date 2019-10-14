@@ -229,9 +229,6 @@ spec:
   - JSONPath: .spec.pool.capacity
     name: CAPACITY
     type: integer
-  - JSONPath: .spec.pool.available
-    name: AVAILABLE
-    type: integer
   - JSONPath: .spec.pool.state
     name: STATE
     type: string

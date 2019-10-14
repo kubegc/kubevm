@@ -2413,7 +2413,10 @@ def _convertCharsInJson(key, value):
     else:
         if key.startswith("_"):
             key = str(key).replace('_', '')
-        return ('--%s' % key.replace('_', '-'), value.replace(" ", ""))
+        if key == 'leaves':
+            return ('--%s' % key.replace('_', '-'), value.replace(' ', ''))
+        else:
+            return ('--%s' % key.replace('_', '-'), value)
 
 def _snapshot_file_exists(snapshot):
     xml_file = '%s.xml' % (snapshot)

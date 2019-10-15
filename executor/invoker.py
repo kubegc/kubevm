@@ -1365,6 +1365,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
     network_operations_queue = []
     disk_operations_queue = []
     graphic_operations_queue = []
+    redefine_vm_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         '''
         Parse network configurations
@@ -1412,15 +1413,21 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         jsondict = deleteLifecycleInJson(jsondict)
     if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key):
         '''
-        Parse disk configurations
+        Parse graphic configurations
         '''
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         graphic_operations_queue = _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
+    if _isSetBootOrder(the_cmd_key):
+        config_dict = _get_fields(jsondict, the_cmd_key)
+        logger.debug(config_dict)
+        redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)        
     operations_queue.extend(network_operations_queue)
     operations_queue.extend(disk_operations_queue)
     operations_queue.extend(graphic_operations_queue)
+    operations_queue.extend(redefine_vm_operations_queue)
     return (jsondict, operations_queue)
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
@@ -1622,6 +1629,12 @@ def _isUnsetVncPassword(the_cmd_key):
     if the_cmd_key == "unsetVncPassword":
         return True
     return False
+
+def _isSetBootOrder(the_cmd_key):
+    if the_cmd_key == "setBootOrder":
+        return True
+    return False
+
 
 def _isPlugNIC(the_cmd_key):
     if the_cmd_key == "plugNIC":
@@ -1987,14 +2000,15 @@ def _createDiskXml(metadata_name, data):
     
     return file_path
 
-def _createGraphicXml(metadata_name, data):   
+def _createGraphicXml(metadata_name, data, unset_vnc_password=False):   
     '''
     Write disk Xml file to DEFAULT_DEVICE_DIR dir.
     '''
     doc = Document()
     root = doc.createElement('graphics')
     root.setAttribute('type', 'vnc')
-    root.setAttribute('passwd', data.get('password') if data.get('password') else '')
+    if not unset_vnc_password and data.get('password'):
+        root.setAttribute('passwd', data.get('password'))
     doc.appendChild(root)
     node = doc.createElement('listen')
     node.setAttribute('type', 'address')
@@ -2206,8 +2220,15 @@ def _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name):
         plugDiskCmd = _updateDeviceFromXmlCmd(metadata_name, 'graphic', config_dict, args)
         return [plugDiskCmd]
     elif _isUnsetVncPassword(the_cmd_key):
-        unplugDiskCmd = _updateDeviceFromXmlCmd(metadata_name, 'graphic', config_dict, args)
+        unplugDiskCmd = _updateDeviceFromXmlCmd(metadata_name, 'graphic', config_dict, args, unset_vnc_password=True)
         return [unplugDiskCmd]
+    else:
+        return []
+    
+def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
+    if _isSetBootOrder(the_cmd_key):
+        cmds = _redefineVMFromXmlCmd(metadata_name, 'boot_order', config_dict)
+        return cmds
     else:
         return []
 
@@ -2269,10 +2290,31 @@ def _plugDeviceFromXmlCmd(metadata_name, device_type, data, args):
         file_path = _createDiskXml(metadata_name, data)
     return 'virsh attach-device --domain %s --file %s %s' % (metadata_name, file_path, args)
 
-def _updateDeviceFromXmlCmd(metadata_name, device_type, data, args):
+def _updateDeviceFromXmlCmd(metadata_name, device_type, data, args, unset_vnc_password=False):
     if device_type == 'graphic':
-        file_path = _createGraphicXml(metadata_name, data)
+        file_path = _createGraphicXml(metadata_name, data, unset_vnc_password)
     return 'virsh update-device --domain %s --file %s %s' % (metadata_name, file_path, args)
+
+def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
+    if resource_type == 'boot_order':
+        boot_order = data.get('order')
+        if not boot_order:
+            raise ExecuteException('VirtctlError', 'Missing parameter "order".')
+        orders = boot_order.replace(' ', '').split(',')
+        if not orders or not set(orders) < set(['cdrom', 'hd', 'fd', 'network']):
+            raise ExecuteException('VirtctlError', 'Unsupported parameter "order=%s".' % boot_order)
+        cmds = []
+        cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
+        cmd2 = 'sed -i \'/<os>/n;/<boot /{:a;d;n;/<os\/>/!ba}\' /tmp/%s.xml' %(metadata_name)
+        cmds.append(cmd1)
+        cmds.append(cmd2)
+        orders.reverse()
+        for order in orders:
+            cmds.append("sed -i \'/<os>/n;/<type /a\    <boot dev='\\''%s'\\''\/>\' /tmp/%s.xml" % (order, metadata_name))
+        cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
+        return cmds
+    else:
+        return []
 
 def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, args):
     if device_type == 'nic':

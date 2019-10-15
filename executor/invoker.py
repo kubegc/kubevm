@@ -2301,16 +2301,22 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
         if not boot_order:
             raise ExecuteException('VirtctlError', 'Missing parameter "order".')
         orders = boot_order.replace(' ', '').split(',')
-        if not orders or not set(orders) < set(['cdrom', 'hd', 'fd', 'network']):
+        if not orders:
             raise ExecuteException('VirtctlError', 'Unsupported parameter "order=%s".' % boot_order)
+        for order in orders:
+            if not runCmd('virsh domblklist %s | grep %s' % (metadata_name, order)):
+                raise ExecuteException('VirtctlError', 'Virtual machine %s has no device named "%s".' % (metadata_name, order))
         cmds = []
         cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
         cmd2 = 'sed -i \'/<os>/n;/<boot /{:a;d;n;/<os\/>/!ba}\' /tmp/%s.xml' %(metadata_name)
+        cmd3 = 'sed -i \'/<domain /n;/<boot order=/{:a;d;n;/<\/domain>/!ba}\' /tmp/%s.xml' %(metadata_name)
         cmds.append(cmd1)
         cmds.append(cmd2)
-        orders.reverse()
+        cmds.append(cmd3)
+        i = 1
         for order in orders:
-            cmds.append("sed -i \'/<os>/n;/<type /a\    <boot dev='\\''%s'\\''\/>\' /tmp/%s.xml" % (order, metadata_name))
+            cmds.append("sed -i \'/<devices>/n;/<target dev='\\''%s'\\''/a\      <boot order='\\''%d'\\''\/>\' /tmp/%s.xml" % (order, i, metadata_name))
+            i = i+1
         cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
         return cmds
     else:
@@ -2508,30 +2514,11 @@ def runCmd(cmd):
         std_out = p.stdout.readlines()
         std_err = p.stderr.readlines()
         if std_out:
-#             msg = ''
-#             for index,line in enumerate(std_out):
-#                 if not str.strip(line):
-#                     continue
-#                 if index == len(std_out) - 1:
-#                     msg = msg + str.strip(line) + '. '
-#                 else:
-#                     msg = msg + str.strip(line) + ', '
-#             logger.debug(str.strip(msg))
             logger.debug(std_out)
         if std_err:
-#             msg = ''
-#             for index, line in enumerate(std_err):
-#                 if not str.strip(line):
-#                     continue
-#                 if index == len(std_err) - 1:
-#                     msg = msg + str.strip(line) + '. ' + '***More details in %s***' % LOG
-#                 else:
-#                     msg = msg + str.strip(line) + ', '
             logger.error(std_err)
-#             raise ExecuteException('VirtctlError', str.strip(msg))
             raise ExecuteException('VirtctlError', std_err)
-#         return (str.strip(std_out[0]) if std_out else '', str.strip(std_err[0]) if std_err else '')
-        return
+        return std_out
     finally:
         p.stdout.close()
         p.stderr.close()

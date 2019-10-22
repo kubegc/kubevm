@@ -7,7 +7,6 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 '''
 from json import loads
 
-
 '''
 Import python libs
 '''
@@ -99,7 +98,7 @@ def _get_pool_info(pool_):
     except:
         pass
     lines = pool.XMLDesc()
-    result = runCmdWithResult('virsh pool-info ' + pool_)
+    result = runCmdAndParse('virsh pool-info ' + pool_)
     # result['allocation'] = int(1024*1024*1024*float(result['allocation']))
     # result['available'] = int(1024 * 1024 * 1024 * float(result['available']))
     result['capacity'] = int(1024 * 1024 * 1024 * float(result['capacity']))
@@ -815,7 +814,69 @@ def get_all_vnc_info():
             vnc_infos[vm] = vnc_info['listen']+':'+vnc_info['port']
     return vnc_infos
 
-def runCmdWithResult(cmd):
+def list_defined_pools():
+    conn = __get_conn()
+    return conn.listDefinedStoragePools()
+
+def _get_defined_pool(pool_):
+    conn = __get_conn()
+    if pool_ not in list_defined_pools():
+        raise Exception('The specified pool is not present(%s).' % pool_)
+    pool = conn.storagePoolLookupByName(pool_)
+    return pool
+
+def is_pool_defined(pool_):
+    if pool_ in list_defined_pools():
+        return True
+    return False
+
+def is_pool_started(pool_):
+    if pool_ in list_pools():
+        return True
+    return False
+
+def get_pool_info(pool_):
+    result = runCmdAndParse('virsh pool-info ' + pool_)
+    # result['allocation'] = int(1024*1024*1024*float(result['allocation']))
+    # result['available'] = int(1024 * 1024 * 1024 * float(result['available']))
+    # result['code'] = 0
+    # result['capacity'] = int(1024 * 1024 * 1024 * float(result['capacity']))
+    if 'allocation' in result.keys():
+        del result['allocation']
+        del result['available']
+    if 'available' in result.keys():
+        del result['available']
+
+    lines = ''
+    if is_pool_started(pool_):
+        pool = _get_pool(pool_)
+        try:
+            pool.refresh()
+        except:
+            pass
+        lines = pool.XMLDesc()
+    if is_pool_defined(pool_):
+        pool = _get_defined_pool(pool_)
+        # try:
+        #     pool.refresh()
+        # except:
+        #     pass
+        lines = pool.XMLDesc()
+    for line in lines.splitlines():
+        if line.find("path") >= 0:
+            result['path'] = line.replace('<path>', '').replace('</path>', '').strip()
+            break
+    for line in lines.splitlines():
+        if line.find("capacity") >= 0:
+            result['capacity'] = int(line.replace("<capacity unit='bytes'>", '').replace('</capacity>', '').strip())
+            break
+    return result
+
+def get_vol_info_by_qemu(vol_path):
+    print vol_path
+    return runCmdAndGetResult('qemu-img info --output json ' + vol_path)
+
+def runCmdAndParse(cmd):
     if not cmd:
         #         logger.debug('No CMD to execute.')
         return
@@ -860,8 +921,45 @@ def runCmdRaiseException(cmd):
         p.stdout.close()
         p.stderr.close()
 
+'''
+Run back-end command in subprocess.
+'''
+def runCmdAndGetResult(cmd, raise_it=True):
+    std_err = None
+    if not cmd:
+        #         logger.debug('No CMD to execute.')
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            msg = ''
+            for index, line in enumerate(std_out):
+                if not str.strip(line):
+                    continue
+                msg = msg + str.strip(line)
+            msg = str.strip(msg)
+            msg = msg.replace("'", '"')
+            try:
+                result = loads(msg)
+                return result
+            except Exception:
+                error_msg = ''
+                for index, line in enumerate(std_err):
+                    if not str.strip(line):
+                        continue
+                    error_msg = error_msg + str.strip(line)
+                error_msg = str.strip(error_msg)
+                raise Exception
+        if std_err:
+            raise Exception
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
 if __name__ == '__main__':
-    print(freecpu())
+    # print(freecpu())
     # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))
@@ -869,5 +967,5 @@ if __name__ == '__main__':
 #     print list_all_volumes()
 #     print list_volumes('vmdi')
 #     print(list_volumes('volumes'))
-    vol_xml = get_volume_xml('poolb', 'diskass')
+    vol_xml = get_vol_info_by_qemu('/var/lib/libvirt/pooltest/disktest/disktest')
     print vol_xml

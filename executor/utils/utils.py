@@ -492,7 +492,7 @@ def addExceptionMessage(jsondict, reason, message):
 
 def addSnapshots(vol_path, jsondict):
     snapshot_json = get_volume_snapshots(vol_path)
-    jsondict.get('volume').update(snapshot_json)
+    jsondict['volume'] = snapshot_json
     return jsondict
 
 def updateDomainBackup(vm_json):

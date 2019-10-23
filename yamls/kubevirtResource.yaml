@@ -260,9 +260,21 @@ metadata:
   name: virtualmachinedisksnapshots.cloudplus.io
 spec:
   additionalPrinterColumns:
-    - JSONPath: .spec.pool.uuid
-      name: UUID
-      type: string
+  - JSONPath: .spec.volumesnapshot.format-specific.type
+    name: TYPE
+    type: string  
+  - JSONPath: .spec.volumesnapshot.filename
+    name: PATH
+    type: string  
+  - JSONPath: .spec.status.conditions.state.waiting.reason
+    name: STATUS
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: AGE
+    type: date
+  - JSONPath: .spec.nodeName
+    name: NODE
+    type: string
   group: cloudplus.io
   names:
     kind: VirtualMachineDiskSnapshot

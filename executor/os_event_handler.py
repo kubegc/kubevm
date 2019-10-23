@@ -372,11 +372,11 @@ class VmVolEventHandler(FileSystemEventHandler):
                                                     VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
                     except ApiException:
                         logger.error('Oops! ', exc_info=1)
-                    try:
-                        last = os.path.basename(config['last'])
-                        myVmVolEventHandler('Delete', self.pool, last, self.group, self.version, self.plural)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
+                    # try:
+                    #     last = os.path.basename(config['last'])
+                    #     myVmVolEventHandler('Delete', self.pool, last, self.group, self.version, self.plural)
+                    # except ApiException:
+                    #     logger.error('Oops! ', exc_info=1)
             else:
                 with open(os.path.dirname(event.src_path)+'/config.json', "r") as f:
                     config = json.load(f)

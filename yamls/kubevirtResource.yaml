@@ -112,10 +112,10 @@ metadata:
   name: virtualmachinedisks.cloudplus.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.volume.target.format._type
+  - JSONPath: .spec.volume.format-specific.type
     name: TYPE
     type: string  
-  - JSONPath: .spec.volume.target.path.text
+  - JSONPath: .spec.volume.current
     name: PATH
     type: string  
   - JSONPath: .spec.volume.backingStore.path.text
@@ -149,10 +149,10 @@ metadata:
   name: virtualmachinediskimages.cloudplus.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.volume.target.format._type
+  - JSONPath: .spec.volume.format-specific.type
     name: TYPE
     type: string  
-  - JSONPath: .spec.volume.target.path.text
+  - JSONPath: .spec.volume.current
     name: PATH
     type: string  
   - JSONPath: .spec.status.conditions.state.waiting.reason
@@ -260,10 +260,10 @@ metadata:
   name: virtualmachinedisksnapshots.cloudplus.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.volumesnapshot.format-specific.type
+  - JSONPath: .spec.volume.format-specific.type
     name: TYPE
     type: string  
-  - JSONPath: .spec.volumesnapshot.filename
+  - JSONPath: .spec.volume.filename
     name: PATH
     type: string  
   - JSONPath: .spec.status.conditions.state.waiting.reason

@@ -104,7 +104,7 @@ unsetVncPassword = virsh update-device
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
 deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
 revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_internal_snapshot
-revertDiskExternalSnapshot = /usr/bin/vmm revert_disk_external_snapshot
+revertDiskExternalSnapshot = kubesds-adm revertExternalSnapshot
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
 convertDiskToDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 

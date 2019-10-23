@@ -119,9 +119,9 @@ cloneDisk = kubesds-adm cloneDisk
 deleteDisk = kubesds-adm deleteDisk
 
 [VirtualMachineDiskSnapshotSupportCmdsWithNameField]
-createDiskExternalSnapshot = kubesds-adm createDisk
+createDiskExternalSnapshot = kubesds-adm createExternalSnapshot
 revertDiskExternalSnapshot = kubesds-adm revertExternalSnapshot
-deleteDiskExternalSnapshot = kubesds-adm deleteDisk
+deleteDiskExternalSnapshot = kubesds-adm deleteExternalSnapshot
 
 [VirtualMachineSnapshotSupportCmdsWithNameField]
 createSnapshot = virsh snapshot-create-as

@@ -84,6 +84,9 @@ PLURAL_VM_DISK_IMAGE = config_raw.get('VirtualMachineDiskImage', 'plural')
 VERSION_VM_DISK_IMAGE = config_raw.get('VirtualMachineDiskImage', 'version')
 GROUP_VM_DISK_IMAGE = config_raw.get('VirtualMachineDiskImage', 'group')
 
+PLURAL_VM_DISK_SNAPSHOT = config_raw.get('VirtualMachineDiskSnapshot', 'plural')
+VERSION_VM_DISK_SNAPSHOT = config_raw.get('VirtualMachineDiskSnapshot', 'version')
+GROUP_VM_DISK_SNAPSHOT = config_raw.get('VirtualMachineDiskSnapshot', 'group')
 
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
@@ -188,6 +191,10 @@ def main():
 #         thread_5.daemon = True
 #         thread_5.name = 'vm_block_dev_watcher'
 #         thread_5.start()
+        thread_6 = Thread(target=vMDiskSnapshotWatcher)
+        thread_6.daemon = True
+        thread_6.name = 'vm_disk_snapshot_watcher'
+        thread_6.start()
         thread_9 = Thread(target=vMNetworkWatcher)
         thread_9.daemon = True
         thread_9.name = 'vm_network_watcher'
@@ -642,6 +649,126 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                                     raise e
                                 index += 1
                                 time.sleep(1)
+                    status = 'Done(Success)'
+                    if not _isDeleteDiskImage(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name)
+                except libvirtError:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except ExecuteException, e:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                    info=sys.exc_info()
+                    try:
+                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+                    status = 'Done(Error)'
+                    event_type = 'Warning'
+                    event.set_event_type(event_type)
+                finally:
+                    if the_cmd_key and operation_type != 'DELETED':
+                        time_end = now_to_datetime()
+                        message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                        event.set_message(message)
+                        event.set_time_end(time_end)
+                        try:
+                            event.updateKubernetesEvent()
+                        except:
+                            logger.warning('Oops! ', exc_info=1)
+        except ExecuteException, e:
+            logger.error('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+            info=sys.exc_info()
+            try:
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+            except:
+                logger.warning('Oops! ', exc_info=1)
+                
+def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT):
+    watcher = watch.Watch()
+    kwargs = {}
+    kwargs['label_selector'] = LABEL
+    kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
+    for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                   group=group, version=version, plural=plural, **kwargs):
+        try:
+            operation_type = jsondict.get('type')
+            logger.debug(operation_type)
+            metadata_name = getMetadataName(jsondict)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+        try:
+            logger.debug('metadata name: %s' % metadata_name)
+            the_cmd_key = _getCmdKey(jsondict)
+            logger.debug('cmd key is: %s' % the_cmd_key)
+            if the_cmd_key and operation_type != 'DELETED':
+                involved_object_name = metadata_name
+                involved_object_kind = 'VirtualMachineDiskSnapshot'
+                event_metadata_name = randomUUID()
+                event_type = 'Normal'
+                status = 'Doing(Success)'
+                reporter = 'virtctl'
+                event_id = _getEventId(jsondict)
+                time_now = now_to_datetime()
+                time_start = time_now
+                time_end = time_now
+                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+                try:
+                    event.registerKubernetesEvent()
+                except:
+                    logger.error('Oops! ', exc_info=1)
+                jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+    #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
+    #             body = jsondict['raw_object']
+    #             try:
+    #                 client.CustomObjectsApi().replace_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+    #             except:
+    #                 logger.warning('Oops! ', exc_info=1)
+                try:
+                    if operation_type == 'ADDED':
+                        if cmd:
+                            runCmd(cmd)
+                    elif operation_type == 'MODIFIED':
+                        try:
+                            runCmd(cmd)
+                        except Exception, e:
+                            if _isDeleteDiskExternalSnapshot(the_cmd_key):
+                                logger.warning("***Disk snapshot %s not exists, delete it from virtlet" % metadata_name)
+                                # jsondict = deleteLifecycleInJson(jsondict)
+                                # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                # time.sleep(0.5)
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            else:
+                                raise e
+#                     elif operation_type == 'DELETED':
+#                         if cmd:
+#                             runCmd(cmd)
                     status = 'Done(Success)'
                     if not _isDeleteDiskImage(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name)

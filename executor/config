@@ -44,11 +44,6 @@ group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinedisks
 
-[VirtualMachineDiskSnapshot]
-group = cloudplus.io
-version = v1alpha3
-plural = virtualmachinedisksnapshots
-
 [VirtualMachineDiskImage]
 group = cloudplus.io
 version = v1alpha3

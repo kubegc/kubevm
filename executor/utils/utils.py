@@ -492,7 +492,7 @@ def addExceptionMessage(jsondict, reason, message):
 
 def addSnapshots(vol_path, jsondict):
     snapshot_json = get_volume_snapshots(vol_path)
-    jsondict['volume'] = snapshot_json
+    jsondict['volume'].update(snapshot_json)
     return jsondict
 
 def add_current(jsondict, current):

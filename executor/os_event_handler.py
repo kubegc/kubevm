@@ -196,7 +196,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 config = json.load(f)
                 vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
                 vol_json = add_current(vol_json, config['current'])
-                vol_json = addSnapshots(config['current'], vol_json)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:
@@ -239,7 +238,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
                 logger.debug(config['current'])
                 vol_json = add_current(vol_json, config['current'])
-                vol_json = addSnapshots(config['current'], vol_json)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:

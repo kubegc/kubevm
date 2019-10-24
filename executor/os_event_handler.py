@@ -237,6 +237,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
                 vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                logger.debug(config['current'])
                 vol_json = add_current(vol_json, config['current'])
                 vol_json = addSnapshots(config['current'], vol_json)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -307,7 +308,7 @@ class VmVolEventHandler(FileSystemEventHandler):
         else:
             logger.debug("file created:{0}".format(event.src_path))
             print event.src_path
-            if event.src_path.find('config.json') >= 0:
+            if os.path.basename(event.src_path) == 'config.json':
                 with open(event.src_path, "r") as f:
                     config = json.load(f)
                 vol = config['name']
@@ -329,7 +330,7 @@ class VmVolEventHandler(FileSystemEventHandler):
         else:
             print 'on_deleted' + event.src_path
             logger.debug("file deleted:{0}".format(event.src_path))
-            if event.src_path.find('config.json') >= 0:
+            if os.path.basename(event.src_path) == 'config.json':
                 vol = os.path.basename(event.src_path)
                 try:
                     myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
@@ -348,7 +349,7 @@ class VmVolEventHandler(FileSystemEventHandler):
         if event.is_directory:
             logger.debug("directory modified:{0}".format(event.src_path))
         else:
-            if event.src_path.find('config.json') >= 0:
+            if os.path.basename(event.src_path) == 'config.json':
                 logger.debug("change config.json file: %s" % event.src_path)
                 with open(event.src_path, "r") as f:
                     config = json.load(f)

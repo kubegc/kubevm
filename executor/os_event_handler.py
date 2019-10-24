@@ -37,7 +37,7 @@ Import local libs
 from utils.libvirt_util import get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, \
     vm_state, _get_all_pool_path, get_pool_info, get_vol_info_by_qemu
 from utils import logger
-from utils.utils import updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
+from utils.utils import DiskImageHelper, add_current, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
     addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
 
@@ -194,7 +194,8 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                         'apiVersion': '%s/%s' % (group, version)}
             with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
-                vol_json = get_vol_info_by_qemu(config['current'])
+                vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                vol_json = add_current(vol_json, config['current'])
                 vol_json = addSnapshots(config['current'], vol_json)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
@@ -235,7 +236,8 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                                                                               name=name)
             with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
-                vol_json = get_vol_info_by_qemu(config['current'])
+                vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                vol_json = add_current(vol_json, config['current'])
                 vol_json = addSnapshots(config['current'], vol_json)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
@@ -356,23 +358,23 @@ class VmVolEventHandler(FileSystemEventHandler):
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
 
-                # delete current snapshot
-                if 'current' in config.keys():
-                    try:
-                        current = os.path.basename(config['current'])
-                        myVmVolSnapshotEventHandler('Delete', self.pool, config['current'], current, GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
+#                 # delete current snapshot
+#                 if 'current' in config.keys():
+#                     try:
+#                         current = os.path.basename(config['current'])
+#                         myVmVolSnapshotEventHandler('Delete', self.pool, config['current'], current, GROUP_VM_DISK_SS,
+#                                                     VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+#                     except ApiException:
+#                         logger.error('Oops! ', exc_info=1)
 
                 # make last as snapshot
-                if 'last' in config.keys():
-                    try:
-                        last = os.path.basename(config['last'])
-                        myVmVolSnapshotEventHandler('Create', self.pool, config['last'], last, GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
+#                 if 'last' in config.keys():
+#                     try:
+#                         last = os.path.basename(config['last'])
+#                         myVmVolSnapshotEventHandler('Create', self.pool, config['last'], last, GROUP_VM_DISK_SS,
+#                                                     VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+#                     except ApiException:
+#                         logger.error('Oops! ', exc_info=1)
                     # try:
                     #     last = os.path.basename(config['last'])
                     #     myVmVolEventHandler('Delete', self.pool, last, self.group, self.version, self.plural)
@@ -440,7 +442,9 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
                         'kind': VMDSN_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
                         'apiVersion': '%s/%s' % (group, version)}
 
-            vol_json = get_vol_info_by_qemu(ss_path)
+            vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
+            current = DiskImageHelper.get_backing_file(ss_path)
+            vol_json = add_current(vol_json, current)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:
@@ -478,7 +482,9 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
                                                                               namespace='default',
                                                                               plural=plural,
                                                                               name=name)
-            vol_json = get_vol_info_by_qemu(ss_path)
+            vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
+            current = DiskImageHelper.get_backing_file(ss_path)
+            vol_json = add_current(vol_json, current)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:

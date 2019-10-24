@@ -342,7 +342,7 @@ class VmVolEventHandler(FileSystemEventHandler):
                     logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
-        print 'on_modified' + event.src_path
+        logger.debug('on_modified' + event.src_path)
         if event.is_directory:
             logger.debug("directory modified:{0}".format(event.src_path))
         else:

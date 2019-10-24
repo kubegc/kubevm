@@ -379,15 +379,19 @@ class VmVolEventHandler(FileSystemEventHandler):
                     # except ApiException:
                     #     logger.error('Oops! ', exc_info=1)
             else:
-                with open(os.path.dirname(event.src_path)+'/config.json', "r") as f:
-                    config = json.load(f)
-                if event.src_path != config['current']:
-                    snapshot = event.src_path.split('/')[-1]
-                    try:
-                        myVmVolSnapshotEventHandler('Modify', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
+                config_file = os.path.dirname(event.src_path)+'/config.json'
+                if os.path.exists(config_file):
+                    with open(config_file, "r") as f:
+                        config = json.load(f)
+                    if event.src_path != config['current']:
+                        snapshot = event.src_path.split('/')[-1]
+                        try:
+                            myVmVolSnapshotEventHandler('Modify', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
+                                                        VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+                        except ApiException:
+                            logger.error('Oops! ', exc_info=1)
+                else:
+                    pass
 
 
 def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plural):

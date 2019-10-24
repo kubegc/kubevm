@@ -347,6 +347,7 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("directory modified:{0}".format(event.src_path))
         else:
             if event.src_path.find('config.json') >= 0:
+                logger.debug("change config.json file: %s" % event.src_path)
                 with open(event.src_path, "r") as f:
                     config = json.load(f)
                 vol = config['name']

@@ -2714,7 +2714,6 @@ def runCmdWithResult(cmd, raise_it=True):
                     continue
                 msg = msg + str.strip(line)
             msg = str.strip(msg)
-            logger.debug(msg)
             msg = msg.replace("'", '"')
             logger.debug(msg)
             try:

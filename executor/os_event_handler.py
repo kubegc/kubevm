@@ -1424,7 +1424,6 @@ def main():
                                                           PLURAL_VM_DISK)
                         watcher = observer.schedule(event_handler, paths[pool], True)
                         OLD_PATH_WATCHERS[paths[pool]] = watcher
-                        observer.start()
             except Exception, e:
                 logger.debug(traceback.print_exc())
                 logger.debug("error occur when watch all storage pool")

@@ -263,9 +263,9 @@ spec:
   - JSONPath: .spec.volume.format-specific.type
     name: TYPE
     type: string  
-  - JSONPath: .spec.volume.filename
+  - JSONPath: .spec.volume.current
     name: PATH
-    type: string  
+    type: string 
   - JSONPath: .spec.status.conditions.state.waiting.reason
     name: STATUS
     type: string

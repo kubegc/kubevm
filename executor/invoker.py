@@ -447,7 +447,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
     #                 logger.warning('Oops! ', exc_info=1)
                 try:
                     if disk_type is None or pool_name is None:
-                        raise ExecuteException('VirtctlError', "disk type and pool must be set")
+                        raise ExecuteException('VirtctlError', "parameters \"type\" and \"pool\" must be set")
                     if operation_type == 'ADDED':
                         if cmd:
                             if cmd.find("kubesds-adm") >= 0:
@@ -466,13 +466,13 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             if cmd.find("kubesds-adm") >= 0:
                                 result, data = runCmdWithResult(cmd, raise_it=False)
                                 if result['code'] != 0:
-                                    raise ExecuteException('virtctl', 'error when delete pool ' + result['msg'])
+                                    raise ExecuteException('virtctl', 'error when operate volume ' + result['msg'])
                             else:
                                 logger.debug(cmd)
                                 runCmd(cmd)
                                 _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                         except Exception, e:
-                            if _isDeleteDisk(the_cmd_key) or _isDeleteDiskExternalSnapshot(the_cmd_key) and result['code'] != 221 and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                            if _isDeleteDisk(the_cmd_key) and result['code'] != 221 and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # try:
@@ -505,7 +505,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                         else:
 #                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
-                    if not _isDeleteDisk(the_cmd_key) and not _isDeleteDiskExternalSnapshot(the_cmd_key):
+                    if not _isDeleteDisk(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -742,6 +742,9 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
+                pool_name = _get_field(jsondict, the_cmd_key, 'pool')
+                disk_type = _get_field(jsondict, the_cmd_key, 'type')
+                vol_name = _get_field(jsondict, the_cmd_key, 'vol')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -751,12 +754,21 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
     #             except:
     #                 logger.warning('Oops! ', exc_info=1)
                 try:
+                    if disk_type is None or pool_name is None or vol_name is None:
+                        raise ExecuteException('VirtctlError', "parameters \"type\", \"pool\" and \"vol\" must be set")
                     if operation_type == 'ADDED':
-                        if cmd:
-                            runCmd(cmd)
+                        _, data = None, None
+                        if not is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
+                            _, data = runCmdWithResult(cmd)
+                        else:
+                            _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                     elif operation_type == 'MODIFIED':
                         try:
-                            runCmd(cmd)
+                            _, data = None, None
+                            if not is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
+                                _, data = runCmdWithResult(cmd)
+                            else:
+                                _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                         except Exception, e:
                             if _isDeleteDiskExternalSnapshot(the_cmd_key):
                                 logger.warning("***Disk snapshot %s not exists, delete it from virtlet" % metadata_name)
@@ -770,8 +782,8 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
-                    if not _isDeleteDiskImage(the_cmd_key):
-                        write_result_to_server(group, version, 'default', plural, metadata_name)
+                    if not _isDeleteDiskExternalSnapshot(the_cmd_key):
+                        write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1387,7 +1399,7 @@ def get_disk_path_from_server(metadata_name):
             group=GROUP_VM_DISK, version=VERSION_VM_DISK, namespace='default', plural=PLURAL_VM_DISK,
             name=metadata_name)
         if 'volume' in jsondict['spec'].keys():
-            return jsondict['spec']['volume']['target']['path']['text']
+            return jsondict['spec']['volume']['current']
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**Object %s already deleted, ignore this 404 error.' % metadata_name)
@@ -1408,11 +1420,20 @@ def is_kubesds_disk_exists(type, pool, vol):
         return True
     return False
 
+def is_kubesds_disk_snapshot_exists(type, pool, vol, name):
+    result, _ = runCmdWithResult('kubesds-adm showDiskSnapshot --type ' + type + ' --pool ' + pool + ' --vol ' + vol + ' --name ' + name, False)
+    if result['code'] == 0:
+        return True
+    return False
+
 def get_kubesds_pool_info(type, pool):
     return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
 
 def get_kubesds_disk_info(type, pool, vol):
     return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol, raise_it=False)
+
+def get_kubesds_disk_snapshot_info(type, pool, vol, name):
+    return runCmdWithResult('kubesds-adm showDiskSnapshot --type ' + type + ' --pool ' + pool + ' --vol ' + vol + ' --name ' + name, raise_it=False)
 
 def deleteStructure(name, body, group, version, plural):
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
@@ -1447,6 +1468,8 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
         elif plural == PLURAL_VM_DISK:   
+            jsonDict['spec']['volume'] = data
+        elif plural == PLURAL_VM_DISK_SNAPSHOT:   
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM:
             vm_xml = get_xml(name)

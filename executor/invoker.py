@@ -765,7 +765,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                     elif operation_type == 'MODIFIED':
                         try:
                             _, data = None, None
-                            if not is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
+                            if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
                                 _, data = runCmdWithResult(cmd)
                             else:
                                 _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)

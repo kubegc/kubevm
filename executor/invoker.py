@@ -1036,29 +1036,29 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             else:
                                 raise e
-                        '''
-                        Run snapshot operations
-                        '''
-                        if snapshot_operations_queue:
-                            index = 0
-                            for operation in snapshot_operations_queue:
-                                logger.debug(operation)
-                                try:
-                                    runCmd(operation)
-                                except ExecuteException, e:
-                                    if index >= len(snapshot_operations_rollback_queue):
-                                        index = len(snapshot_operations_rollback_queue)
-                                    snapshot_operations_rollback_queue = snapshot_operations_rollback_queue[:index]
-                                    snapshot_operations_rollback_queue.reverse()
-                                    for operation in snapshot_operations_rollback_queue:
-                                        logger.debug("do rollback: %s" % operation)
-                                        try:
-                                            runCmd(operation)
-                                        except:
-                                            logger.debug('Oops! ', exc_info=1)
-                                    raise e
-                                index += 1
-                                time.sleep(1)
+                    '''
+                    Run snapshot operations
+                    '''
+                    if snapshot_operations_queue:
+                        index = 0
+                        for operation in snapshot_operations_queue:
+                            logger.debug(operation)
+                            try:
+                                runCmd(operation)
+                            except ExecuteException, e:
+                                if index >= len(snapshot_operations_rollback_queue):
+                                    index = len(snapshot_operations_rollback_queue)
+                                snapshot_operations_rollback_queue = snapshot_operations_rollback_queue[:index]
+                                snapshot_operations_rollback_queue.reverse()
+                                for operation in snapshot_operations_rollback_queue:
+                                    logger.debug("do rollback: %s" % operation)
+                                    try:
+                                        runCmd(operation)
+                                    except:
+                                        logger.debug('Oops! ', exc_info=1)
+                                raise e
+                            index += 1
+                            time.sleep(1)
 #                     elif operation_type == 'DELETED':
 # #                         if vm_name and is_snapshot_exists(metadata_name, vm_name):
 #                         if cmd:

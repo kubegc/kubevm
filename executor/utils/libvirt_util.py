@@ -5,7 +5,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuheng@otcaix.iscas.ac.cn
 
 '''
-from json import loads
+from json import loads, dumps
 
 '''
 Import python libs
@@ -875,7 +875,9 @@ def get_pool_info(pool_):
 def get_vol_info_by_qemu(vol_path):
     result = runCmdAndGetResult('qemu-img info -U --output json ' + vol_path)
     result['disk'] = os.path.basename(os.path.dirname(vol_path))
-    return result
+    json_str = dumps(result)
+    return loads(json_str.replace('-', '_'))
+
 
 def runCmdAndParse(cmd):
     if not cmd:

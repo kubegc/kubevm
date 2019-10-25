@@ -290,7 +290,6 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
     if event == "Delete":
         try:
             refresh_pool(pool)
-            print name
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -451,12 +450,17 @@ class VmVolEventHandler(FileSystemEventHandler):
                     logger.error('Oops! ', exc_info=1)
             else:
                 print 'on_created snapshot' + event.src_path
-                snapshot = filename
-                try:
-                    myVmVolSnapshotEventHandler('Create', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+                config_file = os.path.dirname(event.src_path) + '/config.json'
+                if os.path.exists(config_file):
+                    with open(config_file, "r") as f:
+                        config = json.load(f)
+                    if event.src_path != config['current']:
+                        snapshot = filename
+                        try:
+                            myVmVolSnapshotEventHandler('Create', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
+                                                            VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+                        except ApiException:
+                            logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -473,12 +477,25 @@ class VmVolEventHandler(FileSystemEventHandler):
                     logger.error('Oops! ', exc_info=1)
             else:
                 print 'on_deleted snapshot' + event.src_path
-                snapshot = filename
                 try:
-                    myVmVolSnapshotEventHandler('Delete', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+                    snapshot = filename
+                    # get data from server
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP_VM_DISK_SS,
+                                                                                      version=VERSION_VM_DISK_SS,
+                                                                                      namespace='default',
+                                                                                      plural=PLURAL_VM_DISK_SS,
+                                                                                      name=snapshot)
+                    diskname = os.path.basename(os.path.dirname(event.src_path))
+                    print jsondict
+                    if 'spec' in jsondict.keys() and 'volume' in jsondict['spec'].keys() \
+                            and 'disk' in jsondict['spec']['volume'].keys() and jsondict['spec']['volume']['disk'] == diskname:
+                        try:
+                            myVmVolSnapshotEventHandler('Delete', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
+                                                        VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+                        except ApiException:
+                            logger.error('Oops! ', exc_info=1)
+                except Exception:
+                    logger.debug(traceback.format_exc())
 
     def on_modified(self, event):
         if event.is_directory:

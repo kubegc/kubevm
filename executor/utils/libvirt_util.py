@@ -873,8 +873,9 @@ def get_pool_info(pool_):
     return result
 
 def get_vol_info_by_qemu(vol_path):
-    print vol_path
-    return runCmdAndGetResult('qemu-img info -U --output json ' + vol_path)
+    result = runCmdAndGetResult('qemu-img info -U --output json ' + vol_path)
+    result['disk'] = os.path.basename(os.path.dirname(vol_path))
+    return result
 
 def runCmdAndParse(cmd):
     if not cmd:

@@ -4,6 +4,8 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
+from json import loads
+
 from libvirt_util import get_graphics, is_snapshot_exists
 
 '''
@@ -855,6 +857,58 @@ class DiskImageHelper(object):
         """ Sets backing file for disk image """
         set_backing_file_cmd = "qemu-img rebase -u -b %s %s" % (backing_file, file)
         runCmdRaiseException(set_backing_file_cmd)
+
+'''
+Run back-end command in subprocess.
+'''
+def runCmdWithResult(cmd, raise_it=True):
+    std_err = None
+    if not cmd:
+        #         logger.debug('No CMD to execute.')
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            msg = ''
+            for index, line in enumerate(std_out):
+                if not str.strip(line):
+                    continue
+                msg = msg + str.strip(line)
+            msg = str.strip(msg)
+            msg = msg.replace("'", '"')
+            try:
+                result = loads(msg)
+                # print result
+                if result['result']['code'] != 0 and raise_it:
+                    raise ExecuteException('VirtctlError', result['result']['msg'])
+                return result['result'], result['data']
+            except Exception:
+                error_msg = ''
+                for index, line in enumerate(std_err):
+                    if not str.strip(line):
+                        continue
+                    error_msg = error_msg + str.strip(line)
+                error_msg = str.strip(error_msg)
+                raise ExecuteException('VirtctlError', error_msg)
+        if std_err:
+            raise ExecuteException('VirtctlError', std_err)
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
+def get_sn_chain(ss_path):
+    return runCmdWithResult('qemu-img info -U --backing-chain --output json '+ss_path)
+
+def get_disk_snapshots(ss_path):
+    ss_chain = get_sn_chain(ss_path)
+    snapshots = []
+    for disk_info in ss_chain:
+        if disk_info['filename'] != ss_path:
+            snapshots.append(disk_info['filename'])
+    return snapshots
+
 
 class UserDefinedEvent(object):
     

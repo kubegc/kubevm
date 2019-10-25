@@ -1585,7 +1585,7 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     isExternal = _get_field(jsondict, the_cmd_key, "isExternal")
     if not isExternal:
         return (jsondict, [], [])
-    elif isExternal and is_vm_active(domain):
+    elif isExternal and is_vm_active(domain) and not _isCreateDiskExternalSnapshot(the_cmd_key):
         raise ExecuteException('VirtctlError', '400, Bad Request. Cannot operate external snapshot when vm is running.')
     (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
     jsondict = deleteLifecycleInJson(jsondict)
@@ -1722,6 +1722,11 @@ def _isMergeSnapshot(the_cmd_key):
 
 def _isRevertVirtualMachine(the_cmd_key):
     if the_cmd_key == "revertVirtualMachine":
+        return True
+    return False
+
+def _isCreateDiskExternalSnapshot(the_cmd_key):
+    if the_cmd_key == "createDiskExternalSnapshot":
         return True
     return False
 

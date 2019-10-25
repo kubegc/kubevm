@@ -1587,7 +1587,7 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
         return (jsondict, [], [])
     elif isExternal and is_vm_active(domain) and not _isCreateDiskExternalSnapshot(the_cmd_key):
         raise ExecuteException('VirtctlError', '400, Bad Request. Cannot operate external snapshot when vm is running.')
-    (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name)
+    (snapshot_operations_queue, snapshot_operations_rollback_queue) = _get_snapshot_operations_queue(jsondict, the_cmd_key, domain, metadata_name)
     jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue)
 
@@ -1875,6 +1875,11 @@ def _isCreateImage(the_cmd_key):
 
 def _isCreateVmdi(the_cmd_key):
     if the_cmd_key == "createDiskImage":
+        return True
+    return False
+
+def _isCreateSnapshot(the_cmd_key):
+    if the_cmd_key == "createSnapshot":
         return True
     return False
 
@@ -2386,9 +2391,27 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
         return cmds
     else:
         return []
+    
+def _get_paths_from_diskspec(diskspec):
+    paths = ''
+    str_list = diskspec.split('=')
+    for i in str_list:
+        if i.startswith('/'):
+            paths = paths + i.split(',')[0] + ' '
+    return paths
 
-def _get_snapshot_operations_queue(the_cmd_key, domain, metadata_name):
-    if _isMergeSnapshot(the_cmd_key):
+def _get_snapshot_operations_queue(jsondict, the_cmd_key, domain, metadata_name):
+    if _isCreateSnapshot(the_cmd_key):
+        jsondict = _del_field(jsondict, the_cmd_key, 'isExternal')
+        disk_spec = _get_field(jsondict, the_cmd_key, 'diskspec')
+        if not disk_spec:
+            raise ExecuteException('VirtctlError', 'Missing parameter "diskspec".')
+        jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+        cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+        snapshot_paths = _get_paths_from_diskspec(disk_spec)
+        cmd1 = 'kubesds-adm updateDiskCurrent --type dir --current %s' % snapshot_paths
+        return ([cmd, cmd1], [])
+    elif _isMergeSnapshot(the_cmd_key):
         domain_obj = Domain(_get_dom(domain))
         (merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd) = domain_obj.merge_snapshot(metadata_name)
         return ([merge_snapshots_cmd, disks_to_remove_cmd, snapshots_to_delete_cmd], [])

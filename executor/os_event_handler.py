@@ -198,6 +198,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 vol_json = add_current(vol_json, config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            print body
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
@@ -328,14 +329,15 @@ class VmVolEventHandler(FileSystemEventHandler):
         else:
             print 'on_deleted' + event.src_path
             logger.debug("file deleted:{0}".format(event.src_path))
-            if os.path.basename(event.src_path) == 'config.json':
-                vol = os.path.basename(event.src_path)
+            filename = os.path.basename(event.src_path)
+            if filename == 'config.json':
+                vol = os.path.basename(os.path.dirname(event.src_path))
                 try:
                     myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
             else:
-                snapshot = event.src_path.split('/')[-1]
+                snapshot = filename
                 try:
                     myVmVolSnapshotEventHandler('Delete', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
                                                 VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
@@ -347,6 +349,7 @@ class VmVolEventHandler(FileSystemEventHandler):
         if event.is_directory:
             logger.debug("directory modified:{0}".format(event.src_path))
         else:
+            print 'on_modified' + event.src_path
             if os.path.basename(event.src_path) == 'config.json':
                 logger.debug("change config.json file: %s" % event.src_path)
                 with open(event.src_path, "r") as f:
@@ -356,29 +359,28 @@ class VmVolEventHandler(FileSystemEventHandler):
                     myVmVolEventHandler('Modify', self.pool, vol, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
-
-#                 # delete current snapshot
-#                 if 'current' in config.keys():
-#                     try:
-#                         current = os.path.basename(config['current'])
-#                         myVmVolSnapshotEventHandler('Delete', self.pool, config['current'], current, GROUP_VM_DISK_SS,
-#                                                     VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-#                     except ApiException:
-#                         logger.error('Oops! ', exc_info=1)
+                # delete current snapshot
+                if 'current' in config.keys():
+                    try:
+                        current = os.path.basename(config['current'])
+                        myVmVolSnapshotEventHandler('Delete', self.pool, config['current'], current, GROUP_VM_DISK_SS,
+                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+                    except ApiException:
+                        logger.error('Oops! ', exc_info=1)
 
                 # make last as snapshot
-#                 if 'last' in config.keys():
-#                     try:
-#                         last = os.path.basename(config['last'])
-#                         myVmVolSnapshotEventHandler('Create', self.pool, config['last'], last, GROUP_VM_DISK_SS,
-#                                                     VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-#                     except ApiException:
-#                         logger.error('Oops! ', exc_info=1)
-                    # try:
-                    #     last = os.path.basename(config['last'])
-                    #     myVmVolEventHandler('Delete', self.pool, last, self.group, self.version, self.plural)
-                    # except ApiException:
-                    #     logger.error('Oops! ', exc_info=1)
+                if 'last' in config.keys():
+                    try:
+                        last = os.path.basename(config['last'])
+                        myVmVolSnapshotEventHandler('Create', self.pool, config['last'], last, GROUP_VM_DISK_SS,
+                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+                    except ApiException:
+                        logger.error('Oops! ', exc_info=1)
+                    try:
+                        last = os.path.basename(config['last'])
+                        myVmVolEventHandler('Delete', self.pool, last, self.group, self.version, self.plural)
+                    except ApiException:
+                        logger.error('Oops! ', exc_info=1)
             else:
                 config_file = os.path.dirname(event.src_path)+'/config.json'
                 if os.path.exists(config_file):
@@ -391,8 +393,7 @@ class VmVolEventHandler(FileSystemEventHandler):
                                                         VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
                         except ApiException:
                             logger.error('Oops! ', exc_info=1)
-                else:
-                    pass
+
 
 
 def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plural):
@@ -474,6 +475,7 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
             except:
                 logger.error('Oops! ', exc_info=1)
     elif event == "Modify":
+
         try:
             logger.debug('Modify vm disk snapshot %s current, report to virtlet' % name)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,

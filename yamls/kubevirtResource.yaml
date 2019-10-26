@@ -260,10 +260,10 @@ spec:
   - JSONPath: .spec.volume.format
     name: TYPE
     type: string  
-  - JSONPath: .spec.volume.current
+  - JSONPath: .spec.volume.filename
     name: PATH
     type: string 
-  - JSONPath: .spec.volume.full-backing-filename
+  - JSONPath: .spec.volume.full_backing_filename
     name: BACKING STORE
     type: string 
   - JSONPath: .spec.status.conditions.state.waiting.reason

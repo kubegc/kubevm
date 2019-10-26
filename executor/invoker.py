@@ -1515,27 +1515,28 @@ def modify_disk(pool, name, group, version, plural):
                                                                       namespace='default',
                                                                       plural=plural,
                                                                       name=name)
-    with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
-        config = load(f)
-        vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
-        logger.debug(config['current'])
-        vol_json = add_current(vol_json, config['current'])
-    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-    try:
-        modifyStructure(name, body, group, version, plural)
-    except ApiException, e:
-        if e.reason == 'Conflict':
-            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                              version=version,
-                                                                              namespace='default',
-                                                                              plural=plural,
-                                                                              name=name)
-            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+    if os.path.isfile(get_pool_info(pool)['path'] + '/' + name + '/config.json'):
+        with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
+            config = load(f)
+            vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+            logger.debug(config['current'])
+            vol_json = add_current(vol_json, config['current'])
+        jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+        body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+        try:
             modifyStructure(name, body, group, version, plural)
-        else:
-            logger.error(e)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                                  version=version,
+                                                                                  namespace='default',
+                                                                                  plural=plural,
+                                                                                  name=name)
+                jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                modifyStructure(name, body, group, version, plural)
+            else:
+                logger.error(e)
 
 def modifyStructure(name, body, group, version, plural):
     body = updateDescription(body)

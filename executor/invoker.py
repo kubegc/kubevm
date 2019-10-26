@@ -4,7 +4,6 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
-from os_event_handler import myVmVolEventHandler
 
 '''
 Import python libs
@@ -21,7 +20,7 @@ from datetime import datetime
 import pprint
 import time
 from threading import Thread
-from json import loads
+from json import loads, load
 from json import dumps
 from xml.dom.minidom import Document
 from StringIO import StringIO as _StringIO
@@ -42,14 +41,18 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state, _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, undefine_with_snapshot, destroy, \
+from utils.libvirt_util import get_xml, vm_state, _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, \
+    undefine_with_snapshot, destroy, \
     undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, \
-    is_pool_exists, _get_pool_info
+    is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, updateJsonRemoveLifecycle, \
+from utils.utils import deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+    updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
+    updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
-    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec
+    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec, \
+    add_current
 
 
 class parser(ConfigParser.ConfigParser):
@@ -1472,7 +1475,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key):
-                myVmVolEventHandler('Modify', data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+                modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
                 return
             else:
                 jsonDict['spec']['volume'] = data
@@ -1505,6 +1508,47 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
         raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
+
+def modify_disk(pool, name, group, version, plural):
+    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                      version=version,
+                                                                      namespace='default',
+                                                                      plural=plural,
+                                                                      name=name)
+    with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
+        config = load(f)
+        vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+        logger.debug(config['current'])
+        vol_json = add_current(vol_json, config['current'])
+    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+    try:
+        modifyStructure(name, body, group, version, plural)
+    except ApiException, e:
+        if e.reason == 'Conflict':
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                              version=version,
+                                                                              namespace='default',
+                                                                              plural=plural,
+                                                                              name=name)
+            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            modifyStructure(name, body, group, version, plural)
+        else:
+            logger.error(e)
+
+def modifyStructure(name, body, group, version, plural):
+    body = updateDescription(body)
+    try:
+        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    except ApiException, e:
+        if e.reason == 'Conflict':
+            logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+            return None
+        else:
+            raise e
+    return retv
 
 def _vm_priori_step(the_cmd_key, jsondict):
     if _isPlugDisk(the_cmd_key):

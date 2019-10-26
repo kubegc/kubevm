@@ -4,6 +4,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
+from os_event_handler import myVmVolEventHandler
 
 '''
 Import python libs
@@ -783,7 +784,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
 #                             runCmd(cmd)
                     status = 'Done(Success)'
                     if not _isDeleteDiskExternalSnapshot(the_cmd_key):
-                        write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
+                        write_result_to_server(group, version, 'default', plural, metadata_name, data=data, the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1469,8 +1470,13 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['pool'] = data
         elif plural == PLURAL_VM_DISK:   
             jsonDict['spec']['volume'] = data
-        elif plural == PLURAL_VM_DISK_SNAPSHOT:   
-            jsonDict['spec']['volume'] = data
+        elif plural == PLURAL_VM_DISK_SNAPSHOT:
+            if _isRevertDiskExternalSnapshot(the_cmd_key):
+                myVmVolEventHandler('Modify', data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+                return
+            else:
+                jsonDict['spec']['volume'] = data
+
         elif plural == PLURAL_VM:
             vm_xml = get_xml(name)
             vm_power_state = vm_state(name).get(name)
@@ -1803,6 +1809,11 @@ def _isUnplugNIC(the_cmd_key):
 
 def _isPlugDisk(the_cmd_key):
     if the_cmd_key == "plugDisk":
+        return True
+    return False
+
+def _isRevertDiskExternalSnapshot(the_cmd_key):
+    if the_cmd_key == "revertDiskExternalSnapshot":
         return True
     return False
 

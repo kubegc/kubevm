@@ -2370,12 +2370,12 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
             if not config_dict.get('switch'):
                 raise ExecuteException('VirtctlError', 'Network config error: no "switch" parameter.')
             plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
-            if is_vm_active(metadata_name):
-                unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
-                bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
-            else:
+            if _isPlugNIC(the_cmd_key) and not is_vm_active(metadata_name):
                 unbindSwPortCmd = ''
                 bindSwPortCmd = ''
+            else:
+                unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+                bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
             recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
             (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
             recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \

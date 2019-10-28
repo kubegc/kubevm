@@ -2368,7 +2368,7 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
                 raise ExecuteException('VirtctlError', 'Network config error: no "switch" parameter.')
             plugNICCmd = _plugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
             unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
-            if not is_vm_active(metadata_name):
+            if is_vm_active(metadata_name):
                 bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
             else:
                 bindSwPortCmd = ''

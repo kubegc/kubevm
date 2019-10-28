@@ -1626,7 +1626,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)      
-    if _isSetLinuxGuestPassword(the_cmd_key) or _isSetWindowsGuestPassword(the_cmd_key):
+    if _isSetGuestPassword(the_cmd_key):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         vm_password_operations_queue = _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name)
@@ -1848,13 +1848,8 @@ def _isSetBootOrder(the_cmd_key):
         return True
     return False
 
-def _isSetLinuxGuestPassword(the_cmd_key):
-    if the_cmd_key == "setLinuxGuestPassword":
-        return True
-    return False
-
-def _isSetWindowsGuestPassword(the_cmd_key):
-    if the_cmd_key == "setWindowsGuestPassword":
+def _isSetGuestPassword(the_cmd_key):
+    if the_cmd_key == "setGuestPassword":
         return True
     return False
 
@@ -2468,22 +2463,21 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
         return []
 
 def _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name):
-    if _isSetLinuxGuestPassword(the_cmd_key):
+    if _isSetGuestPassword(the_cmd_key):
+        os_type = config_dict.get('os_type')
         user = config_dict.get('user')
         password = config_dict.get('password')
         boot_disk_path = get_boot_disk_path(metadata_name)
+        if not os_type or os_type not in ['linux', 'windows']:
+            raise ExecuteException('VirtctlError', 'Wrong parameters "os_type" %s.' % os_type)
         if not user or not password:
             raise ExecuteException('VirtctlError', 'Wrong parameters "user" or "password".')
         if not boot_disk_path:
             raise ExecuteException('VirtctlError', 'Cannot get boot disk of domain %s' % metadata_name)
-        cmd = '%s --add %s --password %s:password:%s' % (ALL_SUPPORT_CMDS.get('setLinuxGuestPassword'), boot_disk_path, user, password)
-        return [cmd]
-    elif _isSetWindowsGuestPassword(the_cmd_key):
-        user = config_dict.get('user')
-        password = config_dict.get('password')
-        if not user or not password:
-            raise ExecuteException('VirtctlError', 'Wrong parameters "user" or "password".')
-        cmd = '%s --domain %s --user %s --password %s' % (ALL_SUPPORT_CMDS.get('setWindowsGuestPassword'), metadata_name, user, password)
+        if os_type == 'linux':
+            cmd = 'virt-customize --add %s --password %s:password:%s' % (boot_disk_path, user, password)
+        else:
+            cmd = 'virsh set-user-password --domain %s --user %s --password %s' % (metadata_name, user, password)
         return [cmd]
     else:
         return []

@@ -41,7 +41,7 @@ from libvirt import libvirtError
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state, _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, \
+from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, is_snapshot_exists, is_volume_in_use, get_volume_xml, \
     undefine_with_snapshot, destroy, \
     undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, \
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
@@ -1567,6 +1567,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
     disk_operations_queue = []
     graphic_operations_queue = []
     redefine_vm_operations_queue = []
+    vm_password_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         '''
         Parse network configurations
@@ -1624,11 +1625,17 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
-        jsondict = deleteLifecycleInJson(jsondict)        
+        jsondict = deleteLifecycleInJson(jsondict)      
+    if _isSetLinuxGuestPassword(the_cmd_key) or _isSetWindowsGuestPassword(the_cmd_key):
+        config_dict = _get_fields(jsondict, the_cmd_key)
+        logger.debug(config_dict)
+        vm_password_operations_queue = _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)     
     operations_queue.extend(network_operations_queue)
     operations_queue.extend(disk_operations_queue)
     operations_queue.extend(graphic_operations_queue)
     operations_queue.extend(redefine_vm_operations_queue)
+    operations_queue.extend(vm_password_operations_queue)
     return (jsondict, operations_queue)
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
@@ -1841,6 +1848,15 @@ def _isSetBootOrder(the_cmd_key):
         return True
     return False
 
+def _isSetLinuxGuestPassword(the_cmd_key):
+    if the_cmd_key == "setLinuxGuestPassword":
+        return True
+    return False
+
+def _isSetWindowsGuestPassword(the_cmd_key):
+    if the_cmd_key == "setWindowsGuestPassword":
+        return True
+    return False
 
 def _isPlugNIC(the_cmd_key):
     if the_cmd_key == "plugNIC":
@@ -2448,6 +2464,27 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isSetBootOrder(the_cmd_key):
         cmds = _redefineVMFromXmlCmd(metadata_name, 'boot_order', config_dict)
         return cmds
+    else:
+        return []
+
+def _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name):
+    if _isSetLinuxGuestPassword(the_cmd_key):
+        user = config_dict.get('user')
+        password = config_dict.get('password')
+        boot_disk_path = get_boot_disk_path(metadata_name)
+        if not user or not password:
+            raise ExecuteException('VirtctlError', 'Wrong parameters "user" or "password".')
+        if not boot_disk_path:
+            raise ExecuteException('VirtctlError', 'Cannot get boot disk of domain %s' % metadata_name)
+        cmd = '%s --add %s --password %s:password:%s' % (ALL_SUPPORT_CMDS.get('setLinuxGuestPassword'), boot_disk_path, user, password)
+        return [cmd]
+    elif _isSetWindowsGuestPassword(the_cmd_key):
+        user = config_dict.get('user')
+        password = config_dict.get('password')
+        if not user or not password:
+            raise ExecuteException('VirtctlError', 'Wrong parameters "user" or "password".')
+        cmd = '%s --domain %s --user %s --password %s' % (ALL_SUPPORT_CMDS.get('setWindowsGuestPassword'), metadata_name, user, password)
+        return [cmd]
     else:
         return []
     

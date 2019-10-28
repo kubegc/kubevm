@@ -286,20 +286,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         else:
                             if cmd:
                                 runCmd(cmd)
-                        '''
-                        Run operations
-                        '''
-                        if operations_queue:
-                            for operation in operations_queue:
-                                logger.debug(operation)
-                                if operation.find('kubeovn-adm unbind-swport') != -1:
-                                    try:
-                                        runCmd(operation)
-                                    except:
-                                        pass
-                                else:
-                                    runCmd(operation)
-                                time.sleep(1)
                     elif operation_type == 'MODIFIED':
 #                         if not is_vm_exists(metadata_name):
 #                             raise ExecuteException('VirtctlError', '404, Not Found. VM %s not exists.' % metadata_name)
@@ -319,14 +305,20 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
 #                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)
 #                                 mvNICXmlToTmpDir(file_path)
                             # add support python file real path to exec
-                        '''
-                        Run operations
-                        '''
-                        if operations_queue:
-                            for operation in operations_queue:
-                                logger.debug(operation)
+                    '''
+                    Run operations
+                    '''
+                    if operations_queue:
+                        for operation in operations_queue:
+                            logger.debug(operation)
+                            if operation.find('kubeovn-adm unbind-swport') != -1:
+                                try:
+                                    runCmd(operation)
+                                except:
+                                    pass
+                            else:
                                 runCmd(operation)
-                                time.sleep(1)
+                            time.sleep(1)
 #                     elif operation_type == 'DELETED':
 #                         logger.debug('Delete custom object by client.')
     #                     if is_vm_exists(metadata_name):

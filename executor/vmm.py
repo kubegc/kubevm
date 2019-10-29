@@ -771,6 +771,14 @@ def create_vmdi(name, source, target):
             runCmd('rm -rf %s' % dest_dir)
         raise Exception('400, Bad Reqeust. Execute "qemu-img rebase -f qcow2 %s" failed!' % (dest))
     
+    config = {}
+    config['name'] = name
+    config['dir'] = dest_dir
+    config['current'] = dest
+
+    with open(dest_dir + '/config.json', "w") as f:
+        dump(config, f)
+    
     write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest, 'pool': target})
     
 def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
@@ -1012,6 +1020,10 @@ def write_result_to_server(name, op, kind, params):
                                                                                   plural=VMDI_PLURAL,
                                                                                   name=name)
             vol_json = {'volume': get_vol_info_by_qemu(params.get('dest'))}
+            with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
+                config = json.load(f)
+            vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+            vol_json = add_current(vol_json, config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
             try:

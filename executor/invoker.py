@@ -593,8 +593,8 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                (jsondict, operation_queue, rollback_operation_queue) \
-                    = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)
+#                 (jsondict, operation_queue, rollback_operation_queue) \
+#                     = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -622,29 +622,29 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
 #                     elif operation_type == 'DELETED':
 #                         if cmd:
 #                             runCmd(cmd)
-                        '''
-                        Run operations
-                        '''
-                        if operation_queue:
-                            index = 0
-                            for operation in operation_queue:
-                                logger.debug(operation)
-                                try:
-                                    runCmd(operation)
-                                except ExecuteException, e:
-                                    if index >= len(rollback_operation_queue):
-                                        index = len(rollback_operation_queue)
-                                    operations_rollback_queue = rollback_operation_queue[:index]
-                                    operations_rollback_queue.reverse()
-                                    for operation in operations_rollback_queue:
-                                        logger.debug("do rollback: %s" % operation)
-                                        try:
-                                            runCmd(operation)
-                                        except:
-                                            logger.debug('Oops! ', exc_info=1)
-                                    raise e
-                                index += 1
-                                time.sleep(1)
+#                         '''
+#                         Run operations
+#                         '''
+#                         if operation_queue:
+#                             index = 0
+#                             for operation in operation_queue:
+#                                 logger.debug(operation)
+#                                 try:
+#                                     runCmd(operation)
+#                                 except ExecuteException, e:
+#                                     if index >= len(rollback_operation_queue):
+#                                         index = len(rollback_operation_queue)
+#                                     operations_rollback_queue = rollback_operation_queue[:index]
+#                                     operations_rollback_queue.reverse()
+#                                     for operation in operations_rollback_queue:
+#                                         logger.debug("do rollback: %s" % operation)
+#                                         try:
+#                                             runCmd(operation)
+#                                         except:
+#                                             logger.debug('Oops! ', exc_info=1)
+#                                     raise e
+#                                 index += 1
+#                                 time.sleep(1)
                     status = 'Done(Success)'
                     if not _isDeleteDiskImage(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name)
@@ -1642,12 +1642,11 @@ def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
     return (jsondict, snapshot_operations_queue, snapshot_operations_rollback_queue)
 
 def _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name):
-    operation_queue = []
-    rollback_operation_queue = []
     target = _get_field(jsondict, the_cmd_key, "target")
-    if target:
-        (operation_queue, rollback_operation_queue) = _get_vmdi_operations_queue(jsondict, the_cmd_key, target, metadata_name)
-        jsondict = deleteLifecycleInJson(jsondict)
+    if not target:
+        raise ExecuteException('VirtctlError', 'Missing parameter "target".')
+    (operation_queue, rollback_operation_queue) = _get_vmdi_operations_queue(jsondict, the_cmd_key, target, metadata_name)
+    jsondict = deleteLifecycleInJson(jsondict)
     return (jsondict, operation_queue, rollback_operation_queue)
 
 def _vmi_prepare_step(the_cmd_key, jsondict, metadata_name):
@@ -2514,13 +2513,13 @@ def _get_vmdi_operations_queue(jsondict, the_cmd_key, target, metadata_name):
     operation_queue = []
     rollback_operation_queue = []
     if _isConvertDiskToDiskImage(the_cmd_key) or _isCreateVmdi(the_cmd_key):
-        (operation_queue, rollback_operation_queue) = createVmdi(metadata_name, target)
+#         (operation_queue, rollback_operation_queue) = createVmdi(metadata_name, target)
         jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
         cmd = unpackCmdFromJson(jsondict, the_cmd_key)
         operation_queue.append(cmd)
         return (operation_queue, rollback_operation_queue)
     elif _isDeleteVmdi(the_cmd_key):
-        (operation_queue, rollback_operation_queue) = deleteVmdi(metadata_name, target)
+#         (operation_queue, rollback_operation_queue) = deleteVmdi(metadata_name, target)
         jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
         cmd = unpackCmdFromJson(jsondict, the_cmd_key)
         operation_queue.append(cmd)

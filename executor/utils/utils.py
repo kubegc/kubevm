@@ -6,7 +6,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 '''
 from json import loads
 
-from libvirt_util import get_graphics, is_snapshot_exists
+from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
 
 '''
 Import python libs
@@ -619,28 +619,32 @@ def randomMAC():
     return ':'.join(map(lambda x: "%02x" % x, mac))
 
 def createVmi(metadata_name, target):
-    if not os.path.isdir(target):
+    if not is_pool_exists(target):
         raise ExecuteException('Wrong "target" %s: no such directory.' % target)
-    return (['echo "vmi = %s" >> %s' % (target, RESOURCE_FILE_PATH)], 
-            ['sed -i \'/vmi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)])
+    path = get_pool_path(target)
+    return (['echo "vmi = %s" >> %s' % (path, RESOURCE_FILE_PATH)], 
+            ['sed -i \'/vmi = %s/d\' %s' % (path, RESOURCE_FILE_PATH)])
 
 def deleteVmi(metadata_name, target):
-    if not os.path.isdir(target):
+    if not is_pool_exists(target):
         raise ExecuteException('Wrong "target" %s: no such directory.' % target)
-    return (['sed -i \'/vmi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)], 
-            ['echo "vmi = %s" >> %s' % (target, RESOURCE_FILE_PATH)])
+    path = get_pool_path(target)
+    return (['sed -i \'/vmi = %s/d\' %s' % (path, RESOURCE_FILE_PATH)], 
+            ['echo "vmi = %s" >> %s' % (path, RESOURCE_FILE_PATH)])
 
 def createVmdi(metadata_name, target):
-    if not os.path.isdir(target):
+    if not is_pool_exists(target):
         raise ExecuteException('Wrong "target" %s: no such directory.' % target)
-    return (['echo "vmdi = %s" >> %s' % (target, RESOURCE_FILE_PATH)], 
-            ['sed -i \'/vmdi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)])
+    path = get_pool_path(target)
+    return (['echo "vmdi = %s" >> %s' % (path, RESOURCE_FILE_PATH)], 
+            ['sed -i \'/vmdi = %s/d\' %s' % (path, RESOURCE_FILE_PATH)])
 
 def deleteVmdi(metadata_name, target):
-    if not os.path.isdir(target):
+    if not is_pool_exists(target):
         raise ExecuteException('Wrong "target" %s: no such directory.' % target)
-    return (['sed -i \'/vmdi = %s/d\' %s' % (target, RESOURCE_FILE_PATH)], 
-            ['echo "vmdi = %s" >> %s' % (target, RESOURCE_FILE_PATH)])
+    path = get_pool_path(target)
+    return (['sed -i \'/vmdi = %s/d\' %s' % (path, RESOURCE_FILE_PATH)], 
+            ['echo "vmdi = %s" >> %s' % (path, RESOURCE_FILE_PATH)])
 
 class Domain(object):
     def __init__(self, libvirt_domain):

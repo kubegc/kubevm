@@ -1006,14 +1006,16 @@ def write_result_to_server(name, op, kind, params):
     if kind == VMDI_KIND:
         if op == 'create':
             logger.debug('Create vm disk image %s, report to virtlet' % name)
-            jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
-                        'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
-                        'apiVersion': '%s/%s' % (GROUP, VERSION)}
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
+                                                                                  version=VERSION,
+                                                                                  namespace='default',
+                                                                                  plural=VMDI_PLURAL,
+                                                                                  name=name)
             vol_json = {'volume': get_vol_info_by_qemu(params.get('dest'))}
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
             try:
-                client.CustomObjectsApi().create_namespaced_custom_object(
+                client.CustomObjectsApi().replace_namespaced_custom_object(
                     group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
             except ApiException, e:
                 if e.reason == 'Conflict':
@@ -1034,7 +1036,7 @@ def write_result_to_server(name, op, kind, params):
                 #             vol_json = toKubeJson(xmlToJson(vol_xml))
                 jsondict = updateJsonRemoveLifecycle(jsondict, {})
                 body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                client.CustomObjectsApi().create_namespaced_custom_object(
+                client.CustomObjectsApi().replace_namespaced_custom_object(
                     group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
             except ApiException, e:
                 if e.reason == 'Not Found':

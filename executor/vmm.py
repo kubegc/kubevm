@@ -760,15 +760,15 @@ def create_vmdi(name, source, target):
     try:
         runCmd(cmd)
     except:
-        if os.path.exists(dest):
-            runCmd('rm -f %s' % dest)
+        if os.path.exists(dest_dir):
+            runCmd('rm -rf %s' % dest_dir)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
-    cmd1 = 'qemu-img rebase -f qcow2 %s' % (dest)
+    cmd1 = 'qemu-img rebase -f qcow2 %s -u' % (dest)
     try:
         runCmd(cmd1)
     except:
-        if os.path.exists(dest):
-            runCmd('rm -f %s' % dest)
+        if os.path.exists(dest_dir):
+            runCmd('rm -rf %s' % dest_dir)
         raise Exception('400, Bad Reqeust. Execute "qemu-img rebase -f qcow2 %s" failed!' % (dest))
     
     write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest, 'pool': target})

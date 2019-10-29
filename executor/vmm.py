@@ -8,7 +8,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of
 from kubernetes import config, client
 from kubernetes.client import V1DeleteOptions
 from json import loads
-from json import dumps
+from json import dumps, dump
 import sys
 import os
 import time
@@ -23,8 +23,8 @@ from xmljson import badgerfish as bf
 
 from kubernetes.client.rest import ApiException
 
-from utils.libvirt_util import get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.libvirt_util import refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
+from utils.utils import add_current, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -44,6 +44,7 @@ VMI_PLURAL = config_raw.get('VirtualMachineImage', 'plural')
 VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 VMDI_KIND = 'VirtualMachineDiskImage'
+VMD_KIND = 'VirtualMachineDisk'
 VMDI_PLURAL = config_raw.get('VirtualMachineDiskImage', 'plural')
 VMDI_VERSION = config_raw.get('VirtualMachineDiskImage', 'version')
 VMDI_GROUP = config_raw.get('VirtualMachineDiskImage', 'group')
@@ -458,7 +459,7 @@ def convert_image_to_vm(name):
         step2.rotating_option()
         step1.rotating_option()
 
-def convert_vmd_to_vmdi(name, pool):
+def convert_vmd_to_vmdi(name, sourcePool, targetPool):
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
     
     '''
@@ -469,15 +470,15 @@ def convert_vmd_to_vmdi(name, pool):
     
 #     class step_1_dumpxml_to_path(RotatingOperation):
 #         
-#         def __init__(self, vmd, pool, tag):
+#         def __init__(self, vmd, sourcePool, tag):
 #             self.tag = tag
 #             self.vmd = vmd
-#             self.pool = pool
+#             self.sourcePool = sourcePool
 #             self.temp_path = '%s/%s.xml.new' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #     
 #         def option(self):
-#             vmd_xml = get_volume_xml(self.pool, self.vmd)
+#             vmd_xml = get_volume_xml(self.sourcePool, self.vmd)
 #             with open(self.temp_path, 'w') as fw:
 #                 fw.write(vmd_xml)
 #             shutil.move(self.temp_path, self.path)
@@ -492,13 +493,14 @@ def convert_vmd_to_vmdi(name, pool):
     
     class step_1_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vmd, pool, tag, full_copy=True):
+        def __init__(self, vmd, sourcePool, targetPool, tag, full_copy=True):
             self.tag = tag
             self.vmd = vmd
-            self.pool = pool
+            self.pool = sourcePool
             self.full_copy = full_copy
-            self.source_path = get_volume_path(pool, vmd)
-            self.dest_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
+            self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmd)
+            self.dest_dir = '%s/%s' % (targetPool, vmd)
+            self.dest_path = '%s/%s' % (self.dest_dir, vmd)
 #             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
     
@@ -509,7 +511,7 @@ def convert_vmd_to_vmdi(name, pool):
             if os.path.exists(self.dest_path):
                 raise Exception('409, Conflict. File %s already exists, aborting copy.' % self.dest_path)
             if self.full_copy:
-                copy_template_cmd = 'cp %s %s' % (self.source_path, self.dest_path)
+                copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
 #             '''
 #             Store source path of template's boot disk to .path file.
@@ -522,25 +524,25 @@ def convert_vmd_to_vmdi(name, pool):
     
         def rotating_option(self):
             if self.tag in done_operations:
-                for path in [self.dest_path]:
+                for path in [self.dest_dir]:
 #                 for path in [self.dest_path, self.store_source_path, self.xml_path]:
                     if os.path.exists(path):
-                        os.remove(path)
+                        runCmd('rm -rf %s' %(path))
             return 
 
     class step_2_delete_source_file(RotatingOperation):
         
-        def __init__(self, vmd, pool, tag):
+        def __init__(self, vmd, sourcePool, tag):
             self.tag = tag
             self.vmd = vmd
-            self.source_path = get_volume_path(pool, vmd)
+            self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmd)
     
         def option(self):
             '''
             Remove source path of template's boot disk
             '''
-            if os.path.exists(self.source_path):
-                os.remove(self.source_path)
+            if os.path.exists(self.source_dir):
+                runCmd('rm -rf %s' %(self.source_dir))
             done_operations.append(self.tag)
             return 
     
@@ -555,15 +557,17 @@ def convert_vmd_to_vmdi(name, pool):
     #Preparations
     '''
     doing = 'Preparations'
-    if not is_volume_exists(name, pool):
+    if not is_volume_exists(name, sourcePool):
         raise Exception('VM disk %s not exists!' % name)
-    if is_volume_in_use(vol=name, pool=pool):
+    if is_volume_in_use(vol=name, pool=sourcePool):
         raise Exception('Cannot covert vmd in use to image.')
-    if not os.path.exists(DEFAULT_VMD_TEMPLATE_DIR):
-        os.makedirs(DEFAULT_VMD_TEMPLATE_DIR, 0711)
-#     step1 = step_1_dumpxml_to_path(name, pool, 'step1')
-    step1 = step_1_copy_template_to_path(name, pool, 'step1')
-    step2 = step_2_delete_source_file(name, pool, 'step2')
+    dest_dir = '%s/%s' % (targetPool, name)
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir, 0711)
+#     step1 = step_1_dumpxml_to_path(name, sourcePool, 'step1')
+    dest = '%s/%s' % (dest_dir, name)
+    step1 = step_1_copy_template_to_path(name, sourcePool, targetPool, 'step1')
+    step2 = step_2_delete_source_file(name, sourcePool, 'step2')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
         '''
@@ -587,25 +591,26 @@ def convert_vmd_to_vmdi(name, pool):
 #                 group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=V1DeleteOptions())
 #         except ApiException:
 #             logger.warning('Oops! ', exc_info=1)
-        '''
-        #Check sychronization in Virtlet.
-          timeout = 3s
-        '''
-        i = 0
-        success = False
-        while(i < 3):
-            try: 
-                client.CustomObjectsApi().get_namespaced_custom_object(group=VMDI_GROUP, version=VMDI_VERSION, namespace='default', plural=VMDI_PLURAL, name=name)
-            except:
-                time.sleep(1)
-                success = False
-                continue
-            finally:
-                i += 1
-            success = True
-            break;
-        if not success:
-            raise Exception('Synchronize information in Virtlet failed!')
+#         '''
+#         #Check sychronization in Virtlet.
+#           timeout = 3s
+#         '''
+#         i = 0
+#         success = False
+#         while(i < 3):
+#             try: 
+#                 client.CustomObjectsApi().get_namespaced_custom_object(group=VMDI_GROUP, version=VMDI_VERSION, namespace='default', plural=VMDI_PLURAL, name=name)
+#             except:
+#                 time.sleep(1)
+#                 success = False
+#                 continue
+#             finally:
+#                 i += 1
+#             success = True
+#             break;
+#         if not success:
+#             raise Exception('Synchronize information in Virtlet failed!')
+        write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest, 'pool': targetPool})
         '''
         #Step 2
         '''
@@ -624,7 +629,7 @@ def convert_vmd_to_vmdi(name, pool):
 '''
 A atomic operation: Convert image to vm.
 '''
-def convert_vmdi_to_vmd(name, pool):
+def convert_vmdi_to_vmd(name, sourcePool, targetPool):
     '''
     A list to record what we already done.
     '''
@@ -633,37 +638,38 @@ def convert_vmdi_to_vmd(name, pool):
     
     class step_1_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vmdi, pool, tag, full_copy=True):
+        def __init__(self, vmdi, sourcePool, targetPool, tag, full_copy=True):
             self.tag = tag
             self.vmdi = vmdi
-            self.pool = pool
+            self.pool = targetPool
             self.full_copy = full_copy
-            self.source_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
-            self.dest_path = '%s/%s' % (get_pool_path(self.pool), vmdi)
+            self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmdi)
+            self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmdi)
+            self.dest_path = '%s/%s' % (self.dest_dir, vmdi)
 #             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
         def option(self):
+            if not os.path.exists(self.dest_dir):
+                os.makedirs(self.dest_dir, 0711)
             if os.path.exists(self.dest_path):
                 raise Exception('409, Conflict. File %s already exists, aborting copy.' % self.dest_path)
             if self.full_copy:
-                copy_template_cmd = 'cp %s %s' % (self.source_path, self.dest_path)
+                copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
-            done_operations.append(self.tag)
-            return 
     
         def rotating_option(self):
             if self.tag in done_operations:
-                if os.path.exists(self.dest_path):
-                    os.remove(self.dest_path)
+                if os.path.exists(self.dest_dir):
+                    runCmd('rm -rf %s' %(self.dest_dir))
             return 
         
     class step_2_delete_source_file(RotatingOperation):
         
-        def __init__(self, vmdi, tag):
+        def __init__(self, vmdi, sourcePool, tag):
             self.tag = tag
             self.vmdi = vmdi
-            self.source_path = '%s/%s' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
+            self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmdi)
 #             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
@@ -671,9 +677,9 @@ def convert_vmdi_to_vmd(name, pool):
             '''
             Remove source path of template's boot disk
             '''
-            for path in [self.source_path]:
+            for path in [self.source_dir]:
                 if os.path.exists(path):
-                    os.remove(path)
+                    runCmd('rm -rf %s' %(path))
             done_operations.append(self.tag)
             return 
     
@@ -684,8 +690,8 @@ def convert_vmdi_to_vmd(name, pool):
         
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
 #         group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
-    step1 = step_1_copy_template_to_path(name, pool, 'step1')
-    step2 = step_2_delete_source_file(name, 'step2')
+    step1 = step_1_copy_template_to_path(name, sourcePool, targetPool, 'step1')
+    step2 = step_2_delete_source_file(name, sourcePool, 'step2')
     try:
         '''
         #Step 1: copy template to original path
@@ -707,6 +713,8 @@ def convert_vmdi_to_vmd(name, pool):
 #                 group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name, body=V1DeleteOptions())
 #         except ApiException:
 #             logger.warning('Oops! ', exc_info=1)
+        write_result_to_server(name, 'create', VMD_KIND, {'pool': targetPool})
+        
         '''
         #Check sychronization in Virtlet.
           timeout = 3s
@@ -763,7 +771,7 @@ def create_vmdi(name, source, target):
             runCmd('rm -f %s' % dest)
         raise Exception('400, Bad Reqeust. Execute "qemu-img rebase -f qcow2 %s" failed!' % (dest))
     
-    write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest})
+    write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest, 'pool': target})
     
 def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
     source = '%s/%s/%s' % (sourcePool, sourceImage, sourceImage)
@@ -781,6 +789,18 @@ def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
         if os.path.exists(dest):
             runCmd('rm -f %s' % dest)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
+    
+    config = {}
+    config['name'] = name
+    config['dir'] = dest_dir
+    config['current'] = dest
+
+    with open(dest_dir + '/config.json', "w") as f:
+        dump(config, f)
+    
+    time.sleep(1)
+    
+    write_result_to_server(name, 'create', VMD_KIND, {'pool': targetPool})
 
 # def toImage(name):
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -826,6 +846,8 @@ def delete_vmdi(name, targetPool):
     targetDir = '%s/%s' % (targetPool, name)
     cmd = 'rm -rf %s' % (targetDir)
     runCmd(cmd)
+    
+    write_result_to_server(name, 'delete', VMDI_KIND, {'pool': targetPool})
 
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -852,7 +874,7 @@ def updateOS(name, source, target):
 def create_disk_snapshot(vol, pool, snapshot):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
-    vol_path = get_volume_path(pool, vol)
+    vol_path = get_volume_current_path(pool, vol)
     snapshots = get_volume_snapshots(vol_path)['snapshot']
     name_conflict = False
     for sn in snapshots:
@@ -867,7 +889,7 @@ def create_disk_snapshot(vol, pool, snapshot):
     try:
         runCmd(cmd)
         vol_xml = get_volume_xml(pool, vol)
-        vol_path = get_volume_path(pool, vol)
+        vol_path = get_volume_current_path(pool, vol)
         vol_json = toKubeJson(xmlToJson(vol_xml))
         vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -890,12 +912,12 @@ def create_disk_snapshot(vol, pool, snapshot):
 def delete_disk_snapshot(vol, pool, snapshot):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
-    vol_path = get_volume_path(pool, vol)
+    vol_path = get_volume_current_path(pool, vol)
     cmd = 'qemu-img snapshot -d %s %s' % (snapshot, vol_path)
     try:
         runCmd(cmd)
         vol_xml = get_volume_xml(pool, vol)
-        vol_path = get_volume_path(pool, vol)
+        vol_path = get_volume_current_path(pool, vol)
         vol_json = toKubeJson(xmlToJson(vol_xml))
         vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -918,12 +940,12 @@ def delete_disk_snapshot(vol, pool, snapshot):
 def revert_disk_internal_snapshot(vol, pool, snapshot):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
-    vol_path = get_volume_path(pool, vol)
+    vol_path = get_volume_current_path(pool, vol)
     cmd = 'qemu-img snapshot -a %s %s' % (snapshot, vol_path)
     try:
         runCmd(cmd)
         vol_xml = get_volume_xml(pool, vol)
-        vol_path = get_volume_path(pool, vol)
+        vol_path = get_volume_current_path(pool, vol)
         vol_json = toKubeJson(xmlToJson(vol_xml))
         vol_json = addSnapshots(vol_path, loads(vol_json))
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -946,11 +968,11 @@ def revert_disk_internal_snapshot(vol, pool, snapshot):
 def revert_disk_external_snapshot(vol, pool, snapshot, leaves_str):
 #     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
 #         group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
-    snapshot_path = get_volume_path(pool, snapshot)
+    snapshot_path = get_volume_current_path(pool, snapshot)
     leaves = leaves_str.replace(' ', '').split(',')
     disks_to_delete = []
     for leaf in leaves:
-        leaf_path = get_volume_path(pool, leaf)
+        leaf_path = get_volume_current_path(pool, leaf)
         backing_chain = [leaf_path]
         backing_chain += DiskImageHelper.get_backing_files_tree(leaf_path)
         for backing_file in backing_chain:
@@ -992,14 +1014,72 @@ def write_result_to_server(name, op, kind, params):
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
             try:
-                client.CustomObjectsApi().replace_namespaced_custom_object(
+                client.CustomObjectsApi().create_namespaced_custom_object(
                     group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
             except ApiException, e:
                 if e.reason == 'Conflict':
-                    logger.debug('**Other process updated %s, ignore this 409 error.' % name) 
+                    logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+                else:
+                    logger.error(e)
+                    raise e  
+        elif op == 'delete':
+            try:
+                refresh_pool(params.get('pool'))
+                print name
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
+                                                                                  version=VERSION,
+                                                                                  namespace='default',
+                                                                                  plural=VMDI_PLURAL,
+                                                                                  name=name)
+                #             vol_xml = get_volume_xml(pool, name)
+                #             vol_json = toKubeJson(xmlToJson(vol_xml))
+                jsondict = updateJsonRemoveLifecycle(jsondict, {})
+                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                client.CustomObjectsApi().create_namespaced_custom_object(
+                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
+            except ApiException, e:
+                if e.reason == 'Not Found':
+                    logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
                 else:
                     logger.error(e)
                     raise e   
+            except:
+                logger.error('Oops! ', exc_info=1)
+            try:
+                client.CustomObjectsApi().delete_namespaced_custom_object(
+                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=V1DeleteOptions())
+            except ApiException, e:
+                if e.reason == 'Not Found':
+                    logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
+                else:
+                    logger.error(e)
+                    raise e               
+    elif kind == VMD_KIND:
+        if op == 'create':
+            logger.debug('Create vm disk %s, report to virtlet' % name)
+            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
+                                                                  version=VERSION,
+                                                                  namespace='default',
+                                                                  plural=VMD_PLURAL,
+                                                                  name=name)
+#             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
+#                         'kind': VMD_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
+#                         'apiVersion': '%s/%s' % (GROUP, VERSION)}
+            with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
+                config = json.load(f)
+                vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                vol_json = add_current(vol_json, config['current'])
+            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')   
+            try:
+                client.CustomObjectsApi().replace_namespaced_custom_object(
+                    group=GROUP, version=VERSION, namespace='default', plural=VMD_PLURAL, name=name, body=body)
+            except ApiException, e:
+                if e.reason == 'Conflict':
+                    logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+                else:
+                    logger.error(e)
+                    raise e           
 
 def main():
     help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_snapshot|delete_disk_snapshot|revert_disk_internal_snapshot|revert_disk_external_snapshot|merge_disk_snapshot|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]
@@ -1021,9 +1101,9 @@ def main():
     elif sys.argv[1] == 'convert_image_to_vm':
         convert_image_to_vm(params['--name'])
     elif sys.argv[1] == 'convert_vmd_to_vmdi':
-        convert_vmd_to_vmdi(params['--name'], params['--pool'])
+        convert_vmd_to_vmdi(params['--name'], params['--sourcePool'], params['--targetPool'])
     elif sys.argv[1] == 'convert_vmdi_to_vmd':
-        convert_vmdi_to_vmd(params['--name'], params['--pool'])    
+        convert_vmdi_to_vmd(params['--name'], params['--sourcePool'], params['--targetPool'])    
     elif sys.argv[1] == 'create_disk_from_vmdi':
         create_disk_from_vmdi(params['--name'], params['--targetPool'], params['--sourceImage'], params['--sourcePool'])
     elif sys.argv[1] == 'create_disk_snapshot':

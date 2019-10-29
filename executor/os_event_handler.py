@@ -34,8 +34,8 @@ from xmljson import badgerfish as bf
 '''
 Import local libs
 '''
-from utils.libvirt_util import get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, \
-    vm_state, _get_all_pool_path, get_pool_info, get_vol_info_by_qemu
+from utils.libvirt_util import get_pool_path, get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, \
+    vm_state, _get_all_pool_path, get_vol_info_by_qemu
 from utils import logger
 from utils.utils import add_current, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
     addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case, \
@@ -167,6 +167,12 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -180,6 +186,12 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -193,7 +205,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
                         'kind': VMD_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
                         'apiVersion': '%s/%s' % (group, version)}
-            with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
+            with open(get_pool_path(pool) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
                 vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
                 vol_json = add_current(vol_json, config['current'])
@@ -235,7 +247,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                                                                               namespace='default',
                                                                               plural=plural,
                                                                               name=name)
-            with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
+            with open(get_pool_path(pool) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
                 vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
                 logger.debug(config['current'])
@@ -303,6 +315,12 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -316,6 +334,12 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM disk snapshot %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -563,6 +587,12 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM snapshot %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -576,6 +606,12 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM snapshot %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -712,6 +748,12 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM block device %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -725,6 +767,12 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM block %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -923,6 +971,12 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -941,6 +995,12 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -1083,6 +1143,12 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM disk image %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -1099,6 +1165,12 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM disk image %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -1258,6 +1330,12 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM image %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -1274,6 +1352,12 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM image %s already deleted, ignore this 404 error.' % name)
+            else:
+                info = sys.exc_info()
+                try:
+                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
         except:
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
@@ -1429,8 +1513,12 @@ def main():
         while True:
             try:
                 paths = _get_all_pool_path()
-                if paths.has_key('vmdi'):
-                    del paths['vmdi']
+                for pool_name, pool_path in paths.items():
+                    if os.path.exists('%s/type' % pool_path):
+                        with open(pool_path, 'r') as fr:
+                            pool_content = fr.read()
+                        if pool_content != 'vmd':
+                            del paths[pool_name]                       
                 # unschedule not exist pool path
                 watchers = {}
                 for path in OLD_PATH_WATCHERS.keys():

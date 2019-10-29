@@ -5,7 +5,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuheng@otcaix.iscas.ac.cn
 
 '''
-from json import loads, dumps
+from json import loads, dumps, load
 
 '''
 Import python libs
@@ -98,6 +98,8 @@ def _get_pool_info(pool_):
     except:
         pass
     lines = pool.XMLDesc()
+#     result = pool.info()
+#     print(result)
     result = runCmdAndParse('virsh pool-info ' + pool_)
     # result['allocation'] = int(1024*1024*1024*float(result['allocation']))
     # result['available'] = int(1024 * 1024 * 1024 * float(result['available']))
@@ -766,6 +768,13 @@ def get_volume_path(pool_, vol_):
     vol = _get_vol(pool_, vol_)
     return vol.path()
 
+def get_volume_current_path(pool_, vol_):
+    vol = _get_vol(pool_, vol_)
+    vol_dir = vol.path()
+    with open(vol_dir + '/config.json', "r") as f:
+        config = load(f)
+    return config['current']
+
 def delete_volume(pool_, vol_):
     vol = _get_vol(pool_, vol_)
     return vol.delete()
@@ -970,5 +979,8 @@ if __name__ == '__main__':
 #     print list_all_volumes()
 #     print list_volumes('vmdi')
 #     print(list_volumes('volumes'))
-    vol_xml = get_vol_info_by_qemu('/var/lib/libvirt/pooltest/disktest/disktest')
-    print vol_xml
+#     print(_get_pool_info('default'))
+    print(get_volume_current_path('pooltest22', 'disktest22'))
+    print(is_volume_in_use('disktest22', 'pooltest22'))
+#     vol_xml = get_vol_info_by_qemu('/var/lib/libvirt/pooltest/disktest/disktest')
+#     print vol_xml

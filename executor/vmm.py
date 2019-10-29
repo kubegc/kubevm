@@ -753,7 +753,7 @@ def create_vmdi(name, source, target):
     dest_dir = '%s/%s' % (get_pool_path(target), name)
     dest = '%s/%s' % (dest_dir, name)
     if not os.path.exists(dest_dir):
-        os.makedirs(dest, 0711)
+        os.makedirs(dest_dir, 0711)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     cmd = 'cp -f %s %s' % (source, dest)
@@ -778,7 +778,7 @@ def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
     if not os.path.exists(dest_dir):
-        os.makedirs(dest, 0711)    
+        os.makedirs(dest_dir, 0711)    
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     cmd = 'cp -f %s %s' % (source, dest)
@@ -842,7 +842,7 @@ def delete_image(name):
         logger.error('Oops! ', exc_info=1)
 
 def delete_vmdi(name, targetPool):
-    targetDir = '%s/%s' % (targetPool, name)
+    targetDir = '%s/%s' % (get_pool_path(targetPool), name)
     cmd = 'rm -rf %s' % (targetDir)
     runCmd(cmd)
     

@@ -1514,8 +1514,9 @@ def main():
             try:
                 paths = _get_all_pool_path()
                 for pool_name, pool_path in paths.items():
-                    if os.path.exists('%s/type' % pool_path):
-                        with open(pool_path, 'r') as fr:
+                    content_file = '%s/content' % pool_path
+                    if os.path.exists(content_file):
+                        with open(content_file, 'r') as fr:
                             pool_content = fr.read()
                         if pool_content != 'vmd':
                             del paths[pool_name]                       

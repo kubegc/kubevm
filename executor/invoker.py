@@ -2468,7 +2468,7 @@ def _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name):
         if not boot_disk_path:
             raise ExecuteException('VirtctlError', 'Cannot get boot disk of domain %s' % metadata_name)
         if os_type == 'linux':
-            cmd = 'virt-customize --add %s --password %s:password:%s' % (boot_disk_path, user, password)
+            cmd = 'kubesds-adm customize --add %s --password %s --user %s' % (boot_disk_path, user, password)
         else:
             cmd = 'virsh set-user-password --domain %s --user %s --password %s' % (metadata_name, user, password)
         return [cmd]

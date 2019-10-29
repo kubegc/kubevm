@@ -214,8 +214,8 @@ metadata:
   name: virtualmachinepools.cloudplus.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.pool.uuid
-    name: UUID
+  - JSONPath: .spec.pool.content
+    name: CONTENT
     type: string  
   - JSONPath: .spec.pool.path
     name: PATH

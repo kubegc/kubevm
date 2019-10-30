@@ -499,7 +499,7 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             self.pool = sourcePool
             self.full_copy = full_copy
             self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmd)
-            self.dest_dir = '%s/%s' % (targetPool, vmd)
+            self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmd)
             self.dest_path = '%s/%s' % (self.dest_dir, vmd)
 #             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
@@ -564,7 +564,7 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
         raise Exception('Cannot covert vmd in use to image.')
     if not check_pool_content_type(targetPool, 'vmdi'):
         raise Exception('Target pool\'s content type is not vmdi.')
-    dest_dir = '%s/%s' % (targetPool, name)
+    dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)
 #     step1 = step_1_dumpxml_to_path(name, sourcePool, 'step1')
@@ -1026,11 +1026,10 @@ def write_result_to_server(name, op, kind, params):
     if kind == VMDI_KIND:
         if op == 'create':
             logger.debug('Create vm disk image %s, report to virtlet' % name)
-            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
-                                                                                  version=VERSION,
-                                                                                  namespace='default',
-                                                                                  plural=VMDI_PLURAL,
-                                                                                  name=name)
+            jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
+                        'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
+                        'apiVersion': '%s/%s' % (GROUP, VERSION)}
+            
             vol_json = {'volume': get_vol_info_by_qemu(params.get('dest'))}
             with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
@@ -1039,11 +1038,20 @@ def write_result_to_server(name, op, kind, params):
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
             try:
-                client.CustomObjectsApi().replace_namespaced_custom_object(
-                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
+                client.CustomObjectsApi().create_namespaced_custom_object(
+                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, body=body)
             except ApiException, e:
                 if e.reason == 'Conflict':
-                    logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+                    logger.debug('**The vmdi %s already exists, update it.' % name)
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
+                                                                                  version=VERSION,
+                                                                                  namespace='default',
+                                                                                  plural=VMDI_PLURAL,
+                                                                                  name=name)
+                    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.') 
+                    client.CustomObjectsApi().replace_namespaced_custom_object(
+                       group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
                 else:
                     logger.error(e)
                     raise e  

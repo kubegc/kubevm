@@ -1048,11 +1048,6 @@ def write_result_to_server(name, op, kind, params):
                                                                                   namespace='default',
                                                                                   plural=VMDI_PLURAL,
                                                                                   name=name)
-                    vol_json = {'volume': get_vol_info_by_qemu(params.get('dest'))}
-                    with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
-                        config = json.load(f)
-                    vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
-                    vol_json = add_current(vol_json, config['current'])
                     jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
                     body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.') 
                     client.CustomObjectsApi().replace_namespaced_custom_object(

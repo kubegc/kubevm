@@ -1039,7 +1039,7 @@ def write_result_to_server(name, op, kind, params):
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
             try:
                 client.CustomObjectsApi().create_namespaced_custom_object(
-                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
+                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, body=body)
             except ApiException, e:
                 if e.reason == 'Conflict':
                     logger.debug('**The vmdi %s already exists, update it.' % name)

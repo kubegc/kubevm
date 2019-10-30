@@ -1026,11 +1026,10 @@ def write_result_to_server(name, op, kind, params):
     if kind == VMDI_KIND:
         if op == 'create':
             logger.debug('Create vm disk image %s, report to virtlet' % name)
-            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
-                                                                                  version=VERSION,
-                                                                                  namespace='default',
-                                                                                  plural=VMDI_PLURAL,
-                                                                                  name=name)
+            jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
+                        'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
+                        'apiVersion': '%s/%s' % (GROUP, VERSION)}
+            
             vol_json = {'volume': get_vol_info_by_qemu(params.get('dest'))}
             with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
@@ -1039,11 +1038,25 @@ def write_result_to_server(name, op, kind, params):
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
             try:
-                client.CustomObjectsApi().replace_namespaced_custom_object(
+                client.CustomObjectsApi().create_namespaced_custom_object(
                     group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
             except ApiException, e:
                 if e.reason == 'Conflict':
-                    logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+                    logger.debug('**The vmdi %s already exists, update it.' % name)
+                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
+                                                                                  version=VERSION,
+                                                                                  namespace='default',
+                                                                                  plural=VMDI_PLURAL,
+                                                                                  name=name)
+                    vol_json = {'volume': get_vol_info_by_qemu(params.get('dest'))}
+                    with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
+                        config = json.load(f)
+                    vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                    vol_json = add_current(vol_json, config['current'])
+                    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.') 
+                    client.CustomObjectsApi().replace_namespaced_custom_object(
+                       group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
                 else:
                     logger.error(e)
                     raise e  

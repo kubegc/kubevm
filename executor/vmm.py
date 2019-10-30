@@ -271,7 +271,7 @@ def convert_vm_to_image(name):
             success = True
             break;
         if not success:
-            raise Exception('Synchronize information in Virtlet failed!')
+            raise Exception('Synchronize information in Virtlet failed, does docker service stopped?')
         '''
         #Final step: delete source file
         '''       
@@ -442,7 +442,7 @@ def convert_image_to_vm(name):
             success = True
             break;
         if not success:
-            raise Exception('Synchronize information in Virtlet failed!')
+            raise Exception('Synchronize information in Virtlet failed, does docker service stopped?')
         '''
         #Final step: delete source file
         '''       
@@ -747,6 +747,8 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         '''       
         doing = step2.tag
         step2.option()
+        
+        write_result_to_server(name, 'delete', VMDI_KIND, {'pool': sourcePool})
     except:
         logger.debug(done_operations)
         error_reason = 'VmmError'

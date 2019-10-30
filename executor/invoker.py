@@ -442,7 +442,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
     #             except:
     #                 logger.warning('Oops! ', exc_info=1)
                 try:
-                    if disk_type is None or pool_name is None:
+                    if cmd.find("kubesds-adm") >= 0 and not disk_type or not pool_name:
                         raise ExecuteException('VirtctlError', "parameters \"type\" and \"pool\" must be set")
                     if operation_type == 'ADDED':
                         if cmd:

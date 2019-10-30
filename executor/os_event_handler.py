@@ -476,15 +476,12 @@ class VmVolEventHandler(FileSystemEventHandler):
                 print 'on_created snapshot' + event.src_path
                 config_file = os.path.dirname(event.src_path) + '/config.json'
                 if os.path.exists(config_file):
-                    with open(config_file, "r") as f:
-                        config = json.load(f)
-                    if event.src_path != config['current']:
-                        snapshot = filename
-                        try:
-                            myVmVolSnapshotEventHandler('Create', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                            VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                        except ApiException:
-                            logger.error('Oops! ', exc_info=1)
+                    snapshot = filename
+                    try:
+                        myVmVolSnapshotEventHandler('Create', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
+                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+                    except ApiException:
+                        logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -510,7 +507,6 @@ class VmVolEventHandler(FileSystemEventHandler):
                                                                                       plural=PLURAL_VM_DISK_SS,
                                                                                       name=snapshot)
                     diskname = os.path.basename(os.path.dirname(event.src_path))
-                    print jsondict
                     if 'spec' in jsondict.keys() and 'volume' in jsondict['spec'].keys() \
                             and 'disk' in jsondict['spec']['volume'].keys() and jsondict['spec']['volume']['disk'] == diskname:
                         try:
@@ -536,37 +532,13 @@ class VmVolEventHandler(FileSystemEventHandler):
                     myVmVolEventHandler('Modify', self.pool, vol, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
-
-                # delete current snapshot
-                if 'current' in config.keys():
-                    try:
-                        current = os.path.basename(config['current'])
-                        myVmVolSnapshotEventHandler('Delete', self.pool, config['current'], current,
-                                                    GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
-                # make last as snapshot
-                if 'last' in config.keys():
-                    try:
-                        last = os.path.basename(config['last'])
-                        myVmVolSnapshotEventHandler('Create', self.pool, config['last'], last, GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
             else:
-                config_file = os.path.dirname(event.src_path)+'/config.json'
-                if os.path.exists(config_file):
-                    with open(config_file, "r") as f:
-                        config = json.load(f)
-                    if event.src_path != config['current']:
-                        snapshot = filename
-                        try:
-                            myVmVolSnapshotEventHandler('Modify', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                        VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                        except ApiException:
-                            logger.error('Oops! ', exc_info=1)
-
+                snapshot = filename
+                try:
+                    myVmVolSnapshotEventHandler('Modify', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
+                                                VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
+                except ApiException:
+                    logger.error('Oops! ', exc_info=1)
 
 
 def myVmSnapshotEventHandler(event, vm, name, group, version, plural):

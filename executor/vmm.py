@@ -515,10 +515,10 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             runCmd(copy_template_cmd)
             config = {}
             config['name'] = self.vmd
-            config['dir'] = self.disk_dir
-            config['current'] = self.disk_path
+            config['dir'] = self.dest_dir
+            config['current'] = self.dest_path
 
-            with open(self.disk_dir + '/config.json', "w") as f:
+            with open(self.dest_dir + '/config.json', "w") as f:
                 dump(config, f)
             done_operations.append(self.tag)
             return 
@@ -662,9 +662,9 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
             runCmd(copy_template_cmd)
             config = {}
             config['name'] = self.vmdi
-            config['dir'] = self.disk_dir
-            config['current'] = self.disk_path
-            with open(self.disk_dir + '/config.json', "w") as f:
+            config['dir'] = self.dest_dir
+            config['current'] = self.dest_path
+            with open(self.dest_dir + '/config.json', "w") as f:
                 dump(config, f)
     
         def rotating_option(self):

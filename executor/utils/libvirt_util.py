@@ -143,6 +143,16 @@ def is_pool_exists(pool_):
         return True
     return False
 
+def check_pool_content_type(pool_, content):
+    pool_path = get_pool_path(pool_)
+    content_file = '%s/content' % pool_path
+    if os.path.exists(content_file):
+        with open(content_file, 'r') as fr:
+            pool_content = fr.read()
+        if pool_content == content:    
+            return True
+    return False
+
 def is_vm_active(vm_):
     if vm_ in list_active_vms():
         return True

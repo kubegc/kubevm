@@ -23,7 +23,7 @@ from xmljson import badgerfish as bf
 
 from kubernetes.client.rest import ApiException
 
-from utils.libvirt_util import refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
+from utils.libvirt_util import check_pool_content_type, refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
 from utils.utils import add_current, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
@@ -513,12 +513,13 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             if self.full_copy:
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
-#             '''
-#             Store source path of template's boot disk to .path file.
-#             '''
-#             with open(self.store_source_path, 'w') as fw:
-#                 fw.write(self.source_path)
-#             string_switch(self.xml_path, self.source_path, self.dest_path, 'g')
+            config = {}
+            config['name'] = self.vmd
+            config['dir'] = self.disk_dir
+            config['current'] = self.disk_path
+
+            with open(self.disk_dir + '/config.json', "w") as f:
+                dump(config, f)
             done_operations.append(self.tag)
             return 
     
@@ -561,6 +562,8 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
         raise Exception('VM disk %s not exists!' % name)
     if is_volume_in_use(vol=name, pool=sourcePool):
         raise Exception('Cannot covert vmd in use to image.')
+    if not check_pool_content_type(targetPool, 'vmdi'):
+        raise Exception('Target pool\'s content type is not vmdi.')
     dest_dir = '%s/%s' % (targetPool, name)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)
@@ -657,6 +660,12 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
             if self.full_copy:
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
+            config = {}
+            config['name'] = self.vmdi
+            config['dir'] = self.disk_dir
+            config['current'] = self.disk_path
+            with open(self.disk_dir + '/config.json', "w") as f:
+                dump(config, f)
     
         def rotating_option(self):
             if self.tag in done_operations:
@@ -713,7 +722,6 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
 #                 group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name, body=V1DeleteOptions())
 #         except ApiException:
 #             logger.warning('Oops! ', exc_info=1)
-        write_result_to_server(name, 'create', VMD_KIND, {'pool': targetPool})
         
         '''
         #Check sychronization in Virtlet.
@@ -756,6 +764,8 @@ def create_vmdi(name, source, target):
         os.makedirs(dest_dir, 0711)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
+    if not check_pool_content_type(target, 'vmdi'):
+        raise Exception('Target pool\'s content type is not vmdi.')
     cmd = 'cp -f %s %s' % (source, dest)
     try:
         runCmd(cmd)

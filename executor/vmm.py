@@ -499,7 +499,7 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             self.pool = sourcePool
             self.full_copy = full_copy
             self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmd)
-            self.dest_dir = '%s/%s' % (targetPool, vmd)
+            self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmd)
             self.dest_path = '%s/%s' % (self.dest_dir, vmd)
 #             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
@@ -564,7 +564,7 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
         raise Exception('Cannot covert vmd in use to image.')
     if not check_pool_content_type(targetPool, 'vmdi'):
         raise Exception('Target pool\'s content type is not vmdi.')
-    dest_dir = '%s/%s' % (targetPool, name)
+    dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)
 #     step1 = step_1_dumpxml_to_path(name, sourcePool, 'step1')

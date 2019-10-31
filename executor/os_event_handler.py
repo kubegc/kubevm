@@ -250,153 +250,9 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             with open(get_pool_path(pool) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
                 vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                print vol_json
                 logger.debug(config['current'])
                 vol_json = add_current(vol_json, config['current'])
-            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-            try:
-                modifyStructure(name, body, group, version, plural)
-            except ApiException, e:
-                if e.reason == 'Conflict':
-                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                                      version=version,
-                                                                                      namespace='default',
-                                                                                      plural=plural,
-                                                                                      name=name)
-                    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                    modifyStructure(name, body, group, version, plural)
-                else:
-                    logger.error(e)
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info = sys.exc_info()
-            try:
-                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                                  version=version,
-                                                                                  namespace='default',
-                                                                                  plural=plural,
-                                                                                  name=name)
-                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-            except:
-                logger.error('Oops! ', exc_info=1)
-    else:
-        refresh_pool(pool)
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                          version=version,
-                                                                          namespace='default',
-                                                                          plural=plural,
-                                                                          name=name)
-        try:
-            pass
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info = sys.exc_info()
-            try:
-                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-            except:
-                logger.warning('Oops! ', exc_info=1)
-
-def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plural):
-    #     print(jsondict)
-    if event == "Delete":
-        try:
-            refresh_pool(pool)
-            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                              version=version,
-                                                                              namespace='default',
-                                                                              plural=plural,
-                                                                              name=name)
-            #             vol_xml = get_volume_xml(pool, name)
-            #             vol_json = toKubeJson(xmlToJson(vol_xml))
-            jsondict = updateJsonRemoveLifecycle(jsondict, {})
-            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-            modifyStructure(name, body, group, version, plural)
-        except ApiException, e:
-            if e.reason == 'Not Found':
-                logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
-            else:
-                info = sys.exc_info()
-                try:
-                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-                except:
-                    logger.warning('Oops! ', exc_info=1)
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info = sys.exc_info()
-            try:
-                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-            except:
-                logger.warning('Oops! ', exc_info=1)
-        try:
-            logger.debug('Delete vm disk snapshot %s, report to virtlet' % name)
-            deleteStructure(name, V1DeleteOptions(), group, version, plural)
-        except ApiException, e:
-            if e.reason == 'Not Found':
-                logger.debug('**VM disk snapshot %s already deleted, ignore this 404 error.' % name)
-            else:
-                info = sys.exc_info()
-                try:
-                    report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-                except:
-                    logger.warning('Oops! ', exc_info=1)
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info = sys.exc_info()
-            try:
-                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-            except:
-                logger.warning('Oops! ', exc_info=1)
-    elif event == "Create":
-        try:
-            logger.debug('Create vm disk snapshot %s, report to virtlet' % name)
-            jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
-                        'kind': VMDSN_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
-                        'apiVersion': '%s/%s' % (group, version)}
-
-            vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
-            current = DiskImageHelper.get_backing_file(ss_path)
-            vol_json = add_current(vol_json, current)
-            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-            try:
-                createStructure(body, group, version, plural)
-            except ApiException, e:
-                if e.reason == 'Conflict':
-                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                                      version=version,
-                                                                                      namespace='default',
-                                                                                      plural=plural,
-                                                                                      name=name)
-                    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                    modifyStructure(name, body, group, version, plural)
-                else:
-                    logger.error(e)
-
-        except:
-            logger.error('Oops! ', exc_info=1)
-            info = sys.exc_info()
-            try:
-                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                                  version=version,
-                                                                                  namespace='default',
-                                                                                  plural=plural,
-                                                                                  name=name)
-                report_failure(name, jsondict, 'VirtletError', str(info[1]), group, version, plural)
-            except:
-                logger.error('Oops! ', exc_info=1)
-    elif event == "Modify":
-        try:
-            logger.debug('Modify vm disk snapshot %s current, report to virtlet' % name)
-            jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                              version=version,
-                                                                              namespace='default',
-                                                                              plural=plural,
-                                                                              name=name)
-            vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
-            current = DiskImageHelper.get_backing_file(ss_path)
-            vol_json = add_current(vol_json, current)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:
@@ -472,19 +328,6 @@ class VmVolEventHandler(FileSystemEventHandler):
                     myVmVolEventHandler('Create', self.pool, vol, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
-            else:
-                print 'on_created snapshot' + event.src_path
-                config_file = os.path.dirname(event.src_path) + '/config.json'
-                if os.path.exists(config_file):
-                    with open(config_file, "r") as f:
-                        config = json.load(f)
-                    if event.src_path != config['current']:
-                        snapshot = filename
-                        try:
-                            myVmVolSnapshotEventHandler('Create', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                            VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                        except ApiException:
-                            logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -499,27 +342,6 @@ class VmVolEventHandler(FileSystemEventHandler):
                     myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
-            else:
-                print 'on_deleted snapshot' + event.src_path
-                try:
-                    snapshot = filename
-                    # get data from server
-                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP_VM_DISK_SS,
-                                                                                      version=VERSION_VM_DISK_SS,
-                                                                                      namespace='default',
-                                                                                      plural=PLURAL_VM_DISK_SS,
-                                                                                      name=snapshot)
-                    diskname = os.path.basename(os.path.dirname(event.src_path))
-                    print jsondict
-                    if 'spec' in jsondict.keys() and 'volume' in jsondict['spec'].keys() \
-                            and 'disk' in jsondict['spec']['volume'].keys() and jsondict['spec']['volume']['disk'] == diskname:
-                        try:
-                            myVmVolSnapshotEventHandler('Delete', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                        VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                        except ApiException:
-                            logger.error('Oops! ', exc_info=1)
-                except Exception:
-                    logger.debug(traceback.format_exc())
 
     def on_modified(self, event):
         if event.is_directory:
@@ -536,37 +358,6 @@ class VmVolEventHandler(FileSystemEventHandler):
                     myVmVolEventHandler('Modify', self.pool, vol, self.group, self.version, self.plural)
                 except ApiException:
                     logger.error('Oops! ', exc_info=1)
-
-                # delete current snapshot
-                if 'current' in config.keys():
-                    try:
-                        current = os.path.basename(config['current'])
-                        myVmVolSnapshotEventHandler('Delete', self.pool, config['current'], current,
-                                                    GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
-                # make last as snapshot
-                if 'last' in config.keys():
-                    try:
-                        last = os.path.basename(config['last'])
-                        myVmVolSnapshotEventHandler('Create', self.pool, config['last'], last, GROUP_VM_DISK_SS,
-                                                    VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                    except ApiException:
-                        logger.error('Oops! ', exc_info=1)
-            else:
-                config_file = os.path.dirname(event.src_path)+'/config.json'
-                if os.path.exists(config_file):
-                    with open(config_file, "r") as f:
-                        config = json.load(f)
-                    if event.src_path != config['current']:
-                        snapshot = filename
-                        try:
-                            myVmVolSnapshotEventHandler('Modify', self.pool, event.src_path, snapshot, GROUP_VM_DISK_SS,
-                                                        VERSION_VM_DISK_SS, PLURAL_VM_DISK_SS)
-                        except ApiException:
-                            logger.error('Oops! ', exc_info=1)
-
 
 
 def myVmSnapshotEventHandler(event, vm, name, group, version, plural):

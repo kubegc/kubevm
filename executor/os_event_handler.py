@@ -207,7 +207,10 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                         'apiVersion': '%s/%s' % (group, version)}
             with open(get_pool_path(pool) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
-                vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                volume = get_vol_info_by_qemu(config['current'])
+                volume['pool'] = pool
+                volume['disk'] = name
+                vol_json = {'volume': volume}
                 vol_json = add_current(vol_json, config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
@@ -249,7 +252,10 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                                                                               name=name)
             with open(get_pool_path(pool) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
-                vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
+                volume = get_vol_info_by_qemu(config['current'])
+                volume['pool'] = pool
+                volume['disk'] = name
+                vol_json = {'volume': volume}
                 print vol_json
                 logger.debug(config['current'])
                 vol_json = add_current(vol_json, config['current'])

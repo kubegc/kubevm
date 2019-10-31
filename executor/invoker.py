@@ -761,9 +761,12 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                             _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                     elif operation_type == 'MODIFIED':
                         try:
+                            backing_file = get_backing_file_from_k8s(metadata_name)
+                            if backing_file is None and not os.path.isfile(backing_file):
+                                raise ExecuteException('', 'error: cant get backing file from k8s.')
                             _, data = None, None
                             if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
-                                _, data = runCmdWithResult(cmd)
+                                _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
                             else:
                                 _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                         except Exception, e:
@@ -1439,6 +1442,14 @@ def deleteStructure(name, body, group, version, plural):
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
+
+def get_backing_file_from_k8s(name):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, namespace='default', plural=PLURAL_VM_DISK_SNAPSHOT, name=name)
+        return jsondict['spec']['volume']['full_backing_filename']
+    except Exception:
+        return None
 
 def write_result_to_server(group, version, namespace, plural, name, result=None, data=None, the_cmd_key=None):
     jsonDict = None

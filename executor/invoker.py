@@ -1399,7 +1399,7 @@ def get_disk_path_from_server(metadata_name):
             return jsondict['spec']['volume']['current']
     except ApiException, e:
         if e.reason == 'Not Found':
-            logger.debug('**Object %s already deleted, ignore this 404 error.' % metadata_name)
+            logger.debug('**Object %s already deleted.' % metadata_name)
             return
         else:
             raise e
@@ -1446,7 +1446,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
                 group=group, version=version, namespace=namespace, plural=plural, name=name)
         except ApiException, e:
             if e.reason == 'Not Found':
-                logger.debug('**Object %s already deleted, ignore this 404 error.' % name)
+                logger.debug('**Object %s already deleted.' % name)
                 return
             else:
                 raise e

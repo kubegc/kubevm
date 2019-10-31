@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
@@ -428,6 +428,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 except:
                     logger.error('Oops! ', exc_info=1)
                 pool_name = _get_field(jsondict, the_cmd_key, 'pool')
+                if not pool_name:
+                    pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                    if _isConvertDiskToDiskImage(the_cmd_key):
+                        jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
                 disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -502,7 +506,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                         else:
 #                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
-                    if not _isDeleteDisk(the_cmd_key):
+                    if not _isDeleteDisk(the_cmd_key) or not _isConvertDiskToDiskImage(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)

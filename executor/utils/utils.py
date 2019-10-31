@@ -33,7 +33,7 @@ from collections import namedtuple
 '''
 Import third party libs
 '''
-from kubernetes import client
+from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
 class parser(ConfigParser.ConfigParser):  
@@ -217,6 +217,34 @@ def get_l3_network_info(name):
     data['gatewayInfo'] = gatewayInfo
     return data
 
+def get_field_in_kubernetes_by_index(name, group, version, plural, index):
+    try:
+        if not index or not list(index):
+            return None
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name)
+        return get_field(jsondict, index)
+    except:
+        return None
+    
+def get_field(jsondict, index):
+    retv = None
+    spec = _getSpec(jsondict)
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        contents = spec
+        for layer in index[:-1]:
+            contents = contents.get(layer)
+        if not contents:
+            return None
+        for k, v in contents.items():
+            if k == index[-1]:
+                retv = v
+    return retv
+    
 def get_volume_snapshots(path):
     cmd = 'qemu-img info -U %s' % path
     try:
@@ -1254,16 +1282,24 @@ class CDaemon:
         print 'base class run()'
 
 if __name__ == '__main__':
-    pprint.pprint(get_l3_network_info("switch8888"))
-    pprint.pprint(get_l2_network_info("br-native"))
-    from libvirt_util import _get_dom
-    domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))
-    try:
-        print(DiskImageHelper.get_backing_file("/var/lib/libvirt/images/950646e8c17a49d0b83c1c797811e004"))
-#         print(domain.merge_snapshot("snapshot3"))
-#         print(domain.revert_snapshot("snapshot3"))
-    except Exception, e:
-        print e.message
+    cfg = "/etc/kubevmm/config"
+    if not os.path.exists(cfg):
+        cfg = "/home/kubevmm/bin/config"
+    config_raw = parser()
+    config_raw.read(cfg)
+    TOKEN = config_raw.get('Kubernetes', 'token_file')
+    config.load_kube_config(config_file=TOKEN)
+    print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
+#     pprint.pprint(get_l3_network_info("switch8888"))
+#     pprint.pprint(get_l2_network_info("br-native"))
+#     from libvirt_util import _get_dom
+#     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))
+#     try:
+#         print(DiskImageHelper.get_backing_file("/var/lib/libvirt/images/950646e8c17a49d0b83c1c797811e004"))
+# #         print(domain.merge_snapshot("snapshot3"))
+# #         print(domain.revert_snapshot("snapshot3"))
+#     except Exception, e:
+#         print e.message
 #     volume = {'volume': {"allocation": {"_unit": "bytes","text": 200704}}}
 #     volume.get('volume').update(get_volume_snapshots('/var/lib/libvirt/images/test1.qcow2'))
 #     print(volume)

@@ -793,6 +793,10 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                             except ApiException, e:
                                 if e.reason == 'Not Found':
                                     logger.debug('**Object %s already deleted.' % delete_ss)
+                        try:
+                            modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
+                        except Exception:
+                            logger.debug(traceback.format_exc())
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1533,6 +1537,36 @@ def modify_disk(pool, name, group, version, plural):
             vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
             logger.debug(config['current'])
             vol_json = add_current(vol_json, config['current'])
+        jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+        body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+        try:
+            modifyStructure(name, body, group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                                  version=version,
+                                                                                  namespace='default',
+                                                                                  plural=plural,
+                                                                                  name=name)
+                jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                modifyStructure(name, body, group, version, plural)
+            else:
+                logger.error(e)
+
+def modify_snapshot(pool, disk, ss_path, group, version, plural):
+    if os.path.isfile(ss_path):
+        name = os.path.basename(ss_path)
+        volume = get_vol_info_by_qemu(ss_path)
+        volume['pool'] = pool
+        volume['disk'] = disk
+        vol_json = {'volume': volume}
+
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                          version=version,
+                                                                          namespace='default',
+                                                                          plural=plural,
+                                                                          name=name)
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         try:

@@ -512,11 +512,11 @@ class VmVolEventHandler(FileSystemEventHandler):
                     logger.error('Oops! ', exc_info=1)
 
                 # maybe rebase current, try modify current snapshot
-                try:
-                    myVmVolSnapshotEventHandler('Modify', self.pool, config['current'],
-                                os.path.basename(config['current']), self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+                # try:
+                #     myVmVolSnapshotEventHandler('Modify', self.pool, config['current'],
+                #                 os.path.basename(config['current']), self.group, self.version, self.plural)
+                # except ApiException:
+                #     logger.error('Oops! ', exc_info=1)
 
 
 def myVmSnapshotEventHandler(event, vm, name, group, version, plural):

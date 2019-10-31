@@ -787,7 +787,11 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data, the_cmd_key=the_cmd_key)
                     else:
                         for delete_ss in data['delete_ss']:
-                            deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
+                            try:
+                                deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
+                            except ApiException, e:
+                                if e.reason == 'Not Found':
+                                    logger.debug('**Object %s already deleted.' % delete_ss)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()

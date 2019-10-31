@@ -1469,10 +1469,8 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key):
                 modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
-                return
             else:
                 jsonDict['spec']['volume'] = data
-
         elif plural == PLURAL_VM:
             vm_xml = get_xml(name)
             vm_power_state = vm_state(name).get(name)
@@ -1503,6 +1501,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
 
 def modify_disk(pool, name, group, version, plural):
+
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                       version=version,
                                                                       namespace='default',

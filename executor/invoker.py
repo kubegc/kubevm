@@ -766,10 +766,11 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                             if backing_file is None and not os.path.isfile(backing_file):
                                 raise ExecuteException('', 'error: cant get backing file from k8s.')
                             _, data = None, None
-                            if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, os.path.basename(backing_file)):
-                                _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
-                            else:
-                                _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
+                            _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
+                            # if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, os.path.basename(backing_file)):
+                            #     _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
+                            # else:
+                            #     _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                         except Exception, e:
                             if _isDeleteDiskExternalSnapshot(the_cmd_key):
                                 logger.warning("***Disk snapshot %s not exists, delete it from virtlet" % metadata_name)

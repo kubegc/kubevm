@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import add_spec_in_volume, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
@@ -1546,6 +1546,9 @@ def modify_disk(pool, name, group, version, plural):
             vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
             logger.debug(config['current'])
             vol_json = add_current(vol_json, config['current'])
+            vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
+            vol_json = add_spec_in_volume(vol_json, 'disk', name)
+            vol_json = add_spec_in_volume(vol_json, 'pool', pool)
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         try:

@@ -37,7 +37,7 @@ Import local libs
 from utils.libvirt_util import get_pool_path, get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, \
     vm_state, _get_all_pool_path, get_vol_info_by_qemu
 from utils import logger
-from utils.utils import add_current, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
+from utils.utils import add_spec_in_volume, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
     addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case, \
     DiskImageHelper
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
@@ -212,7 +212,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 volume['pool'] = pool
                 volume['disk'] = name
                 vol_json = {'volume': volume}
-                vol_json = add_current(vol_json, config['current'])
+                vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             print body
@@ -259,7 +259,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 vol_json = {'volume': volume}
                 print vol_json
                 logger.debug(config['current'])
-                vol_json = add_current(vol_json, config['current'])
+                vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:
@@ -364,7 +364,7 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
 
             vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
             current = DiskImageHelper.get_backing_file(ss_path)
-            vol_json = add_current(vol_json, current)
+            vol_json = add_spec_in_volume(vol_json, 'current', current)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:
@@ -404,7 +404,7 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
                                                                               name=name)
             vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
             current = DiskImageHelper.get_backing_file(ss_path)
-            vol_json = add_current(vol_json, current)
+            vol_json = add_spec_in_volume(vol_json, 'current', current)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
             try:

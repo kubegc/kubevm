@@ -229,7 +229,7 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     
 def get_field(jsondict, index):
     retv = None
-    spec = _getSpec(jsondict)
+    spec = get_spec(jsondict)
     if spec:
         '''
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
@@ -470,7 +470,7 @@ def report_success(name, jsondict, success_reason, success_message, group, versi
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
 
-def _getSpec(jsondict):
+def get_spec(jsondict):
     spec = jsondict.get('spec')
     if not spec:
         raw_object = jsondict.get('raw_object')
@@ -480,7 +480,7 @@ def _getSpec(jsondict):
 
 def deleteLifecycleInJson(jsondict):
     if jsondict:
-        spec = _getSpec(jsondict)
+        spec = get_spec(jsondict)
         if spec:
             lifecycle = spec.get('lifecycle')
             if lifecycle:
@@ -489,7 +489,7 @@ def deleteLifecycleInJson(jsondict):
 
 def updateJsonRemoveLifecycle(jsondict, body):
     if jsondict:
-        spec = _getSpec(jsondict)
+        spec = get_spec(jsondict)
         if spec:
             lifecycle = spec.get('lifecycle')
             if lifecycle:
@@ -499,7 +499,7 @@ def updateJsonRemoveLifecycle(jsondict, body):
 
 def updateDescription(jsondict):
     if jsondict:
-        spec = _getSpec(jsondict)    
+        spec = get_spec(jsondict)    
         if spec:
             spec['description'] = {'lastOperationTimeStamp': int(round(time.time()*1000))}
     return jsondict
@@ -507,7 +507,7 @@ def updateDescription(jsondict):
 def addPowerStatusMessage(jsondict, reason, message):
     if jsondict:
         status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
-        spec = _getSpec(jsondict)
+        spec = get_spec(jsondict)
         if spec:
             spec['status'] = status
     return jsondict
@@ -515,7 +515,7 @@ def addPowerStatusMessage(jsondict, reason, message):
 def addExceptionMessage(jsondict, reason, message):
     if jsondict:
         status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
-        spec = _getSpec(jsondict)
+        spec = get_spec(jsondict)
         if spec:
             spec['status'] = status
     return jsondict

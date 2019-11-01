@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
@@ -434,7 +434,6 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     logger.debug(pool_name)
                     if _isConvertDiskToDiskImage(the_cmd_key):
                         jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
-                logger.debug(jsondict)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if cmd.find('backing-vol-format') >= 0:
@@ -2096,7 +2095,7 @@ def _get_field(jsondict, the_cmd_key, field):
 
 def _get_fields(jsondict, the_cmd_key):
     retv = None
-    spec = jsondict['raw_object'].get('spec')
+    spec = get_spec(jsondict)
     if spec:
         '''
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
@@ -2110,7 +2109,7 @@ def _get_fields(jsondict, the_cmd_key):
     return retv  
 
 def _set_field(jsondict, the_cmd_key, field, value):
-    spec = jsondict['raw_object'].get('spec')
+    spec = get_spec(jsondict)
     if spec:
         '''
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
@@ -2123,11 +2122,11 @@ def _set_field(jsondict, the_cmd_key, field, value):
             contents = lifecycle.get(the_cmd_key)
             for k, v in contents.items():
                 if k == field:
-                    jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k] = value
+                    spec['lifecycle'][the_cmd_key][k] = value
     return jsondict 
 
 def _del_field(jsondict, the_cmd_key, field):
-    spec = jsondict['raw_object'].get('spec')
+    spec = get_spec(jsondict)
     if spec:
         '''
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
@@ -2140,7 +2139,7 @@ def _del_field(jsondict, the_cmd_key, field):
             contents = lifecycle.get(the_cmd_key)
             for k, v in contents.items():
                 if k == field:
-                    del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
+                    del spec['lifecycle'][the_cmd_key][k]
     return jsondict
         
 def jsontoxml(jsonstr):

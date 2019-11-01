@@ -51,7 +51,7 @@ from utils.utils import get_spec, get_field_in_kubernetes_by_index, deleteVmi, c
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
-    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, _getSpec, \
+    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, \
     add_current
 
 

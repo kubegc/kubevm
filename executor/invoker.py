@@ -429,12 +429,14 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     logger.error('Oops! ', exc_info=1)
                 pool_name = _get_field(jsondict, the_cmd_key, 'pool')
                 disk_type = _get_field(jsondict, the_cmd_key, 'type')
+                logger.debug(jsondict)
                 if not pool_name:
                     pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
                     logger.debug(pool_name)
                     if _isConvertDiskToDiskImage(the_cmd_key):
                         jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+                logger.debug(jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if cmd.find('backing-vol-format') >= 0:
                     cmd = cmd.replace('backing-vol-format', 'backing_vol_format')
@@ -1738,7 +1740,7 @@ def getMetadataName(jsondict):
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!')
 
 def getPoolPathWhenCreate(jsondict):
-    spec = jsondict['raw_object']['spec']
+    spec = get_spec(jsondict)
     lifecycle = spec.get('lifecycle')
 
     if lifecycle:
@@ -1747,7 +1749,7 @@ def getPoolPathWhenCreate(jsondict):
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No metadata name!')
 
 def getPoolType(the_cmd_key, jsondict):
-    spec = jsondict['raw_object']['spec']
+    spec = get_spec(jsondict)
     lifecycle = spec.get('lifecycle')
     
     if lifecycle and 'type' in lifecycle[the_cmd_key].keys():
@@ -1756,7 +1758,7 @@ def getPoolType(the_cmd_key, jsondict):
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No found pool type!')
 
 def getCloneDiskName(the_cmd_key, jsondict):
-    spec = jsondict['raw_object']['spec']
+    spec = get_spec(jsondict)
     lifecycle = spec.get('lifecycle')
 
     if lifecycle:
@@ -1765,7 +1767,7 @@ def getCloneDiskName(the_cmd_key, jsondict):
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No found clone disk name!')
 
 def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
-    spec = jsondict['raw_object']['spec']
+    spec = get_spec(jsondict)
     lifecycle = spec.get('lifecycle')
     if lifecycle:
         if the_cmd_key in ALL_SUPPORT_CMDS_WITH_NAME_FIELD:
@@ -1788,7 +1790,7 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
 
 def _injectEventIntoLifecycle(jsondict, eventdict):
     if jsondict:
-        spec = jsondict['raw_object']['spec']
+        spec = get_spec(jsondict)
 #         metadata = jsondict['raw_object']['metadata']
         if spec:
             lifecycle = spec.get('lifecycle')
@@ -2119,10 +2121,7 @@ def _set_field(jsondict, the_cmd_key, field, value):
         if not lifecycle:
             return None
         if the_cmd_key:
-            contents = lifecycle.get(the_cmd_key)
-            for k, v in contents.items():
-                if k == field:
-                    spec['lifecycle'][the_cmd_key][k] = value
+            spec['lifecycle'][the_cmd_key][field] = value
     return jsondict 
 
 def _del_field(jsondict, the_cmd_key, field):

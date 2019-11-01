@@ -525,10 +525,6 @@ def addSnapshots(vol_path, jsondict):
     jsondict['volume'].update(snapshot_json)
     return jsondict
 
-def add_current(jsondict, current):
-    jsondict['volume']['current'] = current
-    return jsondict
-
 def updateDomainBackup(vm_json):
     domain = vm_json.get('domain')
     if domain:

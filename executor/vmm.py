@@ -24,7 +24,7 @@ from xmljson import badgerfish as bf
 from kubernetes.client.rest import ApiException
 
 from utils.libvirt_util import check_pool_content_type, refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import add_current, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.utils import get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -500,7 +500,8 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             self.full_copy = full_copy
             self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmd)
             self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmd)
-            self.dest_path = '%s/%s' % (self.dest_dir, vmd)
+            self.config_file = '%s/config.json' % (self.dest_dir)
+            self.current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
 #             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
     
@@ -508,17 +509,18 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             '''
             Copy template's boot disk to destination dir.
             '''
-            if os.path.exists(self.dest_path):
-                raise Exception('409, Conflict. File %s already exists, aborting copy.' % self.dest_path)
+            if os.path.exists(self.config_file):
+                raise Exception('409, Conflict. Resource %s already exists, aborting copy.' % self.config_file)
             if self.full_copy:
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
+            
             config = {}
             config['name'] = self.vmd
             config['dir'] = self.dest_dir
-            config['current'] = self.dest_path
+            config['current'] = self.current
 
-            with open(self.dest_dir + '/config.json', "w") as f:
+            with open(self.config_file, "w") as f:
                 dump(config, f)
             done_operations.append(self.tag)
             return 
@@ -570,7 +572,6 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)
 #     step1 = step_1_dumpxml_to_path(name, sourcePool, 'step1')
-    dest = '%s/%s' % (dest_dir, name)
     step1 = step_1_copy_template_to_path(name, sourcePool, targetPool, 'step1')
     step2 = step_2_delete_source_file(name, sourcePool, 'step2')
     try:
@@ -615,12 +616,15 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
 #             break;
 #         if not success:
 #             raise Exception('Synchronize information in Virtlet failed!')
-        write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest, 'pool': targetPool})
+        config_file = '%s/config.json' % (dest_dir)
+        current = _get_current(config_file)
+        write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': current, 'pool': targetPool})
         '''
         #Step 2
         '''
         doing = step2.tag
         step2.option()
+        write_result_to_server(name, 'delete', VMD_KIND, VMD_PLURAL, {'pool': sourcePool})
     except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
@@ -650,23 +654,24 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
             self.full_copy = full_copy
             self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmdi)
             self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmdi)
-            self.dest_path = '%s/%s' % (self.dest_dir, vmdi)
+            self.config_file = '%s/config.json' % (self.dest_dir)
+            self.current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
 #             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
         def option(self):
             if not os.path.exists(self.dest_dir):
                 os.makedirs(self.dest_dir, 0711)
-            if os.path.exists(self.dest_path):
-                raise Exception('409, Conflict. File %s already exists, aborting copy.' % self.dest_path)
+            if os.path.exists(self.config_file):
+                raise Exception('409, Conflict. Resource %s already exists, aborting copy.' % self.config_file)
             if self.full_copy:
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
             config = {}
             config['name'] = self.vmdi
             config['dir'] = self.dest_dir
-            config['current'] = self.dest_path
-            with open(self.dest_dir + '/config.json', "w") as f:
+            config['current'] = self.current
+            with open(self.config_file, "w") as f:
                 dump(config, f)
     
         def rotating_option(self):
@@ -703,6 +708,7 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
 #         group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
     if not sourcePool:
         raise Exception('404, Not Found. Source pool not found.')
+    dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     step1 = step_1_copy_template_to_path(name, sourcePool, targetPool, 'step1')
     step2 = step_2_delete_source_file(name, sourcePool, 'step2')
     try:
@@ -726,6 +732,9 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
 #                 group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name, body=V1DeleteOptions())
 #         except ApiException:
 #             logger.warning('Oops! ', exc_info=1)
+        config_file = '%s/config.json' % (dest_dir)
+        current = _get_current(config_file)
+        write_result_to_server(name, 'create', VMD_KIND, VMD_PLURAL, {'current': current, 'pool': targetPool})
         
         '''
         #Check sychronization in Virtlet.
@@ -752,7 +761,7 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         doing = step2.tag
         step2.option()
         
-        write_result_to_server(name, 'delete', VMDI_KIND, {'pool': sourcePool})
+        write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': sourcePool})
     except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
@@ -800,7 +809,8 @@ def create_vmdi(name, source, target):
 def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
     if not sourcePool:
         raise Exception('404, Not Found. Source pool not found.')
-    source = '%s/%s/%s' % (sourcePool, sourceImage, sourceImage)
+    source_config_file = '%s/%s/config.json' % (get_pool_path(sourcePool), sourceImage)
+    source = _get_current(source_config_file)
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
     if not os.path.exists(dest_dir):
@@ -811,8 +821,8 @@ def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
     try:
         runCmd(cmd)
     except:
-        if os.path.exists(dest):
-            runCmd('rm -f %s' % dest)
+        if os.path.exists(dest_dir):
+            runCmd('rm -rf %s' % dest_dir)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
     
     config = {}
@@ -825,7 +835,7 @@ def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
     
     time.sleep(1)
     
-    write_result_to_server(name, 'create', VMD_KIND, {'pool': targetPool})
+    write_result_to_server(name, 'create', VMD_KIND, VMD_PLURAL,  {'current': dest, 'pool': targetPool})
 
 # def toImage(name):
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -872,7 +882,7 @@ def delete_vmdi(name, targetPool):
     cmd = 'rm -rf %s' % (targetDir)
     runCmd(cmd)
     
-    write_result_to_server(name, 'delete', VMDI_KIND, {'pool': targetPool})
+    write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': targetPool})
 
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -1020,6 +1030,15 @@ def addExceptionMessage(jsondict, reason, message):
             spec['status'] = status
     return jsondict
 
+def _get_current(src_path):
+    with open(src_path, "r") as f:
+        config = json.load(f)
+    return config.get('current')
+
+def _add_spec_in_volume(jsondict, field, value):
+    jsondict['volume'][field] = value
+    return jsondict
+
 def xmlToJson(xmlStr):
     return dumps(bf.data(fromstring(xmlStr)), sort_keys=True, indent=4)
 
@@ -1028,97 +1047,71 @@ def toKubeJson(json):
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
                     
-def write_result_to_server(name, op, kind, params):
-    if kind == VMDI_KIND:
-        if op == 'create':
-            logger.debug('Create vm disk image %s, report to virtlet' % name)
-            jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
-                        'kind': VMDI_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
-                        'apiVersion': '%s/%s' % (GROUP, VERSION)}
-            
-            vol_json = {'volume': get_vol_info_by_qemu(params.get('dest'))}
-            with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
-                config = json.load(f)
-            vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
-            vol_json = add_current(vol_json, config['current'])
-            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
-            try:
-                client.CustomObjectsApi().create_namespaced_custom_object(
-                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, body=body)
-            except ApiException, e:
-                if e.reason == 'Conflict':
-                    logger.debug('**The vmdi %s already exists, update it.' % name)
-                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
-                                                                                  version=VERSION,
-                                                                                  namespace='default',
-                                                                                  plural=VMDI_PLURAL,
-                                                                                  name=name)
-                    jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-                    body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.') 
-                    client.CustomObjectsApi().replace_namespaced_custom_object(
-                       group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
-                else:
-                    logger.error(e)
-                    raise e  
-        elif op == 'delete':
-            try:
-                refresh_pool(params.get('pool'))
-                print name
+def write_result_to_server(name, op, kind, plural, params):
+    if op == 'create':
+        logger.debug('Create %s %s, report to virtlet' % (kind, name))
+        jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
+                    'kind': kind, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
+                    'apiVersion': '%s/%s' % (GROUP, VERSION)}
+        
+#             with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
+#                 config = json.load(f)
+        vol_json = {'volume': get_vol_info_by_qemu(params.get('current'))}
+        vol_json = _add_spec_in_volume(vol_json, 'current', params.get('current'))
+        vol_json = _add_spec_in_volume(vol_json, 'disk', name)
+        vol_json = _add_spec_in_volume(vol_json, 'pool', params.get('pool'))
+        jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+        body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
+        try:
+            client.CustomObjectsApi().create_namespaced_custom_object(
+                group=GROUP, version=VERSION, namespace='default', plural=plural, body=body)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                logger.debug('**The %s %s already exists, update it.' % (kind, name))
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
-                                                                                  version=VERSION,
-                                                                                  namespace='default',
-                                                                                  plural=VMDI_PLURAL,
-                                                                                  name=name)
-                #             vol_xml = get_volume_xml(pool, name)
-                #             vol_json = toKubeJson(xmlToJson(vol_xml))
-                jsondict = updateJsonRemoveLifecycle(jsondict, {})
-                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                                                                              version=VERSION,
+                                                                              namespace='default',
+                                                                              plural=plural,
+                                                                              name=name)
+                jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.') 
                 client.CustomObjectsApi().replace_namespaced_custom_object(
-                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=body)
-            except ApiException, e:
-                if e.reason == 'Not Found':
-                    logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
-                else:
-                    logger.error(e)
-                    raise e   
-            except:
-                logger.error('Oops! ', exc_info=1)
-            try:
-                client.CustomObjectsApi().delete_namespaced_custom_object(
-                    group=GROUP, version=VERSION, namespace='default', plural=VMDI_PLURAL, name=name, body=V1DeleteOptions())
-            except ApiException, e:
-                if e.reason == 'Not Found':
-                    logger.debug('**VM disk %s already deleted, ignore this 404 error.' % name)
-                else:
-                    logger.error(e)
-                    raise e               
-    elif kind == VMD_KIND:
-        if op == 'create':
-            logger.debug('Create vm disk %s, report to virtlet' % name)
+                   group=GROUP, version=VERSION, namespace='default', plural=plural, name=name, body=body)
+            else:
+                logger.error(e)
+                raise e  
+    elif op == 'delete':
+        try:
+            refresh_pool(params.get('pool'))
+            print name
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
-                                                                  version=VERSION,
-                                                                  namespace='default',
-                                                                  plural=VMD_PLURAL,
-                                                                  name=name)
-#             jsondict = {'spec': {'volume': {}, 'nodeName': HOSTNAME, 'status': {}},
-#                         'kind': VMD_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
-#                         'apiVersion': '%s/%s' % (GROUP, VERSION)}
-            with open(get_pool_path(params.get('pool')) + '/' + name + '/config.json', "r") as f:
-                config = json.load(f)
-                vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
-                vol_json = add_current(vol_json, config['current'])
-            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')   
-            try:
-                client.CustomObjectsApi().replace_namespaced_custom_object(
-                    group=GROUP, version=VERSION, namespace='default', plural=VMD_PLURAL, name=name, body=body)
-            except ApiException, e:
-                if e.reason == 'Conflict':
-                    logger.debug('**Other process updated %s, ignore this 409 error.' % name)
-                else:
-                    logger.error(e)
-                    raise e           
+                                                                              version=VERSION,
+                                                                              namespace='default',
+                                                                              plural=plural,
+                                                                              name=name)
+            #             vol_xml = get_volume_xml(pool, name)
+            #             vol_json = toKubeJson(xmlToJson(vol_xml))
+            jsondict = updateJsonRemoveLifecycle(jsondict, {})
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+            client.CustomObjectsApi().replace_namespaced_custom_object(
+                group=GROUP, version=VERSION, namespace='default', plural=plural, name=name, body=body)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**%s %s already deleted.' % (kind, name))
+            else:
+                logger.error(e)
+                raise e   
+        except:
+            logger.error('Oops! ', exc_info=1)
+        try:
+            client.CustomObjectsApi().delete_namespaced_custom_object(
+                group=GROUP, version=VERSION, namespace='default', plural=plural, name=name, body=V1DeleteOptions())
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**%s %s already deleted.' % (kind, name))
+            else:
+                logger.error(e)
+                raise e               
 
 def main():
     help_msg = 'Usage: %s <convert_vm_to_image|convert_image_to_vm|convert_vmd_to_vmdi|convert_vmdi_to_vmd|create_disk_snapshot|delete_disk_snapshot|revert_disk_internal_snapshot|revert_disk_external_snapshot|merge_disk_snapshot|create_disk_from_vmdi|delete_image|create_vmdi|delete_vmdi|update-os|--help>' % sys.argv[0]

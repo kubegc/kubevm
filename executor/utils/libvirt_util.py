@@ -823,6 +823,16 @@ def get_boot_disk_path(vm_):
             return disk_value['file']
     else:
         raise Exception('VM %s has no disks.' % vm_)
+    
+def get_disks_spec(vm_):
+    disks = get_disks(vm_)
+    retv = []
+    if disks:
+        for disk_dev, disk_info in disks.items():
+            retv.append([disk_dev.encode('utf-8'), disk_info['file'].encode('utf-8')])
+        return retv
+    else:
+        raise Exception('VM %s has no disks.' % vm_)
 
 def get_all_vnc_info():
     vms = list_vms()
@@ -990,7 +1000,8 @@ if __name__ == '__main__':
 #     print list_volumes('vmdi')
 #     print(list_volumes('volumes'))
 #     print(_get_pool_info('default'))
-    print(get_volume_current_path('pooltest22', 'disktest22'))
-    print(is_volume_in_use('disktest22', 'pooltest22'))
+    print(get_disks_spec("vm010"))
+#     print(get_volume_current_path('pooltest22', 'disktest22'))
+#     print(is_volume_in_use('disktest22', 'pooltest22'))
 #     vol_xml = get_vol_info_by_qemu('/var/lib/libvirt/pooltest/disktest/disktest')
 #     print vol_xml

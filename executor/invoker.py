@@ -598,6 +598,8 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
+                pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
 #                 (jsondict, operation_queue, rollback_operation_queue) \
 #                     = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)

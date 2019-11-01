@@ -558,6 +558,8 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
     #Preparations
     '''
     doing = 'Preparations'
+    if not sourcePool:
+        raise Exception('404, Not Found. Source pool not found.')
     if not is_volume_exists(name, sourcePool):
         raise Exception('VM disk %s not exists!' % name)
     if is_volume_in_use(vol=name, pool=sourcePool):
@@ -699,6 +701,8 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         
 #     jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
 #         group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
+    if not sourcePool:
+        raise Exception('404, Not Found. Source pool not found.')
     step1 = step_1_copy_template_to_path(name, sourcePool, targetPool, 'step1')
     step2 = step_2_delete_source_file(name, sourcePool, 'step2')
     try:
@@ -794,6 +798,8 @@ def create_vmdi(name, source, target):
     write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest, 'pool': target})
     
 def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
+    if not sourcePool:
+        raise Exception('404, Not Found. Source pool not found.')
     source = '%s/%s/%s' % (sourcePool, sourceImage, sourceImage)
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)

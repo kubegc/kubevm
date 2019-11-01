@@ -115,7 +115,7 @@ spec:
   - JSONPath: .spec.volume.format
     name: TYPE
     type: string  
-  - JSONPath: .spec.volume.current
+  - JSONPath: .spec.volume.filename
     name: PATH
     type: string  
   - JSONPath: .spec.status.conditions.state.waiting.reason

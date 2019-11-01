@@ -768,15 +768,17 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                     elif operation_type == 'MODIFIED':
                         try:
                             backing_file = get_backing_file_from_k8s(metadata_name)
+                            logger.debug(backing_file)
                             if backing_file is None and not os.path.isfile(backing_file):
                                 raise ExecuteException('', 'error: cant get backing file from k8s.')
                             _, data = None, None
-                            if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
-                                _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
-                            else:
-                                _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
+                            _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
+                            # if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, os.path.basename(backing_file)):
+                            #     _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
+                            # else:
+                            #     _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                         except Exception, e:
-                            if _isDeleteDiskExternalSnapshot(the_cmd_key):
+                            if _isDeleteDiskExternalSnapshot(the_cmd_key) and not os.path.isfile(backing_file):
                                 logger.warning("***Disk snapshot %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -792,7 +794,15 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data, the_cmd_key=the_cmd_key)
                     else:
                         for delete_ss in data['delete_ss']:
-                            deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
+                            try:
+                                deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
+                            except ApiException, e:
+                                if e.reason == 'Not Found':
+                                    logger.debug('**Object %s already deleted.' % delete_ss)
+                        try:
+                            modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
+                        except Exception:
+                            logger.debug(traceback.format_exc())
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1533,6 +1543,36 @@ def modify_disk(pool, name, group, version, plural):
             vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
             logger.debug(config['current'])
             vol_json = add_current(vol_json, config['current'])
+        jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+        body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+        try:
+            modifyStructure(name, body, group, version, plural)
+        except ApiException, e:
+            if e.reason == 'Conflict':
+                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                                  version=version,
+                                                                                  namespace='default',
+                                                                                  plural=plural,
+                                                                                  name=name)
+                jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+                modifyStructure(name, body, group, version, plural)
+            else:
+                logger.error(e)
+
+def modify_snapshot(pool, disk, ss_path, group, version, plural):
+    if os.path.isfile(ss_path):
+        name = os.path.basename(ss_path)
+        volume = get_vol_info_by_qemu(ss_path)
+        volume['pool'] = pool
+        volume['disk'] = disk
+        vol_json = {'volume': volume}
+
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                          version=version,
+                                                                          namespace='default',
+                                                                          plural=plural,
+                                                                          name=name)
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         try:

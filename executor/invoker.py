@@ -428,11 +428,13 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 except:
                     logger.error('Oops! ', exc_info=1)
                 pool_name = _get_field(jsondict, the_cmd_key, 'pool')
+                disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 if not pool_name:
                     pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                    logger.debug(pool_name)
                     if _isConvertDiskToDiskImage(the_cmd_key):
                         jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
-                disk_type = _get_field(jsondict, the_cmd_key, 'type')
+                logger.debug(jsondict)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if cmd.find('backing-vol-format') >= 0:

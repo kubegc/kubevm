@@ -1506,7 +1506,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_DISK:   
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
-            if _isRevertDiskExternalSnapshot(the_cmd_key):
+            if _isRevertDiskExternalSnapshot(the_cmd_key) and _isCreateDiskExternalSnapshot(the_cmd_key):
                 modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
             else:
                 jsonDict['spec']['volume'] = data
@@ -1932,6 +1932,11 @@ def _isPlugDisk(the_cmd_key):
 
 def _isRevertDiskExternalSnapshot(the_cmd_key):
     if the_cmd_key == "revertDiskExternalSnapshot":
+        return True
+    return False
+
+def _isCreateDiskExternalSnapshot(the_cmd_key):
+    if the_cmd_key == "createDiskExternalSnapshot":
         return True
     return False
 

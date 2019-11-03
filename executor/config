@@ -170,7 +170,7 @@ delPortVxlan = kubeovn-adm delport-vxlan
 [L3NetworkSupportCmdsWithSwitchField]
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
-createFloatIP = todo
-deleteFloatIP = todo
+createFloatIP = kubeovn-adm create-fip
+deleteFloatIP = kubeovn-adm delete-fip
 bindFloatIP = todo
 unbindFloatIP = todo

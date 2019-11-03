@@ -751,7 +751,6 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                 pool_name = _get_field(jsondict, the_cmd_key, 'pool')
                 disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 vol_name = _get_field(jsondict, the_cmd_key, 'vol')
-                domain = _get_field(jsondict, the_cmd_key, 'domain')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -765,7 +764,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                         raise ExecuteException('VirtctlError', "parameters \"type\", \"pool\" and \"vol\" must be set")
                     if operation_type == 'ADDED':
                         _, data = None, None
-                        if not is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name, domain):
+                        if not is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
                             _, data = runCmdWithResult(cmd)
                         else:
                             _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
@@ -1443,13 +1442,8 @@ def is_kubesds_disk_exists(type, pool, vol):
         return True
     return False
 
-def is_kubesds_disk_snapshot_exists(type, pool, vol, name, domain):
-    if domain:
-        result, _ = runCmdWithResult(
-            'kubesds-adm showDiskSnapshot --type ' + type + ' --pool ' + pool + ' --vol ' + vol + ' --name ' + name + ' --domain ' + domain,
-            False)
-    else:
-        result, _ = runCmdWithResult('kubesds-adm showDiskSnapshot --type ' + type + ' --pool ' + pool + ' --vol ' + vol + ' --name ' + name, False)
+def is_kubesds_disk_snapshot_exists(type, pool, vol, name):
+    result, _ = runCmdWithResult('kubesds-adm showDiskSnapshot --type ' + type + ' --pool ' + pool + ' --vol ' + vol + ' --name ' + name, False)
     if result['code'] == 0:
         return True
     return False

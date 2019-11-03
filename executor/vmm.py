@@ -501,7 +501,6 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmd)
             self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmd)
             self.config_file = '%s/config.json' % (self.dest_dir)
-            self.current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
 #             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
     
@@ -515,10 +514,11 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
             
+            current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
             config = {}
             config['name'] = self.vmd
             config['dir'] = self.dest_dir
-            config['current'] = self.current
+            config['current'] = current
 
             with open(self.config_file, "w") as f:
                 dump(config, f)
@@ -655,7 +655,6 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
             self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmdi)
             self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmdi)
             self.config_file = '%s/config.json' % (self.dest_dir)
-            self.current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
 #             self.store_target_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmdi)
     
@@ -667,10 +666,11 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
             if self.full_copy:
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
+            current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
             config = {}
             config['name'] = self.vmdi
             config['dir'] = self.dest_dir
-            config['current'] = self.current
+            config['current'] = current
             with open(self.config_file, "w") as f:
                 dump(config, f)
     

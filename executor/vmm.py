@@ -520,7 +520,7 @@ def create_vmdi_from_disk(name, sourceVolume, sourcePool, targetPool):
                 copy_template_cmd = 'cp -f %s %s' % (source_current, self.dest)
             runCmd(copy_template_cmd)
             
-            cmd1 = 'qemu-img rebase -f qcow2 %s -b ""' % (self.dest)
+            cmd1 = 'qemu-img rebase -f qcow2 %s -b "" -u' % (self.dest)
             runCmd(cmd1)
             
 #             for cmd in set_backing_file_cmd:
@@ -841,7 +841,7 @@ def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
             runCmd('rm -rf %s' % dest_dir)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
     
-    cmd1 = 'qemu-img rebase -f qcow2 %s -b ""' % (dest)
+    cmd1 = 'qemu-img rebase -f qcow2 %s -b "" -u' % (dest)
     try:
         runCmd(cmd1)
     except:

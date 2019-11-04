@@ -435,6 +435,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     logger.debug(pool_name)
                     if _isConvertDiskToDiskImage(the_cmd_key):
                         jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
+                    elif _isCreateDiskFromDiskImage(the_cmd_key):
+                        image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
+                        pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
+                        jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 logger.debug(jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -1929,11 +1933,6 @@ def _isRevertDiskExternalSnapshot(the_cmd_key):
         return True
     return False
 
-def _isCreateDiskExternalSnapshot(the_cmd_key):
-    if the_cmd_key == "createDiskExternalSnapshot":
-        return True
-    return False
-
 def _isUnplugDisk(the_cmd_key):
     if the_cmd_key == "unplugDisk":
         return True
@@ -2018,6 +2017,11 @@ def _isConvertDiskToDiskImage(the_cmd_key):
 
 def _isConvertVMToImage(the_cmd_key):
     if the_cmd_key == "convertVMToImage":
+        return True
+    return False
+
+def _isCreateDiskFromDiskImage(the_cmd_key):
+    if the_cmd_key == "createDiskFromDiskImage":
         return True
     return False
 

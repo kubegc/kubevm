@@ -4,7 +4,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
-from json import loads
+from json import loads, load
 
 from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
 
@@ -889,6 +889,26 @@ class DiskImageHelper(object):
         """ Sets backing file for disk image """
         set_backing_file_cmd = "qemu-img rebase -u -b %s %s" % (backing_file, file)
         runCmdRaiseException(set_backing_file_cmd)
+        
+def get_rebase_backing_file_cmds(source_dir, target_dir):
+    source_config_file = '%s/config.json' % (source_dir)
+    with open(source_config_file, "r") as f:
+        config = load(f)
+    source_current = config.get('current')
+    backing_chain = DiskImageHelper.get_backing_files_tree(source_current)
+    set_backing_file_cmd = []
+    if backing_chain:
+        backing_chain = backing_chain[:-1]
+        backing_chain.reverse()
+        backing_chain.append(source_current)
+        for disk_file in backing_chain:
+            new_backing = DiskImageHelper.get_backing_file(disk_file).replace(source_dir, target_dir)
+            new_file = disk_file.replace(source_dir, target_dir)
+            cmd = 'qemu-img rebase -u -b %s %s' % (new_backing, new_file)
+            set_backing_file_cmd.append(cmd.encode('utf-8'))
+    else:
+        raise ExecuteException('VirtctlError', 'Cannot find backing files of %s' % source_current)
+    return set_backing_file_cmd
 
 '''
 Run back-end command in subprocess.
@@ -1282,20 +1302,20 @@ class CDaemon:
         print 'base class run()'
 
 if __name__ == '__main__':
-    cfg = "/etc/kubevmm/config"
-    if not os.path.exists(cfg):
-        cfg = "/home/kubevmm/bin/config"
-    config_raw = parser()
-    config_raw.read(cfg)
-    TOKEN = config_raw.get('Kubernetes', 'token_file')
-    config.load_kube_config(config_file=TOKEN)
-    print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
+#     cfg = "/etc/kubevmm/config"
+#     if not os.path.exists(cfg):
+#         cfg = "/home/kubevmm/bin/config"
+#     config_raw = parser()
+#     config_raw.read(cfg)
+#     TOKEN = config_raw.get('Kubernetes', 'token_file')
+#     config.load_kube_config(config_file=TOKEN)
+#     print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
 #     pprint.pprint(get_l3_network_info("switch8888"))
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom
 #     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))
 #     try:
-#         print(DiskImageHelper.get_backing_file("/var/lib/libvirt/images/950646e8c17a49d0b83c1c797811e004"))
+    print(get_rebase_backing_file_cmds("/var/lib/libvirt/pooltest3/wyw123/", "/var/lib/libvirt/pooltest4/wyw123/"))
 # #         print(domain.merge_snapshot("snapshot3"))
 # #         print(domain.revert_snapshot("snapshot3"))
 #     except Exception, e:

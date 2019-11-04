@@ -24,7 +24,7 @@ from xmljson import badgerfish as bf
 from kubernetes.client.rest import ApiException
 
 from utils.libvirt_util import check_pool_content_type, refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.utils import add_spec_in_volume, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
+from utils.utils import get_rebase_backing_file_cmds, add_spec_in_volume, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -510,9 +510,14 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             '''
             if os.path.exists(self.config_file):
                 raise Exception('409, Conflict. Resource %s already exists, aborting copy.' % self.config_file)
+            set_backing_file_cmd = get_rebase_backing_file_cmds(self.source_dir, self.dest_dir)
+            
             if self.full_copy:
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
+            
+            for cmd in set_backing_file_cmd:
+                runCmd(cmd)
             
             current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
             config = {}
@@ -663,9 +668,16 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
                 os.makedirs(self.dest_dir, 0711)
             if os.path.exists(self.config_file):
                 raise Exception('409, Conflict. Resource %s already exists, aborting copy.' % self.config_file)
+            
+            set_backing_file_cmd = get_rebase_backing_file_cmds(self.source_dir, self.dest_dir)
+            
             if self.full_copy:
                 copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
             runCmd(copy_template_cmd)
+            
+            for cmd in set_backing_file_cmd:
+                runCmd(cmd)
+                
             current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
             config = {}
             config['name'] = self.vmdi
@@ -824,6 +836,14 @@ def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
         if os.path.exists(dest_dir):
             runCmd('rm -rf %s' % dest_dir)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
+    
+    cmd1 = 'qemu-img rebase -f qcow2 %s -b ""' % (dest)
+    try:
+        runCmd(cmd1)
+    except:
+        if os.path.exists(dest_dir):
+            runCmd('rm -rf %s' % dest_dir)
+        raise Exception('400, Bad Reqeust. Execute "qemu-img rebase -f qcow2 %s" failed!' % (dest))
     
     config = {}
     config['name'] = name

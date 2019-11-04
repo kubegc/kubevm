@@ -517,7 +517,7 @@ def create_vmdi_from_disk(name, sourceVolume, sourcePool, targetPool):
             source_current = _get_current(self.source_config_file)
             
             if self.full_copy:
-                copy_template_cmd = 'cp -f %s/* %s' % (source_current, self.dest)
+                copy_template_cmd = 'cp -f %s %s' % (source_current, self.dest)
             runCmd(copy_template_cmd)
             
             cmd1 = 'qemu-img rebase -f qcow2 %s -b ""' % (self.dest)

@@ -433,13 +433,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 if not pool_name:
                     pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
                     logger.debug(pool_name)
-                    if _isConvertDiskToDiskImage(the_cmd_key):
-                        jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
-                    elif _isCreateDiskFromDiskImage(the_cmd_key):
-                        image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
-                        source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
-                        jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
-                        pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
+                if _isCreateDiskFromDiskImage(the_cmd_key):
+                    image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
+                    source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
+                    jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
+                    pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 logger.debug(jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -513,7 +511,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                         else:
 #                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
-                    if not _isDeleteDisk(the_cmd_key) or not _isConvertDiskToDiskImage(the_cmd_key):
+                    if not _isDeleteDisk(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -605,8 +603,10 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
-                jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
+                sourcePool = _get_field(jsondict, the_cmd_key, 'sourcePool')
+                if not sourcePool:
+                    sourcePool = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                    jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', sourcePool)
 #                 (jsondict, operation_queue, rollback_operation_queue) \
 #                     = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -2010,8 +2010,8 @@ def _isCreateSnapshot(the_cmd_key):
         return True
     return False
 
-def _isConvertDiskToDiskImage(the_cmd_key):
-    if the_cmd_key == "convertDiskToDiskImage":
+def _isCreateDiskImageFromDisk(the_cmd_key):
+    if the_cmd_key == "createDiskImageFromDisk":
         return True
     return False
 
@@ -2030,10 +2030,10 @@ def _isDeleteVmdi(the_cmd_key):
         return True
     return False
 
-def _isConvertDiskImageToDisk(the_cmd_key):
-    if the_cmd_key == "convertDiskImageToDisk":
-        return True
-    return False
+# def _isConvertDiskImageToDisk(the_cmd_key):
+#     if the_cmd_key == "convertDiskImageToDisk":
+#         return True
+#     return False
 
 def _isDeleteImage(the_cmd_key):
     if the_cmd_key == "deleteImage":
@@ -2583,13 +2583,13 @@ def _get_snapshot_operations_queue(jsondict, the_cmd_key, domain, metadata_name)
 def _get_vmdi_operations_queue(jsondict, the_cmd_key, target, metadata_name):
     operation_queue = []
     rollback_operation_queue = []
-    if _isConvertDiskToDiskImage(the_cmd_key) or _isCreateVmdi(the_cmd_key):
-#         (operation_queue, rollback_operation_queue) = createVmdi(metadata_name, target)
-        jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-        cmd = unpackCmdFromJson(jsondict, the_cmd_key)
-        operation_queue.append(cmd)
-        return (operation_queue, rollback_operation_queue)
-    elif _isDeleteVmdi(the_cmd_key):
+#     if _isConvertDiskToDiskImage(the_cmd_key) or _isCreateVmdi(the_cmd_key):
+# #         (operation_queue, rollback_operation_queue) = createVmdi(metadata_name, target)
+#         jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+#         cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+#         operation_queue.append(cmd)
+#         return (operation_queue, rollback_operation_queue)
+    if _isDeleteVmdi(the_cmd_key):
 #         (operation_queue, rollback_operation_queue) = deleteVmdi(metadata_name, target)
         jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
         cmd = unpackCmdFromJson(jsondict, the_cmd_key)

@@ -459,7 +459,7 @@ def convert_image_to_vm(name):
         step2.rotating_option()
         step1.rotating_option()
 
-def convert_vmd_to_vmdi(name, sourcePool, targetPool):
+def create_vmdi_from_disk(name, sourceVolume, sourcePool, targetPool):
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
     
     '''
@@ -493,14 +493,17 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
     
     class step_1_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vmd, sourcePool, targetPool, tag, full_copy=True):
+        def __init__(self, name, vmd, sourcePool, targetPool, tag, full_copy=True):
             self.tag = tag
+            self.name = name
             self.vmd = vmd
             self.pool = sourcePool
             self.full_copy = full_copy
             self.source_dir = '%s/%s' % (get_pool_path(sourcePool), vmd)
-            self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmd)
-            self.config_file = '%s/config.json' % (self.dest_dir)
+            self.dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
+            self.dest = '%s/%s' % (self.dest_dir, name)
+            self.source_config_file = '%s/config.json' % (self.source_dir)
+            self.target_config_file = '%s/config.json' % (self.dest_dir)
 #             self.store_source_path = '%s/%s.path' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
 #             self.xml_path = '%s/%s.xml' % (DEFAULT_VMD_TEMPLATE_DIR, vmd)
     
@@ -508,24 +511,27 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
             '''
             Copy template's boot disk to destination dir.
             '''
-            if os.path.exists(self.config_file):
-                raise Exception('409, Conflict. Resource %s already exists, aborting copy.' % self.config_file)
-            set_backing_file_cmd = get_rebase_backing_file_cmds(self.source_dir, self.dest_dir)
+            if os.path.exists(self.target_config_file):
+                raise Exception('409, Conflict. Resource %s already exists, aborting copy.' % self.target_config_file)
+#             set_backing_file_cmd = get_rebase_backing_file_cmds(self.source_dir, self.dest_dir)
+            source_current = _get_current(self.source_config_file)
             
             if self.full_copy:
-                copy_template_cmd = 'cp -rf %s/* %s' % (self.source_dir, self.dest_dir)
+                copy_template_cmd = 'cp -f %s/* %s' % (source_current, self.dest)
             runCmd(copy_template_cmd)
             
-            for cmd in set_backing_file_cmd:
-                runCmd(cmd)
+            cmd1 = 'qemu-img rebase -f qcow2 %s -b ""' % (self.dest)
+            runCmd(cmd1)
             
-            current = _get_current(self.config_file).replace(self.source_dir, self.dest_dir)
+#             for cmd in set_backing_file_cmd:
+#                 runCmd(cmd)
+            
             config = {}
-            config['name'] = self.vmd
+            config['name'] = self.name
             config['dir'] = self.dest_dir
-            config['current'] = current
+            config['current'] = self.dest
 
-            with open(self.config_file, "w") as f:
+            with open(self.target_config_file, "w") as f:
                 dump(config, f)
             done_operations.append(self.tag)
             return 
@@ -577,8 +583,7 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)
 #     step1 = step_1_dumpxml_to_path(name, sourcePool, 'step1')
-    step1 = step_1_copy_template_to_path(name, sourcePool, targetPool, 'step1')
-    step2 = step_2_delete_source_file(name, sourcePool, 'step2')
+    step1 = step_1_copy_template_to_path(name, sourceVolume, sourcePool, targetPool, 'step1')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
         '''
@@ -624,12 +629,12 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
         config_file = '%s/config.json' % (dest_dir)
         current = _get_current(config_file)
         write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': current, 'pool': targetPool})
-        '''
-        #Step 2
-        '''
-        doing = step2.tag
-        step2.option()
-        write_result_to_server(name, 'delete', VMD_KIND, VMD_PLURAL, {'pool': sourcePool})
+#         '''
+#         #Step 2
+#         '''
+#         doing = step2.tag
+#         step2.option()
+#         write_result_to_server(name, 'delete', VMD_KIND, VMD_PLURAL, {'pool': sourcePool})
     except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
@@ -637,7 +642,6 @@ def convert_vmd_to_vmdi(name, sourcePool, targetPool):
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        step2.rotating_option()
         step1.rotating_option()
 
 '''
@@ -1148,8 +1152,8 @@ def main():
         convert_vm_to_image(params['--name'])
     elif sys.argv[1] == 'convert_image_to_vm':
         convert_image_to_vm(params['--name'])
-    elif sys.argv[1] == 'convert_vmd_to_vmdi':
-        convert_vmd_to_vmdi(params['--name'], params['--sourcePool'], params['--targetPool'])
+    elif sys.argv[1] == 'create_vmdi_from_disk':
+        create_vmdi_from_disk(params['--name'], params['--sourceVolume'], params['--sourcePool'], params['--targetPool'])
     elif sys.argv[1] == 'convert_vmdi_to_vmd':
         convert_vmdi_to_vmd(params['--name'], params['--sourcePool'], params['--targetPool'])    
     elif sys.argv[1] == 'create_disk_from_vmdi':

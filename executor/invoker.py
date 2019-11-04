@@ -437,8 +437,9 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
                     elif _isCreateDiskFromDiskImage(the_cmd_key):
                         image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
-                        pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
-                        jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', pool_name)
+                        source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
+                        jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
+                        pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 logger.debug(jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -453,9 +454,8 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
     #             except:
     #                 logger.warning('Oops! ', exc_info=1)
                 try:
-                    if cmd.find("kubesds-adm") >= 0:
-                        if not disk_type or not pool_name:
-                            raise ExecuteException('VirtctlError', "parameters \"type\" and \"pool\" must be set")
+                    if not disk_type or not pool_name:
+                        raise ExecuteException('VirtctlError', "parameters \"type\" and \"pool\" must be set")
                     if operation_type == 'ADDED':
                         if cmd:
                             if cmd.find("kubesds-adm") >= 0:
@@ -1435,31 +1435,31 @@ def get_disk_path_from_server(metadata_name):
     return None
 
 def is_kubesds_pool_exists(type, pool):
-    result, _ = runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool, False)
+    result, _ = runCmdWithResult('kubesds-adm showPool --type %s --pool %s' % (type, pool), False)
     if result['code'] == 0:
         return True
     return False
 
 def is_kubesds_disk_exists(type, pool, vol):
-    result, _ = runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol, False)
+    result, _ = runCmdWithResult('kubesds-adm showDisk --type %s --pool %s' % (type, pool), False)
     if result['code'] == 0:
         return True
     return False
 
 def is_kubesds_disk_snapshot_exists(type, pool, vol, name):
-    result, _ = runCmdWithResult('kubesds-adm showDiskSnapshot --type ' + type + ' --pool ' + pool + ' --vol ' + vol + ' --name ' + name, False)
+    result, _ = runCmdWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), False)
     if result['code'] == 0:
         return True
     return False
 
 def get_kubesds_pool_info(type, pool):
-    return runCmdWithResult('kubesds-adm showPool --type ' + type + ' --pool ' + pool)
+    return runCmdWithResult('kubesds-adm showPool --type %s --pool %s' % (type, pool))
 
 def get_kubesds_disk_info(type, pool, vol):
-    return runCmdWithResult('kubesds-adm showDisk --type ' + type + ' --pool ' + pool + ' --vol ' + vol, raise_it=False)
+    return runCmdWithResult('kubesds-adm showDisk --type %s --pool %s --vol %s' % (type, pool, vol), raise_it=False)
 
 def get_kubesds_disk_snapshot_info(type, pool, vol, name):
-    return runCmdWithResult('kubesds-adm showDiskSnapshot --type ' + type + ' --pool ' + pool + ' --vol ' + vol + ' --name ' + name, raise_it=False)
+    return runCmdWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), raise_it=False)
 
 def deleteStructure(name, body, group, version, plural):
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(

@@ -797,9 +797,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
 #                         if cmd:
 #                             runCmd(cmd)
                     status = 'Done(Success)'
-                    if not _isDeleteDiskExternalSnapshot(the_cmd_key):
-                        write_result_to_server(group, version, 'default', plural, metadata_name, data=data, the_cmd_key=the_cmd_key)
-                    else:
+                    if _isDeleteDiskExternalSnapshot(the_cmd_key):
                         for delete_ss in data['delete_ss']:
                             try:
                                 deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
@@ -810,6 +808,9 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                             modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
                         except Exception:
                             logger.debug(traceback.format_exc())
+                    else:
+                        write_result_to_server(group, version, 'default', plural, metadata_name, data=data,
+                                               the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1506,7 +1507,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key) and _isCreateDiskExternalSnapshot(the_cmd_key):
                 modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
-            else:
+            if _isCreateDiskExternalSnapshot(the_cmd_key):
                 jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM:
             vm_xml = get_xml(name)

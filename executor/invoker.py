@@ -811,7 +811,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                         try:
                             modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
                         except Exception:
-                            logger.debug(traceback.format_exc())
+                            pass
                     else:
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data,
                                                the_cmd_key=the_cmd_key)

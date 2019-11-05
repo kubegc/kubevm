@@ -60,8 +60,9 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <vmm>."
 fi
-git clone https://github.com/kubesys/kubeext-SDS.git
+git clone -b uit https://github.com/kubesys/kubeext-SDS.git
 cd ./kubeext-SDS
+
 pyinstaller -F kubesds-adm.py
 if [ $? -ne 0 ]; then
     echo "    Failed to compile <kubesds-adm>!"

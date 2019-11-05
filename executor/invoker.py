@@ -502,8 +502,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 newname = getCloneDiskName(the_cmd_key, jsondict)
                                 _, newdata = get_kubesds_disk_info(disk_type, pool_name, newname)
                                 addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version, plural)
-                        elif _isDeleteDisk(the_cmd_key) and disk_type == 'uus':
-                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                        elif _isDeleteDisk(the_cmd_key):
+                            try:
+                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            except:
+                                pass
 #                     elif operation_type == 'DELETED':
 #                         if pool_name and is_volume_exists(metadata_name, pool_name):
 #                             if cmd:

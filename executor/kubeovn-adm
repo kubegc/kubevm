@@ -348,7 +348,7 @@ function create-fip()
 function delete-fip()
 {
   ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-  fname=$(ip a | grep $ip | awk '{print$8}')
+  fname=$(ip a | grep $ip | awk '{print$NF}')
 
   if [[ -z $1 || -z $ip || $2 == "--help" ]]
   then
@@ -567,6 +567,7 @@ function create-switch()
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
   subn=$(echo $* | awk -F"--subnet" '{print$2}' | awk '{print$1}')
   gway=$(echo $* | awk -F"--gateway" '{print$2}' | awk '{print$1}')
+  dhcp=$(echo $* | awk -F"--dhcp" '{print$2}' | awk '{print$1}')
   imtu=$(echo $* | awk -F"--mtu" '{print$2}' | awk '{print$1}')
   excl=$(echo $* | awk -F"--excludeIPs" '{print$2}' | awk '{print$1}')
   dnss=$(echo $* | awk -F"--dnsServer" '{print$2}' | awk '{print$1}')
@@ -578,6 +579,7 @@ function create-switch()
     echo -e "--subnet     \toptinal, IP range. for example, 192.168.1.0/24"  >&2
     echo -e "--gateway    \toptinal, gateway.  for example, 192.168.1.1"  >&2
     echo -e "--mtu        \toptinal, mtu.  for example, 1480"  >&2
+    echo -e "--dhcp       \toptinal, dhcp"  >&2
     echo -e "--excludeIPs \toptinal, excludeIPs.  192.168.1.1,192.168.1.10..192.168.1.100"  >&2
     echo -e "--dnsServer  \toptinal, dnsServer.  192.168.1.1"  >&2
     exit 1
@@ -604,12 +606,6 @@ function create-switch()
     rport='rp4'$name
     rmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
     
-    rip=$(echo $subn | awk -F"." '{print$1"."$2"."$3}')".1"
-    if [[ -n $gway ]]
-    then
-      rip=$gway
-    fi
-   
     mtu="1500"
     if [[ -n $imtu ]]
     then
@@ -618,7 +614,11 @@ function create-switch()
  
     rmk=$(echo $subn | awk -F"/" '{print$2}')
     $NB_CMD lr-add $router
-    $NB_CMD lrp-add $router $rport $rmac $rip"/"$rmk
+
+    if [[ -n $dhcp ]]
+    then
+      $NB_CMD lrp-add $router $rport $rmac $dhcp"/"$rmk
+    fi
   
     sport='sp4'$name
     $NB_CMD set Logical_Switch $name other_config:subnet=$subn
@@ -629,9 +629,19 @@ function create-switch()
 
     if [[ -z $dnss ]]
     then
-      did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$rip\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$rip\" \"mtu\"=\"$mtu\"")
+      if [[ -z $dhcp ]]
+      then
+        did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\"")
+      else
+        did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$dhcp\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\"")
+      fi
     else
-      did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$rip\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$rip\" \"mtu\"=\"$mtu\" \"dns_server\"=\"$dnss\"")
+      if [[ -z $dhcp ]]
+      then
+        did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\" \"dns_server\"=\"$dnss\"")
+      else
+        did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$dhcp\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\" \"dns_server\"=\"$dnss\"")
+      fi
     fi
 
     $NB_CMD lsp-add $name "dhcpv4id-$name-"$did
@@ -645,6 +655,7 @@ function modify-switch()
 {
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
   gway=$(echo $* | awk -F"--gateway" '{print$2}' | awk '{print$1}')
+  dhcp=$(echo $* | awk -F"--dhcp" '{print$2}' | awk '{print$1}')
   imtu=$(echo $* | awk -F"--mtu" '{print$2}' | awk '{print$1}')
   dnss=$(echo $* | awk -F"--dnsServer" '{print$2}' | awk '{print$1}')
 
@@ -653,6 +664,7 @@ function modify-switch()
     cmddesc
     echo -e "--name       \tswitch name" >&2
     echo -e "--gateway    \toptinal, gateway.  for example, 192.168.1.1"  >&2
+    echo -e "--dhcp       \toptinal, dhcp.  for example, 192.168.1.1"  >&2
     echo -e "--mtu        \toptinal, mtu.  for example, 1480"  >&2
     echo -e "--dnsServer  \toptinal, dns server"  >&2
     exit 1
@@ -660,32 +672,50 @@ function modify-switch()
   
   dhcpid=$($NB_CMD show $name | grep "dhcpv4id-$name-" | awk -F "dhcpv4id-$name-" '{print$2}') 
  
-  rip=$($NB_CMD dhcp-options-get-options $dhcpid | grep "server_id" | awk -F"=" '{print$2}')
+  thisdhcp=$($NB_CMD dhcp-options-get-options $dhcpid | grep "server_id" | awk -F"=" '{print$2}')
+  thisgway=$($NB_CMD dhcp-options-get-options $dhcpid | grep "router" | awk -F"=" '{print$2}')
   rmac=$($NB_CMD dhcp-options-get-options $dhcpid | grep "server_mac" | awk -F"=" '{print$2}')
-  mtu=$($NB_CMD dhcp-options-get-options $dhcpid | grep "mtu" | awk -F"=" '{print$2}')
-  dns=$($NB_CMD dhcp-options-get-options $dhcpid | grep "dns_server" | awk -F"=" '{print$2}')
+  thismtu=$($NB_CMD dhcp-options-get-options $dhcpid | grep "mtu" | awk -F"=" '{print$2}')
+  thisdns=$($NB_CMD dhcp-options-get-options $dhcpid | grep "dns_server" | awk -F"=" '{print$2}')
+
+  if [[ -n $dhcp ]]
+  then
+    thisdhcp=$dhcp
+  fi
 
   if [[ -n $gway ]]
   then
-    rip=$gway
+    thisgway=$gway
   fi
 
   if [[ -n $imtu ]]
   then
-    mtu=$imtu
+    thismtu=$imtu
   fi
 
   if [[ -n $dnss  ]]
   then
-    dns=$dnss
+    thisdns=$dnss
   fi
 
-  if [[ -z $dns ]]
-  then 
-    $NB_CMD dhcp-options-set-options $dhcpid server_id=$rip server_mac=$rmac lease_time=3600 router=$rip mtu=$mtu
-  else
-    $NB_CMD dhcp-options-set-options $dhcpid server_id=$rip server_mac=$rmac lease_time=3600 router=$rip mtu=$mtu dns_server=$dns
+  cmd="$dhcpid server_mac=$rmac lease_time=3600 mtu=$thismtu"
+  if [[ -n $thisdhcp ]]
+  then
+    cmd=$cmd" server_id=$thisdhcp"
   fi
+
+  if [[ -n $thisgway ]]
+  then
+    cmd=$cmd" router=$thisgway"
+  fi
+
+  if [[ -n $thisdns ]]
+  then
+    cmd=$cmd" dns_server=$thisdns"
+  fi
+
+  $($NB_CMD dhcp-options-set-options $cmd)
+
 }
 
 function remove-switch()
@@ -843,14 +873,14 @@ function delport-vxlan()
 
 function bind-fip()
 {
-  switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
+  switch=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
   vmmac=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
   fip=$(echo $* | awk -F"--fip" '{print$2}' | awk '{print$1}')
  
   if [[ -z $1 || -z $switch || -z $vmmac || -z $fip || $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--switch  \tswitch name" >&2
+    echo -e "--swName  \tswitch name" >&2
     echo -e "--vmmac   \tvm mac" >&2
     echo -e "--fip     \tflating ip" >&2
     exit 1
@@ -861,9 +891,10 @@ function bind-fip()
   router='r4'$switch
   rdmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
   hostname=$(hostname)
-  network=$(kubectl get node $hostname -o yaml | grep "projectcalico.org/IPv4Address" | awk -F": " '{print$2}')
-  ip=$(echo $network | awk -F"/" '{print$1}')
-  mask=$(echo $network | awk -F"/" '{print$2}')
+  #network=$(kubectl get node $hostname -o yaml | grep "projectcalico.org/IPv4Address" | awk -F": " '{print$2}')
+  #ip=$(echo $network | awk -F"/" '{print$1}')
+  ip=$(kubectl get no "vm"$hostname -o yaml | grep "address:" | awk -F": " 'NR==1{print$2}')
+  mask=$(ip a | grep $ip | awk -F"/" 'NR==1{print$2}' | awk '{print$1}')
   proxy=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".250/$mask"
   chassis=$($SB_CMD show | grep -B 1 \""$hostname\"" | grep Chassis | awk -F"\"" '{print$2}')
   pubsw="public-"$switch
@@ -891,7 +922,7 @@ function bind-fip()
 
 function unbind-fip()
 {
-  switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
+  switch=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
   vmmac=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
   fip=$(echo $* | awk -F"--fip" '{print$2}' | awk '{print$1}')
 
@@ -947,8 +978,8 @@ function help()
   echo -e "  modify-switch  :\t(L3  ): Modify L3 switch's config"
   echo -e "  remove-switch  :\t(L3  ): Remove L3 switch and gateway"
   echo -e "  delete-switch  :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
-#  echo -e "  create-vpc     :\t(L3  ): Create L3 switch and gateway, see create-switch"
-#  echo -e "  delete-vpc     :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
+  echo -e "  bind-fip       :\t(L3  ): bind floating IP"
+  echo -e "  unbind-fip     :\t(L3  ): Unbind floating IP"
   echo -e "  bind-swport    :\t(L3  ): Bind a L3's port to OVN"
   echo -e "  unbind-swport  :\t(L3  ): Unbind a L3's port from OVN"
 }

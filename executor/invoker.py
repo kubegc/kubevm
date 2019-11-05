@@ -785,12 +785,13 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                             # else:
                             #     _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                         except Exception, e:
-                            if _isDeleteDiskExternalSnapshot(the_cmd_key) and not os.path.isfile(backing_file):
-                                logger.warning("***Disk snapshot %s not exists, delete it from virtlet" % metadata_name)
-                                # jsondict = deleteLifecycleInJson(jsondict)
-                                # modifyStructure(metadata_name, jsondict, group, version, plural)
-                                # time.sleep(0.5)
-                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            if _isDeleteDiskExternalSnapshot(the_cmd_key):
+                                if backing_file is None or not os.path.isfile(backing_file):
+                                    logger.warning("***Disk snapshot %s not exists, delete it from virtlet" % metadata_name)
+                                    # jsondict = deleteLifecycleInJson(jsondict)
+                                    # modifyStructure(metadata_name, jsondict, group, version, plural)
+                                    # time.sleep(0.5)
+                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                             else:
                                 raise e
 #                     elif operation_type == 'DELETED':

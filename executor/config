@@ -106,7 +106,6 @@ createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
 deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
 revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_internal_snapshot
 createDiskFromDiskImage = /usr/bin/vmm create_disk_from_vmdi
-convertDiskToDiskImage = /usr/bin/vmm convert_vmd_to_vmdi
 
 [VirtualMachineDiskSupportCmdsWithVolField]
 createDisk = kubesds-adm createDisk
@@ -134,8 +133,8 @@ convertImageToVM = /usr/bin/vmm convert_image_to_vm
 deleteImage = /usr/bin/vmm delete_image
 
 [VirtualMachineDiskImageSupportCmdsWithNameField]
+createDiskImageFromDisk = /usr/bin/vmm create_vmdi_from_disk
 createDiskImage = /usr/bin/vmm create_vmdi
-convertDiskImageToDisk = /usr/bin/vmm convert_vmdi_to_vmd
 deleteDiskImage = /usr/bin/vmm delete_vmdi
 
 [VirtualMahcinePoolSupportCmdsWithPoolField]

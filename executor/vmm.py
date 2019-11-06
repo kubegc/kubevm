@@ -840,7 +840,7 @@ def create_vmdi(name, source, target):
     with open(dest_dir + '/config.json', "w") as f:
         dump(config, f)
     
-    write_result_to_server(name, 'create', VMDI_KIND, VMD_PLURAL, {'current': dest, 'pool': target})
+    write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': dest, 'pool': target})
     
 def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
     if not sourcePool:

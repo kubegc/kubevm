@@ -434,9 +434,9 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
                     logger.debug(pool_name)
                 if _isCreateDiskFromDiskImage(the_cmd_key):
-                    image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
-                    source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
-                    jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
+#                     image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
+#                     source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
+#                     jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
                     pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
                 logger.debug(jsondict)

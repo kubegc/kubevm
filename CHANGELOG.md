@@ -1,4 +1,10 @@
 # 变更日志
+## 版本 v1.4.4-rc1
+### 接口变更
+```
+1、变更createDiskFromDiskImage，参数sourceImage改为source，传路径
+```
+
 ## 版本 v1.4.4
 ### 接口变更
 ```

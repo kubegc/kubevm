@@ -841,17 +841,14 @@ def create_vmdi(name, source, target):
     
     write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': dest, 'pool': target})
     
-def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
-    if not sourcePool:
-        raise Exception('404, Not Found. Source pool not found.')
-    source_config_file = '%s/%s/config.json' % (get_pool_path(sourcePool), sourceImage)
-    source = _get_current(source_config_file)
+def create_disk_from_vmdi(name, targetPool, source):
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
+    dest_config_file = '%s/config.json' % (dest_dir)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)    
-    if os.path.exists(dest):
-        raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
+    if os.path.exists(dest_config_file):
+        raise Exception('409, Conflict. Path %s already in use, aborting copy.' % dest_dir)
     cmd = 'cp -f %s %s' % (source, dest)
     try:
         runCmd(cmd)
@@ -1176,7 +1173,7 @@ def main():
     elif sys.argv[1] == 'convert_vmdi_to_vmd':
         convert_vmdi_to_vmd(params['--name'], params['--sourcePool'], params['--targetPool'])    
     elif sys.argv[1] == 'create_disk_from_vmdi':
-        create_disk_from_vmdi(params['--name'], params['--targetPool'], params['--sourceImage'], params['--sourcePool'])
+        create_disk_from_vmdi(params['--name'], params['--targetPool'], params['--source'])
     elif sys.argv[1] == 'create_disk_snapshot':
         create_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
     elif sys.argv[1] == 'delete_disk_snapshot':

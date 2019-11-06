@@ -3,6 +3,7 @@
 ### 接口变更
 ```
 1、变更createDiskFromDiskImage，参数sourceImage改为source，传路径
+2、变更showDisk，输出增加current字段
 ```
 ### Commits
 ```

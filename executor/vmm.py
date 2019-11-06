@@ -26,6 +26,7 @@ from kubernetes.client.rest import ApiException
 from utils.libvirt_util import check_pool_content_type, refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
 from utils.utils import get_rebase_backing_file_cmds, add_spec_in_volume, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
+from executor.utils.libvirt_util import get_volume_path
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -43,6 +44,7 @@ VM_PLURAL = config_raw.get('VirtualMachine', 'plural')
 VMI_PLURAL = config_raw.get('VirtualMachineImage', 'plural')
 VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
+VMI_KIND = 'VirtualMachineImage'
 VMDI_KIND = 'VirtualMachineDiskImage'
 VMD_KIND = 'VirtualMachineDisk'
 VMDI_PLURAL = config_raw.get('VirtualMachineDiskImage', 'plural')
@@ -64,7 +66,7 @@ logger = logger.set_logger(os.path.basename(__file__), LOG)
 '''
 A atomic operation: Convert vm to image.
 '''
-def convert_vm_to_image(name):
+def create_vm_image_from_vm(name, domain, targetPool):
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
     
     '''
@@ -75,16 +77,17 @@ def convert_vm_to_image(name):
     
     class step_1_dumpxml_to_path(RotatingOperation):
         
-        def __init__(self, vm, tag):
+        def __init__(self, vmi, domain, targetPool, tag):
             self.tag = tag
-            self.vm = vm
-            self.temp_path = '%s/%s.xml.new' % (DEFAULT_TEMPLATE_DIR, vm)
-            self.path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
+            self.vmi = vmi
+            self.domain = domain
+            self.temp_path = '%s/%s/%s.xml.new' % (get_pool_path(targetPool), vmi)
+            self.path = '%s/%s/%s.xml' % (get_pool_path(targetPool), vmi, vmi)
     
         def option(self):
             if os.path.exists(self.path):
                 raise Exception('409, Conflict. File %s already exists, aborting copy.' % self.path)
-            vm_xml = get_xml(self.vm)
+            vm_xml = get_xml(self.domain)
             with open(self.temp_path, 'w') as fw:
                 fw.write(vm_xml)
             shutil.move(self.temp_path, self.path)
@@ -99,27 +102,43 @@ def convert_vm_to_image(name):
         
     class step_2_copy_template_to_path(RotatingOperation):
         
-        def __init__(self, vm, tag, full_copy=True):
+        def __init__(self, vmi, domain, targetPool, tag, full_copy=True):
             self.tag = tag
-            self.vm = vm
+            self.vmi = vmi
+            self.domain = domain
             self.full_copy = full_copy
-            self.source_path = get_boot_disk_path(vm)
-            self.dest_path = '%s/%s' % (DEFAULT_TEMPLATE_DIR, vm)
-            self.store_source_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vm)
-            self.xml_path = '%s/%s.xml' % (DEFAULT_TEMPLATE_DIR, vm)
+            self.source_path = get_boot_disk_path(domain)
+            self.dest_dir = '%s/%s' % (get_pool_path(targetPool), vmi)
+            self.dest_path = '%s/%s' % (self.dest_dir, vmi)
+#             self.store_source_path = '%s/%s.path' % (DEFAULT_TEMPLATE_DIR, vmi)
+            self.xml_path = '%s/%s.xml' % (self.dest_dir, vmi)
     
         def option(self):
+            
             '''
             Copy template's boot disk to destination dir.
             '''
             if self.full_copy:
-                copy_template_cmd = 'cp %s %s' % (self.source_path, self.dest_path)
+                copy_template_cmd = 'cp -f %s %s' % (self.source_path, self.dest_path)
             runCmd(copy_template_cmd)
+            
+            cmd1 = 'qemu-img rebase -f qcow2 %s -b "" -u' % (self.dest_path)
+            runCmd(cmd1)
+            
             '''
             Store source path of template's boot disk to .path file.
             '''
-            with open(self.store_source_path, 'w') as fw:
-                fw.write(self.source_path)
+#             with open(self.store_source_path, 'w') as fw:
+#                 fw.write(self.source_path)
+                
+            config = {}
+            config['name'] = self.vmi
+            config['dir'] = self.dest_dir
+            config['current'] = self.dest_path
+        
+            with open(self.dest_dir + '/config.json', "w") as f:
+                dump(config, f)
+                
             '''
             Replate template's boot disk to dest path in .xml file.
             '''
@@ -129,9 +148,8 @@ def convert_vm_to_image(name):
     
         def rotating_option(self):
             if self.tag in done_operations:
-                for path in [self.dest_path, self.store_source_path]:
-                    if os.path.exists(path):
-                        os.remove(path)
+                if os.path.exists(self.dest_dir):
+                    runCmd('rm -rf %s' %(self.dest_dir))
             return 
 
     class step_3_undefine_vm(RotatingOperation):
@@ -208,18 +226,22 @@ def convert_vm_to_image(name):
     #Preparations
     '''
     doing = 'Preparations'
-    if not is_vm_exists(name):
-        raise Exception('VM %s not exists!' % name)
-    if is_vm_active(name):
-        raise Exception('Cannot covert running vm to image.')
-    if not os.path.exists(DEFAULT_TEMPLATE_DIR):
-        os.makedirs(DEFAULT_TEMPLATE_DIR, 0711)
-    if not get_boot_disk_path(name):
-        raise Exception('VM %s has no boot disk.' % name)
-    step1 = step_1_dumpxml_to_path(name, 'step1')
-    step2 = step_2_copy_template_to_path(name, 'step2')
-    step3 = step_3_undefine_vm(name, 'step3')
-    step4 = final_step_delete_source_file(name, 'step4')
+    if not is_vm_exists(domain):
+        raise Exception('VM %s not exists!' % domain)
+    if is_vm_active(domain):
+        raise Exception('Cannot create vmi from running vm %s.' % domain)
+#     if get_boot_disk_path(name) != get_volume_path(sourcePool, sourceVolume):
+#         raise Exception('Wrong source pool %s or wrong source volume %s.' % (sourcePool, sourceVolume))
+    if not check_pool_content_type(targetPool, 'vmi'):
+        raise Exception('Target pool\'s content type is not vmi.')
+    dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
+    dest = '%s/%s' %(dest_dir, name)
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir, 0711)
+    step1 = step_1_dumpxml_to_path(name, domain, targetPool, 'step1')
+    step2 = step_2_copy_template_to_path(name, domain, targetPool, 'step2')
+#     step3 = step_3_undefine_vm(name, 'step3')
+#     step4 = final_step_delete_source_file(name, 'step4')
     try:
         #cmd = 'bash %s/scripts/convert-vm-to-image.sh %s' %(PATH, name)
         '''
@@ -232,11 +254,8 @@ def convert_vm_to_image(name):
         '''       
         doing = step2.tag
         step2.option()
-        '''
-        #Step 3: undefine vm
-        '''       
-        doing = step3.tag
-        step3.option()
+#         doing = step3.tag
+#         step3.option()
 #         '''
 #         #Step 4: synchronize information to Kubernetes
 #         '''   
@@ -253,30 +272,33 @@ def convert_vm_to_image(name):
 #                 group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name, body=V1DeleteOptions())
 #         except ApiException:
 #             logger.warning('Oops! ', exc_info=1)
-        '''
-        #Check sychronization in Virtlet.
-          timeout = 3s
-        '''
-        i = 0
-        success = False
-        while(i < 3):
-            try: 
-                client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
-            except:
-                time.sleep(1)
-                success = False
-                continue
-            finally:
-                i += 1
-            success = True
-            break;
-        if not success:
-            raise Exception('Synchronize information in Virtlet failed, does docker service stopped?')
-        '''
-        #Final step: delete source file
-        '''       
-        doing = step4.tag
-        step4.option()
+        write_result_to_server(name, 'create', VMD_KIND, VMD_PLURAL,  {'current': dest, 'pool': targetPool})
+#         write_result_to_server(name, 'create', VMI_KIND, VMI_PLURAL, {'pool': targetPool})
+#         '''
+#         #Check sychronization in Virtlet.
+#           timeout = 3s
+#         '''
+#         i = 0
+#         success = False
+#         while(i < 3):
+#             try: 
+#                 client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=VMI_PLURAL, name=name)
+#             except:
+#                 time.sleep(1)
+#                 success = False
+#                 continue
+#             finally:
+#                 i += 1
+#             success = True
+#             break;
+#         if not success:
+#             raise Exception('Synchronize information in Virtlet failed, does docker service stopped?')
+        
+#         '''
+#         #Final step: delete source file
+#         '''       
+#         doing = step4.tag
+#         step4.option()
     except:
         logger.debug(done_operations)
         error_reason = 'VmmError'
@@ -284,8 +306,6 @@ def convert_vm_to_image(name):
         logger.error(error_reason + ' ' + error_message)
         logger.error('Oops! ', exc_info=1)
 #         report_failure(name, jsonStr, error_reason, error_message, GROUP, VERSION, VM_PLURAL)
-        step4.rotating_option()
-        step3.rotating_option()
         step2.rotating_option()
         step1.rotating_option()
 
@@ -820,7 +840,7 @@ def create_vmdi(name, source, target):
     with open(dest_dir + '/config.json', "w") as f:
         dump(config, f)
     
-    write_result_to_server(name, 'create', VMDI_KIND, {'dest': dest, 'pool': target})
+    write_result_to_server(name, 'create', VMDI_KIND, VMD_PLURAL, {'current': dest, 'pool': target})
     
 def create_disk_from_vmdi(name, targetPool, sourceImage, sourcePool):
     if not sourcePool:
@@ -1148,8 +1168,8 @@ def main():
         params[sys.argv[i]] = sys.argv[i+1]
         i = i+2
     
-    if sys.argv[1] == 'convert_vm_to_image':
-        convert_vm_to_image(params['--name'])
+    if sys.argv[1] == 'create_vm_image_from_vm':
+        create_vm_image_from_vm(params['--name'], params['--domain'], params['--targetPool'])
     elif sys.argv[1] == 'convert_image_to_vm':
         convert_image_to_vm(params['--name'])
     elif sys.argv[1] == 'create_vmdi_from_disk':

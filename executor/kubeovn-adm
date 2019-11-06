@@ -47,6 +47,8 @@ TABLE_DHCP="DHCP_Options"
 ## OVN core, please install Kubernetes first
 
 MASTER=$(cat /root/.kube/config  | grep server |awk -F"server:" '{print$2}' | awk -F"https://" '{print$2}' | awk -F":" '{print$1}')
+THISIP=$(kubectl get node $(hostname) -o yaml | grep -B 1 "type: InternalIP" | grep address | awk -F": " '{print$2}')
+
 
 NB_PORT="6641"
 SB_PORT="6642"
@@ -63,16 +65,15 @@ SB_CMD="ovn-sbctl --db=tcp:$MASTER:$SB_PORT"
 
 function start-central()
 {
-  systemctl restart openvswitch
-  systemctl enable  openvswitch
+  
+  start-worker
+
   systemctl start   ovn-ovsdb
   systemctl enable  ovn-ovsdb
   systemctl start   ovn-northd
   systemctl enable  ovn-northd
   systemctl start   ovn-controller
   systemctl enable  ovn-controller
-  systemctl start   ovn-controller-vtep
-  systemctl enable  ovn-controller-vtep
 
   sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
   sudo ovs-vsctl set open . external-ids:ovn-remote=unix:/usr/var/run/openvswitch/ovnsb_db.sock
@@ -84,21 +85,18 @@ function start-central()
 
 function stop-central()
 {
+  stop-worker
+
   systemctl stop    ovn-ovsdb
   systemctl disable ovn-ovsdb
   systemctl stop    ovn-northd
   systemctl disable ovn-northd
-  systemctl stop    ovn-controller
-  systemctl disable ovn-controller
-  systemctl stop    ovn-controller-vtep
-  systemctl disable ovn-controller-vtep
-  
-  #bash /usr/bin/vtep-init-ctl.sh stop-vtep >/dev/null  2>&1 
 }
 
 function start-worker()
 {
-  systemctl restart openvswitch
+
+  systemctl start   openvswitch
   systemctl enable  openvswitch
   systemctl start   ovn-controller
   systemctl enable  ovn-controller
@@ -109,9 +107,7 @@ function start-worker()
   #sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve
   sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$MASTER:6642
-  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$(thisIP) 
-
-  #bash /usr/bin/vtep-init-ctl.sh start-vtep >/dev/null  2>&1  &
+  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$THISIP 
 }
 
 function stop-worker()
@@ -120,14 +116,13 @@ function stop-worker()
   systemctl disable ovn-controller
   systemctl stop    ovn-controller-vtep
   systemctl disable ovn-controller-vtep
-
-  #bash /usr/bin/vtep-init-ctl.sh stop-vtep >/dev/null  2>&1 
 }
 
 function clear()
 {
-  rm -rf /etc/openvswitch/*db*
-  rm -rf /etc/openvswitch/system-id.conf
+  rm -rf /etc/openvswitch/*db* 2>&1
+  rm -rf /etc/openvswitch/.* 2>&1
+  rm -rf /etc/openvswitch/system-id.conf 2>&1
 }
 
 #function create-br-c-br()
@@ -136,13 +131,6 @@ function clear()
 #  ovs-vsctl --may-exist add-port $2 patch-$1 -- set interface patch-$1 type=patch -- set interface patch-$1 option:peer=patch-$2
 #}
 
-
-function thisIP()
-{
-  hostname=$(hostname)
-  thisIP=$(kubectl get no $hostname -o yaml | grep "address:" | grep -v "$hostname" | awk -F": " '{print$2}' | awk 'NR=1')
-  echo $thisIP
-}
 
 ###########################################################
 ##
@@ -414,151 +402,12 @@ function delbridge-vlan()
   ovs-vsctl --if-exist del-br $name"-"$vlan
 }
 
-# Set vlan id for port
-
-function bindport-vlan()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
- domain=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
-  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
-  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
-
-if [[ -z $1 || -z $name || -z $mac || -z $domain || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name    \tbridge" >&2
-    echo -e "--domain  \tvm name" >&2
-    echo -e "--mac     \tvirtual NIC mac" >&2
-    echo -e "--vlan    \tvlan (optional)" >&2
-    exit 1
-  fi
-
-  if [[ -z $vlan ]]
-  then
-    vlan="0"
-  fi
-
-  port_name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
-if [[ -n $port_name ]]
-  then
-    echo "virtual NIC already in use, unbind it first." >&2
-    exit 1
-  fi
-
-port_name=$(echo $mac | awk -F":" '{print "fe"$2$3$4$5$6}')
-mac_in_short=$(echo $mac | awk -F":" '{print $1$2$3$4$5$6}')
-
-#ovs-vsctl add-port $name"-"$vlan $port_name
-nic_xml_file="/var/lib/libvirt/devices/"$domain"-nic-"$mac_in_short".xml"
-sed -r 's/(<source bridge=").*("\/>)/\1'$name"-"$vlan'\2/g' $nic_xml_file > $nic_xml_file".new"
-mv -f $nic_xml_file".new" $nic_xml_file
-virsh attach-device --domain $domain --file $nic_xml_file --live --config
-}
-
-# Delete port's vlan id
-
-function unbindport-vlan()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-domain=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
-  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
-  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
-
-if [[ -z $1 || -z $name ||  -z $mac  || -z $domain || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name    \tbridge" >&2
-    echo -e "--domain  \tvm name" >&2
-    echo -e "--mac      \tvirtual NIC mac" >&2
-    echo -e "--vlan     \tvlan(optional)" >&2
-    exit 1
-  fi
-
-  if [[ -z $vlan ]]
-  then
-    vlan="0"
-  fi
-
-  res=$(virsh dumpxml $domain | grep "$mac")
-  if [[ -z $res ]]
-  then
-    echo "the mac is not a part of VM." >&2
-    exit 1
-  fi
-
-  port_name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
-
-  if [[ -z $port_name ]]
-  then
-    echo "virtual NIC not exist." >&2
-    exit 1
-  fi
-
-#ovs-vsctl --if-exists del-port $name"-"$vlan $port_name
-virsh detach-interface --domain $domain --type bridge --mac $mac --live --config
-}
-
-
 ###########################################################
 ##
 ##  l3 switch
 ##
 ###########################################################
 
-
-## Create GRE
-
-function create-gre()
-{
-   create-l3bridge geneve
-}
-
-function create-vxlan()
-{
-   create-l3bridge vxlan
-}
-
-## Create l3bridge
-
-function create-l3bridge()
-{
-  master=$(cat /root/.kube/config  | grep server | awk -F":" '{print$3}' | awk -F"//" '{print$2}')
-  thisip=$master
-
-  if [[ -z $master ]]
-  then
-    echo "undeployed Kubernetes or missing /root/.kube/config" >&2
-    exit 1
-  fi
-
-  if [[ -z $thisip ]]
-  then
-    echo "the NIC does not exist, please initial br-native " >&2
-    exit 1
-  fi
-
-  sudo ovs-vsctl set Open_vSwitch  . external-ids:ovn-bridge=br-int external-ids:ovn-remote=tcp:$master:6642 external-ids:ovn-encap-type=$1  external-ids:ovn-encap-ip=$thisip
-}
-
-## Delete GRE
-
-function delete-gre()
-{
-  delete-l3bridge
-}
-
-function delete-vxlan()
-{
-  delete-l3bridge
-}
-
-## Delete l3bridge
-
-function delete-l3bridge()
-{
-  id=$($SB_CMD show | grep -B 1 "hostname: leader"  | grep Chassis | awk -F"\"" '{print$2}')
-  $SB_CMD chassis-del $id
-}
 
 ## Create a switch with a default DHCP
 
@@ -602,49 +451,40 @@ function create-switch()
  
   if [[ -n $subn ]]
   then
-    router='r4'$name
-    rport='rp4'$name
-    rmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
     
+    $NB_CMD set Logical_Switch $name other_config:subnet=$subn  
+  
     mtu="1500"
     if [[ -n $imtu ]]
     then
       mtu=$imtu
     fi
  
-    rmk=$(echo $subn | awk -F"/" '{print$2}')
-    $NB_CMD lr-add $router
-
     if [[ -n $dhcp ]]
     then
+      router='r4'$name
+      rport='rp4'$name
+      rmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
+ 
+      $NB_CMD lr-add $router
+      rmk=$(echo $subn | awk -F"/" '{print$2}')
       $NB_CMD lrp-add $router $rport $rmac $dhcp"/"$rmk
-    fi
   
-    sport='sp4'$name
-    $NB_CMD set Logical_Switch $name other_config:subnet=$subn
-    $NB_CMD lsp-add $name $sport
-    $NB_CMD lsp-set-type $sport router
-    $NB_CMD lsp-set-addresses $sport $rmac
-    $NB_CMD lsp-set-options $sport router-port=$rport
+      sport='sp4'$name
+      $NB_CMD lsp-add $name $sport
+      $NB_CMD lsp-set-type $sport router
+      $NB_CMD lsp-set-addresses $sport $rmac
+      $NB_CMD lsp-set-options $sport router-port=$rport
 
-    if [[ -z $dnss ]]
-    then
-      if [[ -z $dhcp ]]
+      if [[ -z $dnss ]]
       then
-        did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\"")
-      else
         did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$dhcp\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\"")
-      fi
-    else
-      if [[ -z $dhcp ]]
-      then
-        did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\" \"dns_server\"=\"$dnss\"")
       else
         did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$dhcp\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$gway\" \"mtu\"=\"$mtu\" \"dns_server\"=\"$dnss\"")
       fi
-    fi
 
-    $NB_CMD lsp-add $name "dhcpv4id-$name-"$did
+      $NB_CMD lsp-add $name "dhcpv4id-$name-"$did
+      fi
   fi
 
 }
@@ -964,19 +804,10 @@ function help()
   echo -e "  stop-worker    :\t(Init): Stop  worker  node"
   echo -e "  create-bridge  :\t(L2  ): Create L2 bridge"
   echo -e "  delete-bridge  :\t(L2  ): Delete L2 bridge"
-#  echo -e "  setbridge-vlan :\t(L2  ): Set a vlan for a L2 bridge"
-#  echo -e "  delbridge-vlan :\t(L2  ): Unset a vlan id of a L2 bridge"
-#  echo -e "  bindport-vlan  :\t(L2  ): Set a vlan id for a  port"
-#  echo -e "  unbindport-vlan:\t(L2  ): Unset a vlan id for a port"
   echo -e "  create-fip     :\t(L2  ): Create L2's floating IP"
   echo -e "  delete-fip     :\t(L2  ): Delete L2's floating IP"
-#  echo -e "  create-gre     :\t(L3  ): Create GRE bridge"
-#  echo -e "  delete-gre     :\t(L3  ): Delete GRE bridge"
-  echo -e "  create-vxlan   :\t(L3  ): Create Vxlan bridge"
-  echo -e "  delete-vxlan   :\t(L3  ): Delete Vxlan bridge"
   echo -e "  create-switch  :\t(L3  ): Create L3 switch and gateway"
   echo -e "  modify-switch  :\t(L3  ): Modify L3 switch's config"
-  echo -e "  remove-switch  :\t(L3  ): Remove L3 switch and gateway"
   echo -e "  delete-switch  :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
   echo -e "  bind-fip       :\t(L3  ): bind floating IP"
   echo -e "  unbind-fip     :\t(L3  ): Unbind floating IP"
@@ -986,30 +817,6 @@ function help()
 
 
 case $1 in
-  "create-bridge")
-    create-bridge $*
-    ;;
-  "delete-bridge")
-    delete-bridge $*
-    ;;
-#  "create-gre")
-#    create-gre $*
-#    ;;
-#  "delete-gre")
-#    delete-gre $*
-#    ;;
-  "create-vxlan")
-    create-vxlan $*
-    ;;
-  "delete-vxlan")
-    delete-vxlan $*
-    ;;
-#  "bindport-vlan")
-#    bindport-vlan $*
-#    ;;
-#  "unbindport-vlan")
-#    unbindport-vlan $*
-#    ;;
   "start-central")
     start-central $*
     ;;
@@ -1022,36 +829,27 @@ case $1 in
   "stop-worker")
     stop-worker $*
     ;;
+  "create-bridge")
+    create-bridge $*
+    ;;
+  "delete-bridge")
+    delete-bridge $*
+    ;;
   "create-switch")
     create-switch $*
     ;;
   "modify-switch")
     modify-switch $*
     ;;
-  "create-vpc")
-    create-switch $*
-    ;;
-  "remove-switch")
-    remove-switch $*
-    ;;
   "delete-switch")
     remove-switch $*
     ;;
-#  "delete-vpc")
-#    remove-switch $*
-#    ;;
   "bind-swport")
     bind-swport $*
     ;;
   "unbind-swport")
     unbind-swport $*
     ;;
-#  "setbridge-vlan")
-#    setbridge-vlan $*
-#    ;;
-#  "delbridge-vlan")
-#    delbridge-vlan $*
-#    ;;
   "create-fip")
     create-fip $*
     ;;
@@ -1064,12 +862,6 @@ case $1 in
   "unbind-fip")
     unbind-fip $*
     ;;
-#  "create-gre")
-#    create-gre $*
-#    ;;
-#  "delete-gre")
-#    delete-gre $*
-#    ;;
   "--help")
     help
     ;;

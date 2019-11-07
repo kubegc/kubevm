@@ -812,6 +812,9 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                         except Exception:
                             pass
                     else:
+                        logger.debug(metadata_name)
+                        logger.debug(data)
+                        logger.debug(the_cmd_key)
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data,
                                                the_cmd_key=the_cmd_key)
                 except libvirtError:
@@ -1508,6 +1511,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_DISK:   
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
+            logger.debug(the_cmd_key)
             if _isRevertDiskExternalSnapshot(the_cmd_key) and _isCreateDiskExternalSnapshot(the_cmd_key):
                 logger.debug("modify disk ")
                 modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)

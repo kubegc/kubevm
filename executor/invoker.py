@@ -812,9 +812,6 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                         except Exception:
                             pass
                     else:
-                        logger.debug(metadata_name)
-                        logger.debug(data)
-                        logger.debug(the_cmd_key)
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data,
                                                the_cmd_key=the_cmd_key)
                 except libvirtError:
@@ -1511,9 +1508,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_DISK:   
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
-            logger.debug(the_cmd_key)
-            if _isRevertDiskExternalSnapshot(the_cmd_key) and _isCreateDiskExternalSnapshot(the_cmd_key):
-                logger.debug("modify disk ")
+            if _isRevertDiskExternalSnapshot(the_cmd_key) or _isCreateDiskExternalSnapshot(the_cmd_key):
                 modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
             if _isCreateDiskExternalSnapshot(the_cmd_key):
                 jsonDict['spec']['volume'] = data
@@ -1552,7 +1547,6 @@ def modify_disk(pool, name, group, version, plural):
                                                                       namespace='default',
                                                                       plural=plural,
                                                                       name=name)
-    logger.debug(get_pool_info(pool)['path'] + '/' + name + '/config.json')
     if os.path.isfile(get_pool_info(pool)['path'] + '/' + name + '/config.json'):
         with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
             config = load(f)

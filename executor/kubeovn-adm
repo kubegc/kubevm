@@ -785,6 +785,165 @@ function unbind-fip()
   $NB_CMD lr-nat-del $router dnat_and_snat $pip
 }
 
+function create-acl()
+{
+  do=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
+  sw=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
+  vm=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+  tp=$(echo $* | awk -F"--type" '{print$2}' | awk '{print$1}')
+  rl=$(echo $* | awk -F"--rule" '{print$2}' | awk '{print$1}')
+  op=$(echo $* | awk -F"--operator" '{print$2}' | awk '{print$1}')
+  pr=$(echo $* | awk -F"--priority" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $do || -z $sw || -z $dr || -z $rl || -z $op || $2 == "--help" ]]
+  then
+    cmddesc
+	echo -e "--domain     \tdomain" >&2
+    echo -e "--swName     \tswitch" >&2
+    echo -e "--vmmac      \tmac" >&2
+    echo -e "--type       \ttype, from or to"  >&2
+    echo -e "--rule       \trule, tcp.dest=1"  >&2
+    echo -e "--operator   \tallow or drop"  >&2
+    echo -e "--priority   \toptional, 1-1000"  >&2
+    exit 1
+  fi
+  
+  ## check 
+  sid=$($NB_CMD ls-list | grep "($sw)" | awk '{print$1}')
+  if [[ -n $sid ]]
+  then
+    echo "cannot connect the master or the switch name exists" >&2
+    exit 1
+  fi
+  
+  ftport=""
+  ioport=""
+  if [[ $tp=="from" ]]
+  then
+    ftport="from-lport"
+	ioport="inport"
+  else if [[ $tp=="to" ]]
+  then
+    ftport="to-lport"
+	ioport="outport"
+  else
+    echo "wrong type, must be neither 'from' or 'to'" >&2
+	exit 1
+  fi
+  
+  operator=""
+  if [[ $op=="allow" ]]
+  then
+    operator="allow-related"
+  else if [[ $op=="drop" ]]
+  then
+	operator="drop"
+  else
+    echo "wrong operator, must be neither 'allow' or 'drop'" >&2
+	exit 1
+  fi
+  
+  if [[ -z $pr ]]
+  then
+    pr="100"
+  fi
+  
+  
+  port=$(NB_CMD show | grep -B 1 "$vm" | grep port | awk '{print$2}')
+  rule="";
+  
+  if [[ -z $port ]]
+  then
+    rule="\""$ioport" == "$rl"\""
+  else
+    rule="\""$ioport" == \""$port"\" && "$rl"\""
+  fi
+  
+  cmd="$NB_CMD acl-add "$sw" "$ftport" "$pr" "$rule" "$operator
+}
+
+
+function modify-acl()
+{
+  
+}
+
+function delete-acl()
+{
+  do=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
+  sw=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
+  vm=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+  tp=$(echo $* | awk -F"--type" '{print$2}' | awk '{print$1}')
+  rl=$(echo $* | awk -F"--rule" '{print$2}' | awk '{print$1}')
+  op=$(echo $* | awk -F"--operator" '{print$2}' | awk '{print$1}')
+  pr=$(echo $* | awk -F"--priority" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $do || -z $sw || -z $dr || -z $rl || -z $op || $2 == "--help" ]]
+  then
+    cmddesc
+	echo -e "--domain     \tdomain" >&2
+    echo -e "--swName     \tswitch" >&2
+    echo -e "--vmmac      \tmac" >&2
+    echo -e "--type       \ttype, from or to"  >&2
+    echo -e "--rule       \trule, tcp.dest=1"  >&2
+    echo -e "--operator   \tallow or drop"  >&2
+    echo -e "--priority   \toptional, 1-1000"  >&2
+    exit 1
+  fi
+  
+  ## check 
+  sid=$($NB_CMD ls-list | grep "($sw)" | awk '{print$1}')
+  if [[ -n $sid ]]
+  then
+    echo "cannot connect the master or the switch name exists" >&2
+    exit 1
+  fi
+  
+  ftport=""
+  ioport=""
+  if [[ $tp=="from" ]]
+  then
+    ftport="from-lport"
+	ioport="inport"
+  else if [[ $tp=="to" ]]
+  then
+    ftport="to-lport"
+	ioport="outport"
+  else
+    echo "wrong type, must be neither 'from' or 'to'" >&2
+	exit 1
+  fi
+  
+  operator=""
+  if [[ $op=="allow" ]]
+  then
+    operator="allow-related"
+  else if [[ $op=="drop" ]]
+  then
+	operator="drop"
+  else
+    echo "wrong operator, must be neither 'allow' or 'drop'" >&2
+	exit 1
+  fi
+  
+  if [[ -z $pr ]]
+  then
+    pr="100"
+  fi
+  
+  
+  port=$(NB_CMD show | grep -B 1 "$vm" | grep port | awk '{print$2}')
+  rule="";
+  
+  if [[ -z $port ]]
+  then
+    rule="\""$ioport" == "$rl"\""
+  else
+    rule="\""$ioport" == \""$port"\" && "$rl"\""
+  fi
+  
+  cmd="$NB_CMD acl-del "$sw" "$ftport" "$pr" "$rule" "$operator
+}
 
 ###########################################################
 ##
@@ -818,6 +977,9 @@ function help()
   echo -e "  unbind-fip     :\t(L3  ): Unbind floating IP"
   echo -e "  bind-swport    :\t(L3  ): Bind a L3's port to OVN"
   echo -e "  unbind-swport  :\t(L3  ): Unbind a L3's port from OVN"
+  echo -e "  create-acl     :\t(ACL ): create access control list"
+  echo -e "  modify-acl     :\t(ACL ): modify access control list"
+  echo -e "  delete-acl     :\t(ACL ): delete access control list"
 }
 
 
@@ -866,6 +1028,15 @@ case $1 in
     ;;
   "unbind-fip")
     unbind-fip $*
+    ;;
+  "create-acl")
+    create-acl $*
+    ;;
+  "modify-acl")
+    modify-acl $*
+    ;;
+  "delete-acl")
+    delete-acl $*
     ;;
   "--help")
     help

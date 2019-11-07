@@ -1823,7 +1823,7 @@ def addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version,
     jsoncopy = jsoncopy.get('raw_object')
     try:
         body = updateDescription(jsoncopy)
-        client.CustomObjectsApi().create_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural, name=newname, body=body)
+        client.CustomObjectsApi().create_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural,  body=body)
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()

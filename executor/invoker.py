@@ -429,7 +429,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     logger.error('Oops! ', exc_info=1)
                 pool_name = _get_field(jsondict, the_cmd_key, 'pool')
                 disk_type = _get_field(jsondict, the_cmd_key, 'type')
-                logger.debug(jsondict)
+                # logger.debug(jsondict)
                 if not pool_name:
                     pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
                     logger.debug(pool_name)
@@ -439,7 +439,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                     jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
                     pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
-                logger.debug(jsondict)
+                # logger.debug(jsondict)
                 cmd = unpackCmdFromJson(jsondict, the_cmd_key)
                 if cmd.find('backing-vol-format') >= 0:
                     cmd = cmd.replace('backing-vol-format', 'backing_vol_format')
@@ -513,7 +513,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #                         else:
 #                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
                     status = 'Done(Success)'
-                    if not _isDeleteDisk(the_cmd_key):
+                    if not _isDeleteDisk(the_cmd_key) and not _isCloneDisk(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)

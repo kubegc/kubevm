@@ -100,6 +100,10 @@ setBootOrder = virsh update-device
 setVncPassword = virsh update-device
 unsetVncPassword = virsh update-device
 setGuestPassword = virt-customize
+createFloatIP = kubeovn-adm create-fip
+deleteFloatIP = kubeovn-adm delete-fip
+bindFloatIP = kubeovn-adm bind-fip
+unbindFloatIP = kubeovn-adm unbind-fip
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
@@ -163,13 +167,18 @@ unbindPortVlan = kubeovn-adm unbindport-vlan
 createSwitch = kubeovn-adm create-switch
 modidySwitch = kubeovn-adm modify-switch
 deleteSwitch = kubeovn-adm remove-switch
-setPortVxlan = kubeovn-adm setport-vxlan
-delPortVxlan = kubeovn-adm delport-vxlan
+
+[L3NetworkSupportCmdsWithDomainField]
+createFloatIP = kubeovn-adm create-fip
+deleteFloatIP = kubeovn-adm delete-fip
+bindFloatIP = kubeovn-adm bind-fip
+modifyFlocatIPQoS = kubeovn-adm modify-fip-qos
+unbindFloatIP = kubeovn-adm unbind-fip
+createACL = kubeovn-adm create-acl
+modifyACL = kubeovn-adm modify-acl
+deleteACL = kubeovn-adm delete-acl
 
 [L3NetworkSupportCmdsWithSwitchField]
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
-createFloatIP = kubeovn-adm create-fip
-deleteFloatIP = kubeovn-adm delete-fip
-bindFloatIP = kubeovn-adm bind-fip
-unbindFloatIP = kubeovn-adm unbind-fip
+

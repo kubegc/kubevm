@@ -1542,7 +1542,6 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
 
 def modify_disk(pool, name, group, version, plural):
-
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                       version=version,
                                                                       namespace='default',
@@ -1561,6 +1560,7 @@ def modify_disk(pool, name, group, version, plural):
         try:
             modifyStructure(name, body, group, version, plural)
         except ApiException, e:
+            logger.debug(traceback.format_exc())
             if e.reason == 'Conflict':
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,

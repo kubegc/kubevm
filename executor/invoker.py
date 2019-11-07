@@ -496,12 +496,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 raise e
                         # update disk info
                         if _isCloneDisk(the_cmd_key):
-                            if disk_type == 'uus':
-                                # uus disk type register to server by hand
-                                _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                                newname = getCloneDiskName(the_cmd_key, jsondict)
-                                _, newdata = get_kubesds_disk_info(disk_type, pool_name, newname)
-                                addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version, plural)
+                            # uus disk type register to server by hand
+                            _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                            newname = getCloneDiskName(the_cmd_key, jsondict)
+                            _, newdata = get_kubesds_disk_info(disk_type, pool_name, newname)
+                            addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version, plural)
                         elif _isDeleteDisk(the_cmd_key):
                             try:
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)

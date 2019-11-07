@@ -165,11 +165,9 @@ modidySwitch = kubeovn-adm modify-switch
 deleteSwitch = kubeovn-adm remove-switch
 
 [L3NetworkSupportCmdsWithDomainField]
-createFloatIP = kubeovn-adm create-fip
-deleteFloatIP = kubeovn-adm delete-fip
-bindFloatIP = kubeovn-adm bind-fip
-modifyFlocatIPQoS = kubeovn-adm modify-fip-qos
-unbindFloatIP = kubeovn-adm unbind-fip
+bindFloatingIP = kubeovn-adm bind-fip
+modifyFloatingIP = kubeovn-adm modify-fip
+unbindFloatingIP = kubeovn-adm unbind-fip
 createACL = kubeovn-adm create-acl
 modifyACL = kubeovn-adm modify-acl
 deleteACL = kubeovn-adm delete-acl

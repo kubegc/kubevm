@@ -1509,6 +1509,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key) and _isCreateDiskExternalSnapshot(the_cmd_key):
+                logger.debug("modify disk ")
                 modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
             if _isCreateDiskExternalSnapshot(the_cmd_key):
                 jsonDict['spec']['volume'] = data
@@ -1547,6 +1548,7 @@ def modify_disk(pool, name, group, version, plural):
                                                                       namespace='default',
                                                                       plural=plural,
                                                                       name=name)
+    logger.debug(get_pool_info(pool)['path'] + '/' + name + '/config.json')
     if os.path.isfile(get_pool_info(pool)['path'] + '/' + name + '/config.json'):
         with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
             config = load(f)

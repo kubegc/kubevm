@@ -722,42 +722,41 @@ function bind-fip()
     cmddesc
     echo -e "--swName  \tswitch name" >&2
     echo -e "--vmmac   \tvm mac" >&2
-    echo -e "--fip     \tflating ip" >&2
+    echo -e "--fip     \tflating ip and mask, for example, 192.168.1.1/24" >&2
     exit 1
   fi
 
   vmip=$($NB_CMD list logical_switch_port  | grep "$vmmac" | awk -F"\"" '{print$2}' | awk '{print$2}')
 
-  router='r4'$switch
-  rdmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
-  hostname=$(hostname)
-  #network=$(kubectl get node $hostname -o yaml | grep "projectcalico.org/IPv4Address" | awk -F": " '{print$2}')
-  #ip=$(echo $network | awk -F"/" '{print$1}')
-  ip=$(kubectl get no "vm"$hostname -o yaml | grep "address:" | awk -F": " 'NR==1{print$2}')
-  mask=$(ip a | grep $ip | awk -F"/" 'NR==1{print$2}' | awk '{print$1}')
-  proxy=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".250/$mask"
-  chassis=$($SB_CMD show | grep -B 1 \""$hostname\"" | grep Chassis | awk -F"\"" '{print$2}')
-  pubsw="public-"$switch
-  swport=$pubsw"-port"
-  lcport=$pubsw"-"$hostname
-  nwname=$lcport
-  vmrange=$($NB_CMD show | grep -A 2 "rp4"$switch | grep networks | awk -F"\"" '{print$2}')
+  router="r4"$switch
+  fport="from-"$router"-"${vmmac//:/}
+  ip=$(echo $fip | awk -F"/" '{print$1}')
+  rmk=$(echo $fip | awk -F"/" '{print$2}')
+  pip=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".250"
+  imac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
+  
+  $NB_CMD lrp-add $router $fport  $imac $pip"/"$rmk
+  $NB_CMD lrp-set-gateway-chassis $fport $($SB_CMD show | grep -B 3 "$THISIP" | grep Chassis | awk -F"\"" '{print$2}')
 
-  $NB_CMD lrp-add $router $swport $rdmac $proxy
-  $NB_CMD lrp-set-gateway-chassis $swport $chassis
+  
+  pswn="public-"${vmmac//:/}"-"$(hostname)
+  
+  $NB_CMD ls-add $pswn
+  $NB_CMD lsp-add $pswn "to-"$pswn
+  $NB_CMD lsp-set-type "to-"$pswn router
+  $NB_CMD lsp-set-addresses "to-"$pswn $imac
+  $NB_CMD lsp-set-options "to-"$pswn router-port=$fport
+  
+  
+  $NB_CMD lsp-add $pswn $pswn"-localnet"
+  $NB_CMD lsp-set-addresses $pswn"-localnet" unknown
+  $NB_CMD lsp-set-type $pswn"-localnet" localnet
+  $NB_CMD lsp-set-options $pswn"-localnet" network_name=$pswn
+  
+  ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings=$pswn:br-ex
 
-  $NB_CMD ls-add $pubsw
-  $NB_CMD lsp-add $pubsw $swport  -- set logical_switch_port $swport  type=router -- set logical_switch_port $swport  options:router-port=$swport
-  $NB_CMD lsp-set-addresses $swport $rdmac
-
-  $NB_CMD lsp-add $pubsw $lcport -- set logical_switch_port $lcport type=localnet
-  $NB_CMD lsp-set-addresses $lcport unknown
-  $NB_CMD lsp-set-options $lcport network-name=$nwname
-
-  ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings=$nwname:br-native
-
-  $NB_CMD lr-nat-add $router dnat_and_snat $fip $vmip
-  $NB_CMD lr-nat-add $router snat $ip $vmrange
+  $NB_CMD lr-nat-add $router dnat_and_snat $ip $vmip
+  $NB_CMD lr-nat-add $router dnat_and_snat $pip $vmip
 }
 
 function unbind-fip()
@@ -769,15 +768,21 @@ function unbind-fip()
   if [[ -z $1 || -z $switch || -z $vmmac || -z $fip ||  $2 == "--help" ]]
   then
     cmddesc
-    echo -e "--switch  \tswitch name" >&2
+    echo -e "--swName  \tswitch name" >&2
     echo -e "--vmmac   \tvm mac" >&2
     echo -e "--fip     \tfip" >&2
     exit 1
   fi
 
-  $NB_CMD ls-del "public-"$switch
+  pswn="public-"${vmmac//:/}"-"$(hostname)
+  $NB_CMD ls-del $pswn
 
-  $NB_CMD lr-nat-del "r4"$switch dnat_and_snat $fip
+  router="r4"$switch
+  fport="from-"$router"-"${vmmac//:/}
+  $NB_CMD lrp-del $fport
+  pip=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".250"
+  $NB_CMD lr-nat-del $router dnat_and_snat $fip
+  $NB_CMD lr-nat-del $router dnat_and_snat $pip
 }
 
 

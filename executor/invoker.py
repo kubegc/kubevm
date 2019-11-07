@@ -1818,6 +1818,7 @@ def addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version,
     jsoncopy['raw_object']['metadata']['kind'] = 'VirtualMachineDisk'
     jsoncopy['raw_object']['metadata']['name'] = newname
     jsoncopy['raw_object']['spec']['volume'] = newdata
+    del jsoncopy['raw_object']['metadata']['resourceVersion']
     if jsoncopy['raw_object']['spec'].get('lifecycle'):
         del jsoncopy['raw_object']['spec']['lifecycle']
     jsoncopy = jsoncopy.get('raw_object')

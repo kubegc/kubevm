@@ -125,12 +125,6 @@ function clear()
   rm -rf /etc/openvswitch/system-id.conf 2>&1
 }
 
-#function create-br-c-br()
-#{
-#  ovs-vsctl --may-exist add-port $1 patch-$2 -- set interface patch-$2 type=patch -- set interface patch-$2 option:peer=patch-$1
-#  ovs-vsctl --may-exist add-port $2 patch-$1 -- set interface patch-$1 type=patch -- set interface patch-$1 option:peer=patch-$2
-#}
-
 
 ###########################################################
 ##
@@ -281,80 +275,6 @@ function delete-bridge()
 
 }
 
-function create-fip()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-
-  if [[ -z $1 || -z $name || -z $ip || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name      \tPhysical NIC name" >&2
-    echo -e "--ip        \tFloating IP" >&2
-    exit 1
-  fi
-
-  ne=$(ip a | grep $name)
-  if [[ -z $ne ]]
-  then
-    echo "Physical NIC not exist" >&2
-    exit 1
-  fi
-
-  ie=$(ip a | grep $ip)
-  if [[ -n $ie ]]
-  then
-    echo "IP exist" >&2
-    exit 1
-  fi 
-
-  for i in `seq 1 1000`
-  do
-    fname=$name":"$i
-    if [[ -f /etc/sysconfig/network-scripts/ifcfg-$fname ]]
-    then
-      continue
-    fi
-    mask=$(ip a | grep -A 1 $name | grep inet | awk 'NR==1' |awk '{print$2}' | awk -F"/" '{print$2}')
-    rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "DEVICE=$fname" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "BOOTPROTO=static" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "ONBOOT=yes" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "NM_CONTROLLED=no" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "IPADDR=$ip" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    echo "PREFIX=$mask" >> /etc/sysconfig/network-scripts/ifcfg-$fname
-    ifup $fname
-    exit 0
-  done
-
-  echo "too much floating IPs" >&2
-  exit 1   
-
-}
-
-
-function delete-fip()
-{
-  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-  fname=$(ip a | grep $ip | awk '{print$NF}')
-
-  if [[ -z $1 || -z $ip || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--ip        \tFloating IP" >&2
-    exit 1
-  fi
-
-  if [[ -z $fname ]]
-  then
-    echo "wrong IP, cannot find a NIC with the IP" >&2
-    exit 1
-  fi
-
-  ifconfig $fname down
-  rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
-}
-
 # Set vlan id for port
 
 function setbridge-vlan()
@@ -401,6 +321,7 @@ function delbridge-vlan()
 
   ovs-vsctl --if-exist del-br $name"-"$vlan
 }
+
 
 ###########################################################
 ##
@@ -711,6 +632,80 @@ function delport-vxlan()
   ovs-vsctl set interface $name type=internal
 }
 
+function create-fip()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $ip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name      \tPhysical NIC name" >&2
+    echo -e "--ip        \tFloating IP" >&2
+    exit 1
+  fi
+
+  ne=$(ip a | grep $name)
+  if [[ -z $ne ]]
+  then
+    echo "Physical NIC not exist" >&2
+    exit 1
+  fi
+
+  ie=$(ip a | grep $ip)
+  if [[ -n $ie ]]
+  then
+    echo "IP exist" >&2
+    exit 1
+  fi 
+
+  for i in `seq 1 1000`
+  do
+    fname=$name":"$i
+    if [[ -f /etc/sysconfig/network-scripts/ifcfg-$fname ]]
+    then
+      continue
+    fi
+    mask=$(ip a | grep -A 1 $name | grep inet | awk 'NR==1' |awk '{print$2}' | awk -F"/" '{print$2}')
+    rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "DEVICE=$fname" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "BOOTPROTO=static" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "ONBOOT=yes" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "NM_CONTROLLED=no" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "IPADDR=$ip" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "PREFIX=$mask" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    ifup $fname
+    exit 0
+  done
+
+  echo "too much floating IPs" >&2
+  exit 1   
+
+}
+
+
+function delete-fip()
+{
+  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
+  fname=$(ip a | grep $ip | awk '{print$NF}')
+
+  if [[ -z $1 || -z $ip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--ip        \tFloating IP" >&2
+    exit 1
+  fi
+
+  if [[ -z $fname ]]
+  then
+    echo "wrong IP, cannot find a NIC with the IP" >&2
+    exit 1
+  fi
+
+  ifconfig $fname down
+  rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
+}
+
 function bind-fip()
 {
   switch=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
@@ -787,6 +782,286 @@ function unbind-fip()
 
 ###########################################################
 ##
+##  ACL
+##
+###########################################################
+
+function create-acl()
+{
+  do=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
+  sw=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
+  vm=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+  tp=$(echo $* | awk -F"--type" '{print$2}' | awk '{print$1}')
+  rl=$(echo $* | awk -F"--rule" '{print$2}' | awk '{print$1}')
+  op=$(echo $* | awk -F"--operator" '{print$2}' | awk '{print$1}')
+  pr=$(echo $* | awk -F"--priority" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $sw || -z $vm || -z $tp || -z $rl || -z $op || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--domain     \tdomain" >&2
+    echo -e "--swName     \tswitch" >&2
+    echo -e "--vmmac      \tmac" >&2
+    echo -e "--type       \ttype, from or to"  >&2
+    echo -e "--rule       \trule, tcp.dest=1"  >&2
+    echo -e "--operator   \tallow or drop"  >&2
+    echo -e "--priority   \toptional, 1-1000"  >&2
+    exit 1
+  fi
+  
+  ## check 
+  sid=$($NB_CMD ls-list | grep "($sw)" | awk '{print$1}')
+  if [[ -z $sid ]]
+  then
+    echo "switch not exist" >&2
+    exit 1
+  fi
+  
+  ftport=""
+  ioport=""
+  if [[ $tp == "from" ]]
+  then
+    ftport="from-lport"
+    ioport="inport"
+  elif [[ $tp == "to" ]]
+  then
+    ftport="to-lport"
+    ioport="outport"
+  else
+    echo "wrong type, must be neither 'from' or 'to'" >&2
+    exit 1
+  fi
+  
+  operator=""
+  if [[ $op == "allow" ]]
+  then
+    operator="allow-related"
+  elif [[ $op == "drop" ]]
+  then
+    operator="drop"
+  else
+    echo "wrong operator, must be neither 'allow' or 'drop'" >&2
+    exit 1
+  fi
+  
+  if [[ -z $pr ]]
+  then
+    pr="100"
+  fi
+    
+  port=$($NB_CMD show | grep -B 1 "$vm" | grep port | awk '{print$2}')
+  rule=""
+  
+  if [[ -z $port ]]
+  then
+    rule="\""$ioport" == "$rl"\""
+  else
+    rule="\""$ioport" == \\\""$port"\\\" && "$rl"\""
+  fi
+  
+  cmd="$NB_CMD acl-add "$sw" "$ftport" "$pr" "$rule" "$operator
+  $(cmd)
+}
+
+
+function modify-acl()
+{
+  delete-acl $*
+  create-acl $*
+}
+
+function delete-acl()
+{
+  do=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
+  sw=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
+  vm=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+  tp=$(echo $* | awk -F"--type" '{print$2}' | awk '{print$1}')
+  rl=$(echo $* | awk -F"--rule" '{print$2}' | awk '{print$1}')
+  pr=$(echo $* | awk -F"--priority" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $sw || -z $vm || -z $tp || -z $rl || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--domain     \tdomain" >&2
+    echo -e "--swName     \tswitch" >&2
+    echo -e "--vmmac      \tmac" >&2
+    echo -e "--type       \toptional, type, from or to"  >&2
+    echo -e "--rule       \toptional, rule, tcp.dest=1"  >&2
+    echo -e "--priority   \toptional, 1-1000"  >&2
+    exit 1
+  fi
+  
+  ## check 
+  sid=$($NB_CMD ls-list | grep "($sw)" | awk '{print$1}')
+  if [[ -z $sid ]]
+  then
+    echo "switch not exist" >&2
+    exit 1
+  fi
+  
+  ftport=""
+  ioport=""
+  if [[ $tp == "from" ]]
+  then
+    ftport="from-lport"
+    ioport="inport"
+  elif [[ $tp == "to" ]]
+  then
+    ftport="to-lport"
+    ioport="outport"
+  else
+    echo "wrong type, must be neither 'from' or 'to'" >&2
+    exit 1
+  fi
+  
+  if [[ -z $pr ]]
+  then
+    pr="100"
+  fi
+    
+  port=$($NB_CMD show | grep -B 1 "$vm" | grep port | awk '{print$2}')
+  rule=""
+  
+  if [[ -z $port ]]
+  then
+    rule="\""$ioport" == "$rl"\""
+  else
+    rule="\""$ioport" == \\\""$port"\\\" && "$rl"\""
+  fi
+  
+  cmd="$NB_CMD acl-del "$sw" "$ftport" "$pr" "$rule
+  $(cmd)
+}
+
+
+###########################################################
+##
+##  QoS
+##
+##########################################################
+
+# [--may-exist] qos-add switch direction priority match [dscp=dscp] [rate=rate [burst=burst]]
+function create-qos()
+{
+  do=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
+  sw=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
+  vm=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+  tp=$(echo $* | awk -F"--type" '{print$2}' | awk '{print$1}')
+  po=$(echo $* | awk -F"--protocol" '{print$2}' | awk '{print$1}')
+  rt=$(echo $* | awk -F"--rate" '{print$2}' | awk '{print$1}')
+  bu=$(echo $* | awk -F"--burst" '{print$2}' | awk '{print$1}')
+  pr=$(echo $* | awk -F"--priority" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $sw || -z $vm || -z $tp || -z $po || -z $rt || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--domain     \tdomain" >&2
+    echo -e "--swName     \tswitch" >&2
+    echo -e "--vmmac      \tmac" >&2
+    echo -e "--type       \ttype, from or to"  >&2
+    echo -e "--protocol   \tprotocol, IP, tcp"  >&2
+    echo -e "--rate       \trate, kbps"  >&2
+	echo -e "--burst      \toptional, burst, kbps"  >&2
+    echo -e "--priority   \toptional, 1-32767"  >&2
+    exit 1
+  fi
+  
+  ## check 
+  sid=$($NB_CMD ls-list | grep "($sw)" | awk '{print$1}')
+  if [[ -z $sid ]]
+  then
+    echo "switch not exist" >&2
+    exit 1
+  fi
+  
+  ftport=""
+  if [[ $tp == "from" ]]
+  then
+    ftport="from-lport"
+  elif [[ $tp == "to" ]]
+  then
+    ftport="to-lport"
+  else
+    echo "wrong type, must be neither 'from' or 'to'" >&2
+    exit 1
+  fi
+  
+  if [[ -z $pr ]]
+  then
+    pr="100"
+  fi
+      
+  name="public-"${vmmac//:/}"-"$(hostname)
+  cmd=""
+  if [[ -z $bu ]]
+  then  
+    cmd="$NB_CMD qos-add "$name" "$ftport" "$pr" "$po" rate="$rt
+  else
+    cmd="$NB_CMD qos-add "$name" "$ftport" "$pr" "$po" rate="$rt" burst="$bu
+  fi
+  $(cmd)
+}
+
+# qos-del switch [direction [priority match]]
+function modify-qos()
+{
+  delete-qos $*
+  create-qos $*
+}
+
+# qos-del switch [direction [priority match]]
+function delete-qos()
+{
+  do=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
+  sw=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
+  vm=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
+  tp=$(echo $* | awk -F"--type" '{print$2}' | awk '{print$1}')
+  po=$(echo $* | awk -F"--protocol" '{print$2}' | awk '{print$1}')
+  pr=$(echo $* | awk -F"--priority" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $sw || -z $vm || -z $tp || -z $po || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--domain     \tdomain" >&2
+    echo -e "--swName     \tswitch" >&2
+    echo -e "--vmmac      \tmac" >&2
+    echo -e "--type       \ttype, from or to"  >&2
+    echo -e "--protocol   \tprotocol, IP, tcp"  >&2
+    echo -e "--priority   \toptional, 1-32767"  >&2
+    exit 1
+  fi
+  
+  ## check 
+  sid=$($NB_CMD ls-list | grep "($sw)" | awk '{print$1}')
+  if [[ -z $sid ]]
+  then
+    echo "switch not exist" >&2
+    exit 1
+  fi
+  
+  ftport=""
+  if [[ $tp == "from" ]]
+  then
+    ftport="from-lport"
+  elif [[ $tp == "to" ]]
+  then
+    ftport="to-lport"
+  else
+    echo "wrong type, must be neither 'from' or 'to'" >&2
+    exit 1
+  fi
+  
+  if [[ -z $pr ]]
+  then
+    pr="100"
+  fi
+      
+  name="public-"${vmmac//:/}"-"$(hostname)
+  cmd="$NB_CMD qos-del "$name" "$ftport" "$pr" "$po
+  $(cmd)
+}
+###########################################################
+##
 ##  help
 ##
 ##########################################################
@@ -813,6 +1088,9 @@ function help()
   echo -e "  create-switch  :\t(L3  ): Create L3 switch and gateway"
   echo -e "  modify-switch  :\t(L3  ): Modify L3 switch's config"
   echo -e "  delete-switch  :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
+  echo -e "  create-qos     :\t(QoS ): create QoS for floating IP"
+  echo -e "  modify-qos     :\t(QoS ): modify QoS for floating IP"
+  echo -e "  delete-qos     :\t(QoS ): delete QoS for floating IP"
   echo -e "  bind-fip       :\t(L3  ): bind floating IP"
   echo -e "  unbind-fip     :\t(L3  ): Unbind floating IP"
   echo -e "  bind-swport    :\t(L3  ): Bind a L3's port to OVN"
@@ -876,6 +1154,15 @@ case $1 in
     modify-acl $*
     ;;
   "delete-acl")
+    delete-acl $*
+    ;;
+  "create-qos")
+    create-qos $*
+    ;;
+  "modify-qos")
+    modify-acl $*
+    ;;
+  "delete-qos")
     delete-acl $*
     ;;
   "--help")

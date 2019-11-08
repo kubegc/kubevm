@@ -372,8 +372,6 @@ function create-switch()
  
   if [[ -n $subn ]]
   then
-    
-    $NB_CMD set Logical_Switch $name other_config:subnet=$subn  
   
     mtu="1500"
     if [[ -n $imtu ]]
@@ -383,15 +381,15 @@ function create-switch()
  
     if [[ -n $dhcp ]]
     then
-      router='r4'$name
-      rport='rp4'$name
+      router=$name"-router"
+      rport=$name"-router-port"
       rmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
  
       $NB_CMD lr-add $router
       rmk=$(echo $subn | awk -F"/" '{print$2}')
       $NB_CMD lrp-add $router $rport $rmac $dhcp"/"$rmk
   
-      sport='sp4'$name
+      sport='to-'$rport
       $NB_CMD lsp-add $name $sport
       $NB_CMD lsp-set-type $sport router
       $NB_CMD lsp-set-addresses $sport $rmac
@@ -490,6 +488,9 @@ function remove-switch()
     exit 1
   fi
 
+  ## check
+  checkOVSStatus
+  
   sid=$($NB_CMD ls-list | grep "($name)" | awk '{print$1}')
   if [[ -z $sid ]]
   then
@@ -497,7 +498,8 @@ function remove-switch()
     exit 1
   fi
   
-  router='r4'$name
+  ## delete
+  router=$name"-router"
   dhcpid=$($NB_CMD show $name | grep "dhcpv4id-$name-" | awk -F"dhcpv4id-$name-" '{print$2}')
   $NB_CMD ls-del $name  >/dev/null  2>&1 
   $NB_CMD lr-del $router >/dev/null  2>&1
@@ -706,79 +708,6 @@ function delete-fip()
   rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
 }
 
-function bind-fip()
-{
-  switch=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
-  vmmac=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
-  fip=$(echo $* | awk -F"--fip" '{print$2}' | awk '{print$1}')
- 
-  if [[ -z $1 || -z $switch || -z $vmmac || -z $fip || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--swName  \tswitch name" >&2
-    echo -e "--vmmac   \tvm mac" >&2
-    echo -e "--fip     \tflating ip and mask, for example, 192.168.1.1/24" >&2
-    exit 1
-  fi
-
-  vmip=$($NB_CMD list logical_switch_port  | grep "$vmmac" | awk -F"\"" '{print$2}' | awk '{print$2}')
-
-  router="r4"$switch
-  fport="from-"$router"-"${vmmac//:/}
-  ip=$(echo $fip | awk -F"/" '{print$1}')
-  rmk=$(echo $fip | awk -F"/" '{print$2}')
-  pip=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".250"
-  imac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
-  
-  $NB_CMD lrp-add $router $fport  $imac $pip"/"$rmk
-  $NB_CMD lrp-set-gateway-chassis $fport $($SB_CMD show | grep -B 3 "$THISIP" | grep Chassis | awk -F"\"" '{print$2}')
-
-  
-  pswn="public-"${vmmac//:/}"-"$(hostname)
-  
-  $NB_CMD ls-add $pswn
-  $NB_CMD lsp-add $pswn "to-"$pswn
-  $NB_CMD lsp-set-type "to-"$pswn router
-  $NB_CMD lsp-set-addresses "to-"$pswn $imac
-  $NB_CMD lsp-set-options "to-"$pswn router-port=$fport
-  
-  
-  $NB_CMD lsp-add $pswn $pswn"-localnet"
-  $NB_CMD lsp-set-addresses $pswn"-localnet" unknown
-  $NB_CMD lsp-set-type $pswn"-localnet" localnet
-  $NB_CMD lsp-set-options $pswn"-localnet" network_name=$pswn
-  
-  ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings=$pswn:br-ex
-
-  $NB_CMD lr-nat-add $router dnat_and_snat $ip $vmip
-  $NB_CMD lr-nat-add $router dnat_and_snat $pip $vmip
-}
-
-function unbind-fip()
-{
-  switch=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
-  vmmac=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
-  fip=$(echo $* | awk -F"--fip" '{print$2}' | awk '{print$1}')
-
-  if [[ -z $1 || -z $switch || -z $vmmac || -z $fip ||  $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--swName  \tswitch name" >&2
-    echo -e "--vmmac   \tvm mac" >&2
-    echo -e "--fip     \tfip" >&2
-    exit 1
-  fi
-
-  pswn="public-"${vmmac//:/}"-"$(hostname)
-  $NB_CMD ls-del $pswn
-
-  router="r4"$switch
-  fport="from-"$router"-"${vmmac//:/}
-  $NB_CMD lrp-del $fport
-  pip=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".250"
-  $NB_CMD lr-nat-del $router dnat_and_snat $fip
-  $NB_CMD lr-nat-del $router dnat_and_snat $pip
-}
 
 ###########################################################
 ##
@@ -850,19 +779,18 @@ function create-acl()
   fi
     
   port=$($NB_CMD show | grep -B 1 "$vm" | grep port | awk '{print$2}')
+  
   rule=""
   
   if [[ -z $port ]]
   then
-    rule="\""$ioport" == "$rl"\""
+    rule=$ioport" == "$rl
   else
-    rule="\""$ioport" == \\\""$port"\\\" && "$rl"\""
+    rule=$ioport" == \"$port\" && "$rl
   fi
   
-  cmd="$NB_CMD acl-add "$sw" "$ftport" "$pr" "$rule" "$operator
-  $(cmd)
+  $NB_CMD acl-add $sw $ftport $pr "$rule" $operator
 }
-
 
 function modify-acl()
 {
@@ -870,6 +798,7 @@ function modify-acl()
   create-acl $*
 }
 
+# [--type={switch | port-group}] acl-del entity [direction [priority match]]
 function delete-acl()
 {
   do=$(echo $* | awk -F"--domain" '{print$2}' | awk '{print$1}')
@@ -920,17 +849,17 @@ function delete-acl()
   fi
     
   port=$($NB_CMD show | grep -B 1 "$vm" | grep port | awk '{print$2}')
+  
   rule=""
   
   if [[ -z $port ]]
   then
-    rule="\""$ioport" == "$rl"\""
+    rule=$ioport" == "$rl
   else
-    rule="\""$ioport" == \\\""$port"\\\" && "$rl"\""
+    rule=$ioport" == \"$port\" && "$rl
   fi
-  
-  cmd="$NB_CMD acl-del "$sw" "$ftport" "$pr" "$rule
-  $(cmd)
+ 
+  $NB_CMD acl-del $sw $ftport $pr "$rule"
 }
 
 

@@ -1467,9 +1467,9 @@ def main():
                     content_file = '%s/content' % pool_path
                     if os.path.exists(content_file):
                         with open(content_file, 'r') as fr:
-                            pool_content = fr.read()
+                            pool_content = fr.read().strip()
                         if pool_content != 'vmd':
-                            del paths[pool_name]                       
+                            del paths[pool_name]
                 # unschedule not exist pool path
                 watchers = {}
                 for path in OLD_PATH_WATCHERS.keys():

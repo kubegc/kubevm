@@ -801,12 +801,13 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
 #                             runCmd(cmd)
                     status = 'Done(Success)'
                     if _isDeleteDiskExternalSnapshot(the_cmd_key):
-                        for delete_ss in data['delete_ss']:
-                            try:
-                                deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
-                            except ApiException, e:
-                                if e.reason == 'Not Found':
-                                    logger.debug('**Object %s already deleted.' % delete_ss)
+                        if data['delete_ss']:
+                            for delete_ss in data['delete_ss']:
+                                try:
+                                    deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
+                                except ApiException, e:
+                                    if e.reason == 'Not Found':
+                                        logger.debug('**Object %s already deleted.' % delete_ss)
                         try:
                             modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
                         except Exception:

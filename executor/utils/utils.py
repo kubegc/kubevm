@@ -157,7 +157,7 @@ def get_l3_network_info(name):
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show r4%s' % (master_ip, nb_port, name))
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s-router' % (master_ip, nb_port, name))
     (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []

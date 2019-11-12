@@ -22,6 +22,7 @@ from utils import logger
 from libvirt_event_handler import main as libvirt_event_handler
 from os_event_handler import main as os_event_handler
 from host_cycler import main as host_cycler
+from monitor import main as monitor
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -64,6 +65,10 @@ def main():
             thread_3.daemon = True
             thread_3.name = 'host_cycler'
             thread_3.start()
+            thread_4 = Thread(target=monitor)
+            thread_4.daemon = True
+            thread_4.name = 'monitor'
+            thread_4.start()
             try:
                 while True:
                     time.sleep(1)
@@ -73,6 +78,7 @@ def main():
             thread_2.join()
 #             if not is_kubernetes_master():
             thread_3.join()
+            thread_4.join()
         except:
             logger.error('Oops! ', exc_info=1)
             

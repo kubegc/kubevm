@@ -1,4 +1,4 @@
-FROM centos:7.6
+FROM centos:7.6.1810
 
 RUN yum install epel-release -y
 

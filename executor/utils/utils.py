@@ -7,6 +7,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 from json import loads, load
 
 from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
+import json
 
 '''
 Import python libs
@@ -217,6 +218,18 @@ def get_l3_network_info(name):
     data['gatewayInfo'] = gatewayInfo
     return data
 
+def get_field_in_kubernetes_node(name, index):
+    try:
+        v1_node_list = client.CoreV1Api().list_node(label_selector='host=%s' % name)
+        jsondict = v1_node_list.to_dict()
+        items = jsondict.get('items')
+        if items:
+            return get_field(items[0], index)
+        else:
+            return None
+    except:
+        return None
+
 def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     try:
         if not index or not list(index):
@@ -229,20 +242,19 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     
 def get_field(jsondict, index):
     retv = None
-    spec = get_spec(jsondict)
-    if spec:
-        '''
-        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-        Note that only the first CMD will be executed.
-        '''
-        contents = spec
-        for layer in index[:-1]:
-            contents = contents.get(layer)
-        if not contents:
-            return None
-        for k, v in contents.items():
-            if k == index[-1]:
-                retv = v
+    '''
+    Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+    Note that only the first CMD will be executed.
+    '''
+    contents = jsondict
+    for layer in index[:-1]:
+        print(contents)
+        contents = contents.get(layer)
+    if not contents:
+        return None
+    for k, v in contents.items():
+        if k == index[-1]:
+            retv = v
     return retv
     
 def get_volume_snapshots(path):

@@ -431,11 +431,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 # logger.debug(jsondict)
                 if not pool_name:
-                    pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                    pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['spec', 'volume', 'pool'])
                     logger.debug(pool_name)
                 if _isCreateDiskFromDiskImage(the_cmd_key):
 #                     image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
-#                     source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
+#                     source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['spec', 'volume', 'pool'])
 #                     jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
                     pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -607,7 +607,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     logger.error('Oops! ', exc_info=1)
                 sourcePool = _get_field(jsondict, the_cmd_key, 'sourcePool')
                 if not sourcePool:
-                    sourcePool = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                    sourcePool = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['spec', 'volume', 'pool'])
                     jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', sourcePool)
 #                 (jsondict, operation_queue, rollback_operation_queue) \
 #                     = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)

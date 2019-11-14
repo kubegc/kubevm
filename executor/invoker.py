@@ -1220,7 +1220,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         if cmd:
                             runCmd(cmd)
                     status = 'Done(Success)'
-                    if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key):
+                    if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key) and not _isDeleteAddress(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -1501,12 +1501,15 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         if plural == PLURAL_VM_NETWORK:
             if the_cmd_key in L3NETWORKSUPPORTCMDS:
                 if the_cmd_key.endswith('Address'):
+                    net_type = 'l3address'
                     retv = get_address_set_info(name)
                 else:
+                    net_type = 'l3network'
                     retv = get_l3_network_info(name)
             else:
+                net_type = 'l2network'
                 retv = get_l2_network_info(name)
-            jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'data': retv}
+            jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'data': retv, 'type': net_type}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
         elif plural == PLURAL_VM_DISK:   
@@ -1899,6 +1902,11 @@ def _isDeleteNetwork(the_cmd_key):
 
 def _isDeleteBridge(the_cmd_key):
     if the_cmd_key == "deleteBridge":
+        return True
+    return False
+
+def _isDeleteAddress(the_cmd_key):
+    if the_cmd_key == "deleteAddress":
         return True
     return False
 

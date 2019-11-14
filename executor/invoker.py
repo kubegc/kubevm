@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
@@ -1500,12 +1500,13 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         
         if plural == PLURAL_VM_NETWORK:
             if the_cmd_key in L3NETWORKSUPPORTCMDS:
-                net_type = 'layer3'
-                retv = get_l3_network_info(name)
+                if the_cmd_key.endswith('Address'):
+                    retv = get_address_set_info(name)
+                else:
+                    retv = get_l3_network_info(name)
             else:
-                net_type = 'layer2'
                 retv = get_l2_network_info(name)
-            jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'type': net_type, 'data': retv}
+            jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'data': retv}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
         elif plural == PLURAL_VM_DISK:   

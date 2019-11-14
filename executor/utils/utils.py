@@ -76,7 +76,7 @@ def modify_token(vm_name, op):
                 f.write(newline)
 
 def get_l2_network_info(name):
-    data = {'bridgeInfo': {}}
+    data = {'bridgeInfo': {}, 'type': 'l2network'}
     '''
     Get bridge informations.
     '''
@@ -113,7 +113,7 @@ def get_l3_network_info(name):
     master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
     nb_port = '6641'
     sb_port = '6642'
-    data = {'switchInfo': '', 'routerInfo': '', 'gatewayInfo': ''}
+    data = {'switchInfo': '', 'routerInfo': '', 'gatewayInfo': '', 'type': 'l3network'}
     '''
     Get switch informations.
     '''
@@ -216,6 +216,32 @@ def get_l3_network_info(name):
         elif line.find('lease_time') != -1:
             (_, gatewayInfo['lease_time']) = line.strip().split('=')
     data['gatewayInfo'] = gatewayInfo
+    return data
+
+def get_address_set_info(name):
+    cfg = "/etc/kubevmm/config"
+    if not os.path.exists(cfg):
+        cfg = "/home/kubevmm/bin/config"
+    config_raw = parser()
+    config_raw.read(cfg)
+    token = config_raw.get('Kubernetes', 'token_file')
+    
+    master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
+    nb_port = '6641'
+    data = {'addressSetInfo': '', 'type': 'l3address'}
+    addressInfo = {'uuid': '', 'addresses': [], 'external_ids': {}, 'name': ''}
+    cmd = 'ovn-nbctl --db=tcp:%s:%s list Address_Set %s' % (master_ip, nb_port, name)
+    lines = runCmdRaiseException(cmd)
+    for line in lines:
+        if line.find('_uuid') != -1:
+            (_, addressInfo['uuid']) = line.strip().split(': ')
+        elif line.find('addresses') != -1:
+            (_, addressInfo['addresses']) = line.strip().split(': ')
+        elif line.find('external_ids') != -1:
+            (_, addressInfo['external_ids']) = line.strip().split(': ')
+        elif line.find('name') != -1:
+            (_, addressInfo['name']) = line.strip().split(': ')
+    data['addressSetInfo'] = addressInfo
     return data
 
 def get_field_in_kubernetes_node(name, index):

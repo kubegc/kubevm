@@ -241,8 +241,8 @@ def collect_vm_metrics(vm, zone):
         vm_network_send_packages_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_write_packages_per_secend'])
     return resource_utilization
 
-def set_vm_mem_period(vm, sec):
-    runCmdRaiseException('virsh dommemstat --period %s --domain %s --config --live' % (str(sec), vm))
+# def set_vm_mem_period(vm, sec):
+#     runCmdRaiseException('virsh dommemstat --period %s --domain %s --config --live' % (str(sec), vm))
     
 def get_vm_collector_threads():
     config.load_kube_config(config_file=TOKEN)
@@ -251,7 +251,6 @@ def get_vm_collector_threads():
     while True:
         vm_list = list_active_vms()
         for vm in vm_list:
-            set_vm_mem_period(vm, 5)
             t = threading.Thread(target=collect_vm_metrics,args=(vm,zone,))
             t.setDaemon(True)
             t.start()

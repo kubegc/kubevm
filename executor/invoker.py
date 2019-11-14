@@ -1635,12 +1635,14 @@ def _vm_priori_step(the_cmd_key, jsondict):
         
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
     operations_queue = []
+    balloon_operation_queue = []
     network_operations_queue = []
     disk_operations_queue = []
     graphic_operations_queue = []
     redefine_vm_operations_queue = []
     vm_password_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
+        balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         '''
         Parse network configurations
         '''
@@ -1650,6 +1652,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
     if _isInstallVMFromImage(the_cmd_key):
+        balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
         if not os.path.exists(template_path):
             raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
@@ -1703,6 +1706,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         vm_password_operations_queue = _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)     
+    operations_queue.extend(balloon_operation_queue)
     operations_queue.extend(network_operations_queue)
     operations_queue.extend(disk_operations_queue)
     operations_queue.extend(graphic_operations_queue)

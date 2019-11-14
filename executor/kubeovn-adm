@@ -1,26 +1,102 @@
-#!/bin/bash
+#! /bin/bash
 ###############################################
 ##
 ##  Copyright (2019, ) Institute of Software
 ##      Chinese Academy of Sciences
 ##          wuheng@otcaixiscas.ac.cn
 ##         wuyuewen@otcaix.iscas.ac.cn
-##              2019-11-4
+##              2019-9-24
 ##
 ###############################################
 
-export LD_LIBRARY_PATH="/usr/lib64"
+## OVN plugin version
 
-MASTER=$(cat /etc/ovn-emulator.conf | grep master | awk -F"=" '{print$2}')
-THISIP=$(cat /etc/ovn-emulator.conf | grep thisip | awk -F"=" '{print$2}')
 VERSION="1.5.0"
 IFCFG="/etc/sysconfig/network-scripts/"
+
+## OVN Tables
+
+TABLE_DNS="DNS"
+TABLE_ACL="ACL"
+TABLE_SWITCH="Logical_Switch"
+TABLE_LOADBALANCER="Load_Balancer"
+TABLE_GATEWAY="Gateway_Chassis"
+TABLE_ROUTER="Logical_Router"
+TABLE_LRSR="Logical_Router_Static_Route"
+
+TABLE_LRP="Logical_Router_Port"
+TABLE_LSP="Logical_Switch_Port"
+TABLE_PORTGROUP="Port_Group"
+
+TABLE_NBG="NB_Global"
+TABLE_METER_BAND="Meter_Band"
+TABLE_METWR="Meter"
+TABLE_ADDR="Address_Set"
+TABLE_QOS="QoS"
+TABLE_NAT="NAT"
+TABLE_CONN="Connection"
+TABLE_SSL="SSL"
+TABLE_DHCP="DHCP_Options"
+
+
+## OVN core, please install Kubernetes first
+
+MASTER=$(cat /root/.kube/config  | grep server |awk -F"server:" '{print$2}' | awk -F"https://" '{print$2}' | awk -F":" '{print$1}')
+THISIP=$(kubectl get node vm.$(hostname) -o yaml | grep -B 1 "type: InternalIP" | grep address | awk -F": " '{print$2}')
 
 NB_PORT="6641"
 SB_PORT="6642"
 
 NB_CMD="ovn-nbctl --db=tcp:$MASTER:$NB_PORT"
 SB_CMD="ovn-sbctl --db=tcp:$MASTER:$SB_PORT"
+
+###########################################################
+##
+##  Utils
+##
+##########################################################
+
+function checkOVSStatus()
+{
+  res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
+  if [[ $res != "active" ]]
+  then
+    echo "please start openvswitch first" >&2
+    exit 1
+  fi
+}
+
+function checkNICConfig()
+{
+  nic=$1
+  if [[ ! -f $IFCFG"ifcfg-$nic" ]]
+  then
+    echo "wrong NIC name" >&2
+    exit 1
+  fi  
+}
+
+function checkDuplicate()
+{
+  name=$1
+  sid=$($NB_CMD ls-list | grep "($name)" | awk '{print$1}')
+  if [[ -n $sid ]]
+  then
+    echo "cannot connect the master or the switch name exists" >&2
+    exit 1
+  fi
+}
+
+function checkDHCP()
+{
+  dhcpid=$1
+  if [[ -z $dhcpid ]]
+  then 
+    echo -e "invalid switch name"  >&2
+	exit 1
+  fi
+}
+
 
 ###########################################################
 ##
@@ -79,22 +155,42 @@ function stop-worker()
   systemctl disable ovn-controller
 }
 
-function init-network()
+function clear()
 {
-  nic=$(echo $* | awk -F"--nic" '{print$2}' | awk '{print$1}')
-  
-  if [[ -z $nic ]]
-  then
-    cmddesc
-    echo -e "--nic   \tnic name" >&2
-    exit 1
-  fi
-   
-  create-bridge --name br-ex --nic $nic   
+  rm -rf /etc/openvswitch/*db* 2>&1
+  rm -rf /etc/openvswitch/.* 2>&1
+  rm -rf /etc/openvswitch/system-id.conf 2>&1
 }
 
-function init-netconfig-ifneed()
+
+###########################################################
+##
+##  L2 bridge
+##
+##########################################################
+
+
+function create-bridge()
 {
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  nic=$(echo $* | awk -F"--nic" '{print$2}' | awk '{print$1}')
+  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $nic || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name  \tbridge name" >&2
+    echo -e "--nic   \tnic name" >&2
+    echo -e "--vlan  \tvlan id, default is \"vlan=0\"" >&2
+    exit 1
+  fi
+
+  if [[ -z $vlan ]]
+  then
+    vlan=0
+  fi
+
+  ################################
   if [[ ! -f $IFCFG"ifcfg-BRX" ]]
   then
      echo DEVICE=BRX           >> /etc/sysconfig/network-scripts/ifcfg-BRX
@@ -111,20 +207,39 @@ function init-netconfig-ifneed()
      echo DEVICETYPE=ovs       >> /etc/sysconfig/network-scripts/ifcfg-ORG
      echo OVS_BRIDGE=BRX       >> /etc/sysconfig/network-scripts/ifcfg-ORG
   fi
-}
+  ################################
+  ################################
+  res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
+  if [[ $res != "active" ]]
+  then
+    echo "please start openvswitch first" >&2
+    exit 1
+  fi
 
-function generate-netconfig()
-{
-  name=$1
-  nic=$2
+  if [[ ! -f $IFCFG"ifcfg-$nic" ]]
+  then
+    echo "wrong NIC name" >&2
+    exit 1
+  fi  
 
+  ################################
+  ################################
+  
   if [[ ! -f $IFCFG"ifcfg-$nic.bak" ]]
   then
     cp $IFCFG"ifcfg-$nic" $IFCFG"ifcfg-$nic.bak"
   fi
 
-  mv -f $IFCFG"ifcfg-ORG" $IFCFG"ifcfg-$nic"
-  mv -f $IFCFG"ifcfg-BRX" $IFCFG"ifcfg-$name"
+  rm -rf $IFCFG"ifcfg-$nic"
+  rm -rf $IFCFG"ifcfg-$name"
+
+  mv $IFCFG"ifcfg-ORG" $IFCFG"ifcfg-$nic"
+  mv $IFCFG"ifcfg-BRX" $IFCFG"ifcfg-$name"
+
+  ovs-vsctl --if-exist del-br $name
+  ovs-vsctl add-br $name
+  ovs-vsctl add-br $name"-"$vlan $name $vlan
+  ovs-vsctl set interface $name"-"$vlan type=internal
 
   static=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep static)
   ip=$(cat $IFCFG"ifcfg-$nic.bak" | grep IPADDR)
@@ -136,8 +251,6 @@ function generate-netconfig()
   sed -i "s/BRX/$name/g" $IFCFG"ifcfg-$name"
   sed -i "s/BRX/$name/g" $IFCFG"ifcfg-$nic"
   sed -i "s/ORG/$nic/g" $IFCFG"ifcfg-$nic"
-  
-  
   if [[ -z $static ]]
   then
     echo "BOOTPROTO=dhcp" >> $IFCFG"ifcfg-$name"
@@ -148,94 +261,8 @@ function generate-netconfig()
     echo $gw >> $IFCFG"ifcfg-$name"
     echo $dns >> $IFCFG"ifcfg-$name"
   fi
-}
 
-###########################################################
-##
-##  L2 bridge
-##
-##########################################################
-
-
-function checkOVSStatus()
-{
-  res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
-  if [[ $res != "active" ]]
-  then
-    echo "please start openvswitch first" >&2
-    exit 1
-  fi
-}
-
-function checkNICConfig()
-{
-  nic=$1
-  if [[ ! -f $IFCFG"ifcfg-$nic" ]]
-  then
-    echo "wrong NIC name" >&2
-    exit 1
-  fi  
-}
-
-function checkDuplicate()
-{
-  name=$1
-  sid=$($NB_CMD ls-list | grep "($name)" | awk '{print$1}')
-  if [[ -n $sid ]]
-  then
-    echo "cannot connect the master or the switch name exists" >&2
-    exit 1
-  fi
-}
-
-function checkDHCP()
-{
-  dhcpid=$1
-  if [[ -z $dhcpid ]]
-  then 
-    echo -e "invalid switch name"  >&2
-	exit 1
-  fi
-}
-
-function create-bridge()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  nic=$(echo $* | awk -F"--nic" '{print$2}' | awk '{print$1}')
-  vlan=$(echo $* | awk -F"--vlan" '{print$2}' | awk '{print$1}')
-
-  if [[ -z $1 || -z $name || -z $nic || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name  \tbridge name" >&2
-    echo -e "--nic   \tnic name" >&2
-    echo -e "--vlan  \tvlan id, default is \"vlan=0\"" >&2
-    exit 1
-  fi
-  
-  ## check
-  checkOVSStatus
-  checkNICConfig
-  
-  ## init
-  init-netconfig-ifneed
-  
-  ## generate
-  generate-netconfig $name $nic
-
-  ## create and config
-  
-  if [[ -z $vlan ]]
-  then
-    vlan=0
-  fi
-  
-  ovs-vsctl --if-exist del-br $name
-  ovs-vsctl add-br $name
-  ovs-vsctl add-br $name"-"$vlan $name $vlan
-  ovs-vsctl set interface $name"-"$vlan type=internal
   ovs-vsctl add-port $name $nic && ifdown $nic && ifup $nic && ifup $name
-  
   ip link set dev $nic promisc on
   ip link set dev $name promisc on
 }
@@ -253,20 +280,32 @@ function delete-bridge()
     exit 1
   fi
 
-  ## check
-  
-  checkOVSStatus
-  checkNICConfig
-  
+  ################################
+  res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
+  if [[ $res != "active" ]]
+  then
+    echo "please start openvswitch first" >&2
+    exit 1
+  fi
+
+  if [[ ! -f $IFCFG"ifcfg-$nic" ]]
+  then
+    echo "wrong NIC name" >&2
+    exit 1
+  fi
+
+  ################################
+
+  rm -rf $IFCFG"ifcfg-$name"
+
   if [[ ! -f $IFCFG"ifcfg-$nic.bak" ]]
   then
     echo "$nic is not a part of openvswitch" >&2
     exit 1
-  fi
-
-  ## revert and delete
-  rm -rf $IFCFG"ifcfg-$name" 
+  fi 
   rm -rf $IFCFG"ifcfg-$nic"
+
+ 
   mv -f $IFCFG"ifcfg-$nic.bak" $IFCFG"ifcfg-$nic"
 
   ovs-vsctl --if-exist del-br $name && ifdown $nic && ifup $nic
@@ -320,55 +359,12 @@ function delbridge-vlan()
   ovs-vsctl --if-exist del-br $name"-"$vlan
 }
 
+
 ###########################################################
 ##
-##  L3 switch
+##  l3 switch
 ##
-##########################################################
-
-## Just Switch
-
-function just-switch()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  subn=$(echo $* | awk -F"--subnet" '{print$2}' | awk '{print$1}')
-  
-  if [[ -z $1 || -z $name || -z $subn || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name  \tswitch name" >&2
-    echo -e "--subnet\tIP range. for example, 192.168.1.0/24"  >&2
-    exit 1
-  fi
-
-  sid=$($NB_CMD ls-list | grep "($name)" | awk '{print$1}')
-  if [[ -n $sid ]]
-  then
-    echo "cannot connect the master or the switch name exists" >&2
-    exit 1
-  fi
-  
-  router='r4'$name
-  rport='rp4'$name
-  rmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
-  rip=$(echo $subn | awk -F"." '{print$1"."$2"."$3}')".1"
-  rmk=$(echo $subn | awk -F"/" '{print$2}')
-  $NB_CMD lr-add $router
-  $NB_CMD lrp-add $router $rport $rmac $rip"/"$rmk
-  
-  sport='sp4'$name
-  $NB_CMD ls-add $name
-  $NB_CMD set Logical_Switch $name other_config:subnet=$subn
-  $NB_CMD lsp-add $name $sport
-  $NB_CMD lsp-set-type $sport router
-  $NB_CMD lsp-set-addresses $sport $rmac
-  $NB_CMD lsp-set-options $sport router-port=$rport
-
-  #dmac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
-  #dip=$(echo $subn | awk -F"." '{print$1"."$2"."$3}')".128" 
-  did=$($NB_CMD create DHCP_Options cidr=$subn options="\"server_id\"=\"$rip\" \"server_mac\"=\"$rmac\" \"lease_time\"=\"3600\" \"router\"=\"$rip\"")
-  $NB_CMD lsp-add $name "dhcpv4id-$name-"$did
-}
+###########################################################
 
 
 ## Create a switch with a default DHCP
@@ -591,6 +587,208 @@ function delete-switch()
  
 }
 
+## Bind a switch port
+
+function bind-swport()
+{
+  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
+  switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $mac || -z $switch || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--switch    \tswitch name" >&2
+    echo -e "--mac       \tvirtual NIC mac" >&2
+    echo -e "--ip        \tvirtual NIC IP (optional)" >&2
+    exit 1
+  fi
+
+  name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
+  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $ip ]]
+  then
+    ip='dynamic'
+  fi
+
+  sid=$($NB_CMD ls-list | grep "($switch)" |awk '{print$1}')
+  if [[ -z $sid ]]
+  then
+    echo "cannot connect the master or the switch name does not exist" >&2
+    exit 1
+  fi
+
+  nic=$(ovs-vsctl show | grep \""$name\"")
+  if [[ -z $nic ]]
+  then
+    echo "NIC does not exist" >&2
+    exit 1
+  fi
+
+  iface=$(ovs-vsctl get interface $name external_ids:iface-id | sed s/\"//g)
+  ifmac=$(ovs-vsctl get interface $name external_ids:attached-mac | sed s/\"//g)
+  dhcpid=$($NB_CMD show | grep "dhcpv4id-$switch-" | awk -F"dhcpv4id-$switch-" '{print$2}')
+  $NB_CMD --if-exists lsp-del $iface
+  $NB_CMD lsp-add $switch $iface
+  $NB_CMD lsp-set-addresses $iface "$ifmac $ip"
+  $NB_CMD lsp-set-dhcpv4-options $iface $dhcpid
+  ovs-vsctl set interface $name external_ids:iface-id=$iface
+}
+
+## Unbind a switch port
+
+function unbind-swport()
+{
+  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
+  
+  if [[ -z $1 || -z $mac || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--mac      \tvirtual NIC mac" >&2
+    exit 1
+  fi
+
+  iface=$($NB_CMD show | grep -B 1 "$mac"  | grep port | awk 'NR==1{print$2}')
+  if [[ -z $iface ]]
+  then
+    echo "mac does not exist" >&2
+    exit 1
+  fi
+  $NB_CMD --if-exists lsp-del $iface
+}
+
+# Set vxlan id for port
+
+function setport-vxlan()
+{
+  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
+  vlan=$(echo $* | awk -F"--vxlan" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $mac || -z $vxlan || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--mac      \tvirtual NIC mac" >&2
+    echo -e "--vxlan      \tvlan id" >&2
+    exit 1
+  fi
+
+  name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
+  
+  if [[ -z $name ]]
+  then
+    echo "NIC not exist." >&2
+    exit 1
+  fi
+
+  ovs-vsctl set port $name tag=$vxlan
+}
+
+# Delete port's vxlan id
+
+function delport-vxlan()
+{
+  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $mac || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--mac      \tvirtual NIC mac" >&2
+    exit 1
+  fi
+
+  name=$(ovs-vsctl list interface | grep -A 14 "$mac" | grep name | awk -F"\"" '{print$2}')
+
+  if [[ -z $name ]]
+  then
+    echo "NIC not exist." >&2
+    exit 1
+  fi
+
+  vxlan=$(ovs-vsctl get port $name tag)
+
+  if echo $vxlan | grep -q '[^0-9]'
+  then
+    exit 0
+  fi
+  
+  ovs-vsctl remove port $name tag $vxlan
+  ovs-vsctl set interface $name type=internal
+}
+
+function create-fip()
+{
+  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
+  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
+
+  if [[ -z $1 || -z $name || -z $ip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--name      \tPhysical NIC name" >&2
+    echo -e "--ip        \tFloating IP" >&2
+    exit 1
+  fi
+
+  ne=$(ip a | grep $name)
+  if [[ -z $ne ]]
+  then
+    echo "Physical NIC not exist" >&2
+    exit 1
+  fi
+
+  ie=$(ip a | grep $ip)
+  if [[ -n $ie ]]
+  then
+    echo "IP exist" >&2
+    exit 1
+  fi 
+
+  for i in `seq 1 1000`
+  do
+    fname=$name":"$i
+    if [[ -f /etc/sysconfig/network-scripts/ifcfg-$fname ]]
+    then
+      continue
+    fi
+    mask=$(ip a | grep -A 1 $name | grep inet | awk 'NR==1' |awk '{print$2}' | awk -F"/" '{print$2}')
+    rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "DEVICE=$fname" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "BOOTPROTO=static" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "ONBOOT=yes" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "NM_CONTROLLED=no" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "IPADDR=$ip" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    echo "PREFIX=$mask" >> /etc/sysconfig/network-scripts/ifcfg-$fname
+    ifup $fname
+    exit 0
+  done
+
+  echo "too much floating IPs" >&2
+  exit 1   
+
+}
+
+
+function delete-fip()
+{
+  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
+  fname=$(ip a | grep $ip | awk '{print$NF}')
+
+  if [[ -z $1 || -z $ip || $2 == "--help" ]]
+  then
+    cmddesc
+    echo -e "--ip        \tFloating IP" >&2
+    exit 1
+  fi
+
+  if [[ -z $fname ]]
+  then
+    echo "wrong IP, cannot find a NIC with the IP" >&2
+    exit 1
+  fi
+
+  ifconfig $fname down
+  rm -rf /etc/sysconfig/network-scripts/ifcfg-$fname
+}
+
 function bind-fip()
 {
   switch=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
@@ -616,19 +814,21 @@ function bind-fip()
   router=$switch"-router"
   fport="public-"${vmmac//:/}"-port"
   ip=$(echo $fip | awk -F"/" '{print$1}')
-  
+  #rmk=$(echo $fip | awk -F"/" '{print$2}')
+  #pip=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".250"
   imac=$(printf '00:60:2F:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
   
-  $NB_CMD lrp-add $router $fport  $imac $fip
+  $NB_CMD lrp-add $router $fport $imac $fip
+
+  pswn="public-"${vmmac//:/}"-"$(hostname)
   
   $NB_CMD lsp-add $os "from-"$fport
   $NB_CMD lsp-set-type "from-"$fport router
   $NB_CMD lsp-set-addresses "from-"$fport $imac
   $NB_CMD lsp-set-options "from-"$fport router-port=$fport
-
-  #$NB_CMD lr-nat-add $router dnat_and_snat $ip $vmip
-  $NB_CMD lr-nat-add $router snat $ip $vmip
+  
   $NB_CMD lr-nat-add $router dnat $ip $vmip
+  $NB_CMD lr-nat-add $router snat $ip $vmip
   
 }
 
@@ -637,6 +837,7 @@ function unbind-fip()
   switch=$(echo $* | awk -F"--swName" '{print$2}' | awk '{print$1}')
   vmmac=$(echo $* | awk -F"--vmmac" '{print$2}' | awk '{print$1}')
   fip=$(echo $* | awk -F"--fip" '{print$2}' | awk '{print$1}')
+  vmip=$(echo $* | awk -F"--vmip" '{print$2}' | awk '{print$1}')
 
   if [[ -z $1 || -z $switch || -z $vmmac || -z $fip || -n $(echo $fip | grep "/") ||  $2 == "--help" ]]
   then
@@ -644,6 +845,7 @@ function unbind-fip()
     echo -e "--swName  \tswitch name" >&2
     echo -e "--vmmac   \tvm mac" >&2
     echo -e "--fip     \tfip" >&2
+    echo -e "--vmip    \tvmip" >&2
     exit 1
   fi
 
@@ -652,9 +854,8 @@ function unbind-fip()
   router=$switch"-router"
   fport="public-"${vmmac//:/}"-port"
   $NB_CMD lrp-del $fport
-  #$NB_CMD lr-nat-del $router dnat_and_snat $fip
-  $NB_CMD lr-nat-del $router dnat $fip
   $NB_CMD lr-nat-del $router snat $fip
+  $NB_CMD lr-nat-del $router dnat $vmip
 }
 
 ###########################################################
@@ -834,7 +1035,7 @@ function create-qos()
     echo -e "--domain     \tdomain" >&2
     echo -e "--seName     \tswitch name" >&2
     echo -e "--type       \ttype, from or to"  >&2
-    echo -e "--rule       \tprotocol, IP, tcp"  >&2
+    echo -e "--rule       \trule, IP, tcp"  >&2
     echo -e "--rate       \trate, kbps"  >&2
     echo -e "--burst      \toptional, burst, kbps"  >&2
     echo -e "--priority   \toptional, 1-32767"  >&2
@@ -923,8 +1124,6 @@ function delete-qos()
   fi
 }
 
-
-
 ###########################################################
 ##
 ##  Address
@@ -980,116 +1179,51 @@ function delete-address()
   $NB_CMD destroy Address_Set $name
 }
 
-
 ###########################################################
 ##
-##  Simulate VM
-##
-########################################################## 
-
-function create-vm()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}')
-  mac=$(echo $* | awk -F"--mac" '{print$2}' | awk '{print$1}')
-  ip=$(echo $* | awk -F"--ip" '{print$2}' | awk '{print$1}')
-  gway=$(echo $* | awk -F"--gateway" '{print$2}' | awk '{print$1}')
-
-  if [[ -z $1 || -z $name || -z $mac || -z $ip || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name       \tVM name" >&2
-    echo -e "--switch     \tSee kubeovn create-switch" >&2
-    echo -e "--mac        \tMac"  >&2
-    echo -e "--ip         \tIP"  >&2
-    echo -e "--gateway    \tOptinal, Gateway"  >&2
-    exit 1
-  fi
-
-  delete-vm $*
-
-  if [[ -z $gway ]]
-  then
-    gway=$(echo $ip | awk -F"." '{print$1"."$2"."$3}')".1"
-  fi
-
-  sudo ip netns add $name
-  sudo ip link add $name type veth peer name veth-$name
-  sudo ip link set veth-$name up
-  sudo ip link set $name netns $name
-  sudo ip netns exec $name ip link set $name addres $mac
-  sudo ip netns exec $name ip link set $name up
-  sudo ovs-vsctl add-port br-int veth-$name
-
-  sudo $NB_CMD lsp-add $switch $switch-$name
-  sudo $NB_CMD lsp-set-addresses $switch-$name "$mac $ip"
-  
-  sudo ovs-vsctl set Interface  veth-$name external_ids:iface-id=$switch-$name
-  sudo ip netns exec $name ip addr add $ip/24 dev $name
-  sudo ip netns exec $name ip route add default via $gway
-}
-
-
-function delete-vm()
-{
-  name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
-  switch=$(echo $* | awk -F"--switch" '{print$2}' | awk '{print$1}') 
- 
-  if [[ -z $1 || -z $name || -z $switch || $2 == "--help" ]]
-  then
-    cmddesc
-    echo -e "--name       \tVM name" >&2
-    echo -e "--switch     \tswitch" >&2
-    exit 1
-  fi
-
-  sudo $NB_CMD lsp-del $switch"-"$name >/dev/null  2>&1 
-  sudo ovs-vsctl del-port br-int "veth-"$name >/dev/null  2>&1 
-  sudo ip netns del $name >/dev/null  2>&1 
-}
-
-###########################################################
-##
-##  Info
+##  help
 ##
 ##########################################################
 
 function cmddesc()
 {
-  echo -e "Welcome to ovn-emulator, you can build your expected network enviroments."
-  echo -e "ovn-emulator($VERSION): missing command name (use --help for help)\n"
+  echo -e "Welcome to ovnctl, the ovn plugin for Kubernetes."
+  echo -e "ovnctl($VERSION): missing command name (use --help for help)\n"
 }
+
 
 function help()
 {
+  cmddesc
   echo -e "Commands:"
-  echo -e "  start-central  :\t(Init): start central node"
-  echo -e "  stop-central   :\t(Init): stop  central node"
-  echo -e "  start-worker   :\t(Init): start worker  node"
-  echo -e "  stop-worker    :\t(Init): stop  worker  node"
-  echo -e "  init-network   :\t(Init): create br-ex"
-  echo -e "  create-bridge  :\t(L2  ): create L2 bridge"
-  echo -e "  delete-bridge  :\t(L2  ): delete L2 bridge"
+  echo -e "  start-central  :\t(Init): Start central node"
+  echo -e "  stop-central   :\t(Init): Stop  central node"
+  echo -e "  start-worker   :\t(Init): Start worker  node"
+  echo -e "  stop-worker    :\t(Init): Stop  worker  node"
+  echo -e "  create-bridge  :\t(L2  ): Create L2 bridge"
+  echo -e "  create-bridge  :\t(L2  ): Create L2 bridge"
   echo -e "  setbridge-vlan :\t(L2  ): Set L2 bridge vlan"
   echo -e "  delbridge-vlan :\t(L2  ): Delete L2 bridge vlan"
-  echo -e "  just-switch    :\t(L3  ): create L3 switch"
-  echo -e "  create-switch  :\t(L3  ): create L3 switch and gateway"
-  echo -e "  modify-switch  :\t(L3  ): modify L3 switch and gateway"
-  echo -e "  delete-switch  :\t(L3  ): delete L3 switch and gateway"
-  echo -e "  bind-fip       :\t(L3  ): bind floating IP"
-  echo -e "  unbind-fip     :\t(L3  ): unbind floating IP"
+  echo -e "  create-fip     :\t(L2  ): Create L2's floating IP"
+  echo -e "  delete-fip     :\t(L2  ): Delete L2's floating IP"
+  echo -e "  create-switch  :\t(L3  ): Create L3 switch and gateway"
+  echo -e "  modify-switch  :\t(L3  ): Modify L3 switch's config"
+  echo -e "  delete-switch  :\t(L3  ): Remove L3 switch and gateway, see remove-switch"
   echo -e "  create-address :\t(L3  ): create Address for ACL"
   echo -e "  modify-address :\t(L3  ): modify Address for ACL"
   echo -e "  delete-address :\t(L3  ): delete Address for ACL"
-  echo -e "  create-acl     :\t(ACL ): create access control list for [Virtual] OS enviroments"
-  echo -e "  modify-acl     :\t(ACL ): modify access control list for [Virtual] OS enviroments"
-  echo -e "  delete-acl     :\t(ACL ): delete access control list for [Virtual] OS enviroments"
+  echo -e "  bind-fip       :\t(L3  ): bind floating IP"
+  echo -e "  unbind-fip     :\t(L3  ): Unbind floating IP"
+  echo -e "  bind-swport    :\t(L3  ): Bind a L3's port to OVN"
+  echo -e "  unbind-swport  :\t(L3  ): Unbind a L3's port from OVN"
   echo -e "  create-qos     :\t(QoS ): create QoS for floating IP"
   echo -e "  modify-qos     :\t(QoS ): modify QoS for floating IP"
   echo -e "  delete-qos     :\t(QoS ): delete QoS for floating IP"
-  echo -e "  create-vm      :\t(Simu): create a VM"
-  echo -e "  delete-vm      :\t(Simu): delete a VM"
+  echo -e "  create-acl     :\t(ACL ): create access control list"
+  echo -e "  modify-acl     :\t(ACL ): modify access control list"
+  echo -e "  delete-acl     :\t(ACL ): delete access control list"
 }
+
 
 case $1 in
   "start-central")
@@ -1104,9 +1238,6 @@ case $1 in
   "stop-worker")
     stop-worker $*
     ;;
-  "init-network")
-    init-network $*
-    ;;
   "create-bridge")
     create-bridge $*
     ;;
@@ -1119,9 +1250,6 @@ case $1 in
   "delbridge-vlan")
     delbridge-vlan $*
     ;;
-  "just-switch")
-    just-switch $*
-    ;;
   "create-switch")
     create-switch $*
     ;;
@@ -1130,6 +1258,18 @@ case $1 in
     ;;
   "delete-switch")
     delete-switch $*
+    ;;
+  "bind-swport")
+    bind-swport $*
+    ;;
+  "unbind-swport")
+    unbind-swport $*
+    ;;
+  "create-fip")
+    create-fip $*
+    ;;
+  "delete-fip")
+    delete-fip $*
     ;;
   "create-address")
     create-address $*
@@ -1164,11 +1304,8 @@ case $1 in
   "delete-qos")
     delete-acl $*
     ;;
-  "create-vm")
-    create-vm $*
-    ;;
-  "delete-vm")
-    delete-vm $*
+  "--help")
+    help
     ;;
   *)
   help

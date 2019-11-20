@@ -163,44 +163,22 @@ def update_online(version='latest'):
     start(ignore_warning=True, update_stuff=True, version=version)
     restart_kubesds_rpc(ignore_warning=True)
 
-def update_offline(pack, ignore_warning=True):
-    print('updating from package \'%s\'' % pack)
-    virtctl_err = None
-    virtlet_err = None
-    (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version) = status(ignore_warning=ignore_warning)
-    if not virtctl_container_id:
-        print('error: service \'virtctl\' is not running')
-    if not virtlet_container_id:
-        print('error: service \'virtlet\' is not running\n') 
-    if virtctl_err or virtlet_err:
-        sys.exit(1)
-    print('\033[3;30;47m*step1: checking package file\033[0m')
-    time.sleep(2)
-    is_ready = os.path.isfile(pack)
-    if not is_ready:
-        print('error: wrong pack file')
-        print('error: please check the path %s - not exists\n' % pack)
-        sys.exit(1)
-    print('    package file is ready, continue...\n')
-    print('\033[3;30;47m*step2: unpacking .tar.gz file to /tmp dir\033[0m')
-    time.sleep(2)
-    (_, step2_err) = runCmd('tar -zxvf %s -C %s' % (pack, '/tmp'))
-    if step2_err:
-        print('error: %s' % step2_err)
-        print('error: unpack failed, aborting...\n')
-        sys.exit(1)
-    print('    unpack done, continue...\n')
-    print('\033[3;30;47m*step3: update virtctl & virtlet in docker\033[0m')
-    time.sleep(2)
-    (_, virtctl_err) = runCmd('docker cp /tmp/kubevmm-service-pack/virtctl/* %s:/home/virtctl/bin' % virtctl_container_id)
-    (_, virtlet_err) = runCmd('docker cp /tmp/kubevmm-service-pack/virtlet/* %s:/home/virtlet/bin' % virtlet_container_id)
-    if virtctl_err:
-        print('warning: %s\n' % (virtctl_err))
-    if virtlet_err:
-        print('warning: %s\n' % (virtlet_err))
-    if virtctl_err or virtlet_err:
-        sys.exit(1)
-    print('    update complete.\n')
+def update_offline(version='latest'):
+    print('updating offline')
+#     print('pulling from official repository...\n')
+    time.sleep(3)
+#     (_, virtctl_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s" % version)
+#     (_, virtlet_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s" % version)
+#     if virtctl_err:
+#         print('warning: %s\n' % (virtctl_err))
+#     if virtlet_err:
+#         print('warning: %s\n' % (virtlet_err))
+#     if virtctl_err or virtlet_err:
+#         sys.exit(1)
+    stop(ignore_warning=True)
+    time.sleep(1)
+    start(ignore_warning=True, update_stuff=True, version=version)
+    restart_kubesds_rpc(ignore_warning=True)
 
 def version(service=False, ignore_warning=False):
     if service:
@@ -302,8 +280,8 @@ def main():
                     print(help_update)
                     sys.exit(1)
                 elif len(params) == 2:
-                    pack = params[1]
-                    update_offline(pack)
+                    ver = params[1]
+                    update_offline(ver)
                 else:
                     print('error: invalid arguments!\n')
                     print(help_update)

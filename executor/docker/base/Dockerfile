@@ -1,4 +1,4 @@
-FROM centos:7.6
+FROM centos:7.6.1810
 
 RUN yum install epel-release -y
 
@@ -12,7 +12,7 @@ RUN yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test
 
 RUN pip install --upgrade pip
 
-RUN pip install --ignore-installed kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil
+RUN pip install --ignore-installed prometheus_client kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil
 
 RUN yum clean all
 

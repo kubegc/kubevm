@@ -159,20 +159,24 @@ deleteBridge = kubeovn-adm delete-bridge
 bindPortVlan = kubeovn-adm bindport-vlan
 unbindPortVlan = kubeovn-adm unbindport-vlan
 
+
 [L3NetworkSupportCmdsWithNameField]
 createSwitch = kubeovn-adm create-switch
 modidySwitch = kubeovn-adm modify-switch
 deleteSwitch = kubeovn-adm remove-switch
+createAddress = kubeovn-adm create-address
+modifyAddress = kubeovn-adm modify-address
+deleteAddress = kubeovn-adm delete-address
 
 [L3NetworkSupportCmdsWithDomainField]
 bindFloatingIP = kubeovn-adm bind-fip
 unbindFloatingIP = kubeovn-adm unbind-fip
-createACL = kubeovn-adm create-acl
+addACL = kubeovn-adm create-acl
 modifyACL = kubeovn-adm modify-acl
-deleteACL = kubeovn-adm delete-acl
-createQoS = kubeovn-adm create-qos
+deprecatedACL = kubeovn-adm delete-acl
+setQoS = kubeovn-adm create-qos
 modifyQoS = kubeovn-adm modify-qos
-deleteQoS = kubeovn-adm delete-qos
+unsetQoS = kubeovn-adm delete-qos
 
 [L3NetworkSupportCmdsWithSwitchField]
 bindSwPort = kubeovn-adm bind-swport

@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
@@ -431,11 +431,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                 disk_type = _get_field(jsondict, the_cmd_key, 'type')
                 # logger.debug(jsondict)
                 if not pool_name:
-                    pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                    pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['spec', 'volume', 'pool'])
                     logger.debug(pool_name)
                 if _isCreateDiskFromDiskImage(the_cmd_key):
 #                     image_name = _get_field(jsondict, the_cmd_key, "sourceImage")
-#                     source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['volume', 'pool'])
+#                     source_pool_name = get_field_in_kubernetes_by_index(image_name, group, version, PLURAL_VM_DISK_IMAGE, ['spec', 'volume', 'pool'])
 #                     jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', source_pool_name)
                     pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -607,7 +607,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                     logger.error('Oops! ', exc_info=1)
                 sourcePool = _get_field(jsondict, the_cmd_key, 'sourcePool')
                 if not sourcePool:
-                    sourcePool = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['volume', 'pool'])
+                    sourcePool = get_field_in_kubernetes_by_index(metadata_name, group, version, plural, ['spec', 'volume', 'pool'])
                     jsondict = _set_field(jsondict, the_cmd_key, 'sourcePool', sourcePool)
 #                 (jsondict, operation_queue, rollback_operation_queue) \
 #                     = _vmdi_prepare_step(the_cmd_key, jsondict, metadata_name)
@@ -801,16 +801,19 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
 #                             runCmd(cmd)
                     status = 'Done(Success)'
                     if _isDeleteDiskExternalSnapshot(the_cmd_key):
-                        for delete_ss in data['delete_ss']:
-                            try:
-                                deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
-                            except ApiException, e:
-                                if e.reason == 'Not Found':
-                                    logger.debug('**Object %s already deleted.' % delete_ss)
-                        try:
-                            modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
-                        except Exception:
-                            pass
+                        if data:
+                            if 'delete_ss' in data.keys() and data['delete_ss']:
+                                for delete_ss in data['delete_ss']:
+                                    try:
+                                        deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
+                                    except ApiException, e:
+                                        if e.reason == 'Not Found':
+                                            logger.debug('**Object %s already deleted.' % delete_ss)
+                            if 'need_to_modify' in data.keys() and data['need_to_modify']:
+                                try:
+                                    modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
+                                except Exception:
+                                    pass
                     else:
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data,
                                                the_cmd_key=the_cmd_key)
@@ -1217,7 +1220,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                         if cmd:
                             runCmd(cmd)
                     status = 'Done(Success)'
-                    if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key):
+                    if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key) and not _isDeleteAddress(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -1497,12 +1500,16 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         
         if plural == PLURAL_VM_NETWORK:
             if the_cmd_key in L3NETWORKSUPPORTCMDS:
-                net_type = 'layer3'
-                retv = get_l3_network_info(name)
+                if the_cmd_key.endswith('Address'):
+                    net_type = 'l3address'
+                    retv = get_address_set_info(name)
+                else:
+                    net_type = 'l3network'
+                    retv = get_l3_network_info(name)
             else:
-                net_type = 'layer2'
+                net_type = 'l2network'
                 retv = get_l2_network_info(name)
-            jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'type': net_type, 'data': retv}
+            jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'data': retv, 'type': net_type}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
         elif plural == PLURAL_VM_DISK:   
@@ -1628,12 +1635,14 @@ def _vm_priori_step(the_cmd_key, jsondict):
         
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
     operations_queue = []
+    balloon_operation_queue = []
     network_operations_queue = []
     disk_operations_queue = []
     graphic_operations_queue = []
     redefine_vm_operations_queue = []
     vm_password_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
+        balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         '''
         Parse network configurations
         '''
@@ -1643,6 +1652,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
     if _isInstallVMFromImage(the_cmd_key):
+        balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
         if not os.path.exists(template_path):
             raise ExecuteException('VirtctlError', "Template file %s not exists, cannot copy from it!" % template_path)
@@ -1696,6 +1706,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         vm_password_operations_queue = _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)     
+    operations_queue.extend(balloon_operation_queue)
     operations_queue.extend(network_operations_queue)
     operations_queue.extend(disk_operations_queue)
     operations_queue.extend(graphic_operations_queue)
@@ -1895,6 +1906,11 @@ def _isDeleteNetwork(the_cmd_key):
 
 def _isDeleteBridge(the_cmd_key):
     if the_cmd_key == "deleteBridge":
+        return True
+    return False
+
+def _isDeleteAddress(the_cmd_key):
+    if the_cmd_key == "deleteAddress":
         return True
     return False
 

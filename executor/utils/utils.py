@@ -7,6 +7,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 from json import loads, load
 
 from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
+import json
 
 '''
 Import python libs
@@ -157,7 +158,7 @@ def get_l3_network_info(name):
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show r4%s' % (master_ip, nb_port, name))
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s-router' % (master_ip, nb_port, name))
     (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
     ports = lines[1:]
     portsInfo = []
@@ -217,6 +218,44 @@ def get_l3_network_info(name):
     data['gatewayInfo'] = gatewayInfo
     return data
 
+def get_address_set_info(name):
+    cfg = "/etc/kubevmm/config"
+    if not os.path.exists(cfg):
+        cfg = "/home/kubevmm/bin/config"
+    config_raw = parser()
+    config_raw.read(cfg)
+    token = config_raw.get('Kubernetes', 'token_file')
+    
+    master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
+    nb_port = '6641'
+    data = {'addressInfo': ''}
+    addressInfo = {'_uuid': '', 'addresses': [], 'external_ids': {}, 'name': ''}
+    cmd = 'ovn-nbctl --db=tcp:%s:%s list Address_Set %s' % (master_ip, nb_port, name)
+    lines = runCmdRaiseException(cmd)
+    for line in lines:
+        if line.find('_uuid') != -1:
+            (_, addressInfo['_uuid']) = line.strip().split(': ')
+        elif line.find('addresses') != -1:
+            (_, addressInfo['addresses']) = line.strip().split(': ')
+        elif line.find('external_ids') != -1:
+            (_, addressInfo['external_ids']) = line.strip().split(': ')
+        elif line.find('name') != -1:
+            (_, addressInfo['name']) = line.strip().split(': ')
+    data['addressInfo'] = addressInfo
+    return data
+
+def get_field_in_kubernetes_node(name, index):
+    try:
+        v1_node_list = client.CoreV1Api().list_node(label_selector='host=%s' % name)
+        jsondict = v1_node_list.to_dict()
+        items = jsondict.get('items')
+        if items:
+            return get_field(items[0], index)
+        else:
+            return None
+    except:
+        return None
+
 def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     try:
         if not index or not list(index):
@@ -229,20 +268,19 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     
 def get_field(jsondict, index):
     retv = None
-    spec = get_spec(jsondict)
-    if spec:
-        '''
-        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-        Note that only the first CMD will be executed.
-        '''
-        contents = spec
-        for layer in index[:-1]:
-            contents = contents.get(layer)
-        if not contents:
-            return None
-        for k, v in contents.items():
-            if k == index[-1]:
-                retv = v
+    '''
+    Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+    Note that only the first CMD will be executed.
+    '''
+    contents = jsondict
+    for layer in index[:-1]:
+        print(contents)
+        contents = contents.get(layer)
+    if not contents:
+        return None
+    for k, v in contents.items():
+        if k == index[-1]:
+            retv = v
     return retv
     
 def get_volume_snapshots(path):

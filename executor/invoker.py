@@ -293,6 +293,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                             if is_vm_active(metadata_name):
                                 destroy(metadata_name)
                                 time.sleep(1)
+                        if _isMigrateVM(the_cmd_key):
+                            desturi = getDesturi(the_cmd_key, jsondict)
+                            cmd = 'virsh migrate --live  --persistent --verbose %s qemu+ssh://%s/system tcp://%s' % (metadata_name, desturi, desturi)
                         try:
                             runCmd(cmd)
                         except Exception, e:
@@ -1778,6 +1781,16 @@ def getPoolType(the_cmd_key, jsondict):
     else:
         raise ExecuteException('VirtctlError', 'FATAL ERROR! No found pool type!')
 
+
+def getDesturi(the_cmd_key, jsondict):
+    spec = get_spec(jsondict)
+    lifecycle = spec.get('lifecycle')
+
+    if lifecycle and 'desturi' in lifecycle[the_cmd_key].keys():
+        return lifecycle[the_cmd_key]['desturi']
+    else:
+        raise ExecuteException('VirtctlError', 'FATAL ERROR! No found desturi!')
+
 def getCloneDiskName(the_cmd_key, jsondict):
     spec = get_spec(jsondict)
     lifecycle = spec.get('lifecycle')
@@ -1868,6 +1881,12 @@ def _isDeleteVM(the_cmd_key):
     if the_cmd_key == "deleteVM":
         return True
     return False
+
+def _isMigrateVM(the_cmd_key):
+    if the_cmd_key == "migrateVM":
+        return True
+    return False
+
 
 def _isDeleteVMImage(the_cmd_key):
     if the_cmd_key == "deleteImage":

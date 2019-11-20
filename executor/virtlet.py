@@ -21,6 +21,7 @@ Import local libs
 from utils.utils import CDaemon, runCmd, singleton
 from utils import logger
 from libvirt_event_handler import main as libvirt_event_handler
+from libvirt_event_handler_for_4_0 import main as libvirt_event_handler_4_0
 from os_event_handler import main as os_event_handler
 from host_cycler import main as host_cycler
 from monitor import main as monitor
@@ -57,7 +58,7 @@ class ClientDaemon(CDaemon):
         
         config.load_kube_config(config_file=TOKEN)
         try:
-            thread_1 = Thread(target=libvirt_event_handler)
+            thread_1 = Thread(target=get_libvirt_event_handler())
             thread_1.daemon = True
             thread_1.name = 'libvirt_event_handler'
             thread_1.start()
@@ -92,6 +93,13 @@ def is_kubernetes_master():
         return True
     else:
         return False
+    
+def get_libvirt_event_handler():
+    retv = runCmd('virsh --version')
+    if retv.strip().startswith("4.0"):
+        return libvirt_event_handler_4_0
+    else:
+        return libvirt_event_handler
             
 def daemonize():
     help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]

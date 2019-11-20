@@ -295,7 +295,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 time.sleep(1)
                         if _isMigrateVM(the_cmd_key):
                             desturi = getDesturi(the_cmd_key, jsondict)
-                            cmd = 'virsh migrate --live  --persistent --verbose %s qemu+ssh://%s/system tcp://%s' % (metadata_name, desturi, desturi)
+                            cmd = 'virsh migrate --live  --persistent %s qemu+ssh://%s/system tcp://%s' % (metadata_name, desturi, desturi)
+                            logger.debug(cmd)
                         try:
                             runCmd(cmd)
                         except Exception, e:

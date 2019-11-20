@@ -30,6 +30,7 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success pull latest version."
 fi
+wget -c https://raw.githubusercontent.com/kubesys/kubeext-SDN/master/src/kubeovn-adm
 
 ##############################patch stuff#########################################
 SHELL_FOLDER=$(dirname $(readlink -f "$0"))
@@ -153,6 +154,7 @@ fi
 
 echo -e "\033[3;30;47m*** Push new SPECS/kubevmm.spec to Github.\033[0m"
 git add ./SPECS/kubevmm.spec
+git add ./kubeovn-adm
 git commit -m "new release version ${VERSION}"
 git push
 if [ $? -ne 0 ]; then

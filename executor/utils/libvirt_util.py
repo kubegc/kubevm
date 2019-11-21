@@ -54,8 +54,7 @@ def __get_conn():
         conn = libvirt.open('qemu:///system')
     except Exception:
         raise Exception(
-            'Sorry, {0} failed to open a connection to the hypervisor '
-            'software'
+            'Sorry, {0} failed to open a connection to the hypervisor software'
         )
     return conn
 
@@ -991,7 +990,7 @@ def runCmdAndGetResult(cmd, raise_it=True):
         p.stderr.close()
 
 if __name__ == '__main__':
-    # print(freecpu())
+    print(freecpu())
     # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))
@@ -1000,7 +999,7 @@ if __name__ == '__main__':
 #     print list_volumes('vmdi')
 #     print(list_volumes('volumes'))
 #     print(_get_pool_info('default'))
-    print(get_disks_spec("vm010"))
+#     print(get_disks_spec("vm010"))
 #     print(get_volume_current_path('pooltest22', 'disktest22'))
 #     print(is_volume_in_use('disktest22', 'pooltest22'))
 #     vol_xml = get_vol_info_by_qemu('/var/lib/libvirt/pooltest/disktest/disktest')

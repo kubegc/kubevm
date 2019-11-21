@@ -76,8 +76,8 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         #         modify_token(vm_name, 'Stopped')
 
         if kwargs.has_key('event') and kwargs.has_key('detail') and \
-        str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
-        str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
+        str(domEventToString(kwargs['event'])) == "Undefined" and \
+        str(domDetailToString(kwargs['detail'])) == "Removed":
             try:
                 logger.debug('Callback domain deletion to virtlet')
 #                 deleteVM(vm_name, V1DeleteOptions())
@@ -128,7 +128,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                     except:
                         logger.warning('Oops! ', exc_info=1)
-            if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
+            if kwargs.has_key('event') and str(domEventToString(kwargs['event'])) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
                     macs = get_macs(vm_name)
@@ -147,7 +147,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                     except:
                         logger.warning('Oops! ', exc_info=1)
-            if step1_done and kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Started":
+            if step1_done and kwargs.has_key('event') and str(domEventToString(kwargs['event'])) == "Started":
                 try:
                     logger.debug('Callback domain start to virtlet')
                     macs = get_macs(vm_name)

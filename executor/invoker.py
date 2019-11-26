@@ -449,6 +449,8 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     cmd = cmd.replace('backing-vol-format', 'backing_vol_format')
                 if cmd.find('backing-vol') >= 0:
                     cmd = cmd.replace('backing-vol', 'backing_vol')
+                if cmd.find('full-copy') >= 0:
+                    cmd = cmd.replace('full-copy', 'full_copy')
     #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
     #             body = jsondict['raw_object']
     #             try:

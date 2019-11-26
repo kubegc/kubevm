@@ -499,7 +499,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             else:
                                 raise e
                         # update disk info
-                        if _isCloneDisk(the_cmd_key):
+                        if _isCloneDisk(the_cmd_key) or _isCreateDiskFromDiskImage(the_cmd_key):
                             # uus disk type register to server by hand
                             _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                             newname = getCloneDiskName(the_cmd_key, jsondict)

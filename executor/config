@@ -105,7 +105,7 @@ setGuestPassword = virt-customize
 createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
 deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
 revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_internal_snapshot
-createDiskFromDiskImage = kubesds-adm createDiskFromDiskImage
+createDiskFromDiskImage = kubesds-adm createDiskFromImage
 
 [VirtualMachineDiskSupportCmdsWithVolField]
 createDisk = kubesds-adm createDisk

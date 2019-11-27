@@ -152,13 +152,8 @@ version = v1alpha3
 plural = virtualmachinenetworks
 
 [L2NetworkSupportCmdsWithNameField]
-createBridge = kubeovn-adm create-bridge
-setBridgeVlan = kubeovn-adm setbridge-vlan
-delBridgeVlan = kubeovn-adm delbridge-vlan
-deleteBridge = kubeovn-adm delete-bridge
 bindPortVlan = kubeovn-adm bindport-vlan
 unbindPortVlan = kubeovn-adm unbindport-vlan
-
 
 [L3NetworkSupportCmdsWithNameField]
 createSwitch = kubeovn-adm create-switch
@@ -177,6 +172,10 @@ deprecatedACL = kubeovn-adm delete-acl
 setQoS = kubeovn-adm create-qos
 modifyQoS = kubeovn-adm modify-qos
 unsetQoS = kubeovn-adm delete-qos
+createBridge = kubeovn-adm create-bridge
+deleteBridge = kubeovn-adm delete-bridge
+setBridgeVlan = kubeovn-adm setbridge-vlan
+delBridgeVlan = kubeovn-adm delbridge-vlan
 
 [L3NetworkSupportCmdsWithSwitchField]
 bindSwPort = kubeovn-adm bind-swport

@@ -1223,8 +1223,10 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                             runCmd(cmd)
                     status = 'Done(Success)'
                     if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key) and not _isDeleteAddress(the_cmd_key):
-                        if _isCreateBridge(the_cmd_key) or _isSetBridgeVlan(the_cmd_key):
+                        if _isCreateBridge(the_cmd_key) or _isSetBridgeVlan(the_cmd_key) or _isDelBridgeVlan(the_cmd_key):
                             name = _get_field(jsondict, the_cmd_key, "name")
+                        else:
+                            name = metadata_name
                         write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key, obj_name=name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -1929,6 +1931,11 @@ def _isCreateBridge(the_cmd_key):
 
 def _isSetBridgeVlan(the_cmd_key):
     if the_cmd_key == "setBridgeVlan":
+        return True
+    return False
+
+def _isDelBridgeVlan(the_cmd_key):
+    if the_cmd_key == "delBridgeVlan":
         return True
     return False
 

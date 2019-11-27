@@ -857,6 +857,8 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                                       namespace='default',
                                                                                       plural=plural,
                                                                                       name=name)
+                    if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
+                        return
                     vm_xml = get_xml(name)
                     vm_power_state = vm_state(name).get(name)
                     vm_json = toKubeJson(xmlToJson(vm_xml))
@@ -887,6 +889,8 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                           plural=plural,
                                                                           name=name)
         try:
+            if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
+                return
             logger.debug('***Modify VM %s from back-end, report to virtlet***' % name)
             vm_xml = get_xml(name)
             vm_json = toKubeJson(xmlToJson(vm_xml))

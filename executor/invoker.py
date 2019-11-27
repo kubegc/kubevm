@@ -1223,6 +1223,8 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                             runCmd(cmd)
                     status = 'Done(Success)'
                     if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key) and not _isDeleteAddress(the_cmd_key):
+                        if _isCreateBridge(the_cmd_key) or _isSetBridgeVlan(the_cmd_key):
+                            metadata_name = _get_field(jsondict, the_cmd_key, "name")
                         write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
@@ -1914,6 +1916,16 @@ def _isDeletePool(the_cmd_key):
 
 def _isDeleteDiskImage(the_cmd_key):
     if the_cmd_key == "deleteDiskImage":
+        return True
+    return False
+
+def _isCreateBridge(the_cmd_key):
+    if the_cmd_key == "createBridge":
+        return True
+    return False
+
+def _isSetBridgeVlan(the_cmd_key):
+    if the_cmd_key == "setBridgeVlan":
         return True
     return False
 

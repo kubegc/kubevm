@@ -1207,10 +1207,10 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                     elif operation_type == 'MODIFIED':
                         try:
                             runCmd(cmd)
-                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key):
+                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key) or _isDeleteAddress(the_cmd_key):
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                         except Exception, e:
-                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key):
+                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key) or _isDeleteAddress(the_cmd_key):
                                 logger.warning("***Network %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)

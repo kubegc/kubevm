@@ -913,6 +913,8 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                               namespace='default',
                                                                               plural=plural,
                                                                               name=name)
+            if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
+                return
             #             vm_xml = get_xml(name)
             #             vm_json = toKubeJson(xmlToJson(vm_xml))
             #             vm_json = updateDomain(loads(vm_json))

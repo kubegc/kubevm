@@ -12,7 +12,7 @@ import cmdcall_pb2_grpc
 
 from utils import ExecuteException
 
-LOG = "/var/log/cmdrpc-cli.log"
+LOG = "/var/log/virtctl.log"
 
 logger = logger.set_logger(os.path.basename(__file__), LOG)
 
@@ -37,6 +37,7 @@ def rpcCallWithResult(cmd, raise_it=True):
         response = client.CallWithResult(cmdcall_pb2.CallRequest(cmd=cmd))
         client = cmdcall_pb2_grpc.CmdCallStub(channel)
         result = loads(str(response.json))
+        logger.debug(result)
         if result['result']['code'] != 0 and raise_it:
             raise ExecuteException('RunCmdError', result['result']['msg'])
         return result['result'], result['data']

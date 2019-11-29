@@ -1352,7 +1352,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 if pool_type == 'uus':
                                     pass
                                 else:
-                                    runCmd(cmd)
+                                    rpcCallWithResult(cmd)
                         except Exception, e:
                             # only two case has exception when delete pool
                             # case 1: pool exist but not pool type not match(code is 221)

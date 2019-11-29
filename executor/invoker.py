@@ -53,6 +53,7 @@ from utils.utils import get_address_set_info, get_spec, get_field_in_kubernetes_
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, \
     add_spec_in_volume
+from utils.cmdrpc import rpcCallWithResult
 
 
 class parser(ConfigParser.ConfigParser):
@@ -462,7 +463,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 logger.debug(cmd)
                                 _, data = None, None
                                 if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
-                                    _, data = runCmdWithResult(cmd)
+                                    _, data = rpcCallWithResult(cmd)
                                 else:
                                     _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                             else:
@@ -472,7 +473,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                         _, data = None, None
                         try:
                             if cmd.find("kubesds-adm") >= 0:
-                                result, data = runCmdWithResult(cmd, raise_it=False)
+                                result, data = rpcCallWithResult(cmd, raise_it=False)
                                 if result['code'] != 0:
                                     raise ExecuteException('virtctl', 'error when operate volume ' + result['msg'])
                             else:
@@ -773,7 +774,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                     if operation_type == 'ADDED':
                         _, data = None, None
                         if not is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, metadata_name):
-                            _, data = runCmdWithResult(cmd)
+                            _, data = rpcCallWithResult(cmd)
                         else:
                             _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                     elif operation_type == 'MODIFIED':
@@ -783,7 +784,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                             if backing_file is None and not os.path.isfile(backing_file):
                                 raise ExecuteException('', 'error: cant get backing file from k8s.')
                             _, data = None, None
-                            _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
+                            _, data = rpcCallWithResult('%s --backing_file %s' % (cmd, backing_file))
                             # if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, os.path.basename(backing_file)):
                             #     _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
                             # else:
@@ -1329,7 +1330,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                         # if not os.path.isdir(POOL_PATH):
                         #     os.makedirs(POOL_PATH)
                         if not is_kubesds_pool_exists(pool_type, pool_name):
-                            _, poolJson = runCmdWithResult(cmd)
+                            _, poolJson = rpcCallWithResult(cmd)
                             logger.debug('create pool')
                         else:
                             _, poolJson = get_kubesds_pool_info(pool_type, pool_name)
@@ -1337,7 +1338,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                     elif operation_type == 'MODIFIED':
                         try:
                             if _isDeletePool(the_cmd_key):
-                                result, _ = runCmdWithResult(cmd, raise_it=False)
+                                result, _ = rpcCallWithResult(cmd, raise_it=False)
                                 # fix pool type not match
                                 if result['code'] == 0:
                                     deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
@@ -1444,31 +1445,31 @@ def get_disk_path_from_server(metadata_name):
     return None
 
 def is_kubesds_pool_exists(type, pool):
-    result, _ = runCmdWithResult('kubesds-adm showPool --type %s --pool %s' % (type, pool), False)
+    result, _ = rpcCallWithResult('kubesds-adm showPool --type %s --pool %s' % (type, pool), False)
     if result['code'] == 0:
         return True
     return False
 
 def is_kubesds_disk_exists(type, pool, vol):
-    result, _ = runCmdWithResult('kubesds-adm showDisk --type %s --pool %s' % (type, pool), False)
+    result, _ = rpcCallWithResult('kubesds-adm showDisk --type %s --pool %s' % (type, pool), False)
     if result['code'] == 0:
         return True
     return False
 
 def is_kubesds_disk_snapshot_exists(type, pool, vol, name):
-    result, _ = runCmdWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), False)
+    result, _ = rpcCallWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), False)
     if result['code'] == 0:
         return True
     return False
 
 def get_kubesds_pool_info(type, pool):
-    return runCmdWithResult('kubesds-adm showPool --type %s --pool %s' % (type, pool))
+    return rpcCallWithResult('kubesds-adm showPool --type %s --pool %s' % (type, pool))
 
 def get_kubesds_disk_info(type, pool, vol):
-    return runCmdWithResult('kubesds-adm showDisk --type %s --pool %s --vol %s' % (type, pool, vol), raise_it=False)
+    return rpcCallWithResult('kubesds-adm showDisk --type %s --pool %s --vol %s' % (type, pool, vol), raise_it=False)
 
 def get_kubesds_disk_snapshot_info(type, pool, vol, name):
-    return runCmdWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), raise_it=False)
+    return rpcCallWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), raise_it=False)
 
 def deleteStructure(name, body, group, version, plural):
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(

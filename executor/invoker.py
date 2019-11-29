@@ -1208,10 +1208,10 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                     elif operation_type == 'MODIFIED':
                         try:
                             runCmd(cmd)
-                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key):
+                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key) or _isDeleteAddress(the_cmd_key):
                                 deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
                         except Exception, e:
-                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key):
+                            if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key) or _isDeleteAddress(the_cmd_key):
                                 logger.warning("***Network %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -1224,7 +1224,11 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
                             runCmd(cmd)
                     status = 'Done(Success)'
                     if not _isDeleteNetwork(the_cmd_key) and not _isDeleteBridge(the_cmd_key) and not _isDeleteAddress(the_cmd_key):
-                        write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key)
+                        if _isCreateBridge(the_cmd_key) or _isSetBridgeVlan(the_cmd_key) or _isDelBridgeVlan(the_cmd_key):
+                            name = _get_field(jsondict, the_cmd_key, "name")
+                        else:
+                            name = metadata_name
+                        write_result_to_server(group, version, 'default', plural, metadata_name, the_cmd_key=the_cmd_key, obj_name=name)
                 except libvirtError:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -1484,7 +1488,7 @@ def get_backing_file_from_k8s(name):
     except Exception:
         return None
 
-def write_result_to_server(group, version, namespace, plural, name, result=None, data=None, the_cmd_key=None):
+def write_result_to_server(group, version, namespace, plural, name, result=None, data=None, the_cmd_key=None, obj_name=None):
     jsonDict = None
     try:
         # involved_object_name actually is nodeerror occurred during processing json data from apiserver
@@ -1511,7 +1515,10 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
                     retv = get_l3_network_info(name)
             else:
                 net_type = 'l2network'
-                retv = get_l2_network_info(name)
+                if obj_name:
+                    retv = get_l2_network_info(obj_name)
+                else:
+                    retv = get_l2_network_info(name)
             jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'data': retv, 'type': net_type}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
@@ -1915,6 +1922,21 @@ def _isDeletePool(the_cmd_key):
 
 def _isDeleteDiskImage(the_cmd_key):
     if the_cmd_key == "deleteDiskImage":
+        return True
+    return False
+
+def _isCreateBridge(the_cmd_key):
+    if the_cmd_key == "createBridge":
+        return True
+    return False
+
+def _isSetBridgeVlan(the_cmd_key):
+    if the_cmd_key == "setBridgeVlan":
+        return True
+    return False
+
+def _isDelBridgeVlan(the_cmd_key):
+    if the_cmd_key == "delBridgeVlan":
         return True
     return False
 

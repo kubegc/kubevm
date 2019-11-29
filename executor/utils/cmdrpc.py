@@ -10,7 +10,7 @@ import logger
 import cmdcall_pb2
 import cmdcall_pb2_grpc
 
-from utils.utils import ExecuteException
+from utils import ExecuteException
 
 LOG = "/var/log/cmdrpc-cli.log"
 

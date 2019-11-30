@@ -913,6 +913,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
         #                                                                               plural=plural,
         #                                                                               name=name)
         logger.debug('***Delete VM %s , report to virtlet***' % name)
+        time.sleep(1)
         try:
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,

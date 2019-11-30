@@ -849,10 +849,6 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
             jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
             body = addNodeName(jsondict)
             try:
-                try:
-                    deleteStructure(name, V1DeleteOptions(), group, version, plural)
-                except:
-                    pass
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':

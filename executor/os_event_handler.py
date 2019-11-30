@@ -37,7 +37,7 @@ Import local libs
 from utils.libvirt_util import get_pool_path, get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, \
     vm_state, _get_all_pool_path, get_vol_info_by_qemu
 from utils import logger
-from utils.utils import add_spec_in_volume, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
+from utils.utils import deleteLifecycleInJson, add_spec_in_volume, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
     addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case, \
     DiskImageHelper
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
@@ -861,8 +861,9 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                                       namespace='default',
                                                                                       plural=plural,
                                                                                       name=name)
-                    if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
-                        return
+                    if jsondict['metadata']['labels']['host'] != HOSTNAME:
+                        logger.debug('VM %s is migrating, now changing the host labels to %s.' % (name, HOSTNAME))
+                        jsondict['metadata']['labels']['host'] = HOSTNAME
                     vm_xml = get_xml(name)
                     vm_power_state = vm_state(name).get(name)
                     vm_json = toKubeJson(xmlToJson(vm_xml))
@@ -893,7 +894,8 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                           plural=plural,
                                                                           name=name)
         try:
-            if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
+            if jsondict['metadata']['labels']['host'] != HOSTNAME:
+                logger.debug('VM %s is migrating, ignore modify.' % name)
                 return
             logger.debug('***Modify VM %s from back-end, report to virtlet***' % name)
             vm_xml = get_xml(name)
@@ -921,7 +923,8 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                               namespace='default',
                                                                               plural=plural,
                                                                               name=name)
-            if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
+            if jsondict['metadata']['labels']['host'] != HOSTNAME:
+                logger.debug('VM %s is migrating, ignore delete.' % name)
                 return
             #             vm_xml = get_xml(name)
             #             vm_json = toKubeJson(xmlToJson(vm_xml))

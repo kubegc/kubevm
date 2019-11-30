@@ -139,6 +139,7 @@ ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -159,6 +160,8 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD, **v)
         elif string.find(k, 'WithPoolField') != -1:
             ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
+        elif string.find(k, 'WithOriginalField') != -1:
+            ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD, **v)
             
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -1827,6 +1830,8 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
             lifecycle[the_cmd_key]['switch'] = metadata_name
         elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
             lifecycle[the_cmd_key]['pool'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD:
+            lifecycle[the_cmd_key]['original'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):
@@ -2297,6 +2302,7 @@ def _createDiskXml(metadata_name, data):
     doc.appendChild(root)
     driver = {}
     iotune = {}
+    cache = {}
     for k, v in data.items():
         if k == 'driver':
             driver[k] = v
@@ -2321,11 +2327,15 @@ def _createDiskXml(metadata_name, data):
             iotune[k] = v
         elif k == 'write_iops_sec':
             iotune[k] = v
+        elif k == 'cache':
+            cache[k] = v
     
     if driver:        
         node = doc.createElement('driver')
         node.setAttribute('name', driver.get('driver') if driver.get('driver') else 'qemu')
         node.setAttribute('type', driver.get('subdriver') if driver.get('subdriver') else 'qcow2')
+        if cache:
+            node.setAttribute('cache', cache.get('cache') if cache.get('cache') else 'none')
         root.appendChild(node)
     
     if iotune:        

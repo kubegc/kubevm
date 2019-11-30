@@ -2330,13 +2330,11 @@ def _createDiskXml(metadata_name, data):
         elif k == 'cache':
             cache[k] = v
     
-    if driver:        
-        node = doc.createElement('driver')
-        node.setAttribute('name', driver.get('driver') if driver.get('driver') else 'qemu')
-        node.setAttribute('type', driver.get('subdriver') if driver.get('subdriver') else 'qcow2')
-        if cache:
-            node.setAttribute('cache', cache.get('cache') if cache.get('cache') else 'none')
-        root.appendChild(node)
+    node = doc.createElement('driver')
+    node.setAttribute('name', driver.get('driver') if driver.get('driver') else 'qemu')
+    node.setAttribute('type', driver.get('subdriver') if driver.get('subdriver') else 'qcow2')
+    node.setAttribute('cache', cache.get('cache') if cache.get('cache') else 'none')
+    root.appendChild(node)
     
     if iotune:        
         vm_iotune = doc.createElement('iotune')

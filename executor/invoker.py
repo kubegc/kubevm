@@ -298,7 +298,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 destroy(metadata_name)
                                 time.sleep(1)
                         try:
-                            runCmd(cmd)
+                            if _isMigrateVM(the_cmd_key):
+                                rpcCallWithResult(cmd)
+                            else:
+                                runCmd(cmd)
                         except Exception, e:
                             if _isDeleteVM(the_cmd_key) and not is_vm_exists(metadata_name):
                                 logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)

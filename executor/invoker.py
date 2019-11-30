@@ -2030,6 +2030,7 @@ Get the CMD key.
 '''
 def _getCmdKey(jsondict):
     spec = jsondict['raw_object'].get('spec')
+    the_cmd_keys = []
     if spec:
         '''
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
@@ -2038,7 +2039,6 @@ def _getCmdKey(jsondict):
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
             return None
-        the_cmd_keys = []
         keys = lifecycle.keys()
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():

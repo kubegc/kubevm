@@ -154,7 +154,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
     if event == "Delete":
         try:
             refresh_pool(pool)
-            print name
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -215,7 +214,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-            print body
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
@@ -257,7 +255,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 volume['pool'] = pool
                 volume['disk'] = name
                 vol_json = {'volume': volume}
-                print vol_json
                 logger.debug(config['current'])
                 vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -472,7 +469,6 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("file created:{0}".format(event.src_path))
             filename = os.path.basename(event.src_path)
             if filename == 'config.json':
-                print 'on_created vol' + event.src_path
                 with open(event.src_path, "r") as f:
                     config = json.load(f)
                 vol = config['name']
@@ -488,7 +484,6 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("file deleted:{0}".format(event.src_path))
             filename = os.path.basename(event.src_path)
             if filename == 'config.json':
-                print 'on_deleted vol' + event.src_path
                 vol = os.path.basename(os.path.dirname(event.src_path))
                 try:
                     myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
@@ -501,7 +496,6 @@ class VmVolEventHandler(FileSystemEventHandler):
         else:
             filename = os.path.basename(event.src_path)
             if filename == 'config.json':
-                print 'on_modified vol' + event.src_path
                 logger.debug("change config.json file: %s" % event.src_path)
                 with open(event.src_path, "r") as f:
                     config = json.load(f)

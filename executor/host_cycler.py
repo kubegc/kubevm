@@ -151,7 +151,7 @@ class HostCycler:
         RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/bin/qemu-img --version | awk \'NR==1 {print $3}\''))
         KERNEL_VERSION = runCmd('cat /proc/sys/kernel/osrelease')
 #         KUBE_PROXY_VERSION = runCmd('kubelet --version | awk \'{print $2}\'')
-        KUBE_PROXY_VERSION = 'v1.14.1'
+        KUBE_PROXY_VERSION = 'v1.16.2'
         KUBELET_VERSION = KUBE_PROXY_VERSION
         MACHINE_ID = BOOT_ID
         OPERATING_SYSTEM = runCmd('cat /proc/sys/kernel/ostype')

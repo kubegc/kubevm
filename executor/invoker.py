@@ -1571,8 +1571,8 @@ def modify_disk(pool, name, group, version, plural):
                                                                       namespace='default',
                                                                       plural=plural,
                                                                       name=name)
-    if os.path.isfile(get_pool_info(pool)['path'] + '/' + name + '/config.json'):
-        with open(get_pool_info(pool)['path'] + '/' + name + '/config.json', "r") as f:
+    if os.path.isfile("%s/%s/config.json" % (get_pool_info(pool)['path'], name)):
+        with open("%s/%s/config.json" % (get_pool_info(pool)['path'], name), "r") as f:
             config = load(f)
             vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
             logger.debug(config['current'])

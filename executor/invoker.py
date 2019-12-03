@@ -1455,7 +1455,7 @@ def is_kubesds_pool_exists(type, pool):
     return False
 
 def is_kubesds_disk_exists(type, pool, vol):
-    result, _ = rpcCallWithResult('kubesds-adm showDisk --type %s --pool %s' % (type, pool), False)
+    result, _ = rpcCallWithResult('kubesds-adm showDisk --type %s --pool %s --vol %s' % (type, pool, vol), False)
     if result['code'] == 0:
         return True
     return False

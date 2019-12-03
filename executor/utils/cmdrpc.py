@@ -35,7 +35,6 @@ def rpcCallWithResult(cmd, raise_it=True):
         client = cmdcall_pb2_grpc.CmdCallStub(channel)
         # ideally, you should have try catch block here too
         response = client.CallWithResult(cmdcall_pb2.CallRequest(cmd=cmd))
-        client = cmdcall_pb2_grpc.CmdCallStub(channel)
         result = loads(str(response.json))
         logger.debug(result)
         if result['result']['code'] != 0 and raise_it:
@@ -64,3 +63,6 @@ def rpcCallWithResult(cmd, raise_it=True):
         raise ExecuteException('RunCmdError', 'can not parse rpc response to json.')
 
 # print rpcCallWithResult("kubesds-adm createPool  --opt nolock --url 133.133.135.30:/home/nfs --content vmd   --path nfs4 --type nfs --pool node35-pool4")
+
+if __name__ == '__main__':
+    rpcCallWithResult('kubesds-adm --type dir --pool pool11 --url /mnt/localfs/pooldir --content vmd')

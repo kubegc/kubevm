@@ -60,9 +60,9 @@ def rpcCallWithResult(cmd, raise_it=True):
             # do your stuff here
             pass
         raise ExecuteException('RunCmdError', "Cmd: %s failed!" % cmd)
-    except Exception:
+    except Exception, e:
         logger.debug(traceback.format_exc())
-        raise ExecuteException('RunCmdError', 'can not parse rpc response to json.')
+        raise ExecuteException('RunCmdError', e.message)
 
 # print rpcCallWithResult("kubesds-adm createPool  --opt nolock --url 133.133.135.30:/home/nfs --content vmd   --path nfs4 --type nfs --pool node35-pool4")
 

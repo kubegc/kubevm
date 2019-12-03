@@ -37,7 +37,7 @@ Import local libs
 from utils.libvirt_util import get_pool_path, get_volume_path, refresh_pool, get_volume_xml, get_snapshot_xml, is_vm_exists, get_xml, \
     vm_state, _get_all_pool_path, get_vol_info_by_qemu
 from utils import logger
-from utils.utils import add_spec_in_volume, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
+from utils.utils import deleteLifecycleInJson, add_spec_in_volume, updateDescription, addSnapshots, get_volume_snapshots, runCmdRaiseException, \
     addPowerStatusMessage, updateDomainSnapshot, updateDomain, report_failure, get_hostname_in_lower_case, \
     DiskImageHelper
 from utils.uit_utils import is_block_dev_exists, get_block_dev_json
@@ -154,7 +154,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
     if event == "Delete":
         try:
             refresh_pool(pool)
-            print name
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -215,7 +214,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
             body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-            print body
             try:
                 createStructure(body, group, version, plural)
             except ApiException, e:
@@ -257,7 +255,6 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 volume['pool'] = pool
                 volume['disk'] = name
                 vol_json = {'volume': volume}
-                print vol_json
                 logger.debug(config['current'])
                 vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -472,7 +469,6 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("file created:{0}".format(event.src_path))
             filename = os.path.basename(event.src_path)
             if filename == 'config.json':
-                print 'on_created vol' + event.src_path
                 with open(event.src_path, "r") as f:
                     config = json.load(f)
                 vol = config['name']
@@ -488,7 +484,6 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("file deleted:{0}".format(event.src_path))
             filename = os.path.basename(event.src_path)
             if filename == 'config.json':
-                print 'on_deleted vol' + event.src_path
                 vol = os.path.basename(os.path.dirname(event.src_path))
                 try:
                     myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
@@ -501,7 +496,6 @@ class VmVolEventHandler(FileSystemEventHandler):
         else:
             filename = os.path.basename(event.src_path)
             if filename == 'config.json':
-                print 'on_modified vol' + event.src_path
                 logger.debug("change config.json file: %s" % event.src_path)
                 with open(event.src_path, "r") as f:
                     config = json.load(f)
@@ -849,10 +843,6 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
             jsondict = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
             body = addNodeName(jsondict)
             try:
-                try:
-                    deleteStructure(name, V1DeleteOptions(), group, version, plural)
-                except:
-                    pass
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
@@ -861,8 +851,9 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                                       namespace='default',
                                                                                       plural=plural,
                                                                                       name=name)
-                    if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
-                        return
+                    if jsondict['metadata']['labels']['host'] != HOSTNAME:
+                        logger.debug('VM %s is migrating, now changing the host labels to %s.' % (name, HOSTNAME))
+                        jsondict['metadata']['labels']['host'] = HOSTNAME
                     vm_xml = get_xml(name)
                     vm_power_state = vm_state(name).get(name)
                     vm_json = toKubeJson(xmlToJson(vm_xml))
@@ -893,7 +884,8 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                           plural=plural,
                                                                           name=name)
         try:
-            if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
+            if jsondict['metadata']['labels']['host'] != HOSTNAME:
+                logger.debug('VM %s is migrating, ignore modify.' % name)
                 return
             logger.debug('***Modify VM %s from back-end, report to virtlet***' % name)
             vm_xml = get_xml(name)
@@ -915,13 +907,15 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
         #                                                                               plural=plural,
         #                                                                               name=name)
         logger.debug('***Delete VM %s , report to virtlet***' % name)
+        time.sleep(1)
         try:
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
                                                                               plural=plural,
                                                                               name=name)
-            if jsondict['metadata']['labels']['host'] != 'vm.%s' % HOSTNAME:
+            if jsondict['metadata']['labels']['host'] != HOSTNAME:
+                logger.debug('VM %s is migrating, ignore delete.' % name)
                 return
             #             vm_xml = get_xml(name)
             #             vm_json = toKubeJson(xmlToJson(vm_xml))

@@ -112,6 +112,7 @@ venv.bak/
 .mypy_cache/
 
 .DS_Store
+.settings/
 
 # idea
 executor/executor.iml

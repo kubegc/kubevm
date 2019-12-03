@@ -81,15 +81,47 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
         if kwargs.has_key('event') and kwargs.has_key('detail') and \
         str(DOM_EVENTS[kwargs['event']]) == "Undefined" and \
         str(DOM_EVENTS[kwargs['event']][kwargs['detail']]) == "Removed":
+
+            logger.debug('Callback domain deletion to virtlet')
+#             try:
+#                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP,
+#                                                                                   version=VERSION,
+#                                                                                   namespace='default',
+#                                                                                   plural=PLURAL,
+#                                                                                   name=vm_name)
+#                 #             block_json = get_block_dev_json(name)
+#                 jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, {})
+#                 modifyVM(vm_name, jsondict)
+#             except ApiException, e:
+#                 if e.reason == 'Not Found':
+#                     logger.debug('**VM %s already deleted, ignore this 404 message.' % vm_name)
+#             try:
+#                 logger.debug('Delete vm %s, report to virtlet' % vm_name)
+#                 deleteVM(vm_name)
+#             except ApiException, e:
+#                 if e.reason == 'Not Found':
+#                     logger.debug('**VM %s already deleted, ignore this 404 message.' % vm_name)
+#                 else:
+#                     info = sys.exc_info()
+#                     try:
+#                         report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+#                     except:
+#                         logger.warning('Oops! ', exc_info=1)
+#             except:
+#                 logger.error('Oops! ', exc_info=1)
+#                 info = sys.exc_info()
+#                 try:
+#                     report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
+#                 except:
+#                     logger.warning('Oops! ', exc_info=1)
             try:
-                logger.debug('Callback domain deletion to virtlet')
-#                 deleteVM(vm_name, V1DeleteOptions())
                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, vm_name)
                 cmd = 'mv -f %s /tmp' % file_path
                 logger.debug(cmd)
                 runCmd(cmd)
             except:
                 logger.error('Oops! ', exc_info=1)
+            
         else:
         #             deleteVM(vm_name, V1DeleteOptions())
             ignore_pushing = False
@@ -209,9 +241,9 @@ def modifyVM(name, body):
         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)
     return retv
 
-def deleteVM(name, body):
+def deleteVM(name):
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)
+        group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=V1DeleteOptions())
     return retv
 
 def xmlToJson(xmlStr):

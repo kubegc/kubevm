@@ -147,7 +147,7 @@ def check_pool_content_type(pool_, content):
     content_file = '%s/content' % pool_path
     if os.path.exists(content_file):
         with open(content_file, 'r') as fr:
-            pool_content = fr.read()
+            pool_content = fr.read().strip()
         if pool_content == content:    
             return True
     return False
@@ -990,7 +990,7 @@ def runCmdAndGetResult(cmd, raise_it=True):
         p.stderr.close()
 
 if __name__ == '__main__':
-    print(freecpu())
+    print(check_pool_content_type("node22-wywnfs", "vmdi"))
     # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))

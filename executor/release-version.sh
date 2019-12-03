@@ -61,7 +61,7 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <vmm>."
 fi
-git clone -b uit https://github.com/kubesys/kubeext-SDS.git
+git clone -b uit https://github.com/uit-plus/kubeext-SDS.git
 cd ./kubeext-SDS
 
 pyinstaller -F kubesds-adm.py

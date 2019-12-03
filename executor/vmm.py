@@ -823,7 +823,7 @@ def create_vmdi(name, source, target):
         if os.path.exists(dest_dir):
             runCmd('rm -rf %s' % dest_dir)
         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
-    cmd1 = 'qemu-img rebase -f qcow2 %s -b ""' % (dest)
+    cmd1 = 'qemu-img rebase -f qcow2 %s -b "" -u' % (dest)
     try:
         runCmd(cmd1)
     except:

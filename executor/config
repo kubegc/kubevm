@@ -69,6 +69,9 @@ createAndStartVMFromISO = virt-install
 createAndStartVMFromImage = virt-install
 convertVMToImage = /usr/bin/vmm convert_vm_to_image
 
+[VirtualMachineSupportCmdsWithOriginalField]
+cloneVM = virt-clone
+
 [VirtualMachineSupportCmdsWithDomainField]
 createVM = virsh create
 startVM = virsh start
@@ -81,7 +84,7 @@ resumeVM = virsh resume
 suspendVM = virsh suspend
 saveVM = virsh save
 restoreVM = virsh restore
-migrateVM = virsh migrate
+migrateVM = kubesds-adm migrate
 manageISO = virsh change-media
 updateOS = /usr/bin/vmm update-os
 plugDevice = virsh attach-device

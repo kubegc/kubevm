@@ -139,6 +139,7 @@ ALL_SUPPORT_CMDS_WITH_POOLNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SNAME_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = {}
 ALL_SUPPORT_CMDS_WITH_POOL_FIELD = {}
+ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = {}
 
 for k,v in config_raw._sections.items():
     if string.find(k, 'SupportCmds') != -1:
@@ -159,6 +160,8 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD = dict(ALL_SUPPORT_CMDS_WITH_SWITCH_FIELD, **v)
         elif string.find(k, 'WithPoolField') != -1:
             ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
+        elif string.find(k, 'WithOriginalField') != -1:
+            ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD, **v)
             
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -295,7 +298,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 destroy(metadata_name)
                                 time.sleep(1)
                         try:
-                            runCmd(cmd)
+                            if _isMigrateVM(the_cmd_key):
+                                rpcCallWithResult(cmd)
+                            else:
+                                runCmd(cmd)
                         except Exception, e:
                             if _isDeleteVM(the_cmd_key) and not is_vm_exists(metadata_name):
                                 logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
@@ -470,7 +476,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 runCmd(cmd)
                                 _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                     elif operation_type == 'MODIFIED':
-                        _, data = None, None
+                        result, data = {}, None
                         try:
                             if cmd.find("kubesds-adm") >= 0:
                                 result, data = rpcCallWithResult(cmd, raise_it=False)
@@ -481,7 +487,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 runCmd(cmd)
                                 _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                         except Exception, e:
-                            if _isDeleteDisk(the_cmd_key) and result['code'] != 221 and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
+                            if _isDeleteDisk(the_cmd_key) and result.get('code') != 221 and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                 logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # try:
@@ -1340,6 +1346,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             _, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                             logger.debug('get pool info')
                     elif operation_type == 'MODIFIED':
+                        result = {}
                         try:
                             if _isDeletePool(the_cmd_key):
                                 result, _ = rpcCallWithResult(cmd, raise_it=False)
@@ -1357,7 +1364,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             # only two case has exception when delete pool
                             # case 1: pool exist but not pool type not match(code is 221)
                             # case 2: pool not exist, only this case delete pool info from api server
-                            if _isDeletePool(the_cmd_key) and result['code'] != 221 and not is_kubesds_pool_exists(pool_type, pool_name):
+                            if _isDeletePool(the_cmd_key) and result.get('code') != 221 and not is_kubesds_pool_exists(pool_type, pool_name):
                                 logger.warning("***Pool %s not exists, delete it from virtlet" % metadata_name)
                                 # jsondict = deleteLifecycleInJson(jsondict)
                                 # modifyStructure(metadata_name, jsondict, group, version, plural)
@@ -1827,6 +1834,8 @@ def forceUsingMetadataName(metadata_name, the_cmd_key, jsondict):
             lifecycle[the_cmd_key]['switch'] = metadata_name
         elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_POOL_FIELD:
             lifecycle[the_cmd_key]['pool'] = metadata_name
+        elif the_cmd_key in ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD:
+            lifecycle[the_cmd_key]['original'] = metadata_name
     return jsondict
 
 def _injectEventIntoLifecycle(jsondict, eventdict):
@@ -2024,6 +2033,7 @@ Get the CMD key.
 '''
 def _getCmdKey(jsondict):
     spec = jsondict['raw_object'].get('spec')
+    the_cmd_keys = []
     if spec:
         '''
         Iterate keys in 'spec' structure and map them to real CMDs in back-end.
@@ -2032,7 +2042,6 @@ def _getCmdKey(jsondict):
         lifecycle = spec.get('lifecycle')
         if not lifecycle:
             return None
-        the_cmd_keys = []
         keys = lifecycle.keys()
         for key in keys:
             if key in ALL_SUPPORT_CMDS.keys():
@@ -2297,6 +2306,7 @@ def _createDiskXml(metadata_name, data):
     doc.appendChild(root)
     driver = {}
     iotune = {}
+    cache = {}
     for k, v in data.items():
         if k == 'driver':
             driver[k] = v
@@ -2321,12 +2331,14 @@ def _createDiskXml(metadata_name, data):
             iotune[k] = v
         elif k == 'write_iops_sec':
             iotune[k] = v
+        elif k == 'cache':
+            cache[k] = v
     
-    if driver:        
-        node = doc.createElement('driver')
-        node.setAttribute('name', driver.get('driver') if driver.get('driver') else 'qemu')
-        node.setAttribute('type', driver.get('subdriver') if driver.get('subdriver') else 'qcow2')
-        root.appendChild(node)
+    node = doc.createElement('driver')
+    node.setAttribute('name', driver.get('driver') if driver.get('driver') else 'qemu')
+    node.setAttribute('type', driver.get('subdriver') if driver.get('subdriver') else 'qcow2')
+    node.setAttribute('cache', cache.get('cache') if cache.get('cache') else 'none')
+    root.appendChild(node)
     
     if iotune:        
         vm_iotune = doc.createElement('iotune')

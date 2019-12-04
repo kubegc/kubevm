@@ -82,7 +82,7 @@ def start(ignore_warning=False, update_stuff=False, version=VERSION):
             print('error: a different version of service \'virtlet(%s)\' is running in container \'%s\'\n' % (virtlet_running_version, str(virtlet_container_id)))
         else:
             print('do noting: service \'virtlet\' is running in container \'%s\'\n' % str(virtlet_container_id))
-    runCmd('kubesds-rpc start')
+#     runCmd('kubesds-rpc start')
     if virtctl_err or virtlet_err:
         sys.exit(1)
 
@@ -118,7 +118,7 @@ def restart_kubesds_rpc(ignore_warning=False):
 def restart(ignore_warning=False):
     stop(ignore_warning=ignore_warning)
     start(ignore_warning=ignore_warning)
-    restart_kubesds_rpc(ignore_warning=ignore_warning)
+#     restart_kubesds_rpc(ignore_warning=ignore_warning)
 
 def status(print_result=False, ignore_warning=False):
     (virtctl_running_version, virtlet_running_version) = check_version(ignore_warning=ignore_warning)

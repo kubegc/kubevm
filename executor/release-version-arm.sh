@@ -23,7 +23,7 @@ fi
 VERSION=$1
 
 echo -e "\033[3;30;47m*** Pull latest version from Github.\033[0m"
-git pull
+git pull origin arm8
 if [ $? -ne 0 ]; then
     echo "    Failed to pull latest version from Github!"
     exit 1

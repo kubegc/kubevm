@@ -27,10 +27,10 @@ except:
 def check_version(ignore_warning=False):
     (virtctl_running_version, _) = runCmd('docker ps | grep \"bash virtctl\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not virtctl_running_version:
-        (virtctl_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
+        (virtctl_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-ctl | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     (virtlet_running_version, _) = runCmd('docker ps | grep \"bash virtlet\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not virtlet_running_version:
-        (virtlet_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
+        (virtlet_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-let | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not ignore_warning and virtctl_running_version and virtctl_running_version != VERSION or not ignore_warning and virtlet_running_version and virtlet_running_version != VERSION:
         print('warning: mismatch version detected!') 
         (style_1, style_2, style_3, style_4) = ('\033[1;42m', '\033[0m', '\033[1;42m', '\033[0m')
@@ -49,14 +49,14 @@ def run_virtctl(update_stuff=False, version=VERSION):
         script = 'virtctl-update-stuff.sh'
     else:
         script = 'virtctl.sh'
-    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash %s' % (HOSTNAME, version, script))
+    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-ctl:%s /bin/bash %s' % (HOSTNAME, version, script))
 
 def run_virtlet(update_stuff=False, version=VERSION):
     if update_stuff:
         script = 'virtlet-update-stuff.sh'
     else:
         script = 'virtlet.sh'
-    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash %s' % (HOSTNAME, version, script))
+    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-let:%s /bin/bash %s' % (HOSTNAME, version, script))
 
 def start(ignore_warning=False, update_stuff=False, version=VERSION):
     virtctl_err = None
@@ -179,7 +179,7 @@ def update_offline(version='latest'):
     stop(ignore_warning=True)
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
-    restart_kubesds_rpc(ignore_warning=True)
+#     restart_kubesds_rpc(ignore_warning=True)
 
 def version(service=False, ignore_warning=False):
     if service:

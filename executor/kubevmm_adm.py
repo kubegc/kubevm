@@ -7,11 +7,8 @@ Copyright (2019, ) Institute of Software, Chinese Academy of
 '''
 
 import sys
-import os
 import time
-import json
 import subprocess
-import traceback
 import socket
 
 HOSTNAME = socket.gethostname()

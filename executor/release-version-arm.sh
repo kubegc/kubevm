@@ -30,7 +30,6 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success pull latest version."
 fi
-wget -c https://raw.githubusercontent.com/kubesys/kubeext-SDN/master/src/kubeovn-adm
 
 ##############################patch stuff#########################################
 SHELL_FOLDER=$(dirname $(readlink -f "$0"))
@@ -39,16 +38,10 @@ if [ ! -d "./dist" ]; then
 	mkdir ./dist
 fi
 cp -f config ./dist
-chmod +x kubeovn-adm
-gzexe ./kubeovn-adm
-cp -f kubeovn-adm ./dist
-gzexe -d ./kubeovn-adm
-rm -f ./kubeovn-adm~
-cp ovn-ovsdb.service ./dist
 cp -rf ../yamls ./dist
 echo ${VERSION} > ./VERSION
 
-cp -rf ./dist/yamls/ ./VERSION ./dist/kubevmm-adm ./dist/config docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/config docker/virtctl
 if [ $? -ne 0 ]; then
     echo "    Failed to copy stuff to docker/virtctl!"
     exit 1

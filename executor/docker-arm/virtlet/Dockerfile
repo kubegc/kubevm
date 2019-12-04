@@ -1,10 +1,10 @@
-FROM registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
+FROM registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-base:v1.5.0-arm8
 
 RUN mkdir -p /home/kubevmm/bin
 
 RUN mkdir -p /etc/kubevmm
 
-ADD *.pyc /home/kubevmm/bin/
+ADD *.py /home/kubevmm/bin/
 
 ADD config /home/kubevmm/bin/
 

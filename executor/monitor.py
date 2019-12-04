@@ -1,3 +1,4 @@
+#!/bin/bash/env python
 import prometheus_client
 import ConfigParser
 import re

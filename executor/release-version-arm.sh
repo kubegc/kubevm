@@ -47,37 +47,6 @@ rm -f ./kubeovn-adm~
 cp ovn-ovsdb.service ./dist
 cp -rf ../yamls ./dist
 echo ${VERSION} > ./VERSION
-pyinstaller -F kubevmm_adm.py -n kubevmm-adm
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <kubevmm-adm>!"
-    exit 1
-else
-    echo "    Success compile <kubevmm-adm>."
-fi
-pyinstaller -F vmm.py
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <vmm>!"
-    exit 1
-else
-    echo "    Success compile <vmm>."
-fi
-git clone -b uit https://github.com/uit-plus/kubeext-SDS.git
-cd ./kubeext-SDS
-
-pyinstaller -F kubesds-adm.py
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <kubesds-adm>!"
-    exit 1
-else
-    echo "    Success compile <kubesds-adm>."
-fi
-pyinstaller -F kubesds-rpc.py
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <kubesds-rpc>!"
-    exit 1
-else
-    echo "    Success compile <kubesds-rpc>."
-fi
 cp -f ./dist/kubesds-adm ../docker/virtctl
 cp -f ./dist/kubesds-adm ../dist
 cp -f ./dist/kubesds-rpc ../docker/virtctl

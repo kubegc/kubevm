@@ -162,7 +162,7 @@ def update_online(version='latest'):
     stop(ignore_warning=True)
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
-    restart_kubesds_rpc(ignore_warning=True)
+#     restart_kubesds_rpc(ignore_warning=True)
 
 def update_offline(version='latest'):
     print('updating offline')

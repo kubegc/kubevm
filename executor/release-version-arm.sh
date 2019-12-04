@@ -52,10 +52,10 @@ fi
 ##############################patch image#########################################
 
 # step 1 copy file
-if [ ! -d "./docker/virtctl/utils" ]; then
+if [ ! -d "./docker-arm/virtctl/utils" ]; then
 	mkdir ./docker-arm/virtctl/utils
 fi
-if [ ! -d "./docker/virtlet/utils" ]; then
+if [ ! -d "./docker-arm/virtlet/utils" ]; then
 	mkdir ./docker-arm/virtlet/utils
 fi
 cp -rf utils/*.py docker-arm/virtctl/utils/

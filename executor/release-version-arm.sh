@@ -53,13 +53,13 @@ fi
 
 # step 1 copy file
 if [ ! -d "./docker/virtctl/utils" ]; then
-	mkdir ./docker/virtctl/utils
+	mkdir ./docker-arm/virtctl/utils
 fi
 if [ ! -d "./docker/virtlet/utils" ]; then
-	mkdir ./docker/virtlet/utils
+	mkdir ./docker-arm/virtlet/utils
 fi
-cp -rf utils/*.py docker/virtctl/utils/
-cp -rf utils/*.py docker/virtlet/utils/
+cp -rf utils/*.py docker-arm/virtctl/utils/
+cp -rf utils/*.py docker-arm/virtlet/utils/
 cp -rf config arraylist.cfg virtctl_in_docker.py invoker.py virtctl.py docker-arm/virtctl
 cp -rf config arraylist.cfg virtlet_in_docker.py host_cycler.py libvirt_event_handler_for_4_0.py libvirt_event_handler.py os_event_handler.py virtlet.py monitor.py docker-arm/virtlet
 

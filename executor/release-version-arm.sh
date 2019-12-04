@@ -9,7 +9,7 @@ if [ ! -n "$1" ] ;then
     echo "Usage $0 <version number>"
     exit 1
 else
-    if [[ "$1" =~ ^[A-Za-z0-9.]*$ ]] ;then
+    if [[ "$1" =~ ^[A-Za-z0-9.-]*$ ]] ;then
         echo -e "\033[3;30;47m*** Build a new release version: \033[5;36;47m($1)\033[0m)"
         echo -e "Institute of Software, Chinese Academy of Sciences"
         echo -e "        wuyuewen@otcaix.iscas.ac.cn"

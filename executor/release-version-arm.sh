@@ -47,26 +47,14 @@ rm -f ./kubeovn-adm~
 cp ovn-ovsdb.service ./dist
 cp -rf ../yamls ./dist
 echo ${VERSION} > ./VERSION
-cp -f ./dist/kubesds-adm ../docker/virtctl
-cp -f ./dist/kubesds-adm ../dist
-cp -f ./dist/kubesds-rpc ../docker/virtctl
-cp -f ./dist/kubesds-rpc ../dist
-cd ..
-rm -rf ./kubeext-SDS
 
-find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
-find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
-
-cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/kubevmm-adm ./dist/config docker/virtctl
 if [ $? -ne 0 ]; then
     echo "    Failed to copy stuff to docker/virtctl!"
     exit 1
 else
     echo "    Success copy stuff to docker/virtctl."
 fi
-
-python -m py_compile *.py
-python -m py_compile utils/*.py
 
 ##############################patch image#########################################
 
@@ -77,59 +65,52 @@ fi
 if [ ! -d "./docker/virtlet/utils" ]; then
 	mkdir ./docker/virtlet/utils
 fi
-cp -rf utils/*.pyc docker/virtctl/utils/
-cp -rf utils/*.pyc docker/virtlet/utils/
-cp -rf config arraylist.cfg virtctl_in_docker.pyc invoker.pyc virtctl.pyc docker/virtctl
-cp -rf config arraylist.cfg virtlet_in_docker.pyc host_cycler.pyc libvirt_event_handler_for_4_0.pyc libvirt_event_handler.pyc os_event_handler.pyc virtlet.pyc monitor.pyc docker/virtlet
-
-rm -rf *.pyc
-rm -rf utils/*.pyc
+cp -rf utils/*.py docker/virtctl/utils/
+cp -rf utils/*.py docker/virtlet/utils/
+cp -rf config arraylist.cfg virtctl_in_docker.py invoker.py virtctl.py docker-arm/virtctl
+cp -rf config arraylist.cfg virtlet_in_docker.py host_cycler.py libvirt_event_handler_for_4_0.py libvirt_event_handler.py os_event_handler.py virtlet.py monitor.py docker-arm/virtlet
 
 #step 2 docker build
-cd docker
-docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
-docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${VERSION}
-docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${VERSION}
-docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:latest
-docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:latest
+cd docker-arm
+#docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-base:v1.5.0-arm8
+docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-let:${VERSION}
+docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-ctl:${VERSION}
 
 #step 3 docker push
-echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
-echo "Username: bigtree0613@126.com"
-docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
-if [ $? -ne 0 ]; then
-    echo "    Failed to login aliyun repository!"
-    exit 1
-else
-    echo "    Success login...Pushing images!"
-fi
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${VERSION}
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${VERSION}
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:latest
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:latest
+#echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
+#echo "Username: bigtree0613@126.com"
+#docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
+#if [ $? -ne 0 ]; then
+#    echo "    Failed to login aliyun repository!"
+#    exit 1
+#else
+#    echo "    Success login...Pushing images!"
+#fi
+#docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-base:v1.5.0-arm8
+#docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-ctl:${VERSION}
+#docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-let:${VERSION}
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
-echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"
-cd ..
-sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
-mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
-if [ $? -ne 0 ]; then
-    echo "    Failed to patch version number to SPECS/kubevmm.spec!"
-    exit 1
-else
-    echo "    Success patch version number to SPECS/kubevmm.spec."
-fi
+#echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"
+#cd ..
+#sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
+#mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
+#if [ $? -ne 0 ]; then
+#    echo "    Failed to patch version number to SPECS/kubevmm.spec!"
+#    exit 1
+#else
+#    echo "    Success patch version number to SPECS/kubevmm.spec."
+#fi
 
-echo -e "\033[3;30;47m*** Push new SPECS/kubevmm.spec to Github.\033[0m"
-git add ./SPECS/kubevmm.spec
-git add ./kubeovn-adm
-git commit -m "new release version ${VERSION}"
-git push
-if [ $? -ne 0 ]; then
-    echo "    Failed to push SPECS/kubevmm.spec to Github!"
-    exit 1
-else
-    echo "    Success push SPECS/kubevmm.spec to Github."
-fi
+#echo -e "\033[3;30;47m*** Push new SPECS/kubevmm.spec to Github.\033[0m"
+#git add ./SPECS/kubevmm.spec
+#git add ./kubeovn-adm
+#git commit -m "new release version ${VERSION}"
+#git push
+#if [ $? -ne 0 ]; then
+#    echo "    Failed to push SPECS/kubevmm.spec to Github!"
+#    exit 1
+#else
+#    echo "    Success push SPECS/kubevmm.spec to Github."
+#fi
 

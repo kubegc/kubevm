@@ -146,16 +146,16 @@ class HostCycler:
 #         client.CoreV1Api().replace_node_status(name="node11", body=self.node)
         
     def get_status_node_info(self):
-        ARCHITECTURE = runCmd('uname -m')
-        BOOT_ID = runCmd('cat /sys/class/dmi/id/product_uuid')
-        RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/bin/qemu-img --version | awk \'NR==1 {print $3}\''))
-        KERNEL_VERSION = runCmd('cat /proc/sys/kernel/osrelease')
+        ARCHITECTURE = runCmd('uname -m') if runCmd('uname -m') else 'aarch64'
+        BOOT_ID = runCmd('cat /sys/class/dmi/id/product_uuid') if runCmd('cat /sys/class/dmi/id/product_uuid') else 'F8CFD810-0048-4EBF-AF4C-EAD338156133'
+        RUNTIME_VERSION = 'QEMU-KVM://2.12.0'
+        KERNEL_VERSION = runCmd('cat /proc/sys/kernel/osrelease') if runCmd('cat /proc/sys/kernel/osrelease') else '4.14.0-115.ky4.aarch64'
 #         KUBE_PROXY_VERSION = runCmd('kubelet --version | awk \'{print $2}\'')
         KUBE_PROXY_VERSION = 'v1.16.2'
         KUBELET_VERSION = KUBE_PROXY_VERSION
         MACHINE_ID = BOOT_ID
-        OPERATING_SYSTEM = runCmd('cat /proc/sys/kernel/ostype')
-        OS_IMAGE = runCmd('cat /etc/os-release | grep PRETTY_NAME | awk -F"\\"" \'{print$2}\'')
+        OPERATING_SYSTEM = 'Kylin'
+        OS_IMAGE = runCmd('cat /etc/os-release | grep PRETTY_NAME | awk -F"\\"" \'{print$2}\'') if runCmd('cat /etc/os-release | grep PRETTY_NAME | awk -F"\\"" \'{print$2}\'') else 'Kylin Enterprise Linux Server'
         SYSTEM_UUID = BOOT_ID
         return V1NodeSystemInfo(architecture=ARCHITECTURE, boot_id=BOOT_ID, container_runtime_version=RUNTIME_VERSION, \
                      kernel_version=KERNEL_VERSION, kube_proxy_version=KUBE_PROXY_VERSION, kubelet_version=KUBELET_VERSION, \

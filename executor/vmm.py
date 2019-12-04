@@ -1,4 +1,4 @@
-#!/bin/bash/env python
+#!/usr/bin/python
 '''
 Copyright (2019, ) Institute of Software, Chinese Academy of 
 

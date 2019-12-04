@@ -41,12 +41,12 @@ cp -f config ./dist
 cp -rf ../yamls ./dist
 echo ${VERSION} > ./VERSION
 
-cp -rf ./dist/yamls/ ./VERSION ./dist/config docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/config docker-arm/virtctl
 if [ $? -ne 0 ]; then
-    echo "    Failed to copy stuff to docker/virtctl!"
+    echo "    Failed to copy stuff to docker-arm/virtctl!"
     exit 1
 else
-    echo "    Success copy stuff to docker/virtctl."
+    echo "    Success copy stuff to docker-arm/virtctl."
 fi
 
 ##############################patch image#########################################

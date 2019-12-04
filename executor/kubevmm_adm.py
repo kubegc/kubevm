@@ -19,7 +19,7 @@ try:
         VERSION = fr.read().strip()
 except:
     print('error: can not read \'VERSION\' file %s!' % version_file)
-    sys.exit(1)
+    VERSION = 'v1.5.0-arm8'
     
 def check_version(ignore_warning=False):
     (virtctl_running_version, _) = runCmd('docker ps | grep \"bash virtctl\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')

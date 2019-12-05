@@ -926,7 +926,7 @@ def delete_vmdi(name, sourcePool):
     cmd = 'rm -rf %s' % (targetDir)
     runCmd(cmd)
     
-    write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': targetPool})
+    write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': sourcePool})
 
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(

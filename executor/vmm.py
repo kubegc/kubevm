@@ -918,7 +918,11 @@ def delete_image(name):
         logger.error('Oops! ', exc_info=1)
 
 def delete_vmdi(name, targetPool):
-    targetDir = '%s/%s' % (get_pool_path(targetPool), name)
+    pool_path = get_pool_path(targetPool)
+    if pool_path is None:
+        logger.debug('can not get pool path')
+        exit(1)
+    targetDir = '%s/%s' % (pool_path, name)
     cmd = 'rm -rf %s' % (targetDir)
     runCmd(cmd)
     

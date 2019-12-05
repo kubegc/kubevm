@@ -100,4 +100,4 @@ def rpcCall(cmd, raise_it=True):
         raise ExecuteException('RunCmdError', "Cmd: %s failed!" % cmd)
 
 if __name__ == '__main__':
-    rpcCallWithResult('kubesds-adm --type dir --pool pool11 --url /mnt/localfs/pooldir --content vmd')
+    rpcCall('python /tmp/pycharm_project_666/vmm.py  create_vmdi_from_disk  --sourceVolume disktest11daa --sourcePool pooltest11122 --name disktest11daa.temp2 --targetPool node22poolnfsvmdi')

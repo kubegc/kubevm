@@ -917,8 +917,8 @@ def delete_image(name):
     except:
         logger.error('Oops! ', exc_info=1)
 
-def delete_vmdi(name, targetPool):
-    pool_path = get_pool_path(targetPool)
+def delete_vmdi(name, sourcePool):
+    pool_path = get_pool_path(sourcePool)
     if pool_path is None:
         logger.debug('can not get pool path')
         exit(1)
@@ -1191,7 +1191,7 @@ def main():
     elif sys.argv[1] == 'create_vmdi':
         create_vmdi(params['--name'], params['--source'], params['--targetPool'])
     elif sys.argv[1] == 'delete_vmdi':
-        delete_vmdi(params['--name'], params['--targetPool'])
+        delete_vmdi(params['--name'], params['--sourcePool'])
     elif sys.argv[1] == 'update-os':
         updateOS(params['--domain'], params['--source'], params['--target'])
     else:

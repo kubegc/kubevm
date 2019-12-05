@@ -300,8 +300,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         try:
                             if _isMigrateVM(the_cmd_key):
                                 rpcCallWithResult(cmd)
-                            # elif _isManageISO(the_cmd_key) or _isResizeVM(the_cmd_key) or _isUpdateOS(the_cmd_key):
-                            #     rpcCall(cmd)
                             else:
                                 runCmd(cmd)
                         except Exception, e:

@@ -53,7 +53,7 @@ from utils.utils import get_address_set_info, get_spec, get_field_in_kubernetes_
     addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
     now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, \
     add_spec_in_volume
-from utils.cmdrpc import rpcCallWithResult
+from utils.cmdrpc import rpcCallWithResult, rpcCall
 
 
 class parser(ConfigParser.ConfigParser):
@@ -300,6 +300,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         try:
                             if _isMigrateVM(the_cmd_key):
                                 rpcCallWithResult(cmd)
+                            elif _isManageISO(the_cmd_key) or _isResizeVM(the_cmd_key) or _isUpdateOS(the_cmd_key) or _isPlugDisk(the_cmd_key):
+                                rpcCall(cmd)
                             else:
                                 runCmd(cmd)
                         except Exception, e:
@@ -631,10 +633,10 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
                 try:
                     if operation_type == 'ADDED':
                         if cmd:
-                            runCmd(cmd)
+                            rpcCall(cmd)
                     elif operation_type == 'MODIFIED':
                         try:
-                            runCmd(cmd)
+                            rpcCall(cmd)
                         except Exception, e:
                             if _isDeleteDiskImage(the_cmd_key):
                                 logger.warning("***Disk image %s not exists, delete it from virtlet" % metadata_name)
@@ -1900,6 +1902,26 @@ def _isDeleteVM(the_cmd_key):
 
 def _isMigrateVM(the_cmd_key):
     if the_cmd_key == "migrateVM":
+        return True
+    return False
+
+def _isUpdateOS(the_cmd_key):
+    if the_cmd_key == "updateOS":
+        return True
+    return False
+
+def _isManageISO(the_cmd_key):
+    if the_cmd_key == "manageISO":
+        return True
+    return False
+
+def _isPlugDisk(the_cmd_key):
+    if the_cmd_key == "plugDisk":
+        return True
+    return False
+
+def _isResizeVM(the_cmd_key):
+    if the_cmd_key == "resizeVM":
         return True
     return False
 

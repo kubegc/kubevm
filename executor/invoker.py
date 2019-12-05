@@ -300,8 +300,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         try:
                             if _isMigrateVM(the_cmd_key):
                                 rpcCallWithResult(cmd)
-                            elif _isManageISO(the_cmd_key) or _isResizeVM(the_cmd_key) or _isUpdateOS(the_cmd_key) or _isPlugDisk(the_cmd_key):
-                                rpcCall(cmd)
+                            # elif _isManageISO(the_cmd_key) or _isResizeVM(the_cmd_key) or _isUpdateOS(the_cmd_key):
+                            #     rpcCall(cmd)
                             else:
                                 runCmd(cmd)
                         except Exception, e:
@@ -2013,11 +2013,6 @@ def _isPlugNIC(the_cmd_key):
 
 def _isUnplugNIC(the_cmd_key):
     if the_cmd_key == "unplugNIC":
-        return True
-    return False
-
-def _isPlugDisk(the_cmd_key):
-    if the_cmd_key == "plugDisk":
         return True
     return False
 

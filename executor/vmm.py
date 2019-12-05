@@ -593,7 +593,7 @@ def create_vmdi_from_disk(name, sourceVolume, sourcePool, targetPool):
     if not sourcePool:
         raise Exception('404, Not Found. Source pool not found.')
     if not is_volume_exists(sourceVolume, sourcePool):
-        raise Exception('VM disk %s not exists!' % name)
+        raise Exception('VM disk %s not exists!' % sourceVolume)
 #     if is_volume_in_use(vol=name, pool=sourcePool):
 #         raise Exception('Cannot covert vmd in use to image.')
     if not check_pool_content_type(targetPool, 'vmdi'):

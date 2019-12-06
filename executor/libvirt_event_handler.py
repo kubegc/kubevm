@@ -36,7 +36,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
-from utils.utils import updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.utils import getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token
 from utils import logger
 
@@ -137,6 +137,9 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             if not ignore_pushing:
                 try:
                     logger.debug('Callback domain changes to virtlet')
+                    if getCmdKey(jsondict) == 'migrateVM':
+                        logger.debug('VM %s is migrating, ignore changes.' % vm_name)
+                        return
                     vm_xml = get_xml(vm_name)
                     vm_power_state = vm_state(vm_name).get(vm_name)
                     vm_json = toKubeJson(xmlToJson(vm_xml))

@@ -282,6 +282,22 @@ def get_field(jsondict, index):
         if k == index[-1]:
             retv = v
     return retv
+
+def getCmdKey(jsondict):
+    spec = get_spec(jsondict)
+    the_cmd_keys = []
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        keys = lifecycle.keys()
+        for key in keys:
+            the_cmd_keys.append(key)
+    return the_cmd_keys[0] if the_cmd_keys else None
     
 def get_volume_snapshots(path):
     cmd = 'qemu-img info -U %s' % path

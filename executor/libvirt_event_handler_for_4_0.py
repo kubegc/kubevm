@@ -33,7 +33,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
-from utils.utils import get_hostname_in_lower_case, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.utils import getCmdKey, get_hostname_in_lower_case, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token
 from utils import logger
 
@@ -104,6 +104,9 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             if not ignore_pushing:
                 try:
                     logger.debug('Callback domain changes to virtlet')
+                    if getCmdKey(jsondict) == 'migrateVM':
+                        logger.debug('VM %s is migrating, ignore changes.' % vm_name)
+                        return
                     vm_xml = get_xml(vm_name)
                     vm_power_state = vm_state(vm_name).get(vm_name)
                     vm_json = toKubeJson(xmlToJson(vm_xml))
@@ -133,10 +136,6 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             if kwargs.has_key('event') and str(domEventToString(kwargs['event'])) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
-                    time.sleep(2)
-                    if jsondict['metadata']['labels']['host'] != HOSTNAME:
-                        logger.debug('VM %s is migrating, ignore shutdown.' % vm_name)
-                        return
                     macs = get_macs(vm_name)
                     for mac in macs:
                         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
@@ -753,7 +752,7 @@ def myDomainEventIOErrorReasonCallback(conn, dom, srcpath, devalias, action, rea
     print("myDomainEventIOErrorReasonCallback: Domain %s(%s) %s %s %d %s" % (dom.name(), dom.ID(), srcpath, devalias, action, reason))
     myDomainEventHandler(conn, dom, srcpath=srcpath, devalias=devalias, action=action, reason=reason, opaque=opaque)
 def myDomainEventGraphicsCallback(conn, dom, phase, localAddr, remoteAddr, authScheme, subject, opaque):
-    print("myDomainEventGraphicsCallback: Domain %s(%s) %d %s" % (dom.name(), dom.ID(), phase, authScheme))
+#     print("myDomainEventGraphicsCallback: Domain %s(%s) %d %s" % (dom.name(), dom.ID(), phase, authScheme))
     myDomainEventHandler(conn, dom, phase=phase, localAddr=localAddr, remoteAddr=remoteAddr, authScheme=authScheme, subject=subject, opaque=opaque)
 def myDomainEventControlErrorCallback(conn, dom, opaque):
     print("myDomainEventControlErrorCallback: Domain %s(%s)" % (dom.name(), dom.ID()))

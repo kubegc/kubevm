@@ -1,6 +1,6 @@
 #!/usr/bin/python
 '''
-Copyright (2019, ) Institute of Software, Chinese Academy of 
+Copyright (2019, ) Institute of Software, Chinese Academy of
 
 @author: wuheng@otcaix.iscas.ac.cn
 @author: wuyuewen@otcaix.iscas.ac.cn
@@ -20,7 +20,7 @@ try:
 except:
     print('error: can not read \'VERSION\' file %s!' % version_file)
     VERSION = 'v1.5.0-arm8'
-    
+
 def check_version(ignore_warning=False):
     (virtctl_running_version, _) = runCmd('docker ps | grep \"bash virtctl\" | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not virtctl_running_version:
@@ -29,7 +29,7 @@ def check_version(ignore_warning=False):
     if not virtlet_running_version:
         (virtlet_running_version, _) = runCmd('docker ps | grep registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-let | awk \'{print $2}\' | awk -F\':\' \'{if(NF>1) print $2}\'')
     if not ignore_warning and virtctl_running_version and virtctl_running_version != VERSION or not ignore_warning and virtlet_running_version and virtlet_running_version != VERSION:
-        print('warning: mismatch version detected!') 
+        print('warning: mismatch version detected!')
         (style_1, style_2, style_3, style_4) = ('\033[1;42m', '\033[0m', '\033[1;42m', '\033[0m')
         if virtctl_running_version != VERSION:
             style_1 = '\033[1;43m'
@@ -40,20 +40,20 @@ def check_version(ignore_warning=False):
         print('warning: \'kubevmm-adm(\033[1;42m%s\033[0m)\' mismatch with \'virtctl(%s%s%s)\' & \'virtlet(%s%s%s)\'' % (VERSION, style_1, virtctl_running_version, style_2, style_3, virtlet_running_version, style_4))
         print('\033[1;46m*strongly suggest do: %s service update\033[0m \n' % sys.argv[0])
     return (virtctl_running_version, virtlet_running_version)
-    
+
 def run_virtctl(update_stuff=False, version=VERSION):
     if update_stuff:
         script = 'virtctl-update-stuff.sh'
     else:
         script = 'virtctl.sh'
-    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-ctl:%s /bin/bash %s' % (HOSTNAME, version, script))
+    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /root/.ssh/:/root/.ssh -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-ctl:%s /bin/bash %s' % (HOSTNAME, version, script))
 
 def run_virtlet(update_stuff=False, version=VERSION):
     if update_stuff:
         script = 'virtlet-update-stuff.sh'
     else:
         script = 'virtlet.sh'
-    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/bin:/usr/bin -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-let:%s /bin/bash %s' % (HOSTNAME, version, script))
+    return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /root/.ssh/:/root/.ssh -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-let:%s /bin/bash %s' % (HOSTNAME, version, script))
 
 def start(ignore_warning=False, update_stuff=False, version=VERSION):
     virtctl_err = None
@@ -96,16 +96,16 @@ def stop(ignore_warning=False):
         if virtctl_err:
             print('warning: %s\n' % (virtctl_err))
     if not virtlet_container_id:
-        print('do noting: service \'virtlet\' is not running\n') 
+        print('do noting: service \'virtlet\' is not running\n')
     else:
         print('>>> stopping \'virtlet\' in container \'%s\'...\n' % (str(virtlet_container_id)))
-        (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
+        (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id))
         if virtlet_err:
             print('warning: %s\n' % (virtlet_err))
     runCmd('kubesds-rpc stop')
     if virtctl_err or virtlet_err:
         sys.exit(1)
-        
+
 def restart_kubesds_rpc(ignore_warning=False):
     (_, _err) = runCmd('kubesds-rpc restart')
     if _err and not ignore_warning:
@@ -130,7 +130,7 @@ def status(print_result=False, ignore_warning=False):
     if virtlet_err:
         print('warning: %s\n' % (virtlet_err))
     if print_result:
-        if not virtctl_container_id:    
+        if not virtctl_container_id:
             print('service \'virtctl\' is not running')
         else:
             print('service \'virtctl(%s)\' is running in container \'%s\'' % (virtctl_running_version, str(virtctl_container_id)))
@@ -184,7 +184,7 @@ def version(service=False, ignore_warning=False):
         print('virtctl(%s) & virtlet(%s)' % (virtctl_running_version if virtctl_running_version else 'UNKNOWN', virtlet_running_version if virtlet_running_version else 'UNKNOWN'))
     else:
         print(VERSION)
-    
+
 def view_bar(num, total):
     r = '\r[%s%s]' % ("#"*num, " "*(100-num))
     sys.stdout.write(r)
@@ -215,7 +215,7 @@ def main():
     if len(sys.argv) < 2:
         print(usage_msg)
         sys.exit(1)
-        
+
     if sys.argv[1] == '--help':
         print(help_msg)
     elif sys.argv[1] == '--version':
@@ -233,25 +233,25 @@ def main():
             if len(params) != 0:
                 print('error: invalid arguments!\n')
                 print(usage_service)
-                sys.exit(1)            
+                sys.exit(1)
             start()
         elif sys.argv[2] == 'stop':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
                 print(usage_service)
-                sys.exit(1)   
+                sys.exit(1)
             stop()
         elif sys.argv[2] == 'restart':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
                 print(usage_service)
-                sys.exit(1)   
+                sys.exit(1)
             restart()
         elif sys.argv[2] == 'status':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
                 print(usage_service)
-                sys.exit(1)   
+                sys.exit(1)
             status(True)
         elif sys.argv[2] == 'update':
             if len(params) == 0 or params[0] == '--help':
@@ -292,17 +292,17 @@ def main():
             if len(params) != 0:
                 print('error: invalid arguments!\n')
                 print(usage_service)
-                sys.exit(1) 
+                sys.exit(1)
             version(service=True)
         elif sys.argv[2] == '--help':
             if len(params) != 0:
                 print('error: invalid arguments!\n')
                 print(usage_service)
-                sys.exit(1) 
+                sys.exit(1)
             print(help_service)
         else:
             print('error: invalid arguments!\n')
-            print(usage_service)            
+            print(usage_service)
     else:
         print('error: invalid sub commands!\n')
         print(help_subcommands)
@@ -315,7 +315,7 @@ def runCmd(cmd, show_stdout=False):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         if show_stdout:
-            while p.poll() is None: 
+            while p.poll() is None:
                 r = p.stdout.readline().decode('utf-8')
                 sys.stdout.write(r)
             return

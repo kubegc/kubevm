@@ -168,6 +168,7 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
+                    time.sleep(2)
                     if jsondict['metadata']['labels']['host'] != HOSTNAME:
                         logger.debug('VM %s is migrating, ignore shutdown.' % vm_name)
                         return

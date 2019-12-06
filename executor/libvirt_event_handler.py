@@ -36,7 +36,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
-from utils.utils import updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.utils import get_hostname_in_lower_case, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token
 from utils import logger
 
@@ -58,6 +58,8 @@ VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
+
+HOSTNAME = get_hostname_in_lower_case()
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
@@ -166,6 +168,9 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
+                    if jsondict['metadata']['labels']['host'] != HOSTNAME:
+                        logger.debug('VM %s is migrating, ignore shutdown.' % vm_name)
+                        return
                     macs = get_macs(vm_name)
                     for mac in macs:
                         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \

@@ -154,6 +154,8 @@ def get_l3_network_info(name):
                 (_, portInfo['addresses']) = str.strip(line).split(': ')
             elif line.find('router-port:') != -1:
                 (_, portInfo['router_port']) = str.strip(line).split(': ')
+            elif line.find('tag:') != -1:
+                (_, portInfo['tag']) = str.strip(line).split(': ')
         portsInfo.append(portInfo)
     switchInfo['ports'] = portsInfo
     data['switchInfo'] = switchInfo
@@ -285,6 +287,22 @@ def get_field(jsondict, index):
         if k == index[-1]:
             retv = v
     return retv
+
+def getCmdKey(jsondict):
+    spec = get_spec(jsondict)
+    the_cmd_keys = []
+    if spec:
+        '''
+        Iterate keys in 'spec' structure and map them to real CMDs in back-end.
+        Note that only the first CMD will be executed.
+        '''
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        keys = lifecycle.keys()
+        for key in keys:
+            the_cmd_keys.append(key)
+    return the_cmd_keys[0] if the_cmd_keys else None
     
 def get_volume_snapshots(path):
     cmd = 'qemu-img info -U %s' % path
@@ -1352,12 +1370,12 @@ if __name__ == '__main__':
 #     TOKEN = config_raw.get('Kubernetes', 'token_file')
 #     config.load_kube_config(config_file=TOKEN)
 #     print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
-#     pprint.pprint(get_l3_network_info("switch8888"))
+    pprint.pprint(get_l3_network_info("switch1"))
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom
 #     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))
 #     try:
-    print(get_rebase_backing_file_cmds("/var/lib/libvirt/pooltest3/wyw123/", "/var/lib/libvirt/pooltest4/wyw123/"))
+#     print(get_rebase_backing_file_cmds("/var/lib/libvirt/pooltest3/wyw123/", "/var/lib/libvirt/pooltest4/wyw123/"))
 # #         print(domain.merge_snapshot("snapshot3"))
 # #         print(domain.revert_snapshot("snapshot3"))
 #     except Exception, e:

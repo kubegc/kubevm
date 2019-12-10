@@ -1535,7 +1535,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key) or _isCreateDiskExternalSnapshot(the_cmd_key):
-                modify_disk(data['pool'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+                modify_disk(data['poolname'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
             if _isCreateDiskExternalSnapshot(the_cmd_key):
                 jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM:

@@ -159,7 +159,7 @@ def get_l3_network_info(name):
                     (_, portInfo['tag']) = str.strip(line).split(': ')
             portsInfo.append(portInfo)
         switchInfo['ports'] = portsInfo
-        data['switchInfo'] = switchInfo
+    data['switchInfo'] = switchInfo
     '''
     Get router informations.
     '''
@@ -196,7 +196,7 @@ def get_l3_network_info(name):
                     (_, portInfo['networks']) = str.strip(line).split(': ')
             portsInfo.append(portInfo)
         routerInfo['ports'] = portsInfo
-        data['routerInfo'] = routerInfo
+    data['routerInfo'] = routerInfo
     '''
     Get gateway informations.
     '''
@@ -208,22 +208,23 @@ def get_l3_network_info(name):
         cmd = 'ovn-nbctl --db=tcp:%s:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name, name)
     #     print(cmd)
         lines = runCmdRaiseException(cmd)
-        if not lines:
-            raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
-        gatewayInfo['id'] = lines[0].strip()
-        cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
-    #     print(cmd)
-        lines = runCmdRaiseException(cmd)
-        for line in lines:
-            if line.find('server_mac') != -1:
-                (_, gatewayInfo['server_mac']) = line.strip().split('=')
-            elif line.find('router') != -1:
-                (_, gatewayInfo['router']) = line.strip().split('=')
-            elif line.find('server_id') != -1:
-                (_, gatewayInfo['server_id']) = line.strip().split('=')
-            elif line.find('lease_time') != -1:
-                (_, gatewayInfo['lease_time']) = line.strip().split('=')
-        data['gatewayInfo'] = gatewayInfo
+#         if not lines:
+#             raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
+        if lines:
+            gatewayInfo['id'] = lines[0].strip()
+            cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
+        #     print(cmd)
+            lines = runCmdRaiseException(cmd)
+            for line in lines:
+                if line.find('server_mac') != -1:
+                    (_, gatewayInfo['server_mac']) = line.strip().split('=')
+                elif line.find('router') != -1:
+                    (_, gatewayInfo['router']) = line.strip().split('=')
+                elif line.find('server_id') != -1:
+                    (_, gatewayInfo['server_id']) = line.strip().split('=')
+                elif line.find('lease_time') != -1:
+                    (_, gatewayInfo['lease_time']) = line.strip().split('=')
+    data['gatewayInfo'] = gatewayInfo
     return data
 
 def get_address_set_info(name):

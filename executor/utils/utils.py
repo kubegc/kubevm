@@ -115,7 +115,7 @@ def get_l3_network_info(name):
     
     master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
     nb_port = '6641'
-    sb_port = '6642'
+#     sb_port = '6642'
     data = {'switchInfo': '', 'routerInfo': '', 'gatewayInfo': ''}
     '''
     Get switch informations.
@@ -124,103 +124,106 @@ def get_l3_network_info(name):
     lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s' % (master_ip, nb_port, name))
 #     if not (len(lines) -1) % 4 == 0:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
-    (_, switchInfo['id'], switchInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
-    ports = lines[1:]
-    portsInfo = []
-    list_ports = []
-    a_port = []
-    _start = False
-    for i in ports:
-        if i.find('port ') != -1 and not _start:
-            _start = True
-            a_port.append(i)
-        elif i.find('port ') != -1 and _start:
-            list_ports.append(a_port)
-            a_port = []
-            a_port.append(i)
-        elif i == ports[-1]:
-            a_port.append(i)
-            list_ports.append(a_port)
-        else:
-            a_port.append(i)
-    for a_port in list_ports:
-        portInfo = {'name': '', 'addresses': [], 'type': '', 'router_port':''}
-        for line in a_port:
-            if line.find('port ') != -1:
-                (_, portInfo['name']) = str.strip(line).split(' ')
-            elif line.find('type:') != -1:
-                (_, portInfo['type']) = str.strip(line).split(': ')
-            elif line.find('addresses:') != -1:
-                (_, portInfo['addresses']) = str.strip(line).split(': ')
-            elif line.find('router-port:') != -1:
-                (_, portInfo['router_port']) = str.strip(line).split(': ')
-            elif line.find('tag:') != -1:
-                (_, portInfo['tag']) = str.strip(line).split(': ')
-        portsInfo.append(portInfo)
-    switchInfo['ports'] = portsInfo
-    data['switchInfo'] = switchInfo
+    if lines:
+        (_, switchInfo['id'], switchInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
+        ports = lines[1:]
+        portsInfo = []
+        list_ports = []
+        a_port = []
+        _start = False
+        for i in ports:
+            if i.find('port ') != -1 and not _start:
+                _start = True
+                a_port.append(i)
+            elif i.find('port ') != -1 and _start:
+                list_ports.append(a_port)
+                a_port = []
+                a_port.append(i)
+            elif i == ports[-1]:
+                a_port.append(i)
+                list_ports.append(a_port)
+            else:
+                a_port.append(i)
+        for a_port in list_ports:
+            portInfo = {'name': '', 'addresses': [], 'type': '', 'router_port':''}
+            for line in a_port:
+                if line.find('port ') != -1:
+                    (_, portInfo['name']) = str.strip(line).split(' ')
+                elif line.find('type:') != -1:
+                    (_, portInfo['type']) = str.strip(line).split(': ')
+                elif line.find('addresses:') != -1:
+                    (_, portInfo['addresses']) = str.strip(line).split(': ')
+                elif line.find('router-port:') != -1:
+                    (_, portInfo['router_port']) = str.strip(line).split(': ')
+                elif line.find('tag:') != -1:
+                    (_, portInfo['tag']) = str.strip(line).split(': ')
+            portsInfo.append(portInfo)
+        switchInfo['ports'] = portsInfo
+        data['switchInfo'] = switchInfo
     '''
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
     lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s-router' % (master_ip, nb_port, name))
-    (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
-    ports = lines[1:]
-    portsInfo = []
-    list_ports = []
-    a_port = []
-    _start = False
-    for i in ports:
-        if i.find('port ') != -1 and not _start:
-            _start = True
-            a_port.append(i)
-        elif i.find('port ') != -1 and _start:
-            list_ports.append(a_port)
-            a_port = []
-            a_port.append(i)
-        elif i == ports[-1]:
-            a_port.append(i)
-            list_ports.append(a_port)
-        else:
-            a_port.append(i)
-    for a_port in list_ports:
-        portInfo = {'name': '', 'mac': '', 'networks': []}
-        for line in a_port:
-            if line.find('port ') != -1:
-                (_, portInfo['name']) = str.strip(line).split(' ')
-            elif line.find('mac:') != -1:
-                (_, portInfo['mac']) = str.strip(line).split(': ')
-            elif line.find('networks:') != -1:
-                (_, portInfo['networks']) = str.strip(line).split(': ')
-        portsInfo.append(portInfo)
-    routerInfo['ports'] = portsInfo
-    data['routerInfo'] = routerInfo
+    if lines:
+        (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
+        ports = lines[1:]
+        portsInfo = []
+        list_ports = []
+        a_port = []
+        _start = False
+        for i in ports:
+            if i.find('port ') != -1 and not _start:
+                _start = True
+                a_port.append(i)
+            elif i.find('port ') != -1 and _start:
+                list_ports.append(a_port)
+                a_port = []
+                a_port.append(i)
+            elif i == ports[-1]:
+                a_port.append(i)
+                list_ports.append(a_port)
+            else:
+                a_port.append(i)
+        for a_port in list_ports:
+            portInfo = {'name': '', 'mac': '', 'networks': []}
+            for line in a_port:
+                if line.find('port ') != -1:
+                    (_, portInfo['name']) = str.strip(line).split(' ')
+                elif line.find('mac:') != -1:
+                    (_, portInfo['mac']) = str.strip(line).split(': ')
+                elif line.find('networks:') != -1:
+                    (_, portInfo['networks']) = str.strip(line).split(': ')
+            portsInfo.append(portInfo)
+        routerInfo['ports'] = portsInfo
+        data['routerInfo'] = routerInfo
     '''
     Get gateway informations.
     '''
     gatewayInfo = {'id': '', 'server_mac': '', 'router': '', 'server_id': '', 'lease_time': ''}
     switchId = switchInfo.get('id')
-    if not switchId:
-        raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
-    cmd = 'ovn-nbctl --db=tcp:%s:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name, name)
-#     print(cmd)
-    lines = runCmdRaiseException(cmd)
-    if not lines:
-        raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
-    gatewayInfo['id'] = lines[0].strip()
-    cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
-#     print(cmd)
-    lines = runCmdRaiseException(cmd)
-    for line in lines:
-        if line.find('server_mac') != -1:
-            (_, gatewayInfo['server_mac']) = line.strip().split('=')
-        elif line.find('router') != -1:
-            (_, gatewayInfo['router']) = line.strip().split('=')
-        elif line.find('server_id') != -1:
-            (_, gatewayInfo['server_id']) = line.strip().split('=')
-        elif line.find('lease_time') != -1:
-            (_, gatewayInfo['lease_time']) = line.strip().split('=')
-    data['gatewayInfo'] = gatewayInfo
+#     if not switchId:
+#         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
+    if switchId:
+        cmd = 'ovn-nbctl --db=tcp:%s:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name, name)
+    #     print(cmd)
+        lines = runCmdRaiseException(cmd)
+        if not lines:
+            raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
+        gatewayInfo['id'] = lines[0].strip()
+        cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
+    #     print(cmd)
+        lines = runCmdRaiseException(cmd)
+        for line in lines:
+            if line.find('server_mac') != -1:
+                (_, gatewayInfo['server_mac']) = line.strip().split('=')
+            elif line.find('router') != -1:
+                (_, gatewayInfo['router']) = line.strip().split('=')
+            elif line.find('server_id') != -1:
+                (_, gatewayInfo['server_id']) = line.strip().split('=')
+            elif line.find('lease_time') != -1:
+                (_, gatewayInfo['lease_time']) = line.strip().split('=')
+        data['gatewayInfo'] = gatewayInfo
     return data
 
 def get_address_set_info(name):

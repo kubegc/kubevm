@@ -123,12 +123,12 @@ def collect_vm_metrics(vm, zone):
     for line in mem_stats:
         if line.find('unused') != -1:
             mem_unused = float(line.split(' ')[1].strip()) * 1024
-            resource_utilization['mem_metrics']['mem_unused'] = '%.2f' % (mem_unused)
         elif line.find('available') != -1:
             mem_available = float(line.split(' ')[1].strip()) * 1024
-            resource_utilization['mem_metrics']['mem_available'] = '%.2f' % (mem_available)
         elif line.find('actual') != -1:
             mem_actual = float(line.split(' ')[1].strip()) * 1024
+    resource_utilization['mem_metrics']['mem_unused'] = '%.2f' % (mem_unused)
+    resource_utilization['mem_metrics']['mem_available'] = '%.2f' % (mem_available)
     if mem_unused and mem_available and mem_actual:
         mem_buffers = abs(mem_actual - mem_available)
         resource_utilization['mem_metrics']['mem_buffers'] = '%.2f' % (mem_buffers)

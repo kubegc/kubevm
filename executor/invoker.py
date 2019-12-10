@@ -1531,7 +1531,6 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
         elif plural == PLURAL_VM_DISK:
-            vm_json = updateJsonRemoveLifecycle(jsonDict, data)
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key) or _isCreateDiskExternalSnapshot(the_cmd_key):
@@ -1580,7 +1579,7 @@ def modify_disk(pool, name, group, version, plural):
             logger.debug(config['current'])
             vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             vol_json = add_spec_in_volume(vol_json, 'disk', name)
-            vol_json = add_spec_in_volume(vol_json, 'pool', pool)
+            vol_json = add_spec_in_volume(vol_json, 'poolname', pool)
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         try:
@@ -1603,9 +1602,12 @@ def modify_snapshot(pool, disk, ss_path, group, version, plural):
     if os.path.isfile(ss_path):
         name = os.path.basename(ss_path)
         volume = get_vol_info_by_qemu(ss_path)
-        volume['pool'] = pool
+        volume['poolname'] = pool
         volume['disk'] = disk
+        volume['snapshot'] = name
+        volume["uni"] = ss_path
         vol_json = {'volume': volume}
+
 
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                           version=version,

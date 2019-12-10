@@ -505,6 +505,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 raise e
                         # update disk info
                         if _isCloneDisk(the_cmd_key) or _isCreateDiskFromDiskImage(the_cmd_key):
+                            deleteLifecycle(metadata_name, group, version, plural)
                             # uus disk type register to server by hand
                             _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                             newname = getCloneDiskName(the_cmd_key, jsondict)
@@ -1529,7 +1530,8 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec'] = {'nodeName': get_hostname_in_lower_case(), 'data': retv, 'type': net_type}
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
-        elif plural == PLURAL_VM_DISK:   
+        elif plural == PLURAL_VM_DISK:
+            vm_json = updateJsonRemoveLifecycle(jsonDict, data)
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key) or _isCreateDiskExternalSnapshot(the_cmd_key):
@@ -1869,6 +1871,19 @@ def addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version,
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
         raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
+
+def deleteLifecycle(name, group, version, plural):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
+                                                                          version=version,
+                                                                          namespace='default',
+                                                                          plural=plural,
+                                                                          name=name)
+        jsondict = deleteLifecycleInJson(jsondict)
+        body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+        modifyStructure(name, body, group, version, plural)
+    except ApiException, e:
+        logger.error(e)
 
 '''
 Install VM from ISO.

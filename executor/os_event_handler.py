@@ -208,7 +208,8 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             with open(get_pool_path(pool) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
                 volume = get_vol_info_by_qemu(config['current'])
-                volume['pool'] = pool
+                volume["poolname"] = pool
+                volume["uni"] = config['current']
                 volume['disk'] = name
                 volume['current'] = config['current']
                 vol_json = {'volume': volume}
@@ -253,7 +254,8 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             with open(get_pool_path(pool) + '/' + name + '/config.json', "r") as f:
                 config = json.load(f)
                 volume = get_vol_info_by_qemu(config['current'])
-                volume['pool'] = pool
+                volume["poolname"] = pool
+                volume["uni"] = config['current']
                 volume['disk'] = name
                 volume['current'] = config['current']
                 vol_json = {'volume': volume}
@@ -362,7 +364,8 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
                         'apiVersion': '%s/%s' % (group, version)}
 
             volume = get_vol_info_by_qemu(ss_path)
-            volume['pool'] = pool
+            volume["poolname"] = pool
+            volume["uni"] = ss_path
             volume['disk'] = name
             volume['current'] = ss_path
             vol_json = {'volume': volume}
@@ -406,7 +409,8 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
                                                                               plural=plural,
                                                                               name=name)
             volume = get_vol_info_by_qemu(ss_path)
-            volume['pool'] = pool
+            volume["poolname"] = pool
+            volume["uni"] = ss_path
             volume['disk'] = name
             volume['current'] = ss_path
             vol_json = {'volume': volume}

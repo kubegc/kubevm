@@ -5,6 +5,9 @@ hostname_prefix = vm
 [WatcherTimeout]
 timeout = 31536000
 
+[Storage]
+share_fs_mount_point = /var/lib/libvirt/cstor
+
 [DefaultLibvirtXmlDir]
 kvm = /etc/libvirt/qemu
 

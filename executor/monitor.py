@@ -24,6 +24,7 @@ config_raw = parser()
 config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
+SHARE_FS_MOUNT_POINT = config_raw.get('Storage', 'share_fs_mount_point')
 
 HOSTNAME = get_hostname_in_lower_case()
 
@@ -65,6 +66,21 @@ vm_network_send_errors_per_secend = Gauge('vm_network_send_errors_per_secend', '
                                 ['zone', 'host', 'vm', 'device'])
 vm_network_send_drops_per_secend = Gauge('vm_network_send_drops_per_secend', 'Network send drops per second in virtual machine', \
                                 ['zone', 'host', 'vm', 'device'])
+storage_nfs_total_size_kilobytes = Gauge('storage_nfs_total_size_kilobytes', 'Network file system storage total size in kilobytes on host', \
+                                ['zone', 'host', 'nfs'])
+storage_nfs_used_size_kilobytes = Gauge('storage_nfs_used_size_kilobytes', 'Network file system storage used size in kilobytes on host', \
+                                ['zone', 'host', 'nfs'])
+
+def collect_host_metrics(zone):
+    resource_utilization = {'host': HOSTNAME, 'storage_nfs_metrics': []}
+    all_nfs_storages = runCmdRaiseException('df -aT | grep %s | grep nfs | awk \'{print $3,$4,$7}\'' % SHARE_FS_MOUNT_POINT)
+    nfs_stats = {}
+    for nfs_storage in all_nfs_storages:
+        (nfs_stats['total'], nfs_stats['used'], nfs_stats['mount_point']) = nfs_storage.strip().split(' ') 
+        resource_utilization['storage_nfs_metrics'].append(nfs_stats)
+        storage_nfs_total_size_kilobytes.labels(zone, HOSTNAME, nfs_stats['mount_point']).set(nfs_stats['total'])
+        storage_nfs_used_size_kilobytes.labels(zone, HOSTNAME, nfs_stats['mount_point']).set(nfs_stats['used'])
+    return resource_utilization
 
 def collect_vm_metrics(vm, zone):
     resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
@@ -254,6 +270,9 @@ def get_vm_collector_threads():
             t = threading.Thread(target=collect_vm_metrics,args=(vm,zone,))
             t.setDaemon(True)
             t.start()
+        t1 = threading.Thread(target=collect_host_metrics,args=(zone,))
+        t1.setDaemon(True)
+        t1.start()
         time.sleep(5)
         
 def main():

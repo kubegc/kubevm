@@ -903,6 +903,7 @@ def get_pool_info(pool_):
 def get_vol_info_by_qemu(vol_path):
     result = runCmdAndGetResult('qemu-img info -U --output json ' + vol_path)
     result['disk'] = os.path.basename(os.path.dirname(vol_path))
+    result['uni'] = vol_path
     json_str = dumps(result)
     return loads(json_str.replace('-', '_'))
 

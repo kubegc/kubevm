@@ -374,6 +374,7 @@ function create-switch()
   name=$(echo $* | awk -F"--name" '{print$2}' | awk '{print$1}')
   subn=$(echo $* | awk -F"--subnet" '{print$2}' | awk '{print$1}')
   bridge=$(echo $* | awk -F"--bridge" '{print$2}' | awk '{print$1}')
+  vlanId=$(echo $* | awk -F"--vlanId" '{print$2}' | awk '{print$1}')
   gway=$(echo $* | awk -F"--gateway" '{print$2}' | awk '{print$1}')
   dhcp=$(echo $* | awk -F"--dhcp" '{print$2}' | awk '{print$1}')
   imtu=$(echo $* | awk -F"--mtu" '{print$2}' | awk '{print$1}')
@@ -389,6 +390,7 @@ function create-switch()
     echo -e "--dhcp       \tdhcp"  >&2
     echo -e "--mtu        \toptinal, mtu.  for example, 1480"  >&2
     echo -e "--bridge     \toptinal,bridge"  >&2
+	echo -e "--vlanId     \toptinal,vlanId"  >&2
     echo -e "--excludeIPs \toptinal, excludeIPs.  192.168.1.1,192.168.1.10..192.168.1.100"  >&2
     echo -e "--dnsServer  \toptinal, dnsServer.  192.168.1.1"  >&2
     exit 1
@@ -448,6 +450,11 @@ function create-switch()
  
         eids=$(ovs-vsctl list Open_vSwitch | grep external_ids | awk -F"ovn-bridge-mappings=\"" '{print$2}' | awk -F"\"" '{print$1}')
    
+        if [[ -n $vlanId ]]
+        then
+          $NB_CMD set Logical_Switch_Port $sport tag=$vlanId
+        fi
+   
         if [[ -z $eids ]] 
         then
           ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings=$pswn:$bridge
@@ -478,11 +485,13 @@ function modify-switch()
   dhcp=$(echo $* | awk -F"--dhcp" '{print$2}' | awk '{print$1}')
   imtu=$(echo $* | awk -F"--mtu" '{print$2}' | awk '{print$1}')
   dnss=$(echo $* | awk -F"--dnsServer" '{print$2}' | awk '{print$1}')
+  vlanId=$(echo $* | awk -F"--vlanId" '{print$2}' | awk '{print$1}')
 
   if [[ -z $1 || -z $name || $2 == "--help" ]]
   then
     cmddesc
     echo -e "--name       \tswitch name" >&2
+	echo -e "--vlanId     \tvlanId" >&2
     echo -e "--gateway    \toptinal, gateway.  for example, 192.168.1.1"  >&2
     echo -e "--dhcp       \toptinal, dhcp.  for example, 192.168.1.1"  >&2
     echo -e "--mtu        \toptinal, mtu.  for example, 1480"  >&2
@@ -535,6 +544,13 @@ function modify-switch()
   fi
 
   $($NB_CMD dhcp-options-set-options $cmd)
+  
+  if [[ -n $vlanId ]]
+  then
+    rport=$name"-router-port"
+    sport='to-'$rport'-'$(hostname)'-localnet'
+    $NB_CMD set Logical_Switch_Port $sport tag=$vlanId 
+  fi
 
 }
 

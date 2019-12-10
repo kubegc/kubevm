@@ -210,6 +210,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 volume = get_vol_info_by_qemu(config['current'])
                 volume['pool'] = pool
                 volume['disk'] = name
+                volume['current'] = config['current']
                 vol_json = {'volume': volume}
                 vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -254,6 +255,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 volume = get_vol_info_by_qemu(config['current'])
                 volume['pool'] = pool
                 volume['disk'] = name
+                volume['current'] = config['current']
                 vol_json = {'volume': volume}
                 logger.debug(config['current'])
                 vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
@@ -359,7 +361,11 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
                         'kind': VMDSN_KIND, 'metadata': {'labels': {'host': HOSTNAME}, 'name': name},
                         'apiVersion': '%s/%s' % (group, version)}
 
-            vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
+            volume = get_vol_info_by_qemu(ss_path)
+            volume['pool'] = pool
+            volume['disk'] = name
+            volume['current'] = ss_path
+            vol_json = {'volume': volume}
             current = DiskImageHelper.get_backing_file(ss_path)
             vol_json = add_spec_in_volume(vol_json, 'current', current)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
@@ -399,7 +405,11 @@ def myVmVolSnapshotEventHandler(event, pool, ss_path, name, group, version, plur
                                                                               namespace='default',
                                                                               plural=plural,
                                                                               name=name)
-            vol_json = {'volume': get_vol_info_by_qemu(ss_path)}
+            volume = get_vol_info_by_qemu(ss_path)
+            volume['pool'] = pool
+            volume['disk'] = name
+            volume['current'] = ss_path
+            vol_json = {'volume': volume}
             current = DiskImageHelper.get_backing_file(ss_path)
             vol_json = add_spec_in_volume(vol_json, 'current', current)
             jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)

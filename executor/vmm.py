@@ -478,7 +478,7 @@ def convert_image_to_vm(name):
         step2.rotating_option()
         step1.rotating_option()
 
-def create_vmdi_from_disk(name, sourceVolume, sourcePool, targetPool):
+def create_vmdi_from_disk(name, sourceVolume, source, target):
     # cmd = os.path.split(os.path.realpath(__file__))[0] +'/scripts/convert-vm-to-image.sh ' + name
     
     '''
@@ -589,6 +589,8 @@ def create_vmdi_from_disk(name, sourceVolume, sourcePool, targetPool):
     '''
     #Preparations
     '''
+    sourcePool = get_pool_info_from_k8s(source)['poolname']
+    targetPool = get_pool_info_from_k8s(target)['poolname']
     doing = 'Preparations'
     if not sourcePool:
         raise Exception('404, Not Found. Source pool not found.')
@@ -647,7 +649,7 @@ def create_vmdi_from_disk(name, sourceVolume, sourcePool, targetPool):
 #             raise Exception('Synchronize information in Virtlet failed!')
         config_file = '%s/config.json' % (dest_dir)
         current = _get_current(config_file)
-        write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': current, 'pool': targetPool})
+        write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': current, 'pool': target, 'poolname': targetPool})
 #         '''
 #         #Step 2
 #         '''
@@ -808,13 +810,15 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         step1.rotating_option()
         
 def create_vmdi(name, source, target):
-    dest_dir = '%s/%s' % (get_pool_path(target), name)
+    pool_info = get_pool_info_from_k8s(target)
+    targetPool = pool_info['poolname']
+    dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
-    if not check_pool_content_type(target, 'vmdi'):
+    if not check_pool_content_type(targetPool, 'vmdi'):
         raise Exception('Target pool\'s content type is not vmdi.')
     cmd = 'cp -f %s %s' % (source, dest)
     try:
@@ -839,7 +843,7 @@ def create_vmdi(name, source, target):
     with open(dest_dir + '/config.json', "w") as f:
         dump(config, f)
     
-    write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': dest, 'pool': target})
+    write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': dest, 'pool': target, 'poolname': targetPool})
     
 def create_disk_from_vmdi(name, targetPool, source):
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
@@ -917,7 +921,9 @@ def delete_image(name):
     except:
         logger.error('Oops! ', exc_info=1)
 
-def delete_vmdi(name, sourcePool):
+def delete_vmdi(name, source):
+    pool_info = get_pool_info_from_k8s(source)
+    sourcePool = pool_info['poolname']
     pool_path = get_pool_path(sourcePool)
     if pool_path is None:
         logger.debug('can not get pool path')
@@ -926,7 +932,7 @@ def delete_vmdi(name, sourcePool):
     cmd = 'rm -rf %s' % (targetDir)
     runCmd(cmd)
     
-    write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': sourcePool})
+    write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': source})
 
 def updateOS(name, source, target):
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -1099,7 +1105,8 @@ def write_result_to_server(name, op, kind, plural, params):
         vol_json = {'volume': get_vol_info_by_qemu(params.get('current'))}
         vol_json = add_spec_in_volume(vol_json, 'current', params.get('current'))
         vol_json = add_spec_in_volume(vol_json, 'disk', name)
-        vol_json = add_spec_in_volume(vol_json, 'poolname', params.get('pool'))
+        vol_json = add_spec_in_volume(vol_json, 'pool', params.get('pool'))
+        vol_json = add_spec_in_volume(vol_json, 'poolname', params.get('poolname'))
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')    
         try:
@@ -1173,9 +1180,7 @@ def main():
 #     elif sys.argv[1] == 'convert_image_to_vm':
 #         convert_image_to_vm(params['--name'])
     if sys.argv[1] == 'create_vmdi_from_disk':
-        sourcePool = get_pool_info_from_k8s(params['--sourcePool'])['poolname']
-        targetPool = get_pool_info_from_k8s(params['--targetPool'])['poolname']
-        create_vmdi_from_disk(params['--name'], params['--sourceVolume'], sourcePool, targetPool)
+        create_vmdi_from_disk(params['--name'], params['--sourceVolume'], params['--sourcePool'], params['--targetPool'])
 #     elif sys.argv[1] == 'convert_vmdi_to_vmd':
 #         convert_vmdi_to_vmd(params['--name'], params['--sourcePool'], params['--targetPool'])    
 #     elif sys.argv[1] == 'create_disk_from_vmdi':
@@ -1191,11 +1196,9 @@ def main():
 #     elif sys.argv[1] == 'delete_image':
 #         delete_image(params['--name'])
     elif sys.argv[1] == 'create_vmdi':
-        pool_info = get_pool_info_from_k8s(params['--targetPool'])
-        create_vmdi(params['--name'], params['--source'], pool_info['poolname'])
+        create_vmdi(params['--name'], params['--source'], params['--targetPool'])
     elif sys.argv[1] == 'delete_vmdi':
-        pool_info = get_pool_info_from_k8s(params['--sourcePool'])
-        delete_vmdi(params['--name'], pool_info['poolname'])
+        delete_vmdi(params['--name'], params['--sourcePool'])
     elif sys.argv[1] == 'update-os':
         updateOS(params['--domain'], params['--source'], params['--target'])
     else:

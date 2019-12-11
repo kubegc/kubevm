@@ -821,7 +821,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                                             logger.debug('**Object %s already deleted.' % delete_ss)
                             if 'need_to_modify' in data.keys() and data['need_to_modify']:
                                 try:
-                                    modify_snapshot(data['pool'], data['disk'], data['need_to_modify'], group, version, plural)
+                                    modify_snapshot(data, group, version, plural)
                                 except Exception:
                                     pass
                     else:
@@ -1534,7 +1534,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             if _isRevertDiskExternalSnapshot(the_cmd_key) or _isCreateDiskExternalSnapshot(the_cmd_key):
-                modify_disk(data['poolname'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
+                modify_disk(data['pool'], data['poolname'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
             if _isCreateDiskExternalSnapshot(the_cmd_key):
                 jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM:
@@ -1566,20 +1566,22 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         info=sys.exc_info()
         raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
 
-def modify_disk(pool, name, group, version, plural):
+def modify_disk(pool, poolname, name, group, version, plural):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                       version=version,
                                                                       namespace='default',
                                                                       plural=plural,
                                                                       name=name)
-    if os.path.isfile("%s/%s/config.json" % (get_pool_info(pool)['path'], name)):
-        with open("%s/%s/config.json" % (get_pool_info(pool)['path'], name), "r") as f:
+    if os.path.isfile("%s/%s/config.json" % (get_pool_info(poolname)['path'], name)):
+        with open("%s/%s/config.json" % (get_pool_info(poolname)['path'], name), "r") as f:
             config = load(f)
             vol_json = {'volume': get_vol_info_by_qemu(config['current'])}
             logger.debug(config['current'])
             vol_json = add_spec_in_volume(vol_json, 'current', config['current'])
             vol_json = add_spec_in_volume(vol_json, 'disk', name)
-            vol_json = add_spec_in_volume(vol_json, 'poolname', pool)
+            vol_json = add_spec_in_volume(vol_json, 'pool', pool)
+            vol_json = add_spec_in_volume(vol_json, 'uni', config['current'])
+            vol_json = add_spec_in_volume(vol_json, 'poolname', poolname)
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         try:
@@ -1598,11 +1600,16 @@ def modify_disk(pool, name, group, version, plural):
             else:
                 logger.error(e)
 
-def modify_snapshot(pool, disk, ss_path, group, version, plural):
+def modify_snapshot(data, group, version, plural):
+    pool = data['pool']
+    poolname = data['poolname']
+    disk = data['disk']
+    ss_path = data['need_to_modify']
     if os.path.isfile(ss_path):
         name = os.path.basename(ss_path)
         volume = get_vol_info_by_qemu(ss_path)
-        volume['poolname'] = pool
+        volume['pool'] = pool
+        volume['poolname'] = poolname
         volume['disk'] = disk
         volume['snapshot'] = name
         volume["uni"] = ss_path

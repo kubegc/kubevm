@@ -2980,12 +2980,12 @@ def get_arg_from_lifecycle(jsondict, the_cmd_key, arg):
 def disk_prepare(the_cmd_key, jsondict, metadata_name):
     if the_cmd_key in ['cloneVM', 'startVMOnMachine', 'startVM', 'restartVM', 'resetVM']:
         result, data = runCmdWithResult('kubesds-adm prepareDisk --domain %s' % metadata_name)
-    if the_cmd_key == 'cloneVM':
-        path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'file')
-        if path is None:
-            return
+    # if the_cmd_key == 'cloneVM':
+    #     path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'file')
+    #     if path is None:
+    #         return
         result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
-    if the_cmd_key in ['manageISO', 'plugDisk']:
+    if the_cmd_key in ['plugDisk']:
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'source')
         if path is None:
             return

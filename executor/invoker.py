@@ -279,6 +279,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     #             except:
     #                 logger.warning('Oops! ', exc_info=1)
                 try:
+                    disk_prepare(the_cmd_key, jsondict, metadata_name)
             #             print(jsondict)
                     if operation_type == 'ADDED':
                         if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
@@ -2967,6 +2968,45 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
 
+def get_arg_from_lifecycle(jsondict, the_cmd_key, arg):
+    if jsondict:
+        logger.debug(jsondict)
+        spec = jsondict['raw_object'].get('spec')
+        lifecycle = spec.get('lifecycle')
+        if not lifecycle:
+            return None
+        return lifecycle.get(the_cmd_key).get(arg)
+
+def disk_prepare(the_cmd_key, jsondict, metadata_name):
+    if the_cmd_key in ['cloneVM', 'startVMOnMachine', 'startVM', 'restartVM', 'resetVM']:
+        result, data = runCmdWithResult('kubesds-adm prepareDisk --domain %s' % metadata_name)
+    if the_cmd_key == 'cloneVM':
+        path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'file')
+        if path is None:
+            return
+        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+    if the_cmd_key in ['manageISO', 'plugDisk']:
+        path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'source')
+        if path is None:
+            return
+        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+    if the_cmd_key == 'resizeVM':
+        path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'path')
+        if path is None:
+            return
+        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+    if the_cmd_key == 'updateOS':
+        path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'target')
+        if path is None:
+            return
+        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+    if the_cmd_key == 'createAndStartVMFromISO':
+        path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'disk')
+        if path is None:
+            return
+        for line in path.replace(' ', ',').split(','):
+            if re.match('^\/(\w+\/?)+$', line):
+                result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % line)
 '''
 Run back-end command in subprocess.
 '''

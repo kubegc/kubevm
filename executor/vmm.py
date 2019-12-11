@@ -808,13 +808,15 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         step1.rotating_option()
         
 def create_vmdi(name, source, target):
-    dest_dir = '%s/%s' % (get_pool_path(target), name)
+    pool_info = get_pool_info_from_k8s(target)
+    pool = pool_info['poolname']
+    dest_dir = '%s/%s' % (pool_info['path'], name)
     dest = '%s/%s' % (dest_dir, name)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
-    if not check_pool_content_type(target, 'vmdi'):
+    if not check_pool_content_type(pool, 'vmdi'):
         raise Exception('Target pool\'s content type is not vmdi.')
     cmd = 'cp -f %s %s' % (source, dest)
     try:
@@ -839,7 +841,7 @@ def create_vmdi(name, source, target):
     with open(dest_dir + '/config.json', "w") as f:
         dump(config, f)
     
-    write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': dest, 'pool': target})
+    write_result_to_server(name, 'create', VMDI_KIND, VMDI_PLURAL, {'current': dest, 'pool': pool})
     
 def create_disk_from_vmdi(name, targetPool, source):
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
@@ -1240,6 +1242,64 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
 
+def runCmdWithResult(cmd):
+    if not cmd:
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            msg = ''
+            for index, line in enumerate(std_out):
+                if not str.strip(line):
+                    continue
+                msg = msg + str.strip(line)
+            msg = str.strip(msg)
+            logger.debug(msg)
+            try:
+                result = loads(msg)
+                if isinstance(result, dict) and 'result' in result.keys():
+                    if result['result']['code'] != 0:
+                        if std_err:
+                            error_msg = ''
+                            for index, line in enumerate(std_err):
+                                if not str.strip(line):
+                                    continue
+                                error_msg = error_msg + str.strip(line)
+                            error_msg = str.strip(error_msg).replace('"', "'")
+                            result['result']['msg'] = '%s. cstor error output: %s' % (
+                            result['result']['msg'], error_msg)
+                return result
+            except Exception:
+                logger.debug(cmd)
+                logger.debug(traceback.format_exc())
+                error_msg = ''
+                for index, line in enumerate(std_err):
+                    if not str.strip(line):
+                        continue
+                    error_msg = error_msg + str.strip(line)
+                error_msg = str.strip(error_msg)
+                raise ExecuteException('RunCmdError',
+                                       'can not parse cstor-cli output to json----' + msg + '. ' + error_msg)
+        if std_err:
+            msg = ''
+            for index, line in enumerate(std_err):
+                msg = msg + line + ', '
+            logger.debug(cmd)
+            logger.debug(msg)
+            logger.debug(traceback.format_exc())
+            if msg.strip() != '':
+                raise ExecuteException('RunCmdError', msg)
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
+def get_pool_info_from_k8s(pool):
+    result = runCmdWithResult('kubectl get vmp -o json %s' % pool)
+    if 'spec'in result.keys() and isinstance(result['spec'], dict) and 'pool' in result['spec'].keys():
+        return result['spec']['pool']
+    raise ExecuteException('', 'can not get pool info from k8s')
 
 # def run(cmd):
 #     try:

@@ -1170,26 +1170,26 @@ def main():
         params[sys.argv[i]] = sys.argv[i+1]
         i = i+2
     
-    if sys.argv[1] == 'create_vm_image_from_vm':
-        create_vm_image_from_vm(params['--name'], params['--domain'], params['--targetPool'])
-    elif sys.argv[1] == 'convert_image_to_vm':
-        convert_image_to_vm(params['--name'])
-    elif sys.argv[1] == 'create_vmdi_from_disk':
+#     if sys.argv[1] == 'create_vm_image_from_vm':
+#         create_vm_image_from_vm(params['--name'], params['--domain'], params['--targetPool'])
+#     elif sys.argv[1] == 'convert_image_to_vm':
+#         convert_image_to_vm(params['--name'])
+    if sys.argv[1] == 'create_vmdi_from_disk':
         create_vmdi_from_disk(params['--name'], params['--sourceVolume'], params['--sourcePool'], params['--targetPool'])
-    elif sys.argv[1] == 'convert_vmdi_to_vmd':
-        convert_vmdi_to_vmd(params['--name'], params['--sourcePool'], params['--targetPool'])    
-    elif sys.argv[1] == 'create_disk_from_vmdi':
-        create_disk_from_vmdi(params['--name'], params['--targetPool'], params['--source'])
-    elif sys.argv[1] == 'create_disk_snapshot':
-        create_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
-    elif sys.argv[1] == 'delete_disk_snapshot':
-        delete_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
-    elif sys.argv[1] == 'revert_disk_internal_snapshot':
-        revert_disk_internal_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
-    elif sys.argv[1] == 'revert_disk_external_snapshot':
-        revert_disk_external_snapshot(params['--name'], params['--pool'], params['--snapshotname'], params['--leaves'])
-    elif sys.argv[1] == 'delete_image':
-        delete_image(params['--name'])
+#     elif sys.argv[1] == 'convert_vmdi_to_vmd':
+#         convert_vmdi_to_vmd(params['--name'], params['--sourcePool'], params['--targetPool'])    
+#     elif sys.argv[1] == 'create_disk_from_vmdi':
+#         create_disk_from_vmdi(params['--name'], params['--targetPool'], params['--source'])
+#     elif sys.argv[1] == 'create_disk_snapshot':
+#         create_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
+#     elif sys.argv[1] == 'delete_disk_snapshot':
+#         delete_disk_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
+#     elif sys.argv[1] == 'revert_disk_internal_snapshot':
+#         revert_disk_internal_snapshot(params['--name'], params['--pool'], params['--snapshotname'])
+#     elif sys.argv[1] == 'revert_disk_external_snapshot':
+#         revert_disk_external_snapshot(params['--name'], params['--pool'], params['--snapshotname'], params['--leaves'])
+#     elif sys.argv[1] == 'delete_image':
+#         delete_image(params['--name'])
     elif sys.argv[1] == 'create_vmdi':
         create_vmdi(params['--name'], params['--source'], params['--targetPool'])
     elif sys.argv[1] == 'delete_vmdi':

@@ -808,7 +808,7 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         step1.rotating_option()
         
 def create_vmdi(name, source, target):
-    dest_dir = '%s/%s' % (get_pool_path(target)['path'], name)
+    dest_dir = '%s/%s' % (get_pool_path(target), name)
     dest = '%s/%s' % (dest_dir, name)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir, 0711)

@@ -2984,7 +2984,7 @@ def disk_prepare(the_cmd_key, jsondict, metadata_name):
     #     path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'file')
     #     if path is None:
     #         return
-        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+    #     result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key in ['plugDisk']:
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'source')
         if path is None:

@@ -290,6 +290,7 @@ def get_resource_collector_threads():
         t1.setDaemon(True)
         t1.start()
         nfs_vdisk_list = list_all_vdisks('/var/lib/libvirt/cstor')
+        print nfs_vdisk_list
         for nfs_vdisk in nfs_vdisk_list:
             t2 = threading.Thread(target=collect_vdisk_metrics,args=(nfs_vdisk,zone,'qcow2',))
             t2.setDaemon(True)

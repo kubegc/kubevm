@@ -89,10 +89,10 @@ def collect_host_metrics(zone):
 
 def collect_vdisk_metrics(vdisk, zone, disk_type='qcow2'):
 #     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
-    try:
-        output = loads(runCmdRaiseException('qemu-img info -U -t %s --output json %s' % (disk_type, vdisk)))
-    except:
-        output = {}
+#     try:
+    output = loads(runCmdRaiseException('qemu-img info -U -t %s --output json %s' % (disk_type, vdisk)))
+#     except:
+#         output = {}
     if output:
         vdisk_total_size, vdisk_used_size = output.get('virtual-size'), output.get('actual-size')
         storage_vdisk_total_size_kilobytes.labels(zone, HOSTNAME, vdisk).set(vdisk_total_size)

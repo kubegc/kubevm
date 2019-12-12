@@ -291,11 +291,11 @@ def get_resource_collector_threads():
         t1 = threading.Thread(target=collect_host_metrics,args=(zone,))
         t1.setDaemon(True)
         t1.start()
-        nfs_vdisk_list = list_all_vdisks('/var/lib/libvirt/cstor')
-        for nfs_vdisk in nfs_vdisk_list:
-            t2 = threading.Thread(target=collect_vdisk_metrics,args=(nfs_vdisk,zone,))
-            t2.setDaemon(True)
-            t2.start()
+#         nfs_vdisk_list = list_all_vdisks('/var/lib/libvirt/cstor')
+#         for nfs_vdisk in nfs_vdisk_list:
+#             t2 = threading.Thread(target=collect_vdisk_metrics,args=(nfs_vdisk,zone,))
+#             t2.setDaemon(True)
+#             t2.start()
         time.sleep(5)
         
 def main():

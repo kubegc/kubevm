@@ -499,7 +499,6 @@ def runCmdRaiseException(cmd, head='VirtctlError', use_read=False):
             std_out = p.stdout.readlines()
             std_err = p.stderr.readlines()
         if std_err:
-            print(std_err)
             raise ExecuteException(head, std_err)
         return std_out
     finally:

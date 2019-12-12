@@ -87,10 +87,10 @@ def collect_host_metrics(zone):
         storage_nfs_used_size_kilobytes.labels(zone, HOSTNAME, nfs_stats['mount_point']).set(nfs_stats['used'])
     return resource_utilization
 
-def collect_vdisk_metrics(vdisk, zone, disk_type='qcow2'):
+def collect_vdisk_metrics(vdisk, zone):
 #     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
     try:
-        output = loads(runCmdRaiseException('qemu-img info -U -f %s --output json %s' % (disk_type, vdisk), use_read=True))
+        output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (vdisk), use_read=True))
 #     output = loads()
 #     print(output)
     except:
@@ -293,7 +293,7 @@ def get_resource_collector_threads():
         t1.start()
         nfs_vdisk_list = list_all_vdisks('/var/lib/libvirt/cstor')
         for nfs_vdisk in nfs_vdisk_list:
-            t2 = threading.Thread(target=collect_vdisk_metrics,args=(nfs_vdisk,zone,'qcow2',))
+            t2 = threading.Thread(target=collect_vdisk_metrics,args=(nfs_vdisk,zone,))
             t2.setDaemon(True)
             t2.start()
         time.sleep(5)

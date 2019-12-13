@@ -133,7 +133,7 @@ def get_vdisk_metrics(vdisk, zone):
         storage_vdisk_total_size_kilobytes.labels(zone, HOSTNAME, vdisk).set(virtual_size)
         storage_vdisk_used_size_kilobytes.labels(zone, HOSTNAME, vdisk).set(actual_size)
 
-def collect_vm_metrics(vm, zone):
+def collect_vm_metrics(zone):
     vm_list = list_active_vms()
     for vm in vm_list:
         t = threading.Thread(target=get_vm_metrics,args=(vm, zone,))

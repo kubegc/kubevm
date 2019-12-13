@@ -94,11 +94,11 @@ def get_storage_metrics(pool_storage, pool_type, zone):
     collect_vdisk_metrics(pool_mount_point, pool_type, zone)
 
 def collect_vdisk_metrics(pool_mount_point, pool_type, zone):
-    if pool_type in [VDISK_FS_MOUNT_POINT, SHARE_FS_MOUNT_POINT, LOCAL_FS_MOUNT_POINT]:
+    if pool_type in ['vdiskfs', 'nfs/glusterfs', 'localfs']:
         vdisk_list = list_all_vdisks(pool_mount_point, 'f')
         vdisk_type = 'file'
     else:
-        vdisk_list = list_all_vdisks(pool_mount_point, 'b')
+        vdisk_list = list_all_vdisks(pool_mount_point, 'l')
         vdisk_type = 'block'
     for vdisk in vdisk_list:
         t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, vdisk_type, vdisk, zone,))

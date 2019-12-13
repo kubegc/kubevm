@@ -1023,7 +1023,10 @@ def get_disk_snapshots(ss_path):
     return snapshots
 
 def list_all_vdisks(path, disk_type = 'f'):
-    return runCmdRaiseException("find %s -type %s ! -name '*.json' ! -name '*.temp' ! -name 'content' ! -name '.*' ! -name '*.xml' ! -name '*.pem'" % (path, disk_type))
+    if os.path.exists(path):
+        return runCmdRaiseException("find %s -type %s ! -name '*.json' ! -name '*.temp' ! -name 'content' ! -name '.*' ! -name '*.xml' ! -name '*.pem'" % (path, disk_type))
+    else:
+        return []
 
 class UserDefinedEvent(object):
     

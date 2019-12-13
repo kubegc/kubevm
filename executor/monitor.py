@@ -80,7 +80,7 @@ storage_vdisk_used_size_kilobytes = Gauge('storage_vdisk_used_size_kilobytes', '
 
 def collect_storage_metrics(zone):
     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', LOCAL_FS_MOUNT_POINT: 'localfs'}
-    for mount_point, pool_type in storages:
+    for mount_point, pool_type in storages.items():
         all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
         for pool_storage in all_pool_storages:
             t = threading.Thread(target=get_storage_metrics,args=(pool_storage, pool_type, zone,))

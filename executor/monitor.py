@@ -9,7 +9,7 @@ import threading
 from kubernetes import config
 from json import loads
 from utils.libvirt_util import list_active_vms, get_disks_spec, get_macs
-from utils.utils import list_all_vdisks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
+from utils.utils import list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
 
 class parser(ConfigParser.ConfigParser):
     def __init__(self,defaults=None):  
@@ -73,51 +73,51 @@ storage_pool_total_size_kilobytes = Gauge('storage_pool_total_size_kilobytes', '
                                 ['zone', 'host', 'pool', 'type'])
 storage_pool_used_size_kilobytes = Gauge('storage_pool_used_size_kilobytes', 'Storage pool used size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type'])
-storage_vdisk_total_size_kilobytes = Gauge('storage_vdisk_total_size_kilobytes', 'Vdisk total size in kilobytes on host', \
-                                ['zone', 'host', 'pool', 'type', 'vdisk'])
-storage_vdisk_used_size_kilobytes = Gauge('storage_vdisk_used_size_kilobytes', 'Vdisk used size in kilobytes on host', \
-                                ['zone', 'host', 'pool', 'type', 'vdisk'])
+storage_disk_total_size_kilobytes = Gauge('storage_vdisk_total_size_kilobytes', 'Vdisk total size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type', 'disk'])
+storage_disk_used_size_kilobytes = Gauge('storage_vdisk_used_size_kilobytes', 'Vdisk used size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type', 'disk'])
 
 def collect_storage_metrics(zone):
     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', LOCAL_FS_MOUNT_POINT: 'localfs'}
     for mount_point, pool_type in storages.items():
         all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
         for pool_storage in all_pool_storages:
-            t = threading.Thread(target=get_storage_metrics,args=(pool_storage, pool_type, zone,))
+            t = threading.Thread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
             t.setDaemon(True)
             t.start()
 
-def get_storage_metrics(pool_storage, pool_type, zone):
+def get_pool_metrics(pool_storage, pool_type, zone):
     (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
     storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_total)
     storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_used)
-    collect_vdisk_metrics(pool_mount_point, pool_type, zone)
+    collect_disk_metrics(pool_mount_point, pool_type, zone)
 
-def collect_vdisk_metrics(pool_mount_point, pool_type, zone):
+def collect_disk_metrics(pool_mount_point, pool_type, zone):
     if pool_type in ['vdiskfs', 'nfs/glusterfs', 'localfs']:
-        vdisk_list = list_all_vdisks(pool_mount_point, 'f')
-        vdisk_type = 'file'
+        disk_list = list_all_disks(pool_mount_point, 'f')
+        disk_type = 'file'
     else:
-        vdisk_list = list_all_vdisks(pool_mount_point, 'l')
-        vdisk_type = 'block'
-    for vdisk in vdisk_list:
-        t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, vdisk_type, vdisk, zone,))
+        disk_list = list_all_disks(pool_mount_point, 'l')
+        disk_type = 'block'
+    for disk in disk_list:
+        t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, disk_type, disk, zone,))
         t.setDaemon(True)
         t.start()
 #     vdisk_fs_list = list_all_vdisks(VDISK_FS_MOUNT_POINT, 'f')
-#     for vdisk in vdisk_fs_list:
-#         t1 = threading.Thread(target=get_vdisk_metrics,args=(vdisk, zone,))
+#     for disk in vdisk_fs_list:
+#         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
 #         t1.setDaemon(True)
 #         t1.start()
 #     local_fs_list = list_all_vdisks(LOCAL_FS_MOUNT_POINT, 'f')
-#     for vdisk in local_fs_list:
-#         t1 = threading.Thread(target=get_vdisk_metrics,args=(vdisk, zone,))
+#     for disk in local_fs_list:
+#         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
 #         t1.setDaemon(True)
 #         t1.start()
 #     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
-def get_vdisk_metrics(pool_mount_point, vdisk_type, vdisk, zone):
+def get_vdisk_metrics(pool_mount_point, vdisk_type, disk, zone):
     try:
-        output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (vdisk), use_read=True))
+        output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True))
 #     output = loads()
 #     print(output)
     except:
@@ -125,8 +125,8 @@ def get_vdisk_metrics(pool_mount_point, vdisk_type, vdisk, zone):
     if output:
         virtual_size = float(output.get('virtual-size')) / 1024 if output.get('virtual-size') else 0.00
         actual_size = float(output.get('actual-size')) / 1024 if output.get('actual-size') else 0.00
-        storage_vdisk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, vdisk).set(virtual_size)
-        storage_vdisk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, vdisk).set(actual_size)
+        storage_disk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, disk).set(virtual_size)
+        storage_disk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, disk).set(actual_size)
 
 def collect_vm_metrics(zone):
     vm_list = list_active_vms()
@@ -328,7 +328,7 @@ def get_vm_metrics(vm, zone):
 #         t1.start()
 # #         nfs_vdisk_list = list_all_vdisks('/var/lib/libvirt/cstor')
 # #         for nfs_vdisk in nfs_vdisk_list:
-# #             t2 = threading.Thread(target=collect_vdisk_metrics,args=(nfs_vdisk,zone,))
+# #             t2 = threading.Thread(target=collect_disk_metrics,args=(nfs_vdisk,zone,))
 # #             t2.setDaemon(True)
 # #             t2.start()
 #         time.sleep(5)

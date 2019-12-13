@@ -1024,7 +1024,7 @@ def get_disk_snapshots(ss_path):
 
 def list_all_vdisks(path, disk_type = 'f'):
     if os.path.exists(path):
-        return runCmdRaiseException("find %s -type %s ! -name '*.json' ! -name '*.temp' ! -name 'content' ! -name '.*' ! -name '*.xml' ! -name '*.pem'" % (path, disk_type))
+        return runCmdRaiseException("find %s -type %s ! -name '*.json' ! -name '*.temp' ! -name 'content' ! -name '.*' ! -name '*.xml' ! -name '*.pem' | grep -v overlay2" % (path, disk_type))
     else:
         return []
 

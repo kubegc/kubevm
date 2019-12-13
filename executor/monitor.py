@@ -74,53 +74,48 @@ storage_pool_total_size_kilobytes = Gauge('storage_pool_total_size_kilobytes', '
 storage_pool_used_size_kilobytes = Gauge('storage_pool_used_size_kilobytes', 'Storage pool used size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type'])
 storage_vdisk_total_size_kilobytes = Gauge('storage_vdisk_total_size_kilobytes', 'Vdisk total size in kilobytes on host', \
-                                ['zone', 'host', 'vdisk'])
+                                ['zone', 'host', 'pool', 'type', 'vdisk'])
 storage_vdisk_used_size_kilobytes = Gauge('storage_vdisk_used_size_kilobytes', 'Vdisk used size in kilobytes on host', \
-                                ['zone', 'host', 'vdisk'])
+                                ['zone', 'host', 'pool', 'type', 'vdisk'])
 
-def collect_host_metrics(zone):
-    resource_utilization = {'host': HOSTNAME, 'storage_nfs_metrics': [], 'storage_localfs_metrics': [], 'storage_vdiskfs_metrics': []}
-    all_nfs_storages = runCmdRaiseException('df -aT | grep %s | grep nfs | awk \'{print $3,$4,$7}\'' % SHARE_FS_MOUNT_POINT)
-    nfs_stats = {}
-    for nfs_storage in all_nfs_storages:
-        (nfs_stats['total'], nfs_stats['used'], nfs_stats['mount_point']) = nfs_storage.strip().split(' ') 
-        resource_utilization['storage_nfs_metrics'].append(nfs_stats)
-        storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, nfs_stats['mount_point'], 'nfs').set(nfs_stats['total'])
-        storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, nfs_stats['mount_point'], 'nfs').set(nfs_stats['used'])
-    all_local_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % LOCAL_FS_MOUNT_POINT)
-    local_fs_stats = {}
-    for local_storage in all_local_storages:
-        (local_fs_stats['total'], local_fs_stats['used'], local_fs_stats['mount_point']) = local_storage.strip().split(' ') 
-        resource_utilization['storage_localfs_metrics'].append(local_fs_stats)
-        storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, local_fs_stats['mount_point'], 'localfs').set(local_fs_stats['total'])
-        storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, local_fs_stats['mount_point'], 'localfs').set(local_fs_stats['used'])
-    all_vdisk_fs_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % VDISK_FS_MOUNT_POINT)
-    vdisk_fs_stats = {}
-    for local_storage in all_vdisk_fs_storages:
-        (vdisk_fs_stats['total'], vdisk_fs_stats['used'], vdisk_fs_stats['mount_point']) = local_storage.strip().split(' ') 
-        resource_utilization['storage_vdiskfs_metrics'].append(vdisk_fs_stats)
-        storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, vdisk_fs_stats['mount_point'], 'vdiskfs').set(vdisk_fs_stats['total'])
-        storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, vdisk_fs_stats['mount_point'], 'vdiskfs').set(vdisk_fs_stats['used'])
-    return resource_utilization
+def collect_storage_metrics(zone):
+    storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', LOCAL_FS_MOUNT_POINT: 'localfs'}
+    for mount_point, pool_type in storages:
+        all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
+        for pool_storage in all_pool_storages:
+            t = threading.Thread(target=get_storage_metrics,args=(pool_storage, pool_type, zone,))
+            t.setDaemon(True)
+            t.start()
 
-def collect_vdisk_metrics(zone):
-    share_fs_list = list_all_vdisks(SHARE_FS_MOUNT_POINT, 'f')
-    for vdisk in share_fs_list:
-        t1 = threading.Thread(target=get_vdisk_metrics,args=(vdisk, zone,))
-        t1.setDaemon(True)
-        t1.start()
-    vdisk_fs_list = list_all_vdisks(VDISK_FS_MOUNT_POINT, 'f')
-    for vdisk in vdisk_fs_list:
-        t1 = threading.Thread(target=get_vdisk_metrics,args=(vdisk, zone,))
-        t1.setDaemon(True)
-        t1.start()
-    local_fs_list = list_all_vdisks(LOCAL_FS_MOUNT_POINT, 'f')
-    for vdisk in local_fs_list:
-        t1 = threading.Thread(target=get_vdisk_metrics,args=(vdisk, zone,))
-        t1.setDaemon(True)
-        t1.start()
+def get_storage_metrics(pool_storage, pool_type, zone):
+    (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
+    storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_total)
+    storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_used)
+    collect_vdisk_metrics(pool_mount_point, pool_type, zone)
+
+def collect_vdisk_metrics(pool_mount_point, pool_type, zone):
+    if pool_type in [VDISK_FS_MOUNT_POINT, SHARE_FS_MOUNT_POINT, LOCAL_FS_MOUNT_POINT]:
+        vdisk_list = list_all_vdisks(pool_mount_point, 'f')
+        vdisk_type = 'file'
+    else:
+        vdisk_list = list_all_vdisks(pool_mount_point, 'b')
+        vdisk_type = 'block'
+    for vdisk in vdisk_list:
+        t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, vdisk_type, vdisk, zone,))
+        t.setDaemon(True)
+        t.start()
+#     vdisk_fs_list = list_all_vdisks(VDISK_FS_MOUNT_POINT, 'f')
+#     for vdisk in vdisk_fs_list:
+#         t1 = threading.Thread(target=get_vdisk_metrics,args=(vdisk, zone,))
+#         t1.setDaemon(True)
+#         t1.start()
+#     local_fs_list = list_all_vdisks(LOCAL_FS_MOUNT_POINT, 'f')
+#     for vdisk in local_fs_list:
+#         t1 = threading.Thread(target=get_vdisk_metrics,args=(vdisk, zone,))
+#         t1.setDaemon(True)
+#         t1.start()
 #     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
-def get_vdisk_metrics(vdisk, zone):
+def get_vdisk_metrics(pool_mount_point, vdisk_type, vdisk, zone):
     try:
         output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (vdisk), use_read=True))
 #     output = loads()
@@ -130,8 +125,8 @@ def get_vdisk_metrics(vdisk, zone):
     if output:
         virtual_size = float(output.get('virtual-size')) / 1024 if output.get('virtual-size') else 0.00
         actual_size = float(output.get('actual-size')) / 1024 if output.get('actual-size') else 0.00
-        storage_vdisk_total_size_kilobytes.labels(zone, HOSTNAME, vdisk).set(virtual_size)
-        storage_vdisk_used_size_kilobytes.labels(zone, HOSTNAME, vdisk).set(actual_size)
+        storage_vdisk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, vdisk).set(virtual_size)
+        storage_vdisk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, vdisk).set(actual_size)
 
 def collect_vm_metrics(zone):
     vm_list = list_active_vms()
@@ -328,7 +323,7 @@ def get_vm_metrics(vm, zone):
 #             t = threading.Thread(target=collect_vm_metrics,args=(vm,zone,))
 #             t.setDaemon(True)
 #             t.start()
-#         t1 = threading.Thread(target=collect_host_metrics,args=(zone,))
+#         t1 = threading.Thread(target=collect_storage_metrics,args=(zone,))
 #         t1.setDaemon(True)
 #         t1.start()
 # #         nfs_vdisk_list = list_all_vdisks('/var/lib/libvirt/cstor')
@@ -346,13 +341,9 @@ def main():
         t = threading.Thread(target=collect_vm_metrics,args=(zone,))
         t.setDaemon(True)
         t.start()
-        t1 = threading.Thread(target=collect_host_metrics,args=(zone,))
+        t1 = threading.Thread(target=collect_storage_metrics,args=(zone,))
         t1.setDaemon(True)
         t1.start()
-        t2 = threading.Thread(target=collect_vdisk_metrics,args=(zone,))
-        t2.setDaemon(True)
-        t2.start()
-        time.sleep(5)
         
 if __name__ == '__main__':
     main()

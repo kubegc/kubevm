@@ -73,13 +73,14 @@ storage_pool_total_size_kilobytes = Gauge('storage_pool_total_size_kilobytes', '
                                 ['zone', 'host', 'pool', 'type'])
 storage_pool_used_size_kilobytes = Gauge('storage_pool_used_size_kilobytes', 'Storage pool used size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type'])
-storage_disk_total_size_kilobytes = Gauge('storage_vdisk_total_size_kilobytes', 'Vdisk total size in kilobytes on host', \
+storage_disk_total_size_kilobytes = Gauge('storage_disk_total_size_kilobytes', 'Storage disk total size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type', 'disk'])
-storage_disk_used_size_kilobytes = Gauge('storage_vdisk_used_size_kilobytes', 'Vdisk used size in kilobytes on host', \
+storage_disk_used_size_kilobytes = Gauge('storage_disk_used_size_kilobytes', 'Storage disk used size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type', 'disk'])
 
 def collect_storage_metrics(zone):
-    storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', LOCAL_FS_MOUNT_POINT: 'localfs'}
+    storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
+                LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
     for mount_point, pool_type in storages.items():
         all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
         for pool_storage in all_pool_storages:
@@ -115,7 +116,7 @@ def collect_disk_metrics(pool_mount_point, pool_type, zone):
 #         t1.setDaemon(True)
 #         t1.start()
 #     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
-def get_vdisk_metrics(pool_mount_point, vdisk_type, disk, zone):
+def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
     try:
         output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True))
 #     output = loads()
@@ -125,8 +126,8 @@ def get_vdisk_metrics(pool_mount_point, vdisk_type, disk, zone):
     if output:
         virtual_size = float(output.get('virtual-size')) / 1024 if output.get('virtual-size') else 0.00
         actual_size = float(output.get('actual-size')) / 1024 if output.get('actual-size') else 0.00
-        storage_disk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, disk).set(virtual_size)
-        storage_disk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, vdisk_type, disk).set(actual_size)
+        storage_disk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(virtual_size)
+        storage_disk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(actual_size)
 
 def collect_vm_metrics(zone):
     vm_list = list_active_vms()

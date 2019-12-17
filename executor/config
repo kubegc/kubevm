@@ -7,6 +7,9 @@ timeout = 31536000
 
 [Storage]
 share_fs_mount_point = /var/lib/libvirt/cstor
+vdisk_fs_mount_point = /mnt/usb
+local_fs_mount_point = /mnt/localfs
+block_fs_mount_point = /mnt/blockdev
 
 [DefaultLibvirtXmlDir]
 kvm = /etc/libvirt/qemu

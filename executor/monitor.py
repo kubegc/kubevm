@@ -6,10 +6,10 @@ from prometheus_client import Gauge,start_http_server,Counter
 import pycurl
 import time
 import threading
-from io import BytesIO
 from kubernetes import config
+from json import loads
 from utils.libvirt_util import list_active_vms, get_disks_spec, get_macs
-from utils.utils import runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
+from utils.utils import list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
 
 class parser(ConfigParser.ConfigParser):
     def __init__(self,defaults=None):  
@@ -25,6 +25,9 @@ config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
 SHARE_FS_MOUNT_POINT = config_raw.get('Storage', 'share_fs_mount_point')
+VDISK_FS_MOUNT_POINT = config_raw.get('Storage', 'vdisk_fs_mount_point')
+LOCAL_FS_MOUNT_POINT = config_raw.get('Storage', 'local_fs_mount_point')
+BLOCK_FS_MOUNT_POINT = config_raw.get('Storage', 'block_fs_mount_point')
 
 HOSTNAME = get_hostname_in_lower_case()
 
@@ -66,23 +69,74 @@ vm_network_send_errors_per_secend = Gauge('vm_network_send_errors_per_secend', '
                                 ['zone', 'host', 'vm', 'device'])
 vm_network_send_drops_per_secend = Gauge('vm_network_send_drops_per_secend', 'Network send drops per second in virtual machine', \
                                 ['zone', 'host', 'vm', 'device'])
-storage_nfs_total_size_kilobytes = Gauge('storage_nfs_total_size_kilobytes', 'Network file system storage total size in kilobytes on host', \
-                                ['zone', 'host', 'nfs'])
-storage_nfs_used_size_kilobytes = Gauge('storage_nfs_used_size_kilobytes', 'Network file system storage used size in kilobytes on host', \
-                                ['zone', 'host', 'nfs'])
+storage_pool_total_size_kilobytes = Gauge('storage_pool_total_size_kilobytes', 'Storage pool total size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type'])
+storage_pool_used_size_kilobytes = Gauge('storage_pool_used_size_kilobytes', 'Storage pool used size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type'])
+storage_disk_total_size_kilobytes = Gauge('storage_disk_total_size_kilobytes', 'Storage disk total size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type', 'disk'])
+storage_disk_used_size_kilobytes = Gauge('storage_disk_used_size_kilobytes', 'Storage disk used size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type', 'disk'])
 
-def collect_host_metrics(zone):
-    resource_utilization = {'host': HOSTNAME, 'storage_nfs_metrics': []}
-    all_nfs_storages = runCmdRaiseException('df -aT | grep %s | grep nfs | awk \'{print $3,$4,$7}\'' % SHARE_FS_MOUNT_POINT)
-    nfs_stats = {}
-    for nfs_storage in all_nfs_storages:
-        (nfs_stats['total'], nfs_stats['used'], nfs_stats['mount_point']) = nfs_storage.strip().split(' ') 
-        resource_utilization['storage_nfs_metrics'].append(nfs_stats)
-        storage_nfs_total_size_kilobytes.labels(zone, HOSTNAME, nfs_stats['mount_point']).set(nfs_stats['total'])
-        storage_nfs_used_size_kilobytes.labels(zone, HOSTNAME, nfs_stats['mount_point']).set(nfs_stats['used'])
-    return resource_utilization
+def collect_storage_metrics(zone):
+    storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
+                LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
+    for mount_point, pool_type in storages.items():
+        all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
+        for pool_storage in all_pool_storages:
+            t = threading.Thread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
+            t.setDaemon(True)
+            t.start()
 
-def collect_vm_metrics(vm, zone):
+def get_pool_metrics(pool_storage, pool_type, zone):
+    (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
+    storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_total)
+    storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_used)
+    collect_disk_metrics(pool_mount_point, pool_type, zone)
+
+def collect_disk_metrics(pool_mount_point, pool_type, zone):
+    if pool_type in ['vdiskfs', 'nfs/glusterfs', 'localfs']:
+        disk_list = list_all_disks(pool_mount_point, 'f')
+        disk_type = 'file'
+    else:
+        disk_list = list_all_disks(pool_mount_point, 'l')
+        disk_type = 'block'
+    for disk in disk_list:
+        t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, disk_type, disk, zone,))
+        t.setDaemon(True)
+        t.start()
+#     vdisk_fs_list = list_all_vdisks(VDISK_FS_MOUNT_POINT, 'f')
+#     for disk in vdisk_fs_list:
+#         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
+#         t1.setDaemon(True)
+#         t1.start()
+#     local_fs_list = list_all_vdisks(LOCAL_FS_MOUNT_POINT, 'f')
+#     for disk in local_fs_list:
+#         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
+#         t1.setDaemon(True)
+#         t1.start()
+#     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
+def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
+    try:
+        output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True))
+#     output = loads()
+#     print(output)
+    except:
+        output = {}
+    if output:
+        virtual_size = float(output.get('virtual-size')) / 1024 if output.get('virtual-size') else 0.00
+        actual_size = float(output.get('actual-size')) / 1024 if output.get('actual-size') else 0.00
+        storage_disk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(virtual_size)
+        storage_disk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(actual_size)
+
+def collect_vm_metrics(zone):
+    vm_list = list_active_vms()
+    for vm in vm_list:
+        t = threading.Thread(target=get_vm_metrics,args=(vm, zone,))
+        t.setDaemon(True)
+        t.start()
+        
+def get_vm_metrics(vm, zone):
     resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
                             'disks_metrics': [], 'networks_metrics': []}
 #     cpus = len(get_vcpus(vm)[0])
@@ -260,27 +314,37 @@ def collect_vm_metrics(vm, zone):
 # def set_vm_mem_period(vm, sec):
 #     runCmdRaiseException('virsh dommemstat --period %s --domain %s --config --live' % (str(sec), vm))
     
-def get_vm_collector_threads():
-    config.load_kube_config(config_file=TOKEN)
-    zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
-    print(zone)
-    while True:
-        vm_list = list_active_vms()
-        for vm in vm_list:
-            t = threading.Thread(target=collect_vm_metrics,args=(vm,zone,))
-            t.setDaemon(True)
-            t.start()
-        t1 = threading.Thread(target=collect_host_metrics,args=(zone,))
-        t1.setDaemon(True)
-        t1.start()
-        time.sleep(5)
+# def get_resource_collector_threads():
+#     config.load_kube_config(config_file=TOKEN)
+#     zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
+#     print(zone)
+#     while True:
+#         vm_list = list_active_vms()
+#         for vm in vm_list:
+#             t = threading.Thread(target=collect_vm_metrics,args=(vm,zone,))
+#             t.setDaemon(True)
+#             t.start()
+#         t1 = threading.Thread(target=collect_storage_metrics,args=(zone,))
+#         t1.setDaemon(True)
+#         t1.start()
+# #         nfs_vdisk_list = list_all_vdisks('/var/lib/libvirt/cstor')
+# #         for nfs_vdisk in nfs_vdisk_list:
+# #             t2 = threading.Thread(target=collect_disk_metrics,args=(nfs_vdisk,zone,))
+# #             t2.setDaemon(True)
+# #             t2.start()
+#         time.sleep(5)
         
 def main():
     start_http_server(19998)
-    thread = threading.Thread(target=get_vm_collector_threads,args=())
-    thread.setDaemon(True)
-    thread.start()
-    thread.join()
+    config.load_kube_config(config_file=TOKEN)
+    zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
+    while True:
+        t = threading.Thread(target=collect_vm_metrics,args=(zone,))
+        t.setDaemon(True)
+        t.start()
+        t1 = threading.Thread(target=collect_storage_metrics,args=(zone,))
+        t1.setDaemon(True)
+        t1.start()
         
 if __name__ == '__main__':
     main()

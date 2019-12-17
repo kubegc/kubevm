@@ -23,6 +23,7 @@ from xmljson import badgerfish as bf
 
 from kubernetes.client.rest import ApiException
 
+from utils.cmdrpc import rpcCallWithResult
 from utils.libvirt_util import check_pool_content_type, refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
 from utils.utils import get_rebase_backing_file_cmds, add_spec_in_volume, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, ExecuteException, string_switch, deleteLifecycleInJson
 from utils import logger
@@ -591,6 +592,8 @@ def create_vmdi_from_disk(name, sourceVolume, source, target):
     '''
     sourcePool = get_pool_info_from_k8s(source)['poolname']
     targetPool = get_pool_info_from_k8s(target)['poolname']
+    disk_info = get_vol_info_from_k8s(sourceVolume)
+    result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % disk_info['filename'])
     doing = 'Preparations'
     if not sourcePool:
         raise Exception('404, Not Found. Source pool not found.')
@@ -811,6 +814,7 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         
 def create_vmdi(name, source, target):
     pool_info = get_pool_info_from_k8s(target)
+    result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % source)
     targetPool = pool_info['poolname']
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
@@ -935,6 +939,8 @@ def delete_vmdi(name, source):
     write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': source})
 
 def updateOS(name, source, target):
+    result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % source)
+    result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % target)
     jsonDict = client.CustomObjectsApi().get_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=VM_PLURAL, name=name)
     jsonString = json.dumps(jsonDict)
@@ -1305,6 +1311,14 @@ def get_pool_info_from_k8s(pool):
     if 'spec'in result.keys() and isinstance(result['spec'], dict) and 'pool' in result['spec'].keys():
         return result['spec']['pool']
     raise ExecuteException('', 'can not get pool info from k8s')
+
+def get_vol_info_from_k8s(vol):
+    if not vol:
+        raise ExecuteException('', 'missing parameter: no disk name.')
+    result = runCmdWithResult('kubectl get vmd -o json %s' % vol)
+    if 'spec'in result.keys() and isinstance(result['spec'], dict) and 'volume' in result['spec'].keys():
+        return result['spec']['volume']
+    raise ExecuteException('', 'can not get vol info from k8s')
 
 # def run(cmd):
 #     try:

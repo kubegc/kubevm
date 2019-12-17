@@ -2979,34 +2979,34 @@ def get_arg_from_lifecycle(jsondict, the_cmd_key, arg):
 
 def disk_prepare(the_cmd_key, jsondict, metadata_name):
     if the_cmd_key in ['cloneVM', 'startVMOnMachine', 'startVM', 'restartVM', 'resetVM']:
-        result, data = runCmdWithResult('kubesds-adm prepareDisk --domain %s' % metadata_name)
+        result, data = rpcCallWithResult('kubesds-adm prepareDisk --domain %s' % metadata_name)
     # if the_cmd_key == 'cloneVM':
     #     path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'file')
     #     if path is None:
     #         return
-    #     result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+    #     result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key in ['plugDisk']:
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'source')
         if path is None:
             return
-        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key == 'resizeVM':
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'path')
         if path is None:
             return
-        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key == 'updateOS':
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'target')
         if path is None:
             return
-        result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % path)
+        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key == 'createAndStartVMFromISO':
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'disk')
         if path is None:
             return
         for line in path.replace(' ', ',').split(','):
             if re.match('^\/(\w+\/?)+$', line):
-                result, data = runCmdWithResult('kubesds-adm prepareDisk --path %s' % line)
+                result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % line)
 '''
 Run back-end command in subprocess.
 '''

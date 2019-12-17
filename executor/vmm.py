@@ -936,7 +936,7 @@ def delete_vmdi(name, source):
     cmd = 'rm -rf %s' % (targetDir)
     runCmd(cmd)
     
-    write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': source})
+    write_result_to_server(name, 'delete', VMDI_KIND, VMDI_PLURAL, {'pool': pool_info['poolname']})
 
 def updateOS(name, source, target):
     result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % source)

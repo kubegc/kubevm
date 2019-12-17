@@ -592,8 +592,7 @@ def create_vmdi_from_disk(name, sourceVolume, source, target):
     '''
     sourcePool = get_pool_info_from_k8s(source)['poolname']
     targetPool = get_pool_info_from_k8s(target)['poolname']
-    disk_info = get_vol_info_from_k8s(sourceVolume)
-    result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % disk_info['filename'])
+    result, data = rpcCallWithResult('kubesds-adm prepareDisk --vol %s' % sourceVolume)
     doing = 'Preparations'
     if not sourcePool:
         raise Exception('404, Not Found. Source pool not found.')

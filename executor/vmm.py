@@ -926,7 +926,7 @@ def delete_image(name):
 
 def delete_vmdi(name, source):
     pool_info = get_pool_info_from_k8s(source)
-    result, data = rpcCallWithResult('kubesds-adm releaseDisk --vol %s' % name)
+    # result, data = rpcCallWithResult('kubesds-adm releaseDisk --vol %s' % name)
     sourcePool = pool_info['poolname']
     pool_path = get_pool_path(sourcePool)
     if pool_path is None:

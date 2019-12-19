@@ -814,7 +814,7 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
 def create_vmdi(name, source, target):
     pool_info = get_pool_info_from_k8s(target)
     try:
-        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % source)
+        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % source, raise_it=False)
     except Exception:
         pass
     targetPool = pool_info['poolname']

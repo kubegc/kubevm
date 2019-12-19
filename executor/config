@@ -111,9 +111,6 @@ unsetVncPassword = virsh update-device
 setGuestPassword = virt-customize
 
 [VirtualMachineDiskSupportCmdsWithNameField]
-createDiskInternalSnapshot = /usr/bin/vmm create_disk_snapshot
-deleteDiskInternalSnapshot = /usr/bin/vmm delete_disk_snapshot
-revertDiskInternalSnapshot = /usr/bin/vmm revert_disk_internal_snapshot
 createDiskFromDiskImage = kubesds-adm createDiskFromImage
 
 [VirtualMachineDiskSupportCmdsWithVolField]

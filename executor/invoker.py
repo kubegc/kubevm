@@ -473,50 +473,15 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                     _, data = rpcCallWithResult(cmd)
                                 else:
                                     _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                            else:
-                                runCmd(cmd)
-                                _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                     elif operation_type == 'MODIFIED':
                         result, data = {}, None
+                        result, data = rpcCallWithResult(cmd, raise_it=False)
                         try:
-                            if cmd.find("kubesds-adm") >= 0:
-                                result, data = rpcCallWithResult(cmd, raise_it=False)
-                                if result['code'] != 0:
-                                    raise ExecuteException('virtctl', 'error when operate volume ' + result['msg'])
-                            else:
-                                logger.debug(cmd)
-                                runCmd(cmd)
-                                _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                        except Exception, e:
-                            if _isDeleteDisk(the_cmd_key) and result.get('code') != 221 and not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
-                                logger.warning("***Disk %s not exists, delete it from virtlet" % metadata_name)
-                                # jsondict = deleteLifecycleInJson(jsondict)
-                                # try:
-                                #     modifyStructure(metadata_name, jsondict, group, version, plural)
-                                # except Exception:
-                                #     pass
-                                # time.sleep(0.5)
-                                # if the disk path is alive, do not delete (the reason maybe caused by give the wrong poolname)
-                                DISK_PATH = get_disk_path_from_server(metadata_name)
-                                if DISK_PATH is None or not os.path.exists(DISK_PATH):
-                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                else:
-                                    raise e
-                            else:
-                                raise e
-                        # update disk info
-                        if _isCloneDisk(the_cmd_key) or _isCreateDiskFromDiskImage(the_cmd_key):
                             deleteLifecycle(metadata_name, group, version, plural)
-                            # uus disk type register to server by hand
-                            _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
-                            newname = getCloneDiskName(the_cmd_key, jsondict)
-                            _, newdata = get_kubesds_disk_info(disk_type, pool_name, newname)
-                            addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version, plural)
-                        elif _isDeleteDisk(the_cmd_key):
-                            try:
-                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                            except:
-                                pass
+                        except:
+                            pass
+                        if result['code'] != 0:
+                            raise ExecuteException('virtctl', 'error when operate volume %s' % result['msg'])
 #                     elif operation_type == 'DELETED':
 #                         if pool_name and is_volume_exists(metadata_name, pool_name):
 #                             if cmd:
@@ -1348,39 +1313,14 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                             _, poolJson = get_kubesds_pool_info(pool_type, pool_name)
                             logger.debug('get pool info')
                     elif operation_type == 'MODIFIED':
-                        result = {}
+                        result, poolJson = rpcCallWithResult(cmd, raise_it=False)
                         try:
-                            if _isDeletePool(the_cmd_key):
-                                result, _ = rpcCallWithResult(cmd, raise_it=False)
-                                # fix pool type not match
-                                if result['code'] == 0:
-                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                                else:
-                                    raise ExecuteException('virtctl', 'error when delete pool ' + result['msg'])
-                            else:
-                                if pool_type == 'uus':
-                                    pass
-                                else:
-                                    rpcCallWithResult(cmd)
-                        except Exception, e:
-                            # only two case has exception when delete pool
-                            # case 1: pool exist but not pool type not match(code is 221)
-                            # case 2: pool not exist, only this case delete pool info from api server
-                            if _isDeletePool(the_cmd_key) and result.get('code') != 221 and not is_kubesds_pool_exists(pool_type, pool_name):
-                                logger.warning("***Pool %s not exists, delete it from virtlet" % metadata_name)
-                                # jsondict = deleteLifecycleInJson(jsondict)
-                                # modifyStructure(metadata_name, jsondict, group, version, plural)
-                                # time.sleep(0.5)
-                                deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                            else:
-                                raise e
-                        if not _isDeletePool(the_cmd_key):
-                            result, poolJson = get_kubesds_pool_info(pool_type, pool_name)
-                    # elif operation_type == 'DELETED':
-                    #     if is_pool_exists(pool_name):
-                    #         runCmd(cmd)
-                    #     else:
-                    #         raise ExecuteException('VirtctlError', 'Not exist '+pool_name+' pool!')
+                            deleteLifecycle(metadata_name, group, version, plural)
+                        except:
+                            pass
+                        if result['code'] != 0:
+                            raise ExecuteException('virtctl', 'error when operate pool %s' % result['msg'])
+
                     status = 'Done(Success)'
                     if not _isDeletePool(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural,
@@ -1893,7 +1833,7 @@ def deleteLifecycle(name, group, version, plural):
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         modifyStructure(name, body, group, version, plural)
     except ApiException, e:
-        logger.error(e)
+        pass
 
 '''
 Install VM from ISO.

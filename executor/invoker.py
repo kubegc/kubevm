@@ -751,46 +751,9 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
                         else:
                             _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
                     elif operation_type == 'MODIFIED':
-                        try:
-                            backing_file = get_backing_file_from_k8s(metadata_name)
-                            logger.debug(backing_file)
-                            # if backing_file is None and not os.path.isfile(backing_file):
-                            #     raise ExecuteException('', 'error: cant get backing file from k8s.')
-                            _, data = None, None
-                            _, data = rpcCallWithResult('%s --backing_file %s' % (cmd, backing_file))
-                            # if is_kubesds_disk_snapshot_exists(disk_type, pool_name, vol_name, os.path.basename(backing_file)):
-                            #     _, data = runCmdWithResult('%s --backing_file %s' % (cmd, backing_file))
-                            # else:
-                            #     _, data = get_kubesds_disk_snapshot_info(disk_type, pool_name, vol_name, metadata_name)
-                        except Exception, e:
-                            if _isDeleteDiskExternalSnapshot(the_cmd_key):
-                                if backing_file is None or not os.path.isfile(backing_file):
-                                    logger.warning("***Disk snapshot %s not exists, delete it from virtlet" % metadata_name)
-                                    # jsondict = deleteLifecycleInJson(jsondict)
-                                    # modifyStructure(metadata_name, jsondict, group, version, plural)
-                                    # time.sleep(0.5)
-                                    deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
-                            else:
-                                raise e
-#                     elif operation_type == 'DELETED':
-#                         if cmd:
-#                             runCmd(cmd)
+                        _, data = rpcCallWithResult(cmd)
                     status = 'Done(Success)'
-                    if _isDeleteDiskExternalSnapshot(the_cmd_key):
-                        if data:
-                            if 'delete_ss' in data.keys() and data['delete_ss']:
-                                for delete_ss in data['delete_ss']:
-                                    try:
-                                        deleteStructure(delete_ss, V1DeleteOptions(), group, version, plural)
-                                    except ApiException, e:
-                                        if e.reason == 'Not Found':
-                                            logger.debug('**Object %s already deleted.' % delete_ss)
-                            if 'need_to_modify' in data.keys() and data['need_to_modify']:
-                                try:
-                                    modify_snapshot(data, group, version, plural)
-                                except Exception:
-                                    pass
-                    else:
+                    if _isCreateDiskExternalSnapshot(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data,
                                                the_cmd_key=the_cmd_key)
                 except libvirtError:
@@ -1474,10 +1437,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_DISK:
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
-            if _isRevertDiskExternalSnapshot(the_cmd_key) or _isCreateDiskExternalSnapshot(the_cmd_key):
-                modify_disk(data['pool'], data['poolname'], data['disk'], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
-            if _isCreateDiskExternalSnapshot(the_cmd_key):
-                jsonDict['spec']['volume'] = data
+            jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM:
             vm_xml = get_xml(name)
             vm_power_state = vm_state(name).get(name)

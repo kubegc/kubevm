@@ -64,16 +64,22 @@ def _get_dom(vm_):
     Return a domain object for the named vm
     '''
     conn = __get_conn()
-    if vm_ not in list_vms():
-        raise Exception('The specified vm is not present(%s).' % vm_)
-    return conn.lookupByName(vm_)
+    try:
+        if vm_ not in list_vms():
+            raise Exception('The specified vm is not present(%s).' % vm_)
+        return conn.lookupByName(vm_)
+    finally:
+        conn.close()
 
 def _get_pool(pool_):
     conn = __get_conn()
-    if pool_ not in list_pools():
-        raise Exception('The specified pool is not present(%s).' % pool_)
-    pool = conn.storagePoolLookupByName(pool_)
-    return pool
+    try:
+        if pool_ not in list_pools():
+            raise Exception('The specified pool is not present(%s).' % pool_)
+        pool = conn.storagePoolLookupByName(pool_)
+        return pool
+    finally:
+        conn.close()
 
 def _get_all_pool_path():
     paths = {}
@@ -122,7 +128,10 @@ def _get_vol(pool_, vol_):
 
 def _get_volume_by_path(path_):
     conn = __get_conn()
-    return conn.storageVolLookupByPath(path_)
+    try:
+        return conn.storageVolLookupByPath(path_)
+    finally:
+        conn.close()
 
 def _get_all_snapshots(vm_):
     vm = _get_dom(vm_)
@@ -179,10 +188,13 @@ def list_active_vms():
         salt '*' virt.list_active_vms
     '''
     conn = __get_conn()
-    vms = []
-    for id_ in conn.listDomainsID():
-        vms.append(conn.lookupByID(id_).name())
-    return vms
+    try:
+        vms = []
+        for id_ in conn.listDomainsID():
+            vms.append(conn.lookupByID(id_).name())
+        return vms
+    finally:
+        conn.close()
 
 
 def list_inactive_vms():
@@ -194,10 +206,13 @@ def list_inactive_vms():
         salt '*' virt.list_inactive_vms
     '''
     conn = __get_conn()
-    vms = []
-    for id_ in conn.listDefinedDomains():
-        vms.append(id_)
-    return vms
+    try:
+        vms = []
+        for id_ in conn.listDefinedDomains():
+            vms.append(id_)
+        return vms
+    finally:
+        conn.close()
 
 def vm_info(vm_=None):
     '''
@@ -277,16 +292,19 @@ def node_info():
         salt '*' virt.node_info
     '''
     conn = __get_conn()
-    raw = conn.getInfo()
-    info = {'cpucores': raw[6],
-            'cpumhz': raw[3],
-            'cpumodel': str(raw[0]),
-            'cpus': raw[2],
-            'cputhreads': raw[7],
-            'numanodes': raw[4],
-            'phymemory': raw[1],
-            'sockets': raw[5]}
-    return info
+    try:
+        raw = conn.getInfo()
+        info = {'cpucores': raw[6],
+                'cpumhz': raw[3],
+                'cpumodel': str(raw[0]),
+                'cpus': raw[2],
+                'cputhreads': raw[7],
+                'numanodes': raw[4],
+                'phymemory': raw[1],
+                'sockets': raw[5]}
+        return info
+    finally:
+        conn.close()
 
 def get_nics(vm_):
     '''
@@ -519,14 +537,17 @@ def freemem():
         salt '*' virt.freemem
     '''
     conn = __get_conn()
-    mem = conn.getInfo()[1]
-    # Take off just enough to sustain the hypervisor
-    mem -= 256
-    for vm_ in list_vms():
-        dom = _get_dom(vm_)
-        if dom.ID() > 0:
-            mem -= dom.info()[2] / 1024
-    return mem
+    try:
+        mem = conn.getInfo()[1]
+        # Take off just enough to sustain the hypervisor
+        mem -= 256
+        for vm_ in list_vms():
+            dom = _get_dom(vm_)
+            if dom.ID() > 0:
+                mem -= dom.info()[2] / 1024
+        return mem
+    finally:
+        conn.close()
 
 
 def freecpu():
@@ -539,12 +560,15 @@ def freecpu():
         salt '*' virt.freecpu
     '''
     conn = __get_conn()
-    cpus = conn.getInfo()[2]
-    for vm_ in list_vms():
-        dom = _get_dom(vm_)
-        if dom.ID() > 0:
-            cpus -= dom.info()[3]
-    return cpus
+    try:
+        cpus = conn.getInfo()[2]
+        for vm_ in list_vms():
+            dom = _get_dom(vm_)
+            if dom.ID() > 0:
+                cpus -= dom.info()[3]
+        return cpus
+    finally:
+        conn.close()
 
 def full_info():
     '''
@@ -693,8 +717,11 @@ def define_xml_str(xml):
     
         salt '*' virt.define_xml_str <xml in string format> 
     '''  
-    conn = __get_conn()  
-    return conn.defineXML(xml) is not None 
+    conn = __get_conn() 
+    try: 
+        return conn.defineXML(xml) is not None
+    finally:
+        conn.close() 
    
 def undefine(vm_):
     '''
@@ -723,7 +750,10 @@ def undefine_with_snapshot(vm_):
 
 def list_pools():
     conn = __get_conn()
-    return conn.listStoragePools()
+    try:
+        return conn.listStoragePools()
+    finally:
+        conn.close()
 
 def refresh_pool(pool_):
     pool = _get_pool(pool_)
@@ -844,14 +874,20 @@ def get_all_vnc_info():
 
 def list_defined_pools():
     conn = __get_conn()
-    return conn.listDefinedStoragePools()
+    try:
+        return conn.listDefinedStoragePools()
+    finally:
+        conn.close()
 
 def _get_defined_pool(pool_):
     conn = __get_conn()
-    if pool_ not in list_defined_pools():
-        raise Exception('The specified pool is not present(%s).' % pool_)
-    pool = conn.storagePoolLookupByName(pool_)
-    return pool
+    try:
+        if pool_ not in list_defined_pools():
+            raise Exception('The specified pool is not present(%s).' % pool_)
+        pool = conn.storagePoolLookupByName(pool_)
+        return pool
+    finally:
+        conn.close()
 
 def is_pool_defined(pool_):
     if pool_ in list_defined_pools():

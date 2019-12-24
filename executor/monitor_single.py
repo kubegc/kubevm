@@ -312,6 +312,7 @@ def collect_storage_metrics(zone):
             t = threading.Thread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
             t.setDaemon(True)
             t.start()
+            t.join()
 
 def get_pool_metrics(pool_storage, pool_type, zone):
     (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
@@ -330,6 +331,7 @@ def collect_disk_metrics(pool_mount_point, pool_type, zone):
         t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, disk_type, disk, zone,))
         t.setDaemon(True)
         t.start()
+        t.join()
 #     vdisk_fs_list = list_all_vdisks(VDISK_FS_MOUNT_POINT, 'f')
 #     for disk in vdisk_fs_list:
 #         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
@@ -360,6 +362,7 @@ def collect_vm_metrics(zone):
         t = threading.Thread(target=get_vm_metrics,args=(vm, zone,))
         t.setDaemon(True)
         t.start()
+        t.join()
         
 def get_vm_metrics(vm, zone):
     resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
@@ -570,6 +573,8 @@ def main():
         t1 = threading.Thread(target=collect_storage_metrics,args=(zone,))
         t1.setDaemon(True)
         t1.start()
+        t.join()
+        t1.join()
         
 if __name__ == '__main__':
     main()

@@ -71,10 +71,10 @@ class ClientDaemon(CDaemon):
             thread_3.daemon = True
             thread_3.name = 'host_cycler'
             thread_3.start()
-            # thread_4 = Thread(target=monitor)
-            # thread_4.daemon = True
-            # thread_4.name = 'monitor'
-            # thread_4.start()
+            thread_4 = Thread(target=monitor)
+            thread_4.daemon = True
+            thread_4.name = 'monitor'
+            thread_4.start()
             try:
                 while True:
                     time.sleep(1)

@@ -991,7 +991,7 @@ def runCmdAndGetResult(cmd, raise_it=True):
         p.stderr.close()
 
 if __name__ == '__main__':
-    print(check_pool_content_type("node22-wywnfs", "vmdi"))
+    print(get_disks_spec("vmtest222"))
     # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))

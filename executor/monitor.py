@@ -1,3 +1,5 @@
+import subprocess
+
 import prometheus_client
 import ConfigParser
 import re
@@ -7,8 +9,18 @@ import time
 import threading
 from kubernetes import config
 from json import loads
-from utils.libvirt_util import list_active_vms, get_disks_spec, get_macs
+
+from utils import logger
+
+try:
+    import xml.etree.CElementTree as ET
+except:
+    import xml.etree.ElementTree as ET
+
 from utils.utils import list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
+
+LOG = '/var/log/virtlet.log'
+logger = logger.set_logger(os.path.basename(__file__), LOG)
 
 class parser(ConfigParser.ConfigParser):
     def __init__(self,defaults=None):  
@@ -130,6 +142,69 @@ def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
         storage_disk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(virtual_size)
         storage_disk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(actual_size)
 
+def runCmdAndGetOutput(cmd):
+    if not cmd:
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            msg = ''
+            for line in std_out:
+                msg = msg + line
+            return msg
+        if std_err:
+            return ''
+    except Exception:
+        return ''
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
+def get_disks_spec(domain):
+    output = runCmdAndGetOutput('virsh domblklist %s' % domain)
+    lines = output.splitlines()
+    specs = []
+    for i in range(2, len(lines)):
+        spec = []
+        kv = lines[i].split()
+        if len(kv) == 2:
+            spec.append(kv[0])
+            spec.append(kv[1])
+            specs.append(spec)
+    return specs
+
+def list_active_vms():
+    output = runCmdAndGetOutput('virsh list')
+    lines = output.splitlines()
+    if (len(lines) < 2):
+        return []
+    vms = []
+    for line in lines[2:]:
+        if (len(line.split()) == 3):
+            vms.append(line.split()[1])
+    return vms
+
+def get_macs(vm):
+    if not vm:
+        return []
+    runCmdAndGetOutput('virsh dumpxml %s > /tmp/%s.xml' % (vm, vm))
+    tree = ET.parse('/tmp/%s.xml' % vm)
+
+    root = tree.getroot()
+    # for child in root:
+    #     print(child.tag, "----", child.attrib)
+    macs = []
+    captionList = root.findall("devices")
+    for caption in captionList:
+        interfaces = caption.findall("interface")
+        for interface in interfaces:
+            mac_element = interface.find("mac")
+            if "address" in mac_element.keys():
+                macs.append(mac_element.get("address"))
+    return macs
+
 def collect_vm_metrics(zone):
     vm_list = list_active_vms()
     for vm in vm_list:
@@ -200,6 +275,7 @@ def get_vm_metrics(vm, zone):
         disk_metrics['device'] = disk_device
         stats1 = {}
         stats2 = {}
+        logger.debug('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         blk_dev_stats1 = runCmdRaiseException('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         for line in blk_dev_stats1:
             if line.find('rd_req') != -1:
@@ -352,6 +428,7 @@ def main():
         
 if __name__ == '__main__':
     main()
+    # print get_disks_spec('vmtest222')
 #     import pprint
 #     set_vm_mem_period('vm010', 5)
 #     pprint.pprint(collect_vm_metrics("vm010"))

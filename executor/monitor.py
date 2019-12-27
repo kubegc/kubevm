@@ -114,10 +114,11 @@ def collect_disk_metrics(pool_mount_point, pool_type, zone):
         disk_list = list_all_disks(pool_mount_point, 'l')
         disk_type = 'block'
     for disk in disk_list:
-        t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, disk_type, disk, zone,))
-        t.setDaemon(True)
-        t.start()
-        t.join()
+        get_vdisk_metrics(pool_mount_point, disk_type, disk, zone)
+#         t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, disk_type, disk, zone,))
+#         t.setDaemon(True)
+#         t.start()
+#         t.join()
 #     vdisk_fs_list = list_all_vdisks(VDISK_FS_MOUNT_POINT, 'f')
 #     for disk in vdisk_fs_list:
 #         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
@@ -417,14 +418,8 @@ def main():
     config.load_kube_config(config_file=TOKEN)
     zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
     while True:
-        t = threading.Thread(target=collect_vm_metrics,args=(zone,))
-        t.setDaemon(True)
-        t.start()
-        t1 = threading.Thread(target=collect_storage_metrics,args=(zone,))
-        t1.setDaemon(True)
-        t1.start()
-        t.join()
-        t1.join()
+        collect_vm_metrics(zone)
+        collect_storage_metrics(zone)
         
 if __name__ == '__main__':
     main()

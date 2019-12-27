@@ -420,6 +420,7 @@ def main():
     while True:
         collect_vm_metrics(zone)
         collect_storage_metrics(zone)
+        time.sleep(10)
         
 if __name__ == '__main__':
     main()

@@ -66,10 +66,10 @@ def main():
             thread_3.daemon = True
             thread_3.name = 'host_cycler'
             thread_3.start()
-            thread_4 = Thread(target=monitor)
-            thread_4.daemon = True
-            thread_4.name = 'monitor'
-            thread_4.start()
+            # thread_4 = Thread(target=monitor)
+            # thread_4.daemon = True
+            # thread_4.name = 'monitor'
+            # thread_4.start()
             try:
                 while True:
                     time.sleep(1)
@@ -79,7 +79,7 @@ def main():
             thread_2.join()
 #             if not is_kubernetes_master():
             thread_3.join()
-            thread_4.join()
+            # thread_4.join()
         except:
             logger.error('Oops! ', exc_info=1)
             

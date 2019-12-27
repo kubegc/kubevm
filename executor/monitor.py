@@ -275,7 +275,7 @@ def get_vm_metrics(vm, zone):
         disk_metrics['device'] = disk_device
         stats1 = {}
         stats2 = {}
-        logger.debug('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
+        # logger.debug('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         blk_dev_stats1 = runCmdRaiseException('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         for line in blk_dev_stats1:
             if line.find('rd_req') != -1:

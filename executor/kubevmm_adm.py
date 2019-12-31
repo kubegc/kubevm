@@ -149,6 +149,8 @@ def status(print_result=False, ignore_warning=False):
             print('service \'virtlet(%s)\' is running in container \'%s\'' % (virtlet_running_version, str(virtlet_container_id)))
         (kubesds_rpc_status, _) =  runCmd('kubesds-rpc status')
         print('service \'kubesds-rpc\' %s' % kubesds_rpc_status)
+        (virt_monitor_status, _) =  runCmd('virt-monitor status')
+        print('service \'virt-monitor\' %s' % virt_monitor_status)
     if virtctl_err or virtlet_err:
         sys.exit(1)
     return (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version)

@@ -1,24 +1,47 @@
+import subprocess
+
 import prometheus_client
-import libvirt
+import ConfigParser
 import re
 import os
-import yaml
-import collections
-import socket
+import sys
+from prometheus_client import Gauge,start_http_server,Counter
 import time
 import threading
-import subprocess
-from xml.dom import minidom
-from StringIO import StringIO as _StringIO
-from prometheus_client import Gauge,start_http_server,Counter
-from kubernetes import client, config
+from kubernetes import config
 from json import loads
 
-TOKEN = "/root/.kube/config"
-SHARE_FS_MOUNT_POINT = "/var/lib/libvirt/cstor"
-VDISK_FS_MOUNT_POINT = "/mnt/usb"
-LOCAL_FS_MOUNT_POINT = "/mnt/localfs"
-BLOCK_FS_MOUNT_POINT = "/mnt/blockdev"
+from utils import logger
+
+try:
+    import xml.etree.CElementTree as ET
+except:
+    import xml.etree.ElementTree as ET
+
+from utils.utils import CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
+
+LOG = '/var/log/virtmonitor.log'
+logger = logger.set_logger(os.path.basename(__file__), LOG)
+
+class parser(ConfigParser.ConfigParser):
+    def __init__(self,defaults=None):  
+        ConfigParser.ConfigParser.__init__(self,defaults=None)  
+    def optionxform(self, optionstr):  
+        return optionstr 
+
+cfg = "/etc/kubevmm/config"
+if not os.path.exists(cfg):
+    cfg = "/home/kubevmm/bin/config"
+config_raw = parser()
+config_raw.read(cfg)
+
+TOKEN = config_raw.get('Kubernetes', 'token_file')
+SHARE_FS_MOUNT_POINT = config_raw.get('Storage', 'share_fs_mount_point')
+VDISK_FS_MOUNT_POINT = config_raw.get('Storage', 'vdisk_fs_mount_point')
+LOCAL_FS_MOUNT_POINT = config_raw.get('Storage', 'local_fs_mount_point')
+BLOCK_FS_MOUNT_POINT = config_raw.get('Storage', 'block_fs_mount_point')
+
+HOSTNAME = get_hostname_in_lower_case()
 
 vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
                                 ['zone', 'host', 'vm'])
@@ -67,242 +90,6 @@ storage_disk_total_size_kilobytes = Gauge('storage_disk_total_size_kilobytes', '
 storage_disk_used_size_kilobytes = Gauge('storage_disk_used_size_kilobytes', 'Storage disk used size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type', 'disk'])
 
-def __get_conn():
-    '''
-    Detects what type of dom this node is and attempts to connect to the
-    correct hypervisor via libvirt.
-    '''
-    # This has only been tested on kvm and xen, it needs to be expanded to
-    # support all vm layers supported by libvirt
-    try:
-        conn = libvirt.open('qemu:///system')
-    except Exception:
-        raise Exception(
-            'Sorry, {0} failed to open a connection to the hypervisor software'
-        )
-    return conn
-
-def list_active_vms():
-    '''
-    Return a list of names for active virtual machine on the minion
-
-    CLI Example::
-
-        salt '*' virt.list_active_vms
-    '''
-    conn = __get_conn()
-    vms = []
-    for id_ in conn.listDomainsID():
-        vms.append(conn.lookupByID(id_).name())
-    return vms
-
-def list_inactive_vms():
-    '''
-    Return a list of names for inactive virtual machine on the minion
-
-    CLI Example::
-
-        salt '*' virt.list_inactive_vms
-    '''
-    conn = __get_conn()
-    vms = []
-    for id_ in conn.listDefinedDomains():
-        vms.append(id_)
-    return vms
-
-def list_vms():
-    '''
-    Return a list of virtual machine names on the minion
-
-    CLI Example::
-
-        salt '*' virt.list_vms
-    '''
-    vms = []
-    vms.extend(list_active_vms())
-    vms.extend(list_inactive_vms())
-    return vms
-
-def get_disks_spec(vm_):
-    disks = get_disks(vm_)
-    retv = []
-    if disks:
-        for disk_dev, disk_info in disks.items():
-            retv.append([disk_dev.encode('utf-8'), disk_info['file'].encode('utf-8')])
-        return retv
-    else:
-        raise Exception('VM %s has no disks.' % vm_)
-    
-def _get_dom(vm_):
-    '''
-    Return a domain object for the named vm
-    '''
-    conn = __get_conn()
-    if vm_ not in list_vms():
-        raise Exception('The specified vm is not present(%s).' % vm_)
-    return conn.lookupByName(vm_)
-
-def get_xml(vm_):
-    '''
-    Returns the xml for a given vm
-
-    CLI Example::
-
-        salt '*' virt.get_xml <vm name>
-    '''
-    dom = _get_dom(vm_)
-    return dom.XMLDesc(0)
-    
-def get_macs(vm_):
-    '''
-    Return a list off MAC addresses from the named vm
-
-    CLI Example::
-
-        salt '*' virt.get_macs <vm name>
-    '''
-    macs = []
-    doc = minidom.parse(_StringIO(get_xml(vm_)))
-    for node in doc.getElementsByTagName('devices'):
-        i_nodes = node.getElementsByTagName('interface')
-        for i_node in i_nodes:
-            for v_node in i_node.getElementsByTagName('mac'):
-                macs.append(v_node.getAttribute('address'))
-    return macs
-
-def get_disks(vm_):
-    '''
-    Return the disks of a named vm
- 
-    CLI Example::
- 
-        salt '*' virt.get_disks <vm name>
-    '''
-    disks = collections.OrderedDict()
-    doc = minidom.parse(_StringIO(get_xml(vm_)))
-    for elem in doc.getElementsByTagName('disk'):
-        sources = elem.getElementsByTagName('source')
-        targets = elem.getElementsByTagName('target')
-        if len(sources) > 0:
-            source = sources[0]
-        else:
-            continue
-        if len(targets) > 0:
-            target = targets[0]
-        else:
-            continue
-        if target.hasAttribute('dev'):
-            qemu_target = ''
-            if source.hasAttribute('file'):
-                qemu_target = source.getAttribute('file')
-            elif source.hasAttribute('dev'):
-                qemu_target = source.getAttribute('dev')
-            elif source.hasAttribute('protocol') and \
-                    source.hasAttribute('name'): # For rbd network
-                qemu_target = '%s:%s' %(
-                        source.getAttribute('protocol'),
-                        source.getAttribute('name'))
-            if qemu_target:
-                disks[target.getAttribute('dev')] = {\
-                    'file': qemu_target}
-    for dev in disks:
-        try:
-            if not os.path.exists(disks[dev]['file']):
-                continue
-            output = []
-            try:
-                qemu_output = runCmdRaiseException('qemu-img info -U %s' % disks[dev]['file'], use_read=True)
-            except:
-                qemu_output = runCmdRaiseException('qemu-img info %s' % disks[dev]['file'], use_read=True)  
-            snapshots = False
-            columns = None
-            lines = qemu_output.strip().split('\n')
-            for line in lines:
-                if line.startswith('Snapshot list:'):
-                    snapshots = True
-                    continue
-                elif snapshots:
-                    if line.startswith('ID'):  # Do not parse table headers
-                        line = line.replace('VM SIZE', 'VMSIZE')
-                        line = line.replace('VM CLOCK', 'TIME VMCLOCK')
-                        columns = re.split('\s+', line)
-                        columns = [c.lower() for c in columns]
-                        output.append('snapshots:')
-                        continue
-                    fields = re.split('\s+', line)
-                    for i, field in enumerate(fields):
-                        sep = ' '
-                        if i == 0:
-                            sep = '-'
-                        output.append(
-                            '{0} {1}: "{2}"'.format(
-                                sep, columns[i], field
-                            )
-                        )
-                    continue
-                output.append(line)
-            output = '\n'.join(output)
-            disks[dev].update(yaml.safe_load(output))
-        except TypeError:
-            disks[dev].update(yaml.safe_load('image: Does not exist'))
-    return disks
-
-def list_all_disks(path, disk_type = 'f'):
-    try:
-        return runCmdRaiseException("find %s -type %s ! -name '*.json' ! -name '*.temp' ! -name 'content' ! -name '.*' ! -name '*.xml' ! -name '*.pem' | grep -v overlay2" % (path, disk_type))
-    except:
-        return []
-    
-def get_hostname_in_lower_case():
-    return 'vm.%s' % socket.gethostname().lower()
-
-def get_field(jsondict, index):
-    retv = None
-    '''
-    Iterate keys in 'spec' structure and map them to real CMDs in back-end.
-    Note that only the first CMD will be executed.
-    '''
-    contents = jsondict
-    for layer in index[:-1]:
-        contents = contents.get(layer)
-    if not contents:
-        return None
-    for k, v in contents.items():
-        if k == index[-1]:
-            retv = v
-    return retv
-
-def get_field_in_kubernetes_node(name, index):
-    try:
-        v1_node_list = client.CoreV1Api().list_node(label_selector='host=%s' % name)
-        jsondict = v1_node_list.to_dict()
-        items = jsondict.get('items')
-        if items:
-            return get_field(items[0], index)
-        else:
-            return None
-    except:
-        return None
-    
-def runCmdRaiseException(cmd, use_read=False):
-    std_err = None
-    if not cmd:
-        return
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    try:
-        if use_read:
-            std_out = p.stdout.read()
-            std_err = p.stderr.read()
-        else:
-            std_out = p.stdout.readlines()
-            std_err = p.stderr.readlines()
-        if std_err:
-            raise Exception(std_err)
-        return std_out
-    finally:
-        p.stdout.close()
-        p.stderr.close()
-
 def collect_storage_metrics(zone):
     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
                 LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
@@ -316,8 +103,8 @@ def collect_storage_metrics(zone):
 
 def get_pool_metrics(pool_storage, pool_type, zone):
     (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
-    storage_pool_total_size_kilobytes.labels(zone, get_hostname_in_lower_case(), pool_mount_point, pool_type).set(pool_total)
-    storage_pool_used_size_kilobytes.labels(zone, get_hostname_in_lower_case(), pool_mount_point, pool_type).set(pool_used)
+    storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_total)
+    storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_used)
     collect_disk_metrics(pool_mount_point, pool_type, zone)
 
 def collect_disk_metrics(pool_mount_point, pool_type, zone):
@@ -328,10 +115,11 @@ def collect_disk_metrics(pool_mount_point, pool_type, zone):
         disk_list = list_all_disks(pool_mount_point, 'l')
         disk_type = 'block'
     for disk in disk_list:
-        t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, disk_type, disk, zone,))
-        t.setDaemon(True)
-        t.start()
-        t.join()
+        get_vdisk_metrics(pool_mount_point, disk_type, disk, zone)
+#         t = threading.Thread(target=get_vdisk_metrics,args=(pool_mount_point, disk_type, disk, zone,))
+#         t.setDaemon(True)
+#         t.start()
+#         t.join()
 #     vdisk_fs_list = list_all_vdisks(VDISK_FS_MOUNT_POINT, 'f')
 #     for disk in vdisk_fs_list:
 #         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
@@ -342,7 +130,7 @@ def collect_disk_metrics(pool_mount_point, pool_type, zone):
 #         t1 = threading.Thread(target=get_vdisk_metrics,args=(disk, zone,))
 #         t1.setDaemon(True)
 #         t1.start()
-#     resource_utilization = {'host': get_hostname_in_lower_case(), 'vdisk_metrics': {}}
+#     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
 def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
     try:
         output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True))
@@ -353,8 +141,71 @@ def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
     if output:
         virtual_size = float(output.get('virtual-size')) / 1024 if output.get('virtual-size') else 0.00
         actual_size = float(output.get('actual-size')) / 1024 if output.get('actual-size') else 0.00
-        storage_disk_total_size_kilobytes.labels(zone, get_hostname_in_lower_case(), pool_mount_point, disk_type, disk).set(virtual_size)
-        storage_disk_used_size_kilobytes.labels(zone, get_hostname_in_lower_case(), pool_mount_point, disk_type, disk).set(actual_size)
+        storage_disk_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(virtual_size)
+        storage_disk_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, disk_type, disk).set(actual_size)
+
+def runCmdAndGetOutput(cmd):
+    if not cmd:
+        return
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        std_out = p.stdout.readlines()
+        std_err = p.stderr.readlines()
+        if std_out:
+            msg = ''
+            for line in std_out:
+                msg = msg + line
+            return msg
+        if std_err:
+            return ''
+    except Exception:
+        return ''
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+
+def get_disks_spec(domain):
+    output = runCmdAndGetOutput('virsh domblklist %s' % domain)
+    lines = output.splitlines()
+    specs = []
+    for i in range(2, len(lines)):
+        spec = []
+        kv = lines[i].split()
+        if len(kv) == 2:
+            spec.append(kv[0])
+            spec.append(kv[1])
+            specs.append(spec)
+    return specs
+
+def list_active_vms():
+    output = runCmdAndGetOutput('virsh list')
+    lines = output.splitlines()
+    if (len(lines) < 2):
+        return []
+    vms = []
+    for line in lines[2:]:
+        if (len(line.split()) == 3):
+            vms.append(line.split()[1])
+    return vms
+
+def get_macs(vm):
+    if not vm:
+        return []
+    runCmdAndGetOutput('virsh dumpxml %s > /tmp/%s.xml' % (vm, vm))
+    tree = ET.parse('/tmp/%s.xml' % vm)
+
+    root = tree.getroot()
+    # for child in root:
+    #     print(child.tag, "----", child.attrib)
+    macs = []
+    captionList = root.findall("devices")
+    for caption in captionList:
+        interfaces = caption.findall("interface")
+        for interface in interfaces:
+            mac_element = interface.find("mac")
+            if "address" in mac_element.keys():
+                macs.append(mac_element.get("address"))
+    return macs
 
 def collect_vm_metrics(zone):
     vm_list = list_active_vms()
@@ -426,6 +277,7 @@ def get_vm_metrics(vm, zone):
         disk_metrics['device'] = disk_device
         stats1 = {}
         stats2 = {}
+        # logger.debug('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         blk_dev_stats1 = runCmdRaiseException('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         for line in blk_dev_stats1:
             if line.find('rd_req') != -1:
@@ -516,27 +368,27 @@ def get_vm_metrics(vm, zone):
         net_metrics['network_write_drops_per_secend'] = '%.2f' % ((stats2['tx_drop'] - stats1['tx_drop']) / 0.1) \
         if (stats2['tx_drop'] - stats1['tx_drop']) > 0 else '%.2f' % (0.00)
         resource_utilization['networks_metrics'].append(net_metrics)  
-    vm_cpu_system_proc_rate.labels(zone, get_hostname_in_lower_case(), vm).set(resource_utilization['cpu_metrics']['cpu_system_rate'])
-    vm_cpu_usr_proc_rate.labels(zone, get_hostname_in_lower_case(), vm).set(resource_utilization['cpu_metrics']['cpu_user_rate'])
-    vm_cpu_idle_rate.labels(zone, get_hostname_in_lower_case(), vm).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
-    vm_mem_total_bytes.labels(zone, get_hostname_in_lower_case(), vm).set(resource_utilization['mem_metrics']['mem_available'])
-    vm_mem_available_bytes.labels(zone, get_hostname_in_lower_case(), vm).set(resource_utilization['mem_metrics']['mem_unused'])
-    vm_mem_buffers_bytes.labels(zone, get_hostname_in_lower_case(), vm).set(resource_utilization['mem_metrics']['mem_buffers'])
-    vm_mem_rate.labels(zone, get_hostname_in_lower_case(), vm).set(resource_utilization['mem_metrics']['mem_rate'])
+    vm_cpu_system_proc_rate.labels(zone, HOSTNAME, vm).set(resource_utilization['cpu_metrics']['cpu_system_rate'])
+    vm_cpu_usr_proc_rate.labels(zone, HOSTNAME, vm).set(resource_utilization['cpu_metrics']['cpu_user_rate'])
+    vm_cpu_idle_rate.labels(zone, HOSTNAME, vm).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
+    vm_mem_total_bytes.labels(zone, HOSTNAME, vm).set(resource_utilization['mem_metrics']['mem_available'])
+    vm_mem_available_bytes.labels(zone, HOSTNAME, vm).set(resource_utilization['mem_metrics']['mem_unused'])
+    vm_mem_buffers_bytes.labels(zone, HOSTNAME, vm).set(resource_utilization['mem_metrics']['mem_buffers'])
+    vm_mem_rate.labels(zone, HOSTNAME, vm).set(resource_utilization['mem_metrics']['mem_rate'])
     for disk_metrics in resource_utilization['disks_metrics']:
-        vm_disk_read_requests_per_secend.labels(zone, get_hostname_in_lower_case(), vm, disk_metrics['device']).set(disk_metrics['disk_read_requests_per_secend'])
-        vm_disk_read_bytes_per_secend.labels(zone, get_hostname_in_lower_case(), vm, disk_metrics['device']).set(disk_metrics['disk_read_bytes_per_secend'])
-        vm_disk_write_requests_per_secend.labels(zone, get_hostname_in_lower_case(), vm, disk_metrics['device']).set(disk_metrics['disk_write_requests_per_secend'])
-        vm_disk_write_bytes_per_secend.labels(zone, get_hostname_in_lower_case(), vm, disk_metrics['device']).set(disk_metrics['disk_write_bytes_per_secend'])
+        vm_disk_read_requests_per_secend.labels(zone, HOSTNAME, vm, disk_metrics['device']).set(disk_metrics['disk_read_requests_per_secend'])
+        vm_disk_read_bytes_per_secend.labels(zone, HOSTNAME, vm, disk_metrics['device']).set(disk_metrics['disk_read_bytes_per_secend'])
+        vm_disk_write_requests_per_secend.labels(zone, HOSTNAME, vm, disk_metrics['device']).set(disk_metrics['disk_write_requests_per_secend'])
+        vm_disk_write_bytes_per_secend.labels(zone, HOSTNAME, vm, disk_metrics['device']).set(disk_metrics['disk_write_bytes_per_secend'])
     for net_metrics in resource_utilization['networks_metrics']:
-        vm_network_receive_bytes_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_read_bytes_per_secend'])
-        vm_network_receive_drops_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_read_drops_per_secend'])
-        vm_network_receive_errors_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_read_errors_per_secend'])
-        vm_network_receive_packages_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_read_packages_per_secend'])
-        vm_network_send_bytes_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_write_bytes_per_secend'])
-        vm_network_send_drops_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_write_drops_per_secend'])
-        vm_network_send_errors_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_write_errors_per_secend'])
-        vm_network_send_packages_per_secend.labels(zone, get_hostname_in_lower_case(), vm, net_metrics['device']).set(net_metrics['network_write_packages_per_secend'])
+        vm_network_receive_bytes_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_read_bytes_per_secend'])
+        vm_network_receive_drops_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_read_drops_per_secend'])
+        vm_network_receive_errors_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_read_errors_per_secend'])
+        vm_network_receive_packages_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_read_packages_per_secend'])
+        vm_network_send_bytes_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_write_bytes_per_secend'])
+        vm_network_send_drops_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_write_drops_per_secend'])
+        vm_network_send_errors_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_write_errors_per_secend'])
+        vm_network_send_packages_per_secend.labels(zone, HOSTNAME, vm, net_metrics['device']).set(net_metrics['network_write_packages_per_secend'])
     return resource_utilization
 
 # def set_vm_mem_period(vm, sec):
@@ -544,7 +396,7 @@ def get_vm_metrics(vm, zone):
     
 # def get_resource_collector_threads():
 #     config.load_kube_config(config_file=TOKEN)
-#     zone = get_field_in_kubernetes_node(get_hostname_in_lower_case(), ['metadata', 'labels', 'zone'])
+#     zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
 #     print(zone)
 #     while True:
 #         vm_list = list_active_vms()
@@ -562,22 +414,56 @@ def get_vm_metrics(vm, zone):
 # #             t2.start()
 #         time.sleep(5)
         
-def main():
-    start_http_server(19998)
-    config.load_kube_config(config_file=TOKEN)
-    zone = get_field_in_kubernetes_node(get_hostname_in_lower_case(), ['metadata', 'labels', 'zone'])
-    while True:
-        t = threading.Thread(target=collect_vm_metrics,args=(zone,))
-        t.setDaemon(True)
-        t.start()
-        t1 = threading.Thread(target=collect_storage_metrics,args=(zone,))
-        t1.setDaemon(True)
-        t1.start()
-        t.join()
-        t1.join()
+class ClientDaemon(CDaemon):
+    def __init__(self, name, save_path, stdin=os.devnull, stdout=os.devnull, stderr=os.devnull, home_dir='.', umask=022, verbose=1):
+        CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
+        self.name = name
+        
+    def run(self, output_fn, **kwargs):
+        logger.debug("---------------------------------------------------------------------------------")
+        logger.debug("------------------------Welcome to Monitor Daemon.-------------------------------")
+        logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
+        logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
+        logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
+        logger.debug("---------------------------------------------------------------------------------")
+        start_http_server(19998)
+        config.load_kube_config(config_file=TOKEN)
+        zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
+        while True:
+            collect_vm_metrics(zone)
+            collect_storage_metrics(zone)
+            time.sleep(10)
+        
+def daemonize():
+    help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]
+    if len(sys.argv) != 2:
+        print help_msg
+        sys.exit(1)
+    p_name = 'virtmonitor'
+    pid_fn = '/var/run/virtmonitor_daemon.pid'
+    log_fn = '/var/log/virtmonitor.log'
+    err_fn = '/var/log/virtmonitor.log'
+    cD = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
+ 
+    if sys.argv[1] == 'start':
+        cD.start(log_fn)
+    elif sys.argv[1] == 'stop':
+        cD.stop()
+    elif sys.argv[1] == 'restart':
+        cD.restart(log_fn)
+    elif sys.argv[1] == 'status':
+        alive = cD.is_running()
+        if alive:
+            print 'process [%s] is running ......' % cD.get_pid()
+        else:
+            print 'daemon process [%s] stopped' %cD.name
+    else:
+        print 'invalid argument!'
+        print help_msg    
         
 if __name__ == '__main__':
-    main()
+    daemonize()
+    # print get_disks_spec('vmtest222')
 #     import pprint
 #     set_vm_mem_period('vm010', 5)
 #     pprint.pprint(collect_vm_metrics("vm010"))

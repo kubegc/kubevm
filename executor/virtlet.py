@@ -24,7 +24,7 @@ from libvirt_event_handler import main as libvirt_event_handler
 from libvirt_event_handler_for_4_0 import main as libvirt_event_handler_4_0
 from os_event_handler import main as os_event_handler
 from host_cycler import main as host_cycler
-from monitor import main as monitor
+from executor.virt_monitor import main as monitor
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  

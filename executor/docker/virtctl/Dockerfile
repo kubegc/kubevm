@@ -20,6 +20,8 @@ ADD kubeovn-adm /home/kubevmm/bin/
 
 ADD kubevmm-adm /home/kubevmm/bin/
 
+ADD virt-monitor /home/kubevmm/bin/
+
 ADD vmm /home/kubevmm/bin/
 
 ADD kubesds-adm /home/kubevmm/bin/

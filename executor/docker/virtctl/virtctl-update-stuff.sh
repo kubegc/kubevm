@@ -51,6 +51,12 @@ cp -f /home/kubevmm/bin/vmm /usr/bin/vmm.new
 rm -f /usr/bin/vmm
 mv -f /usr/bin/vmm.new /usr/bin/vmm
 echo "--- Done: update vmm"
+# update virt-monitor
+echo "+++ Processing: update virt-monitor"
+cp -f /home/kubevmm/bin/virt-monitor /usr/bin/virt-monitor.new
+rm -f /usr/bin/virt-monitor
+mv -f /usr/bin/virt-monitor.new /usr/bin/virt-monitor
+echo "--- Done: update virt-monitor
 # update kubesds-adm
 echo "+++ Processing: update kubesds-adm"
 cp -f /home/kubevmm/bin/kubesds-adm /usr/bin/kubesds-adm.new

@@ -117,6 +117,7 @@ createDiskFromDiskImage = kubesds-adm createDiskFromImage
 createDisk = kubesds-adm createDisk
 resizeDisk = kubesds-adm resizeDisk
 cloneDisk = kubesds-adm cloneDisk
+migrateDisk = kubesds-adm migrateDisk
 deleteDisk = kubesds-adm deleteDisk
 
 [VirtualMachineDiskSnapshotSupportCmdsWithNameField]

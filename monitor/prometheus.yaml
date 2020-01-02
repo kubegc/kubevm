@@ -59,9 +59,9 @@ data:
   prometheus.yml: |-
     # my global config
     global:
-      scrape_interval:     60s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
-      evaluation_interval: 60s # Evaluate rules every 15 seconds. The default is every 1 minute.
-      scrape_timeout: 60s        # is set to the global default (10s).
+      scrape_interval:     5s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+      evaluation_interval: 5s # Evaluate rules every 15 seconds. The default is every 1 minute.
+      #scrape_timeout: 60s        # is set to the global default (10s).
 
     # Alertmanager configuration
     alerting:
@@ -90,6 +90,11 @@ data:
         # metrics_path defaults to '/metrics'
         # scheme defaults to 'http'.
 
+      - job_name: pushgateway
+        static_configs:
+          - targets: ['172.17.104.190:9091']
+            labels:
+              instance: pushgateway
       - job_name: 'vms'
 
         # Default to scraping over https. If required, just disable this or change to
@@ -147,32 +152,67 @@ data:
           target_label: __address__
           regex: (.+)
           replacement: ${1}:9100
+      - job_name: 'process'
 
-      # - job_name: 'cadvisor'
+        # Default to scraping over https. If required, just disable this or change to
+        # `http`.
+        scheme: http
+        #metrics_path: /
 
-      #   # Default to scraping over https. If required, just disable this or change to
-      #   # `http`.
-      #   scheme: http
-      #   #metrics_path: /
-      #   tls_config:
-      #     ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-      #   bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        # This TLS & bearer token file config is used to connect to the actual scrape
+        # endpoints for cluster components. This is separate to discovery auth
+        # configuration because discovery & scraping are two separate concerns in
+        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+        # the cluster. Otherwise, more config options have to be provided within the
+        # <kubernetes_sd_config>.
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
-      #   kubernetes_sd_configs:
-      #   - role: node
+        kubernetes_sd_configs:
+        - role: node
 
-      #   relabel_configs:
-      #   - action: labelmap
-      #     regex: __meta_kubernetes_node_label_(.+)
-      #   - source_labels: [__meta_kubernetes_node_address_InternalIP]
-      #     action: replace
-      #     target_label: __address__
-      #     regex: (.+)
-      #     replacement: ${1}:4194
-      #   - source_labels: [__meta_kubernetes_node_name]
-      #     regex: (.+)
-      #     target_label: __metrics_path__
-      #     replacement: /metrics
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - source_labels: [__meta_kubernetes_node_address_InternalIP]
+          action: replace
+          target_label: __address__
+          regex: (.+)
+          replacement: ${1}:9256
+
+      - job_name: 'cadvisor'
+
+        # Default to scraping over https. If required, just disable this or change to
+        # `http`.
+        scheme: http
+        #metrics_path: /
+
+        # This TLS & bearer token file config is used to connect to the actual scrape
+        # endpoints for cluster components. This is separate to discovery auth
+        # configuration because discovery & scraping are two separate concerns in
+        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+        # the cluster. Otherwise, more config options have to be provided within the
+        # <kubernetes_sd_config>.
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: node
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - source_labels: [__meta_kubernetes_node_address_InternalIP]
+          action: replace
+          target_label: __address__
+          regex: (.+)
+          replacement: ${1}:4194
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /metrics
 
       - job_name: 'grafana'
         static_configs:
@@ -474,8 +514,11 @@ spec:
       labels:
         app: prometheus
     spec:
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
       nodeSelector:
-        type: monitor
+        node-role.kubernetes.io/master: ""
       serviceAccountName: prometheus
       securityContext:
         runAsUser: 65534

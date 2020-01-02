@@ -113,11 +113,18 @@ def restart_kubesds_rpc(ignore_warning=False):
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
         sys.exit(1)
+        
+def restart_virt_monitor(ignore_warning=False):
+    (_, _err) = runCmd('virt-monitor restart')
+    if _err and not ignore_warning:
+        print('warning: %s\n' % (_err))
+        sys.exit(1)
 
 def restart(ignore_warning=False):
     stop(ignore_warning=ignore_warning)
     start(ignore_warning=ignore_warning)
     restart_kubesds_rpc(ignore_warning=ignore_warning)
+    restart_virt_monitor(ignore_warning=ignore_warning)
 
 def status(print_result=False, ignore_warning=False):
     (virtctl_running_version, virtlet_running_version) = check_version(ignore_warning=ignore_warning)
@@ -142,6 +149,8 @@ def status(print_result=False, ignore_warning=False):
             print('service \'virtlet(%s)\' is running in container \'%s\'' % (virtlet_running_version, str(virtlet_container_id)))
         (kubesds_rpc_status, _) =  runCmd('kubesds-rpc status')
         print('service \'kubesds-rpc\' %s' % kubesds_rpc_status)
+        (virt_monitor_status, _) =  runCmd('virt-monitor status')
+        print('service \'virt-monitor\' %s' % virt_monitor_status)
     if virtctl_err or virtlet_err:
         sys.exit(1)
     return (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version)
@@ -162,6 +171,7 @@ def update_online(version='latest'):
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
     restart_kubesds_rpc(ignore_warning=True)
+    restart_virt_monitor(ignore_warning=True)
 
 def update_offline(version='latest'):
     print('updating offline')
@@ -179,6 +189,7 @@ def update_offline(version='latest'):
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
     restart_kubesds_rpc(ignore_warning=True)
+    restart_virt_monitor(ignore_warning=True)
 
 def version(service=False, ignore_warning=False):
     if service:

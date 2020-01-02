@@ -61,6 +61,13 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <vmm>."
 fi
+pyinstaller -F virt_monitor.py -n virt-monitor
+if [ $? -ne 0 ]; then
+    echo "    Failed to compile <virt-monitor>!"
+    exit 1
+else
+    echo "    Success compile <virt-monitor>."
+fi
 git clone -b uit https://github.com/uit-plus/kubeext-SDS.git
 cd ./kubeext-SDS
 
@@ -82,13 +89,14 @@ cp -f ./dist/kubesds-adm ../docker/virtctl
 cp -f ./dist/kubesds-adm ../dist
 cp -f ./dist/kubesds-rpc ../docker/virtctl
 cp -f ./dist/kubesds-rpc ../dist
+cp -f ./dist/virt-monitor ../dist
 cd ..
 rm -rf ./kubeext-SDS
 
 find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
-cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm ./dist/virt-monitor docker/virtctl
 if [ $? -ne 0 ]; then
     echo "    Failed to copy stuff to docker/virtctl!"
     exit 1

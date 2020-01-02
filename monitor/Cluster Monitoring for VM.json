@@ -1,40 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "prometheus",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
-  "__requires": [
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "5.0.0"
-    },
-    {
-      "type": "panel",
-      "id": "graph",
-      "name": "Graph",
-      "version": "5.0.0"
-    },
-    {
-      "type": "datasource",
-      "id": "prometheus",
-      "name": "Prometheus",
-      "version": "5.0.0"
-    },
-    {
-      "type": "panel",
-      "id": "singlestat",
-      "name": "Singlestat",
-      "version": "5.0.0"
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -52,8 +16,8 @@
   "editable": true,
   "gnetId": 10000,
   "graphTooltip": 0,
-  "id": null,
-  "iteration": 1573783155501,
+  "id": 1,
+  "iteration": 1577168950224,
   "links": [],
   "panels": [
     {
@@ -81,7 +45,7 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 1,
       "description": "",
       "format": "s",
@@ -138,7 +102,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(time() - node_boot_time_seconds{instance=~\"^^$Node$\"})",
+          "expr": "sum(time() - node_boot_time_seconds{instance=~\"^^$Node$$\"})",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -169,7 +133,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "description": "",
       "format": "percent",
@@ -227,7 +191,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$\",mode=\"iowait\"}[30m])) * 100",
+          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$$\",mode=\"iowait\"}[30m])) * 100",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -263,7 +227,7 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "description": "",
       "format": "short",
       "gauge": {
@@ -349,7 +313,7 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(245, 54, 54, 0.9)"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -405,7 +369,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum (container_memory_working_set_bytes{id=\"/\",kubernetes_io_hostname=~\"^^$Node$\"})",
+          "expr": "sum (container_memory_working_set_bytes{id=\"/\",kubernetes_io_hostname=~\"^^$Node$$\"})",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -435,7 +399,7 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(245, 54, 54, 0.9)"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -491,7 +455,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum (machine_memory_bytes{kubernetes_io_hostname=~\"^^$Node$\"})",
+          "expr": "sum (machine_memory_bytes{kubernetes_io_hostname=~\"^^$Node$$\"})",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -521,7 +485,7 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(245, 54, 54, 0.9)"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "editable": true,
       "error": false,
       "format": "percent",
@@ -576,7 +540,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum (container_memory_working_set_bytes{id=\"/\",kubernetes_io_hostname=~\"^^$Node$\"}) / sum (machine_memory_bytes{kubernetes_io_hostname=~\"^^$Node$\"}) * 100",
+          "expr": "sum (container_memory_working_set_bytes{id=\"/\",kubernetes_io_hostname=~\"^^$Node$$\"}) / sum (machine_memory_bytes{kubernetes_io_hostname=~\"^^$Node$$\"}) * 100",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -607,7 +571,7 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(245, 54, 54, 0.9)"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -663,7 +627,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum (rate (container_cpu_usage_seconds_total{id=\"/\",kubernetes_io_hostname=~\"^^$Node$\"}[$interval])) / sum (machine_cpu_cores{kubernetes_io_hostname=~\"^^$Node$\"}) * 100",
+          "expr": "sum (rate (container_cpu_usage_seconds_total{id=\"/\",kubernetes_io_hostname=~\"^^$Node$$\"}[$interval])) / sum (machine_cpu_cores{kubernetes_io_hostname=~\"^^$Node$$\"}) * 100",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -694,7 +658,7 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(245, 54, 54, 0.9)"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -792,7 +756,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "description": "",
       "fill": 1,
@@ -845,7 +809,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$\",mode=\"system\"}[30m])) by (instance)",
+          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$$\",mode=\"system\"}[30m])) by (instance)",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -856,7 +820,7 @@
           "step": 20
         },
         {
-          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$\",mode=\"user\"}[30m])) by (instance)",
+          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$$\",mode=\"user\"}[30m])) by (instance)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -865,7 +829,7 @@
           "step": 240
         },
         {
-          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$\",mode=\"iowait\"}[30m])) by (instance)",
+          "expr": "avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$$\",mode=\"iowait\"}[30m])) by (instance)",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -875,7 +839,7 @@
           "step": 240
         },
         {
-          "expr": "1 - avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$\",mode=\"idle\"}[30m])) by (instance)",
+          "expr": "1 - avg(irate(node_cpu_seconds_total{instance=~\"^^$Node$$\",mode=\"idle\"}[30m])) by (instance)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -940,7 +904,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "fill": 1,
       "fillGradient": 0,
@@ -1066,7 +1030,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "fill": 1,
       "fillGradient": 3,
       "gridPos": {
@@ -1176,7 +1140,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "fill": 1,
       "fillGradient": 3,
       "gridPos": {
@@ -1286,7 +1250,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "description": "Per second read / write bytes ",
       "fill": 1,
       "fillGradient": 1,
@@ -1412,7 +1376,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": null,
       "description": "The time spent on I/O in the natural time of each second.（wall-clock time）",
       "fill": 1,
@@ -1516,7 +1480,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "editable": true,
       "error": false,
       "fill": 1,
@@ -1639,7 +1603,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "description": "Time spent on each read/write operation",
       "fill": 1,
       "fillGradient": 1,
@@ -1754,7 +1718,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "description": "Read/write completions per second",
       "fill": 1,
       "fillGradient": 1,
@@ -1884,7 +1848,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "description": "TCP_alloc - Allocated sockets\n\nCurrEstab - TCP connections for which the current state is either ESTABLISHED or CLOSE- WAIT\n\nTCP_tw - Sockets wating close\n\nUDP_inuse - Udp sockets currently in use\n\nSockets_used - Sockets currently in use",
       "fill": 1,
       "fillGradient": 0,
@@ -2020,7 +1984,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2062,7 +2026,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (container_memory_working_set_bytes{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$\"}) by (pod_name)",
+          "expr": "sum (container_memory_working_set_bytes{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$$\"}) by (pod_name)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2074,6 +2038,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "Pods memory usage",
       "tooltip": {
@@ -2118,7 +2083,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2160,7 +2125,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (container_memory_usage_bytes{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$\"}) by (kubernetes_io_hostname)",
+          "expr": "sum (container_memory_usage_bytes{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$$\"}) by (kubernetes_io_hostname)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2172,6 +2137,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "Nodes memory usage",
       "tooltip": {
@@ -2212,12 +2178,96 @@
       }
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fill": 1,
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 63
+      },
+      "id": 77,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "testcase_disk_io{exported_job=\"testcase-172.17.104.192:5000/test-image\",op=\"write\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "testcase io write",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "MBs",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 72
       },
       "id": 37,
       "panels": [],
@@ -2229,7 +2279,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 3,
       "editable": true,
       "error": false,
@@ -2239,7 +2289,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 64
+        "y": 73
       },
       "height": "",
       "id": 17,
@@ -2270,7 +2320,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (rate (container_cpu_usage_seconds_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$\"}[$interval])) by (pod_name)",
+          "expr": "sum (rate (container_cpu_usage_seconds_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$$\"}[$interval])) by (pod_name)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2282,6 +2332,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "Pods CPU usage ($interval avg)",
       "tooltip": {
@@ -2327,7 +2378,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 3,
       "editable": true,
       "error": false,
@@ -2337,7 +2388,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 80
       },
       "height": "",
       "id": 39,
@@ -2368,7 +2419,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (rate (container_cpu_usage_seconds_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$\"}[$interval])) by (kubernetes_io_hostname)",
+          "expr": "sum (rate (container_cpu_usage_seconds_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$$\"}[$interval])) by (kubernetes_io_hostname)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2380,6 +2431,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "Nodes CPU usage ($interval avg)",
       "tooltip": {
@@ -2426,7 +2478,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 87
       },
       "id": 33,
       "panels": [],
@@ -2439,7 +2491,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2449,7 +2501,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 88
       },
       "height": "200px",
       "id": 32,
@@ -2481,7 +2533,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (rate (container_network_receive_bytes_total{kubernetes_io_hostname=~\"^^$Node$\"}[$interval]))",
+          "expr": "sum (rate (container_network_receive_bytes_total{kubernetes_io_hostname=~\"^^$Node$$\"}[$interval]))",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2491,7 +2543,7 @@
           "step": 10
         },
         {
-          "expr": "- sum (rate (container_network_transmit_bytes_total{kubernetes_io_hostname=~\"^^$Node$\"}[$interval]))",
+          "expr": "- sum (rate (container_network_transmit_bytes_total{kubernetes_io_hostname=~\"^^$Node$$\"}[$interval]))",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2503,6 +2555,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "Network I/O pressure",
       "tooltip": {
@@ -2548,7 +2601,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2558,7 +2611,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 84
+        "y": 93
       },
       "id": 47,
       "legend": {
@@ -2589,7 +2642,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_cpu_idle_rate{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_cpu_idle_rate{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2601,6 +2654,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_cpu_idle_rate($interval avg)",
       "tooltip": {
@@ -2645,7 +2699,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2655,7 +2709,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 91
+        "y": 100
       },
       "id": 48,
       "legend": {
@@ -2686,7 +2740,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_cpu_system_proc_rate{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_cpu_system_proc_rate{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2698,6 +2752,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_cpu_system_proc_rate$interval avg)",
       "tooltip": {
@@ -2742,7 +2797,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2752,7 +2807,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 98
+        "y": 107
       },
       "id": 49,
       "legend": {
@@ -2783,7 +2838,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_cpu_usr_proc_rate{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_cpu_usr_proc_rate{host=~\"^vm.$Node$$\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2795,6 +2850,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_cpu_usr_proc_rate$interval avg)",
       "tooltip": {
@@ -2839,7 +2895,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2849,7 +2905,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 105
+        "y": 114
       },
       "id": 50,
       "legend": {
@@ -2880,7 +2936,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_disk_read_bytes_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_disk_read_bytes_per_secend{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2890,7 +2946,7 @@
           "step": 10
         },
         {
-          "expr": "sum(vm_disk_write_bytes_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_disk_write_bytes_per_secend{host=~\"^vm.^$Node$$\",exported_host=~\"^vm.^$Node$$\"})by(vm)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "write-{{ vm}}",
@@ -2899,6 +2955,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_disk_read_bytes_per_secend$interval avg)",
       "tooltip": {
@@ -2943,7 +3000,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -2953,7 +3010,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 112
+        "y": 121
       },
       "id": 51,
       "legend": {
@@ -2984,7 +3041,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_disk_read_requests_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_disk_read_requests_per_secend{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -2994,7 +3051,7 @@
           "step": 10
         },
         {
-          "expr": "sum(vm_disk_write_requests_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_disk_write_requests_per_secend{host=~\"^vm.^$Node$$\",exported_host=~\"^vm.^$Node$$\"})by(vm)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "write-{{ vm}}",
@@ -3003,6 +3060,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_disk_read/write_requests_per_secend$interval avg)",
       "tooltip": {
@@ -3047,7 +3105,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3057,7 +3115,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 119
+        "y": 128
       },
       "height": "200px",
       "id": 41,
@@ -3089,7 +3147,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_mem_total_bytes{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_mem_total_bytes{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "instant": false,
           "interval": "10s",
@@ -3102,6 +3160,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "Network I/O pressure",
       "tooltip": {
@@ -3147,7 +3206,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3157,7 +3216,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 124
+        "y": 133
       },
       "id": 38,
       "legend": {
@@ -3188,7 +3247,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (rate (container_network_receive_bytes_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$\"}[$interval])) by (pod_name)",
+          "expr": "sum (rate (container_network_receive_bytes_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^$Node$\"}[$interval])) by (pod_name)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3198,7 +3257,7 @@
           "step": 10
         },
         {
-          "expr": "- sum (rate (container_network_transmit_bytes_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$\"}[$interval])) by (pod_name)",
+          "expr": "- sum (rate (container_network_transmit_bytes_total{image!=\"\",name=~\"^k8s_.*\",kubernetes_io_hostname=~\"^^$Node$$\"}[$interval])) by (pod_name)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3210,6 +3269,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "Pods network I/O ($interval avg)",
       "tooltip": {
@@ -3254,7 +3314,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3264,7 +3324,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 131
+        "y": 140
       },
       "id": 52,
       "legend": {
@@ -3295,7 +3355,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_network_receive_bytes_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_receive_bytes_per_secend{host=\"vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3305,7 +3365,7 @@
           "step": 10
         },
         {
-          "expr": "sum(vm_network_send_bytes_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_send_bytes_per_secend{host=~\"^vm.^$Node$$\",exported_host=~\"^vm.^$Node$$\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3317,6 +3377,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_network_send/receive_bytes($interval avg)",
       "tooltip": {
@@ -3361,7 +3422,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3371,7 +3432,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 138
+        "y": 147
       },
       "id": 53,
       "legend": {
@@ -3402,7 +3463,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_network_receive_drops_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_receive_drops_per_secend{host=\"vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3412,7 +3473,7 @@
           "step": 10
         },
         {
-          "expr": "sum(vm_network_send_drops_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_send_drops_per_secend{host=~\"^vm.^$Node$$\",exported_host=~\"^vm.^$Node$$\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3424,6 +3485,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_network_send/receive_drops($interval avg)",
       "tooltip": {
@@ -3468,7 +3530,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3478,7 +3540,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 145
+        "y": 154
       },
       "id": 54,
       "legend": {
@@ -3509,7 +3571,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_network_receive_errors_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_receive_errors_per_secend{host=~\"vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3519,7 +3581,7 @@
           "step": 10
         },
         {
-          "expr": "sum(vm_network_send_errors_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_send_errors_per_secend{host=~\"^vm.^$Node$$\",exported_host=~\"^vm.^$Node$$\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3531,6 +3593,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_network_send/receive_errors($interval avg)",
       "tooltip": {
@@ -3575,7 +3638,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3585,7 +3648,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 152
+        "y": 161
       },
       "id": 55,
       "legend": {
@@ -3616,7 +3679,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_network_receive_packages_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_receive_packages_per_secend{host=~\"vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3626,7 +3689,7 @@
           "step": 10
         },
         {
-          "expr": "sum(vm_network_send_packages_per_secend{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_network_send_packages_per_secend{host=~\"^vm.^$Node$$\",exported_host=~\"^vm.^$Node$$\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3638,6 +3701,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_network_send/receive_packages($interval avg)",
       "tooltip": {
@@ -3682,7 +3746,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3692,7 +3756,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 159
+        "y": 168
       },
       "id": 42,
       "legend": {
@@ -3723,7 +3787,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_mem_total_bytes{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_mem_total_bytes{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3735,6 +3799,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "VM Memory($interval avg)",
       "tooltip": {
@@ -3779,7 +3844,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3789,7 +3854,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 166
+        "y": 175
       },
       "id": 43,
       "legend": {
@@ -3820,7 +3885,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_mem_available_bytes{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_mem_available_bytes{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3832,6 +3897,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "VM available memory($interval avg)",
       "tooltip": {
@@ -3876,7 +3942,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3886,7 +3952,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 173
+        "y": 182
       },
       "id": 44,
       "legend": {
@@ -3917,7 +3983,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_mem_buffers_bytes{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_mem_buffers_bytes{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -3929,6 +3995,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm memory buffers($interval avg)",
       "tooltip": {
@@ -3973,7 +4040,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "decimals": 2,
       "editable": true,
       "error": false,
@@ -3983,7 +4050,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 180
+        "y": 189
       },
       "id": 45,
       "legend": {
@@ -4014,7 +4081,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vm_mem_rate{host=~\"^vm.$Node$\",exported_host=~\"^vm.$Node$\"})by(vm)",
+          "expr": "sum(vm_mem_rate{host=~\"^vm.$Node\"})by(vm)",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -4026,6 +4093,7 @@
       ],
       "thresholds": [],
       "timeFrom": null,
+      "timeRegions": [],
       "timeShift": null,
       "title": "vm_mem_rate($interval avg)",
       "tooltip": {
@@ -4066,7 +4134,7 @@
       }
     }
   ],
-  "refresh": "10s",
+  "refresh": "5s",
   "schemaVersion": 16,
   "style": "dark",
   "tags": [
@@ -4149,8 +4217,9 @@
       },
       {
         "current": {
-          "text": "prometheus",
-          "value": "prometheus"
+          "selected": true,
+          "text": "Prometheus",
+          "value": "Prometheus"
         },
         "hide": 0,
         "label": null,
@@ -4164,8 +4233,13 @@
       },
       {
         "allValue": ".*",
-        "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "current": {
+          "selected": false,
+          "text": "node25",
+          "value": "node25"
+        },
+        "datasource": "Prometheus",
+        "definition": "",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -4186,7 +4260,7 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -4215,7 +4289,7 @@
     ]
   },
   "timezone": "browser",
-  "title": "Cluster Monitoring for Kubernetes",
+  "title": "Cluster",
   "uid": "JABGX_-mz",
-  "version": 4
+  "version": 2
 }

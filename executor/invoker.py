@@ -435,8 +435,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                     event.registerKubernetesEvent()
                 except:
                     logger.error('Oops! ', exc_info=1)
-                pool_name = get_field_in_kubernetes_by_index(metadata_name, group, version, plural,
-                                                             ['spec', 'volume', 'pool'])
+                pool_name = _get_field(jsondict, the_cmd_key, 'pool')
                 disk_type = get_field_in_kubernetes_by_index(pool_name, GROUP_VM_POOL, VERSION_VM_POOL, PLURAL_VM_POOL,
                                                              ['spec', 'pool', 'pooltype'])
                 logger.debug(pool_name)

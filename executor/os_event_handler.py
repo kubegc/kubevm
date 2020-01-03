@@ -498,13 +498,13 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("directory deleted:{0}".format(event.src_path))
         else:
             logger.debug("file deleted:{0}".format(event.src_path))
-            filename = os.path.basename(event.src_path)
-            if filename == 'config.json':
-                vol = os.path.basename(os.path.dirname(event.src_path))
-                try:
-                    myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            # filename = os.path.basename(event.src_path)
+            # if filename == 'config.json':
+            #     vol = os.path.basename(os.path.dirname(event.src_path))
+            #     try:
+            #         myVmVolEventHandler('Delete', self.pool, vol, self.group, self.version, self.plural)
+            #     except ApiException:
+            #         logger.error('Oops! ', exc_info=1)
 
     def on_modified(self, event):
         if event.is_directory:

@@ -483,15 +483,15 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("directory created:{0}".format(event.src_path))
         else:
             logger.debug("file created:{0}".format(event.src_path))
-            filename = os.path.basename(event.src_path)
-            if filename == 'config.json':
-                with open(event.src_path, "r") as f:
-                    config = json.load(f)
-                vol = config['name']
-                try:
-                    myVmVolEventHandler('Create', self.pool, vol, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            # filename = os.path.basename(event.src_path)
+            # if filename == 'config.json':
+            #     with open(event.src_path, "r") as f:
+            #         config = json.load(f)
+            #     vol = config['name']
+            #     try:
+            #         myVmVolEventHandler('Create', self.pool, vol, self.group, self.version, self.plural)
+            #     except ApiException:
+            #         logger.error('Oops! ', exc_info=1)
 
     def on_deleted(self, event):
         if event.is_directory:
@@ -510,16 +510,17 @@ class VmVolEventHandler(FileSystemEventHandler):
         if event.is_directory:
             logger.debug("directory modified:{0}".format(event.src_path))
         else:
-            filename = os.path.basename(event.src_path)
-            if filename == 'config.json':
-                logger.debug("change config.json file: %s" % event.src_path)
-                with open(event.src_path, "r") as f:
-                    config = json.load(f)
-                vol = config['name']
-                try:
-                    myVmVolEventHandler('Modify', self.pool, vol, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            logger.debug("file modified:{0}".format(event.src_path))
+            # filename = os.path.basename(event.src_path)
+            # if filename == 'config.json':
+            #     logger.debug("change config.json file: %s" % event.src_path)
+                # with open(event.src_path, "r") as f:
+                #     config = json.load(f)
+                # vol = config['name']
+                # try:
+                #     myVmVolEventHandler('Modify', self.pool, vol, self.group, self.version, self.plural)
+                # except ApiException:
+                #     logger.error('Oops! ', exc_info=1)
 
                 # maybe rebase current, try modify current snapshot
                 # try:

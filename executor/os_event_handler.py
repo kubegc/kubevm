@@ -511,16 +511,16 @@ class VmVolEventHandler(FileSystemEventHandler):
             logger.debug("directory modified:{0}".format(event.src_path))
         else:
             logger.debug("file modified:{0}".format(event.src_path))
-            filename = os.path.basename(event.src_path)
-            if filename == 'config.json':
-                logger.debug("change config.json file: %s" % event.src_path)
-                with open(event.src_path, "r") as f:
-                    config = json.load(f)
-                vol = config['name']
-                try:
-                    myVmVolEventHandler('Modify', self.pool, vol, self.group, self.version, self.plural)
-                except ApiException:
-                    logger.error('Oops! ', exc_info=1)
+            # filename = os.path.basename(event.src_path)
+            # if filename == 'config.json':
+            #     logger.debug("change config.json file: %s" % event.src_path)
+            #     with open(event.src_path, "r") as f:
+            #         config = json.load(f)
+            #     vol = config['name']
+            #     try:
+            #         myVmVolEventHandler('Modify', self.pool, vol, self.group, self.version, self.plural)
+            #     except ApiException:
+            #         logger.error('Oops! ', exc_info=1)
 
                 # maybe rebase current, try modify current snapshot
                 # try:

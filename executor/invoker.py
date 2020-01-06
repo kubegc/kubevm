@@ -1434,7 +1434,8 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         elif plural == PLURAL_VM_POOL:
             jsonDict['spec']['pool'] = data
         elif plural == PLURAL_VM_DISK:
-            jsonDict['spec']['volume'] = data
+            if data:
+                jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM_DISK_SNAPSHOT:
             jsonDict['spec']['volume'] = data
         elif plural == PLURAL_VM:

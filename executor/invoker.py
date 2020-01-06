@@ -479,14 +479,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                             deleteLifecycle(metadata_name, group, version, plural)
                         except:
                             pass
+                        if _isCloneDisk(the_cmd_key):
+                            involved_object_name = _get_field(jsondict, the_cmd_key, 'newname')
                         if result['code'] != 0:
                             raise ExecuteException('virtctl', 'error when operate volume %s' % result['msg'])
-#                     elif operation_type == 'DELETED':
-#                         if pool_name and is_volume_exists(metadata_name, pool_name):
-#                             if cmd:
-#                                 runCmd(cmd)
-#                         else:
-#                             raise ExecuteException('VirtctlError', 'No vol %s in pool %s!' % (metadata_name, pool_name))
+                        
                     status = 'Done(Success)'
                     if not _isDeleteDisk(the_cmd_key) and not _isCloneDisk(the_cmd_key):
                         write_result_to_server(group, version, 'default', plural, metadata_name, data=data)

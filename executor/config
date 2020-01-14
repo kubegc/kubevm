@@ -91,6 +91,7 @@ suspendVM = virsh suspend
 saveVM = virsh save
 restoreVM = virsh restore
 migrateVM = kubesds-adm migrate
+migrateVMDisk = kubesds-adm migrateVMDisk
 manageISO = virsh change-media
 updateOS = /usr/bin/vmm update-os
 plugDevice = virsh attach-device

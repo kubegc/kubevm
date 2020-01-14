@@ -238,6 +238,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=group, version=version, plural=plural, **kwargs):
         try:
+            logger.debug(jsondict)
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)
@@ -1969,7 +1970,7 @@ def _getEventId(jsondict):
 Get the CMD key.
 '''
 def _getCmdKey(jsondict):
-    logger.debug(jsondict)
+    # logger.debug(jsondict)
     spec = jsondict['raw_object'].get('spec')
     the_cmd_keys = []
     if spec:

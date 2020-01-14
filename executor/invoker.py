@@ -238,7 +238,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                 group=group, version=version, plural=plural, **kwargs):
         try:
-            logger.debug(jsondict)
+            # logger.debug(jsondict)
             operation_type = jsondict.get('type')
             logger.debug(operation_type)
             metadata_name = getMetadataName(jsondict)

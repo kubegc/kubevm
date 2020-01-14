@@ -1969,6 +1969,7 @@ def _getEventId(jsondict):
 Get the CMD key.
 '''
 def _getCmdKey(jsondict):
+    logger.debug(jsondict)
     spec = jsondict['raw_object'].get('spec')
     the_cmd_keys = []
     if spec:

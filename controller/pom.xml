@@ -34,8 +34,8 @@
 		</dependency>
 		<dependency>
 			<groupId>com.github.kubesys</groupId>
-			<artifactId>kubernetes-client</artifactId>
-			<version>1.3.0</version>
+			<artifactId>kubernetes-ext-client</artifactId>
+			<version>1.6.0</version>
 		</dependency>
 	</dependencies>
 	<build>

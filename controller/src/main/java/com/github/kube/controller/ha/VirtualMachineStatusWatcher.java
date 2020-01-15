@@ -1,7 +1,7 @@
 /**
  * Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
  */
-package com.github.kube.ha.watchers;
+package com.github.kube.controller.ha;
 
 import java.util.Map;
 import java.util.logging.Level;
@@ -28,52 +28,44 @@ import io.fabric8.kubernetes.client.Watcher;
  *        debug at runWatch method of
  *        io.fabric8.kubernetes.client.dsl.internal.WatchConnectionManager
  **/
-public class VirtualMachineWatcher implements Watcher<VirtualMachine> {
+public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 
-	protected final static Logger m_logger = Logger.getLogger(VirtualMachineWatcher.class.getName());
+	protected final static Logger m_logger = Logger.getLogger(VirtualMachineStatusWatcher.class.getName());
 
 	protected final ExtendedKubernetesClient client;
 	
-	public VirtualMachineWatcher(ExtendedKubernetesClient client) {
+	public VirtualMachineStatusWatcher(ExtendedKubernetesClient client) {
 		this.client = client;
 	}
 
 	public void eventReceived(Action action, VirtualMachine vm) {
 		
 		String ha = vm.getMetadata().getLabels().get("ha");
-
-		// this vm is running or the vm is not marked as HA
-		if ((action != Action.MODIFIED || !isShutDown(getStatus(vm))) 
-				|| (ha == null || !ha.equals("true"))) {
+		// VM without HA setting
+		if (ha == null || ha.length() == 0 
+					|| !ha.equals("true")) {
 			return;
 		}
-		
+
+		// this vm is running or the vm is not marked as HA
+		if (isShutDown(getStatus(vm))) {
 			
-		String nodeName = vm.getSpec().getNodeName();
-		
-		Node node = getNode(nodeName);
-		if (invalidNodeStatus(node)) {
+			// get nodeName
+			String nodeName = vm.getSpec().getNodeName();
 			
-			nodeName = client.getNodeSelector()
-					.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode);
+			nodeName = invalidNodeStatus(getNode(nodeName)) ? client.getNodeSelector()
+					.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName) : nodeName;
 			
-			if (nodeName == null) {
-				m_logger.log(Level.SEVERE, "cannot start vm because of insufficient resources");
-				return;
+			// just start VM
+			try {
+				client.virtualMachines().startVM(
+						vm.getMetadata().getName(), nodeName, new StartVM());
+			} catch (Exception e) {
+				m_logger.log(Level.SEVERE, "cannot start vm for " + e);
 			}
-			
-			vm.getSpec().setNodeName(nodeName);
-			vm.getMetadata().getLabels().put("host", nodeName);
 		}
-		
-		try {
-			client.virtualMachines().startVM(
-					vm.getMetadata().getName(), new StartVM());
-		} catch (Exception e) {
-			m_logger.log(Level.SEVERE, "cannot start vm for " + e);
-		}
-		
 	}
+
 
 	protected boolean invalidNodeStatus(Node node) {
 		return node == null 
@@ -103,7 +95,7 @@ public class VirtualMachineWatcher implements Watcher<VirtualMachine> {
 	}
 
 	public void onClose(KubernetesClientException cause) {
-		m_logger.log(Level.INFO, "Stop VirtualMachineHAWatcher");
+		m_logger.log(Level.INFO, "Stop VirtualMachineStatusWatcher");
 	}
 
 }

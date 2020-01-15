@@ -15,11 +15,15 @@ import java.util.logging.Logger;
 
 import org.yaml.snakeyaml.Yaml;
 
+import com.github.kube.controller.ha.NodeStatusWatcher;
+import com.github.kube.controller.ha.VirtualMachineStatusWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
+import com.github.kubesys.kubernetes.api.model.VirtualMachine;
 
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
 
 /**
  * @author wuheng@otcaix.iscas.ac.cn
@@ -126,11 +130,16 @@ public final class KubevirtController {
 	 * 
 	 * @throws Exception               exception 
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public void startAllWatchers() throws Exception {
 		
 		for (Method watcher : findAllWatchersBy(client.getClass())) {
 			startWatcher(watcher);
 		}
+		MixedOperation vmWatcher = ExtendedKubernetesClient.crdClients.get(
+										VirtualMachine.class.getSimpleName());
+		vmWatcher.watch(new VirtualMachineStatusWatcher(client));
+		client.nodes().watch(new NodeStatusWatcher(client));
 	}
 
 	/**

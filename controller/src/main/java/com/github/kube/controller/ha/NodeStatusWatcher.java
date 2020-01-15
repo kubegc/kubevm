@@ -37,8 +37,6 @@ public class NodeStatusWatcher implements Watcher<Node> {
 		this.client = client;
 	}
 
-	
-
 	protected boolean isShutDown(Map<String, Object> status) {
 		return status.get("reason").equals("ShutDown");
 	}
@@ -47,8 +45,7 @@ public class NodeStatusWatcher implements Watcher<Node> {
 		m_logger.log(Level.INFO, "Stop NodeStatusWatcher");
 	}
 
-
-
+	@SuppressWarnings("unchecked")
 	@Override
 	public void eventReceived(Action action, Node node) {
 		String nodeName = node.getMetadata().getName();

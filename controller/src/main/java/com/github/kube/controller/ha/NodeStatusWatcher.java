@@ -13,7 +13,9 @@ import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachine;
 import com.github.kubesys.kubernetes.impl.NodeSelectorImpl;
 
+import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.ObjectReference;
 import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
@@ -54,17 +56,15 @@ public class NodeStatusWatcher implements Watcher<Node> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void eventReceived(Action action, Node node) {
-		
-		if (action == Action.MODIFIED) {
-			return;
-		}
-		
+
 		String nodeName = node.getMetadata().getName();
+
 		if (nodeName.startsWith("vm.") && NodeSelectorImpl.notReady(node)) {
 			Map<String, String> labels = new HashMap<String, String>();
 			labels.put("host", nodeName);
-			for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
-				try {
+
+			try {
+				for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
 					Status status = vm.getSpec().getStatus();
 					Map<String, Object> statusProps = status.getAdditionalProperties();
 					Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
@@ -80,11 +80,19 @@ public class NodeStatusWatcher implements Watcher<Node> {
 					client.getHttpClient()
 							.newCall(new Request.Builder().method("PUT", requestBody).url(statusUri).build()).execute()
 							.close();
-				} catch (Exception e) {
-					m_logger.severe("Error to modify the VM's status" + e);
+					
+					Event item = new Event();
+					ObjectReference involvedObject = new ObjectReference();
+					involvedObject.setKind(VirtualMachine.class.getSimpleName());
+					involvedObject.setName(vm.getMetadata().getName());
+					involvedObject.setNamespace(vm.getMetadata().getNamespace());
+					item.setInvolvedObject(involvedObject );
+					item.setReason("ShutdownVM");
+					client.events().create(item );
 				}
+			} catch (Exception e) {
+				m_logger.severe("Error to modify the VM's status:" + e.getCause());
 			}
 		}
 	}
-
 }

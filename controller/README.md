@@ -11,9 +11,9 @@ mvn clean install
 ## Step 2: build
 
 ```
-cp target/kubevirt-controller-1.0.0-SNAPSHOT-jar-with-dependencies.jar docker/
+cp target/kubevirt-controller-1.6.0-SNAPSHOT-jar-with-dependencies.jar docker/
 cp /etc/kubernetes/admin.conf docker/
-docker build docker/ -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-controller-manager:v1.0.0
+docker build docker/ -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-controller-manager:v1.6.0
 ```
 
 ## RoadMap

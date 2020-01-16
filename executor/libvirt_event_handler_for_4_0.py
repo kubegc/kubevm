@@ -33,8 +33,8 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
-from utils.utils import updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
-    runCmdRaiseException, runCmd, modify_token
+from utils.utils import updateDescription, addPowerStatusMessage, updateDomain, report_failure, \
+    runCmdRaiseException, runCmd
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  

@@ -1080,14 +1080,6 @@ def revert_disk_external_snapshot(vol, pool, snapshot, leaves_str):
         cmd1 = cmd1 + disk_to_delete + " "
     print(cmd1)
     runCmd(cmd1)
-        
-def addExceptionMessage(jsondict, reason, message):
-    if jsondict:
-        status = {'conditions':{'state':{'waiting':{'message':message, 'reason':reason}}}}
-        spec = jsondict['spec']
-        if spec:
-            spec['status'] = status
-    return jsondict
 
 def _get_current(src_path):
     with open(src_path, "r") as f:

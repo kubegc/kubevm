@@ -46,12 +46,12 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     undefine, create, setmem, setvcpus, is_vm_active, is_vm_exists, is_volume_exists, is_snapshot_exists, \
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
-from utils.uit_utils import is_block_dev_exists
+# from utils.uit_utils import is_block_dev_exists
 from utils.utils import get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
-    addPowerStatusMessage, addExceptionMessage, report_failure, deleteLifecycleInJson, randomUUID, now_to_timestamp, \
-    now_to_datetime, now_to_micro_time, get_hostname_in_lower_case, UserDefinedEvent, report_success, \
+    addPowerStatusMessage, report_failure, deleteLifecycleInJson, randomUUID, \
+    now_to_datetime, get_hostname_in_lower_case, UserDefinedEvent, \
     add_spec_in_volume
 from utils.cmdrpc import rpcCallWithResult, rpcCall
 

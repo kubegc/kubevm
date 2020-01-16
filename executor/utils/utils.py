@@ -526,7 +526,7 @@ def report_success(name, jsondict, success_reason, success_message, group, versi
                                                                       name=name)
     jsondict = deleteLifecycleInJson(jsondict)
     jsondict = updateDescription(jsondict)
-    body = addExceptionMessage(jsondict, success_reason, success_message)
+    body = addPowerStatusMessage(jsondict, success_reason, success_message)
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
@@ -581,6 +581,30 @@ def addExceptionMessage(jsondict, reason, message):
             spec['status'] = status
     return jsondict
 
+# def addPowerStatusMessage(jsondict, reason, message):
+#     if jsondict:
+#         status = {'conditions':{'state':{'powerstate':{'message':message, 'reason':reason}}}}
+#         status1 = {'powerstate':{'message':message, 'reason':reason}}
+#         spec = get_spec(jsondict)
+#         if spec:
+#             if not status.has_key('conditions'):
+#                 spec['status'].update(status)
+#             else:
+#                 spec['status']['conditions']['state'].update(status1)
+#     return jsondict
+# 
+# def addExceptionMessage(jsondict, reason, message):
+#     if jsondict:
+#         status = {'conditions':{'state':{'exception':{'message':message, 'reason':reason}}}}
+#         status1 = {'exception':{'message':message, 'reason':reason}}
+#         spec = get_spec(jsondict)
+#         if spec:
+#             if not status.has_key('conditions'):
+#                 spec['status'].update(status)
+#             else:
+#                 spec['status']['conditions']['state'].update(status1)
+#     return jsondict
+
 def addSnapshots(vol_path, jsondict):
     snapshot_json = get_volume_snapshots(vol_path)
     jsondict['volume'].update(snapshot_json)
@@ -633,6 +657,16 @@ def updateDomainBackup(vm_json):
                 devices['disk'] = _addListToSpecificField(disk)
         domain['devices'] = devices
     return vm_json
+
+def jsontoxml(jsonstr):
+    json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
+        'suspend_to_mem', 'suspend-to-mem').replace('suspend_to_disk', 'suspend-to-disk').replace(
+            'on_crash', 'on-crash').replace('on_poweroff', 'on-poweroff').replace('on_reboot', 'on-reboot').replace(
+            'nested_hv', 'nested-hv').replace('read_bytes_sec', 'read-bytes-sec').replace(
+                'write_bytes_sec', 'write-bytes-sec').replace('_', '@').replace(
+                    'x86@64','x86_64').replace('guest@agent','guest_agent').replace('tsc@adjust','tsc_adjust').replace(
+                        'text', '#text').replace('\'', '"')
+    return json
 
 def updateDomain(jsondict):
     with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:

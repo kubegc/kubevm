@@ -47,6 +47,11 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 			return;
 		}
 
+		// ignore this status
+		if (action == Action.MODIFIED) {
+			return;
+		}
+		
 		// this vm is running or the vm is not marked as HA
 		if (isShutDown(getStatus(vm))) {
 			

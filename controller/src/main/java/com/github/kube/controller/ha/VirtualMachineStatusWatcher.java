@@ -53,13 +53,18 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 			// get nodeName
 			String nodeName = vm.getSpec().getNodeName();
 			
-			nodeName = invalidNodeStatus(getNode(nodeName)) ? client.getNodeSelector()
+			String newNode = invalidNodeStatus(getNode(nodeName)) ? client.getNodeSelector()
 					.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName) : nodeName;
 			
 			// just start VM
 			try {
-				client.virtualMachines().startVM(
-						vm.getMetadata().getName(), nodeName, new StartVM());
+				if (nodeName.equals(newNode)) {
+					client.virtualMachines().startVM(
+							vm.getMetadata().getName(), new StartVM());
+				} else {
+					client.virtualMachines().startVM(
+							vm.getMetadata().getName(), nodeName, new StartVM());
+				}
 			} catch (Exception e) {
 				m_logger.log(Level.SEVERE, "cannot start vm for " + e);
 			}
@@ -83,7 +88,7 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 	}
 
 	protected boolean isShutDown(Map<String, Object> status) {
-		return status.get("reason").equals("ShutDown");
+		return status.get("reason").equals("Shutdown");
 	}
 
 	@SuppressWarnings("unchecked")

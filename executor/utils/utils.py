@@ -689,7 +689,7 @@ def trans_dict_to_xml(jsdict):
         xml = xmltodict.unparse(jsdict,encoding='utf-8',pretty=True)
 #         pprint.pprint(xml)
     except:
-        xml = xmltodict.unparse({'request':jsdict},encoding='utf-8',pretty=True)
+        xml = xmltodict.unparse({'domain':jsdict},encoding='utf-8',pretty=True)
 #         pprint.pprint(xml)
     finally:
 #         print(xml)

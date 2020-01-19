@@ -1585,6 +1585,9 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
             return
         else:
             raise e
+    if 'domain' not in jsonStr['spec'].keys():
+        logger.debug('**VM %s is not in kubernetes.' % metadata_name)
+        return
     domain = {'domain': jsonStr['spec']['domain']}
     domain = loads(update_vm_json(dumps(domain)))
     domain_dict = iterate_dict(domain)

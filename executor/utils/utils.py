@@ -5,6 +5,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuheng@otcaix.iscas.ac.cn
 '''
 from json import loads, load
+import xmltodict
 
 from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
 import json
@@ -667,6 +668,32 @@ def jsontoxml(jsonstr):
                     'x86@64','x86_64').replace('guest@agent','guest_agent').replace('tsc@adjust','tsc_adjust').replace(
                         'text', '#text').replace('\'', '"')
     return json
+
+def iterate_dict(area, i=0):
+#     result = {}
+    for k,v in area.items():
+        if isinstance(v, int):
+            area[k] = "%d" % v
+#             area[k] = "+1-{}".format(v)
+        if isinstance(area[k], dict):
+            iterate_dict(area[k], i+1)
+        if isinstance(area[k], list):
+            for j in area[k]:
+                if isinstance(j, dict):
+                    iterate_dict(j, i+1)
+    return area
+
+def trans_dict_to_xml(jsdict):
+    xml=''
+    try:
+        xml = xmltodict.unparse(jsdict,encoding='utf-8',pretty=True)
+#         pprint.pprint(xml)
+    except:
+        xml = xmltodict.unparse({'request':jsdict},encoding='utf-8',pretty=True)
+#         pprint.pprint(xml)
+    finally:
+#         print(xml)
+        return xml
 
 def updateDomain(jsondict):
     with open('%s/../arraylist.cfg' % os.path.dirname(__file__)) as fr:

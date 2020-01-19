@@ -11,6 +11,9 @@ vdisk_fs_mount_point = /mnt/usb
 local_fs_mount_point = /mnt/localfs
 block_fs_mount_point = /mnt/blockdev
 
+[DefaultJsonBackupDir]
+default = /etc/kubevmm/backup
+
 [DefaultLibvirtXmlDir]
 kvm = /etc/libvirt/qemu
 

@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import trans_dict_to_xml, iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, report_failure, deleteLifecycleInJson, randomUUID, \
@@ -104,8 +104,9 @@ DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 DEFAULT_SNAPSHOT_DIR = config_raw.get('DefaultSnapshotDir', 'snapshot')
 DEFAULT_VMD_TEMPLATE_DIR = config_raw.get('DefaultVirtualMachineDiskTemplateDir', 'vmdi')
+DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 
-DEFAULT_VM_TEMPLATE_DIR = config_raw.get('DefaultTemplateDir', 'default')
+DEFAULT_JSON_BACKUP_DIR = config_raw.get('DefaultJsonBackupDir', 'default')
 
 L2NETWORKSUPPORTCMDS = []
 for k,v in config_raw.items('L2NetworkSupportCmdsWithNameField'):
@@ -250,6 +251,20 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         try:
             if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
+                node_name = _get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
+                if node_name != get_hostname_in_lower_case():
+                    if is_vm_exists(metadata_name):
+                        logger.debug('Delete VM %s because it is now hosting by another node %s.' % (metadata_name, node_name))
+                        _backup_json_to_file(group, version, 'default', plural, metadata_name)
+                        if is_vm_active(metadata_name):
+                            destroy(metadata_name)
+                            time.sleep(1)
+                        undefine(metadata_name)
+                        continue
+                    else:
+                        raise ExecuteException('VirtctlError', 'Cannot operate %s, it is now hosting by another node %s.' % (metadata_name, node_name))
+                if not is_vm_exists(metadata_name):
+                    _rebuild_from_kubernetes(group, version, 'default', plural, metadata_name)
                 (jsondict, operations_queue) \
                     = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
                 jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -1559,6 +1574,51 @@ def _vm_priori_step(the_cmd_key, jsondict):
             raise ExecuteException('VirtctlError', "Cannot plug disk in use %s." % vmd_path)
         if os.path.split(vmd_path)[0] == DEFAULT_VMD_TEMPLATE_DIR:
             raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
+
+def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**VM %s already deleted.' % metadata_name)
+            return
+        else:
+            raise e
+        domain = jsonStr['spec']['domain']
+        domain_dict = iterate_dict(domain)
+#                 pprint.pprint(domain_dict)
+        xml = trans_dict_to_xml(domain_dict)
+        if not xml:
+            raise ExecuteException('VirtctlError', 'transfer dict to xml failed!')
+        xml_file = "/tmp/%s.xml" % metadata_name
+        with open(xml_file, "w") as f1:
+            f1.write(xml)
+        runCmd('virsh define %s' % xml_file)
+        
+def _backup_json_to_file(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**VM %s already deleted.' % metadata_name)
+            return
+        else:
+            raise e
+        if not os.path.exists(DEFAULT_JSON_BACKUP_DIR):
+            os.mkdir(DEFAULT_JSON_BACKUP_DIR)
+        backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
+        with open(backup_file, "w") as f1:
+            f1.write(jsonStr)
+        
+def _get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        raise e
+        return jsonStr['metadata']['labels']['host']
         
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
     operations_queue = []

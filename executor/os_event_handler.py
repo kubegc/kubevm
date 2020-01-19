@@ -932,7 +932,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                                                                               plural=plural,
                                                                               name=name)
             if jsondict['metadata']['labels']['host'] != HOSTNAME:
-                logger.debug('VM %s is migrating, ignore delete.' % name)
+                logger.debug('VM %s is migrating or ha, ignore delete.' % name)
                 return
             #             vm_xml = get_xml(name)
             #             vm_json = toKubeJson(xmlToJson(vm_xml))

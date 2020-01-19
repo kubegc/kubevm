@@ -1586,6 +1586,7 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
         else:
             raise e
     domain = {'domain': jsonStr['spec']['domain']}
+    domain = loads(jsontoxml(dumps(domain)))
     domain_dict = iterate_dict(domain)
 #                 pprint.pprint(domain_dict)
     xml = trans_dict_to_xml(domain_dict)

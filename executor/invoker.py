@@ -1585,16 +1585,16 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
             return
         else:
             raise e
-        domain = jsonStr['spec']['domain']
-        domain_dict = iterate_dict(domain)
+    domain = jsonStr['spec']['domain']
+    domain_dict = iterate_dict(domain)
 #                 pprint.pprint(domain_dict)
-        xml = trans_dict_to_xml(domain_dict)
-        if not xml:
-            raise ExecuteException('VirtctlError', 'transfer dict to xml failed!')
-        xml_file = "/tmp/%s.xml" % metadata_name
-        with open(xml_file, "w") as f1:
-            f1.write(xml)
-        runCmd('virsh define %s' % xml_file)
+    xml = trans_dict_to_xml(domain_dict)
+    if not xml:
+        raise ExecuteException('VirtctlError', 'transfer dict to xml failed!')
+    xml_file = "/tmp/%s.xml" % metadata_name
+    with open(xml_file, "w") as f1:
+        f1.write(xml)
+    runCmd('virsh define %s' % xml_file)
         
 def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     try:
@@ -1606,11 +1606,11 @@ def _backup_json_to_file(group, version, namespace, plural, metadata_name):
             return
         else:
             raise e
-        if not os.path.exists(DEFAULT_JSON_BACKUP_DIR):
-            os.mkdir(DEFAULT_JSON_BACKUP_DIR)
-        backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
-        with open(backup_file, "w") as f1:
-            f1.write(jsonStr)
+    if not os.path.exists(DEFAULT_JSON_BACKUP_DIR):
+        os.mkdir(DEFAULT_JSON_BACKUP_DIR)
+    backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
+    with open(backup_file, "w") as f1:
+        f1.write(jsonStr)
         
 def _get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
     try:
@@ -1618,7 +1618,7 @@ def _get_node_name_from_kubernetes(group, version, namespace, plural, metadata_n
             group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
     except ApiException, e:
         raise e
-        return jsonStr['metadata']['labels']['host']
+    return jsonStr['metadata']['labels']['host']
         
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
     operations_queue = []

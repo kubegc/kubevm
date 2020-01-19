@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import trans_dict_to_xml, iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import update_vm_json, trans_dict_to_xml, iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, report_failure, deleteLifecycleInJson, randomUUID, \
@@ -1586,7 +1586,7 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
         else:
             raise e
     domain = {'domain': jsonStr['spec']['domain']}
-    domain = loads(jsontoxml(dumps(domain)))
+    domain = loads(update_vm_json(dumps(domain)))
     domain_dict = iterate_dict(domain)
 #                 pprint.pprint(domain_dict)
     xml = trans_dict_to_xml(domain_dict)
@@ -2228,12 +2228,12 @@ def _del_field(jsondict, the_cmd_key, field):
                     del spec['lifecycle'][the_cmd_key][k]
     return jsondict
         
-def jsontoxml(jsonstr):
-    json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
-        'suspend_to_mem', 'suspend-to-mem').replace('suspend_to_disk', 'suspend-to-disk').replace(
-            'on_crash', 'on-crash').replace('on_poweroff', 'on-poweroff').replace('on_reboot', 'on-reboot').replace(
-            'nested_hv', "nested-hv").replace('_', '@').replace('text', '#text').replace('\'', '"')
-    return unparse(loads(json))
+# def jsontoxml(jsonstr):
+#     json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
+#         'suspend_to_mem', 'suspend-to-mem').replace('suspend_to_disk', 'suspend-to-disk').replace(
+#             'on_crash', 'on-crash').replace('on_poweroff', 'on-poweroff').replace('on_reboot', 'on-reboot').replace(
+#             'nested_hv', "nested-hv").replace('_', '@').replace('text', '#text').replace('\'', '"')
+#     return unparse(loads(json))
 
 def xmlToJson(xmlStr):
     return dumps(bf.data(fromstring(xmlStr)), sort_keys=True, indent=4)

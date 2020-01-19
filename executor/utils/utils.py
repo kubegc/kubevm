@@ -659,7 +659,7 @@ def updateDomainBackup(vm_json):
         domain['devices'] = devices
     return vm_json
 
-def jsontoxml(jsonstr):
+def update_vm_json(jsonstr):
     json = jsonstr.replace('_interface', 'interface').replace('_transient', 'transient').replace(
         'suspend_to_mem', 'suspend-to-mem').replace('suspend_to_disk', 'suspend-to-disk').replace(
             'on_crash', 'on-crash').replace('on_poweroff', 'on-poweroff').replace('on_reboot', 'on-reboot').replace(

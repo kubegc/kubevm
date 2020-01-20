@@ -113,21 +113,21 @@ def stop(ignore_warning=False, virtctl_only=False):
                 print('warning: %s\n' % (virtlet_err))
         _err1 = stop_kubesds_rpc(ignore_warning=ignore_warning)
         _err2 = stop_virt_monitor(ignore_warning=ignore_warning)
-    if virtctl_err or virtlet_err or _err1 or _err2:
-        sys.exit(1)
+#     if virtctl_err or virtlet_err or _err1 or _err2:
+#         sys.exit(1)
         
 def stop_kubesds_rpc(ignore_warning=False):
     _err = None
     (_, _err) = runCmd('kubesds-rpc stop')
     if _err and not ignore_warning:
-        print('warning: %s\n' % (_err))
+        print('do noting: %s\n' % (_err))
     return _err
         
 def stop_virt_monitor(ignore_warning=False):
     _err = None
     (_, _err) = runCmd('virt-monitor stop')
     if _err and not ignore_warning:
-        print('warning: %s\n' % (_err))
+        print('do noting: %s\n' % (_err))
     return _err
         
 def start_kubesds_rpc(ignore_warning=False):

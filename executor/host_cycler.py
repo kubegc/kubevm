@@ -11,6 +11,7 @@ Import python libs
 import os, sys, time, datetime, socket, subprocess, time, traceback
 import ConfigParser
 from dateutil.tz import gettz
+from json import dumps
 
 '''
 Import third party libs
@@ -83,7 +84,13 @@ def _ha_check_vm_in_libvirt(group, version, plural, metadata_name):
     try:
         logger.debug('Doing HA verification for VM: %s' % metadata_name)
         node_name = _get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
-        if node_name != get_hostname_in_lower_case():
+        if not node_name:
+            logger.debug('Delete VM %s because it is not hosting by the Kubernetes cluster.' % (metadata_name))
+            if is_vm_active(metadata_name):
+                destroy(metadata_name)
+                time.sleep(1)
+            undefine(metadata_name)    
+        elif node_name != get_hostname_in_lower_case():
             logger.debug('Delete VM %s because it is now hosting by another node %s.' % (metadata_name, node_name))
             _backup_json_to_file(group, version, 'default', plural, metadata_name)
             if is_vm_active(metadata_name):
@@ -107,14 +114,17 @@ def _backup_json_to_file(group, version, namespace, plural, metadata_name):
         os.mkdir(DEFAULT_JSON_BACKUP_DIR)
     backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
     with open(backup_file, "w") as f1:
-        f1.write(jsonStr)
+        f1.write(dumps(jsonStr))
             
 def _get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
     try:
         jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
             group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
     except ApiException, e:
-        raise e
+        if e.reason == 'Not Found':
+            return None
+        else:
+            raise e
     return jsonStr['metadata']['labels']['host']
 
 class HostCycler:

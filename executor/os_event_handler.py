@@ -510,7 +510,8 @@ class VmVolEventHandler(FileSystemEventHandler):
         if event.is_directory:
             logger.debug("directory modified:{0}".format(event.src_path))
         else:
-            logger.debug("file modified:{0}".format(event.src_path))
+            pass
+#             logger.debug("file modified:{0}".format(event.src_path))
             # filename = os.path.basename(event.src_path)
             # if filename == 'config.json':
             #     logger.debug("change config.json file: %s" % event.src_path)

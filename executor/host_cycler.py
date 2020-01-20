@@ -58,16 +58,19 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 def main():
     restart_service = False
+    ha_check = True
     while True:
         try:
             host = client.CoreV1Api().read_node_status(name=HOSTNAME)
             node_watcher = HostCycler()
             host.status = node_watcher.get_node_status()
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
-            if restart_service:
-                runCmd('kubevmm-adm service restart --virtctl-only')
+            if ha_check:
                 for vm in list_vms():
                     _ha_check_vm_in_libvirt(GROUP, VERSION, PLURAL, vm)
+                ha_check = False
+            if restart_service:
+                runCmd('kubevmm-adm service restart --virtctl-only')
                 restart_service = False
             time.sleep(8)
         except:
@@ -78,6 +81,7 @@ def main():
         
 def _ha_check_vm_in_libvirt(group, version, plural, metadata_name):
     try:
+        logger.debug('Doing HA verification for VM: %s' % metadata_name)
         node_name = _get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
         if node_name != get_hostname_in_lower_case():
             logger.debug('Delete VM %s because it is now hosting by another node %s.' % (metadata_name, node_name))

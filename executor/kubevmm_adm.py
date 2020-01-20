@@ -57,9 +57,11 @@ def run_virtlet(update_stuff=False, version=VERSION):
         script = 'virtlet.sh'
     return runCmd('docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash %s' % (HOSTNAME, version, script))
 
-def start(ignore_warning=False, update_stuff=False, version=VERSION):
+def start(ignore_warning=False, update_stuff=False, version=VERSION, virtctl_only=False):
     virtctl_err = None
     virtlet_err = None
+    _err1 = None
+    _err2 = None
     (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version) = status(ignore_warning=ignore_warning)
     print('starting kubevmm(%s) services...' % version)
     time.sleep(3)
@@ -72,22 +74,26 @@ def start(ignore_warning=False, update_stuff=False, version=VERSION):
             print('error: a different version of service \'virtctl(%s)\' is running in container \'%s\'\n' % (virtctl_running_version, str(virtctl_container_id)))
         else:
             print('do noting: service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
-    if not virtlet_container_id:
-        (_, virtlet_err) = run_virtlet(update_stuff=update_stuff, version=version)
-        if virtlet_err:
-            print('warning: %s\n' % (virtlet_err))
-    else:
-        if virtlet_running_version != version:
-            print('error: a different version of service \'virtlet(%s)\' is running in container \'%s\'\n' % (virtlet_running_version, str(virtlet_container_id)))
+    if not virtctl_only:
+        if not virtlet_container_id:
+            (_, virtlet_err) = run_virtlet(update_stuff=update_stuff, version=version)
+            if virtlet_err:
+                print('warning: %s\n' % (virtlet_err))
         else:
-            print('do noting: service \'virtlet\' is running in container \'%s\'\n' % str(virtlet_container_id))
-    runCmd('kubesds-rpc start')
-    if virtctl_err or virtlet_err:
+            if virtlet_running_version != version:
+                print('error: a different version of service \'virtlet(%s)\' is running in container \'%s\'\n' % (virtlet_running_version, str(virtlet_container_id)))
+            else:
+                print('do noting: service \'virtlet\' is running in container \'%s\'\n' % str(virtlet_container_id))
+        _err1 = start_kubesds_rpc(ignore_warning=ignore_warning)
+        _err2 = start_virt_monitor(ignore_warning=ignore_warning)
+    if virtctl_err or virtlet_err or _err1 or _err2:
         sys.exit(1)
 
-def stop(ignore_warning=False):
+def stop(ignore_warning=False, virtctl_only=False):
     virtctl_err = None
     virtlet_err = None
+    _err1 = None
+    _err2 = None
     (virtctl_container_id, virtctl_running_version, virtlet_container_id, virtlet_running_version) = status(ignore_warning=ignore_warning)
     print('stopping kubevmm services...')
     if not virtctl_container_id:
@@ -97,34 +103,64 @@ def stop(ignore_warning=False):
         (_, virtctl_err) = runCmd('docker stop %s; docker rm %s' % (virtctl_container_id, virtctl_container_id))
         if virtctl_err:
             print('warning: %s\n' % (virtctl_err))
-    if not virtlet_container_id:
-        print('do noting: service \'virtlet\' is not running\n') 
-    else:
-        print('>>> stopping \'virtlet\' in container \'%s\'...\n' % (str(virtlet_container_id)))
-        (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
-        if virtlet_err:
-            print('warning: %s\n' % (virtlet_err))
-    runCmd('kubesds-rpc stop')
-    if virtctl_err or virtlet_err:
+    if not virtctl_only:
+        if not virtlet_container_id:
+            print('do noting: service \'virtlet\' is not running\n') 
+        else:
+            print('>>> stopping \'virtlet\' in container \'%s\'...\n' % (str(virtlet_container_id)))
+            (_, virtlet_err) = runCmd('docker stop %s; docker rm %s' % (virtlet_container_id, virtlet_container_id)) 
+            if virtlet_err:
+                print('warning: %s\n' % (virtlet_err))
+        _err1 = stop_kubesds_rpc(ignore_warning=ignore_warning)
+        _err2 = stop_virt_monitor(ignore_warning=ignore_warning)
+    if virtctl_err or virtlet_err or _err1 or _err2:
         sys.exit(1)
         
-def restart_kubesds_rpc(ignore_warning=False):
-    (_, _err) = runCmd('kubesds-rpc restart')
+def stop_kubesds_rpc(ignore_warning=False):
+    _err = None
+    (_, _err) = runCmd('kubesds-rpc stop')
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
-        sys.exit(1)
+    return _err
         
-def restart_virt_monitor(ignore_warning=False):
-    (_, _err) = runCmd('virt-monitor restart')
+def stop_virt_monitor(ignore_warning=False):
+    _err = None
+    (_, _err) = runCmd('virt-monitor stop')
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
-        sys.exit(1)
+    return _err
+        
+def start_kubesds_rpc(ignore_warning=False):
+    _err = None
+    (_, _err) = runCmd('kubesds-rpc start')
+    if _err and not ignore_warning:
+        print('warning: %s\n' % (_err))
+    return _err
+        
+def start_virt_monitor(ignore_warning=False):
+    _err = None
+    (_, _err) = runCmd('virt-monitor start')
+    if _err and not ignore_warning:
+        print('warning: %s\n' % (_err))
+    return _err
+        
+# def restart_kubesds_rpc(ignore_warning=False):
+#     (_, _err) = runCmd('kubesds-rpc restart')
+#     if _err and not ignore_warning:
+#         print('warning: %s\n' % (_err))
+#         sys.exit(1)
+#         
+# def restart_virt_monitor(ignore_warning=False):
+#     (_, _err) = runCmd('virt-monitor restart')
+#     if _err and not ignore_warning:
+#         print('warning: %s\n' % (_err))
+#         sys.exit(1)
 
-def restart(ignore_warning=False):
-    stop(ignore_warning=ignore_warning)
-    start(ignore_warning=ignore_warning)
-    restart_kubesds_rpc(ignore_warning=ignore_warning)
-    restart_virt_monitor(ignore_warning=ignore_warning)
+def restart(ignore_warning=False, virtctl_only=False):
+    stop(ignore_warning=ignore_warning, virtctl_only=virtctl_only)
+    start(ignore_warning=ignore_warning, virtctl_only=virtctl_only)
+#     restart_kubesds_rpc(ignore_warning=ignore_warning)
+#     restart_virt_monitor(ignore_warning=ignore_warning)
 
 def status(print_result=False, ignore_warning=False):
     (virtctl_running_version, virtlet_running_version) = check_version(ignore_warning=ignore_warning)
@@ -170,8 +206,8 @@ def update_online(version='latest'):
     stop(ignore_warning=True)
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
-    restart_kubesds_rpc(ignore_warning=True)
-    restart_virt_monitor(ignore_warning=True)
+#     restart_kubesds_rpc(ignore_warning=True)
+#     restart_virt_monitor(ignore_warning=True)
 
 def update_offline(version='latest'):
     print('updating offline')
@@ -188,8 +224,8 @@ def update_offline(version='latest'):
     stop(ignore_warning=True)
     time.sleep(1)
     start(ignore_warning=True, update_stuff=True, version=version)
-    restart_kubesds_rpc(ignore_warning=True)
-    restart_virt_monitor(ignore_warning=True)
+#     restart_kubesds_rpc(ignore_warning=True)
+#     restart_virt_monitor(ignore_warning=True)
 
 def version(service=False, ignore_warning=False):
     if service:
@@ -255,11 +291,14 @@ def main():
                 sys.exit(1)   
             stop()
         elif sys.argv[2] == 'restart':
-            if len(params) != 0:
+            if len(params) == 0:
+                restart()
+            elif len(params) == 1 and params[0] == '--virtctl-only':
+                restart(virtctl_only=True)
+            else:
                 print('error: invalid arguments!\n')
                 print(usage_service)
                 sys.exit(1)   
-            restart()
         elif sys.argv[2] == 'status':
             if len(params) != 0:
                 print('error: invalid arguments!\n')

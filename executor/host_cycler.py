@@ -51,16 +51,21 @@ HOSTNAME = get_hostname_in_lower_case()
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 def main():
+    restart_service = False
     while True:
         try:
             host = client.CoreV1Api().read_node_status(name=HOSTNAME)
             node_watcher = HostCycler()
             host.status = node_watcher.get_node_status()
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
+            if restart_service:
+                runCmd('kubevmm-adm service restart --virtctl-only')
+                restart_service = False
             time.sleep(8)
         except:
             logger.error('Oops! ', exc_info=1)
             time.sleep(8)
+            restart_service = True
             continue
 
 class HostCycler:

@@ -565,6 +565,13 @@ def updateDescription(jsondict):
         if spec:
             spec['description'] = {'lastOperationTimeStamp': int(round(time.time()*1000))}
     return jsondict
+
+def updateNodeName(jsondict):
+    if jsondict:
+        spec = get_spec(jsondict)    
+        if spec:
+            jsondict['spec']['nodeName'] = get_hostname_in_lower_case()
+    return jsondict    
         
 def addPowerStatusMessage(jsondict, reason, message):
     if jsondict:

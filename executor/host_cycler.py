@@ -16,6 +16,7 @@ from dateutil.tz import gettz
 Import third party libs
 '''
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 from kubernetes.client.models.v1_node_status import V1NodeStatus
 from kubernetes.client.models.v1_node_condition import V1NodeCondition
 from kubernetes.client.models.v1_node_daemon_endpoints import V1NodeDaemonEndpoints
@@ -29,7 +30,7 @@ from kubernetes.client.models.v1_node_address import V1NodeAddress
 Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms
+from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active
 from utils.utils import CDaemon, runCmd, get_hostname_in_lower_case
 from utils import logger
 
@@ -46,6 +47,11 @@ config_raw = parser()
 config_raw.read(cfg)
 
 TOKEN = config_raw.get('Kubernetes', 'token_file')
+PLURAL = config_raw.get('VirtualMachine', 'plural')
+VERSION = config_raw.get('VirtualMachine', 'version')
+GROUP = config_raw.get('VirtualMachine', 'group')
+
+DEFAULT_JSON_BACKUP_DIR = config_raw.get('DefaultJsonBackupDir', 'default')
 HOSTNAME = get_hostname_in_lower_case()
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
@@ -60,6 +66,8 @@ def main():
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
             if restart_service:
                 runCmd('kubevmm-adm service restart --virtctl-only')
+                for vm in list_vms():
+                    _ha_check_vm_in_libvirt(GROUP, VERSION, PLURAL, vm)
                 restart_service = False
             time.sleep(8)
         except:
@@ -67,6 +75,43 @@ def main():
             time.sleep(8)
             restart_service = True
             continue
+        
+def _ha_check_vm_in_libvirt(group, version, plural, metadata_name):
+    try:
+        node_name = _get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
+        if node_name != get_hostname_in_lower_case():
+            logger.debug('Delete VM %s because it is now hosting by another node %s.' % (metadata_name, node_name))
+            _backup_json_to_file(group, version, 'default', plural, metadata_name)
+            if is_vm_active(metadata_name):
+                destroy(metadata_name)
+                time.sleep(1)
+            undefine(metadata_name)    
+    except:
+        logger.error('Oops! ', exc_info=1)
+
+def _backup_json_to_file(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**VM %s already deleted.' % metadata_name)
+            return
+        else:
+            raise e
+    if not os.path.exists(DEFAULT_JSON_BACKUP_DIR):
+        os.mkdir(DEFAULT_JSON_BACKUP_DIR)
+    backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
+    with open(backup_file, "w") as f1:
+        f1.write(jsonStr)
+            
+def _get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        raise e
+    return jsonStr['metadata']['labels']['host']
 
 class HostCycler:
     

@@ -46,21 +46,17 @@ function install-master()
   ## Kubernetes
   kubeadm init --config /cloudplus/kubeadm.yaml 
  
-  mkdir -p $HOME/.kube
   rm -rf $HOME/.kube
+  mkdir -p $HOME/.kube
   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
   sudo chown $(id -u):$(id -g) $HOME/.kube/config
   iptables -P FORWARD ACCEPT
 
   ## Calico
-  while true
+  for img in `cat /cloudplus/calico.yaml  | grep image |awk -F"image:" '{print$2}'`
   do
-    stat=`kubectl get po -n kube-systemn | grep kube-apiserver | awk '{print $4}'`
-    if [ "$stat" = "Running" ]
-    then
-      break
-    fi
-    sleep 5
+    echo "docker pull "$img
+    docker pull $img
   done
 
   podcidr=$(kubeadm config view | grep podSubnet | awk -F": " '{print$2}')
@@ -69,6 +65,14 @@ function install-master()
   sed -i "s:POD_CIDR:${podcidr}:g" calico.yaml
   kubectl create -f calico.yaml
   rm -rf calico.yaml
+
+  ## Plugins
+
+  for plugin in `ls /cloudplus/ | grep kubevirt`
+  do
+    kubectl apply -f /cloudplus/$plugin
+  done
+
 }
 
 function cmddesc()

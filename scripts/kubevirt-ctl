@@ -1,0 +1,103 @@
+#! /bin/bash
+###############################################
+##
+##  Copyright (2019, ) Institute of Software
+##      Chinese Academy of Sciences
+##          wuheng@otcaixiscas.ac.cn
+##         wuyuewen@otcaix.iscas.ac.cn
+##              2019-9-24
+##
+###############################################
+
+VERSION=1.16.1
+
+###########################################################
+##
+##  help
+##
+##########################################################
+
+function init-env()
+{
+  swapoff -a
+  systemctl stop firewalld
+  systemctl disable firewalld
+
+  res=$(cat /etc/sysctl.conf | grep swappiness)
+  sysctl net.bridge.bridge-nf-call-iptables=1
+  if [[ -z $res ]]
+  then
+    echo "vm.swappiness = 0">> /etc/sysctl.conf
+  fi
+  echo "1" > /proc/sys/net/bridge/bridge-nf-call-iptables
+  echo "1" > /proc/sys/net/ipv4/ip_forward >/dev/null
+
+  systemctl enable kubelet
+  systemctl start kubelet
+}
+
+
+function install-master()
+{
+
+  ## init
+  init-env
+  
+  ## Kubernetes
+  kubeadm init --config /cloudplus/kubeadm.yaml 
+ 
+  mkdir -p $HOME/.kube
+  rm -rf $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+  iptables -P FORWARD ACCEPT
+
+  ## Calico
+  while true
+  do
+    stat=`kubectl get po -n kube-systemn | grep kube-apiserver | awk '{print $4}'`
+    if [ "$stat" = "Running" ]
+    then
+      break
+    fi
+    sleep 5
+  done
+
+  podcidr=$(kubeadm config view | grep podSubnet | awk -F": " '{print$2}')
+  rm -rf calico.yaml
+  cp /cloudplus/calico.yaml calico.yaml
+  sed -i "s:POD_CIDR:${podcidr}:g" calico.yaml
+  kubectl create -f calico.yaml
+  rm -rf calico.yaml
+}
+
+function cmddesc()
+{
+  echo -e "Welcome to kubevirt-ctl, the install plugin for Kubernetes."
+  echo -e "kubevirt-ctl($VERSION): missing command name (use --help for help)\n"
+}
+
+
+function help()
+{
+  cmddesc
+  echo -e "Commands:"
+  echo -e "  install-master  :\t(Init): Install Kubernetes Master"
+  echo -e "  install-slave   :\t(Init): Install Kubernetes Slave"
+}
+
+
+case $1 in
+  "install-master")
+    install-master $*
+    ;;
+  "install-slave")
+    install-slave $*
+    ;;
+  "--help")
+    help
+    ;;
+  *)
+  help
+  ;;
+esac

@@ -9,14 +9,6 @@
 ##
 ###############################################
 
-VERSION=1.16.1
-
-###########################################################
-##
-##  help
-##
-##########################################################
-
 function init-env()
 {
   swapoff -a
@@ -78,7 +70,7 @@ function install-master()
 function cmddesc()
 {
   echo -e "Welcome to kubevirt-ctl, the install plugin for Kubernetes."
-  echo -e "kubevirt-ctl($VERSION): missing command name (use --help for help)\n"
+  echo -e "kubevirt-ctl: missing command name (use --help for help)\n"
 }
 
 

@@ -84,6 +84,14 @@ function setup-master()
     kubectl apply -f /cloudplus/$plugin
   done
 
+  ## Network
+  kubeovn-adm start-central 
+}
+
+function setup-node()
+{
+  # start our instances
+  kubeovn-adm start-worker
 }
 
 function cmddesc()

@@ -16,7 +16,8 @@ Ensure you have configured GOROOT and GOPATH
 
 - for Kubernetes 1.14.1 (20190630)
 - for Kubernetes 1.14.6 (20190930)
-- for Kubernetes 1.15.6 (20191230, final)
+- for Kubernetes 1.15.6 (20191230)
+- for Kubernetes 1.17.1 (20200201)
 
 # Deploy Steps
 #### Prerequisite
@@ -53,26 +54,6 @@ func (sched *Scheduler) scheduleOne() {
 ```
 
 #### Step 2: Rebuild scheduler
-Move to `$GOPATH/k8s.io/kubernetes/cmd/kube-scheduler/`, and build with command `env GOOS=linux GOARCH=amd64 go build scheduler.go`, now you get a executable binary file `scheduler`.
-#### Step 3: Pack as a image
-Build the image with `<RepoPath>/build/Dockerfile`, before that you need to move executable scheduler binary file to /build path, then build image with command.
 
-```
-cp scheduler docker/
-cp /etc/kubernetes/admin.conf docker/
-docker build docker/ -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-scheduler:v1.14.6
-```
-#### Step 4: Deploy
-Created a Deployment configuration file and ran it in an existing Kubernetes cluster, using the Deployment resource rather than creating a Pod resource directly because the Deployment resource can better handle the case of a scheduler running node failure. We offered a Deployment configuration example, saved as the `custom-scheduler.yaml` in `<RepoPath>/yaml/`.
-
-Then Create Deployment resource in Kubernetes cluster
-
-```
-kubectl create -f yamls/KubeCRDScheduler.yaml
-```
-
-# Run in Goland IDE
-
-```
---kubeconfig=/etc/kubernetes/admin.conf --scheduler-name=kubecrd-scheduler --port=10253 --secure-port=10261 --leader-elect=true --lock-object-namespace=cloudplus
-```
+- https://system51.github.io/2019/12/05/Kubeadm-certificate-modified/
+- https://github.com/kubernetes/kubernetes (see You have a working Docker environment.)

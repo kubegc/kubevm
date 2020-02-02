@@ -91,6 +91,7 @@ function setup-master()
 function setup-node()
 {
   # start our instances
+  kubectl apply -f /cloudplus/node.yaml
   kubeovn-adm start-worker
 }
 

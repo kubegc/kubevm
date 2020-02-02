@@ -28,8 +28,27 @@ function init-env()
   systemctl start kubelet
 }
 
+function init-master()
+{
+  yum install -y docker-ce-19.03.5 kubeadm-1.16.1 kubectl-1.16.1 kubelet-1.16.1 openvswitch-2.11.0 openvswitch-ipsec-2.11.0 openvswitch-ovn-central-2.11.0 openvswitch-ovn-common-2.11.0 openvswitch-ovn-host-2.11.0 openvswitch-ovn-vtep-2.11.0 
+  systemctl enable docker
+  systemctl start  docker
+  systemctl enable openvswitch
+  systemctl start  openvswitch
+}
 
-function install-master()
+function init-node()
+{
+  yum install -y docker-ce-19.03.5 kubeadm-1.16.1 kubectl-1.16.1 kubelet-1.16.1 openvswitch-2.11.0 openvswitch-ipsec-2.11.0 openvswitch-ovn-central-2.11.0 openvswitch-ovn-common-2.11.0 openvswitch-ovn-host-2.11.0 openvswitch-ovn-vtep-2.11.0 virt-manager-1.5.0 libvirt-4.5.0 qemu-kvm-ev-2.12.0
+  systemctl enable docker
+  systemctl start  docker
+  systemctl enable openvswitch
+  systemctl start  openvswitch
+  systemctl enable libvirtd
+  systemctl start  libvirtd
+}
+
+function setup-master()
 {
 
   ## init
@@ -78,17 +97,25 @@ function help()
 {
   cmddesc
   echo -e "Commands:"
-  echo -e "  install-master  :\t(Init): Install Kubernetes Master"
-  echo -e "  install-slave   :\t(Init): Install Kubernetes Slave"
+  echo -e "  init-master   :\t(Init) : Install softwares for Kubernetes Master"
+  echo -e "  init-node     :\t(Init) : Install softwares for Kubernetes Node"
+  echo -e "  setup-master  :\t(Setup): Install Kubernetes Master"
+  echo -e "  setup-node    :\t(Setup): Install Kubernetes Node"
 }
 
 
 case $1 in
-  "install-master")
-    install-master $*
+  "init-master")
+    init-master $*
     ;;
-  "install-slave")
-    install-slave $*
+  "init-node")
+    init-node $*
+    ;;
+  "setup-master")
+    setup-master $*
+    ;;
+  "setup-node")
+    setup-node $*
     ;;
   "--help")
     help

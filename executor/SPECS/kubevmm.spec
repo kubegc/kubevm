@@ -45,9 +45,10 @@ echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
 install %{SOURCE3} %{buildroot}/etc/kubevmm
 rm -rf %{buildroot}/etc/kubevmm/yamls
-mkdir -p %{buildroot}/etc/kubevmm/yamls
-install %{SOURCE5}/* %{buildroot}/etc/kubevmm/yamls
-install %{SOURCE9}/* %{buildroot}/etc/yum.repos.d
+mkdir -p %{buildroot}/etc/kubevmm/yamls/cloudplus
+install %{SOURCE5}/cloudplus/* %{buildroot}/etc/kubevmm/yamls/cloudplus
+mkdir -p %{buildroot}/etc/yum.repos.d
+install %{SOURCE9}/*.repo %{buildroot}/etc/yum.repos.d
 
 %clean
 rm -rf %{buildroot}
@@ -64,6 +65,6 @@ rm -rf %{buildroot}
 /etc/kubevmm/VERSION
 /etc/kubevmm/config
 /%{_usr}/lib/systemd/system/ovn-ovsdb.service
-%defattr(755, -, -)
-/etc/kubevmm/yamls
+%defattr(644, -, -, 755)
+/etc/kubevmm/yamls/cloudplus
 /etc/yum.repos.d

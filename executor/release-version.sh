@@ -94,7 +94,6 @@ cp -f ./dist/kubesds-adm ../docker/virtctl
 cp -f ./dist/kubesds-adm ../dist
 cp -f ./dist/kubesds-rpc ../docker/virtctl
 cp -f ./dist/kubesds-rpc ../dist
-cp -f ./dist/virt-monitor ../dist
 cd ..
 rm -rf ./kubeext-SDS
 
@@ -124,7 +123,7 @@ fi
 cp -rf utils/*.pyc docker/virtctl/utils/
 cp -rf utils/*.pyc docker/virtlet/utils/
 cp -rf config arraylist.cfg virtctl_in_docker.pyc invoker.pyc virtctl.pyc docker/virtctl
-cp -rf config arraylist.cfg virtlet_in_docker.pyc host_cycler.pyc libvirt_event_handler_for_4_0.pyc libvirt_event_handler.pyc os_event_handler.pyc virtlet.pyc monitor.pyc docker/virtlet
+cp -rf config arraylist.cfg virtlet_in_docker.pyc host_cycler.pyc libvirt_event_handler_for_4_0.pyc libvirt_event_handler.pyc os_event_handler.pyc virtlet.pyc docker/virtlet
 
 rm -rf *.pyc
 rm -rf utils/*.pyc

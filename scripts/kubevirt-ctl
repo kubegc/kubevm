@@ -31,7 +31,12 @@ function init-env()
 function init-master()
 {
   yum install -y libibverbs docker-ce-19.03.5 kubeadm-1.16.1 kubectl-1.16.1 kubelet-1.16.1 openvswitch-2.11.0 openvswitch-ipsec-2.11.0 openvswitch-ovn-central-2.11.0 openvswitch-ovn-common-2.11.0 openvswitch-ovn-host-2.11.0 openvswitch-ovn-vtep-2.11.0 
-  systemctl enable docker
+yum install epel-release -y
+  yum install centos-release-openstack-rocky.noarch -y
+  yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec glusterfs-client-xlators glusterfs-cli lusterfs-extra-xlators glusterfs-fuse iscsiadm virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install qemu-kvm -y
+  pip install --upgrade pip
+  pip install --ignore-installed prometheus_client kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil    
+systemctl enable docker
   systemctl start  docker
   systemctl enable openvswitch
   systemctl start  openvswitch
@@ -40,7 +45,12 @@ function init-master()
 function init-node()
 {
   yum install -y libibverbs docker-ce-19.03.5 kubeadm-1.16.1 kubectl-1.16.1 kubelet-1.16.1 openvswitch-2.11.0 openvswitch-ipsec-2.11.0 openvswitch-ovn-central-2.11.0 openvswitch-ovn-common-2.11.0 openvswitch-ovn-host-2.11.0 openvswitch-ovn-vtep-2.11.0 virt-manager-1.5.0 libvirt-4.5.0 qemu-kvm-ev-2.12.0
-  systemctl enable docker
+  yum install epel-release -y
+  yum install centos-release-openstack-rocky.noarch -y
+  yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec glusterfs-client-xlators glusterfs-cli lusterfs-extra-xlators glusterfs-fuse iscsiadm virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install qemu-kvm -y
+  pip install --upgrade pip
+  pip install --ignore-installed prometheus_client kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil  
+ systemctl enable docker
   systemctl start  docker
   systemctl enable openvswitch
   systemctl start  openvswitch
@@ -93,6 +103,13 @@ function setup-node()
   # start our instances
   kubectl apply -f /cloudplus/node.yaml
   kubeovn-adm start-worker
+  echo -e "Installing kubevmm services..."
+  VERSION=$1
+  docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:$VERSION
+  docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:$VERSION
+  docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:$VERSION bash virtctl-update-stuff.sh
+  docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:$VERSION bash virtlet-update-stuff.sh 
+  echo -e "Kubevmm ${VERSION} has been installed, please use \"kubevmm-adm\" command to manage services."
 }
 
 function cmddesc()
@@ -124,7 +141,13 @@ case $1 in
     setup-master $*
     ;;
   "setup-node")
-    setup-node $*
+    if [ ! -n "$2" ] ;then
+      echo "error: please input kubevmm version!"
+      echo "Usage $0 $1 <version number>"
+      exit 1
+    else
+      setup-node $2
+    fi
     ;;
   "--help")
     help

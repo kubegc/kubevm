@@ -21,6 +21,8 @@ Source5:        yamls
 Source6:        kubesds-adm
 Source7:        kubesds-rpc
 Source8:        ovn-ovsdb.service
+Source9:        yum.repos.d
+Source10:       kubevirt-ctl
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -36,6 +38,7 @@ install %{SOURCE1} %{buildroot}/%{_usr}/bin/vmm
 install %{SOURCE4} %{buildroot}/%{_usr}/bin/kubeovn-adm
 install %{SOURCE6} %{buildroot}/%{_usr}/bin/kubesds-adm
 install %{SOURCE7} %{buildroot}/%{_usr}/bin/kubesds-rpc
+install %{SOURCE10} %{buildroot}/%{_usr}/bin/kubevirt-ctl
 install %{SOURCE8} %{buildroot}/%{_usr}/lib/systemd/system/ovn-ovsdb.service
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
@@ -43,7 +46,8 @@ install %{SOURCE2} %{buildroot}/etc/kubevmm
 install %{SOURCE3} %{buildroot}/etc/kubevmm
 rm -rf %{buildroot}/etc/kubevmm/yamls
 mkdir -p %{buildroot}/etc/kubevmm/yamls
-install %{SOURCE5}/*.yaml %{buildroot}/etc/kubevmm/yamls
+install %{SOURCE5}/* %{buildroot}/etc/kubevmm/yamls
+install %{SOURCE9}/* %{buildroot}/etc/yum.repos.d
 
 %clean
 rm -rf %{buildroot}
@@ -55,9 +59,11 @@ rm -rf %{buildroot}
 /%{_usr}/bin/kubeovn-adm
 /%{_usr}/bin/kubesds-adm
 /%{_usr}/bin/kubesds-rpc
+/%{_usr}/bin/kubevirt-ctl
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 /etc/kubevmm/config
 /%{_usr}/lib/systemd/system/ovn-ovsdb.service
 %defattr(755, -, -)
 /etc/kubevmm/yamls
+/etc/yum.repos.d

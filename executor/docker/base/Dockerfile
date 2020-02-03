@@ -12,7 +12,7 @@ RUN yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test
 
 RUN pip install --upgrade pip
 
-RUN pip install --ignore-installed prometheus_client kubernetes libvirt-python xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil
+RUN pip install --ignore-installed prometheus_client kubernetes libvirt-python==5.9.0 xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil
 
 RUN yum clean all
 

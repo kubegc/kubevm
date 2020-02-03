@@ -72,7 +72,7 @@ echo "--- Done: update kubesds-rpc"
 # apply kubevirtResource.yaml
 if [ -f "/etc/kubevmm/yamls/kubevirtResource.yaml" ];then
 	echo "+++ Processing: apply new kubevirtResource.yaml"
-	kubectl apply -f /etc/kubevmm/yamls/kubevirtResource.yaml
+	kubectl apply -f /etc/kubevmm/yamls/cloudplus/kubevirtResource.yaml
 	echo "--- Done: apply new kubevirtResource.yaml"
 else
 	echo "*** Warning: apply new kubevirtResource.yaml failed!"

@@ -31,7 +31,6 @@ function init-env()
 function init-master()
 {
   yum install -y libibverbs docker-ce-19.03.5 kubeadm-1.16.1 kubectl-1.16.1 kubelet-1.16.1 openvswitch-2.11.0 openvswitch-ipsec-2.11.0 openvswitch-ovn-central-2.11.0 openvswitch-ovn-common-2.11.0 openvswitch-ovn-host-2.11.0 openvswitch-ovn-vtep-2.11.0 
-yum install epel-release -y 
   systemctl enable docker
   systemctl start  docker
   systemctl enable openvswitch
@@ -61,7 +60,7 @@ function setup-master()
   init-env
   
   ## Kubernetes
- kubeadm init --config /etc/kubevmm/yamls/cloudplus/kubeadm.yaml 
+  kubeadm init --config /etc/kubevmm/yamls/cloudplus/kubeadm.yaml 
  
   rm -rf $HOME/.kube
   mkdir -p $HOME/.kube
@@ -77,11 +76,11 @@ function setup-master()
   done
 
   podcidr=$(kubeadm config view | grep podSubnet | awk -F": " '{print$2}')
- rm -rf /tmp/calico.yaml
- cp /etc/kubevmm/yamls/cloudplus/calico.yaml /tmp/calico.yaml
- sed -i "s:POD_CIDR:${podcidr}:g" /tmp/calico.yaml
-kubectl create -f /tmp/calico.yaml
-rm -rf /tmp/calico.yaml
+  rm -rf /tmp/calico.yaml
+  cp /etc/kubevmm/yamls/cloudplus/calico.yaml /tmp/calico.yaml
+  sed -i "s:POD_CIDR:${podcidr}:g" /tmp/calico.yaml
+  kubectl create -f /tmp/calico.yaml
+  rm -rf /tmp/calico.yaml
 
   ## Plugins
 

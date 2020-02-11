@@ -84,9 +84,9 @@ function setup-master()
 
   ## Plugins
 
-  for plugin in `ls /cloudplus/ | grep kubevirt`
+  for plugin in `ls /etc/kubevmm/yamls/cloudplus/ | grep kubevirt`
   do
-    kubectl apply -f /cloudplus/$plugin
+    kubectl apply -f /etc/kubevmm/yamls/cloudplus/$plugin
   done
 
   ## Network

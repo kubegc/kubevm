@@ -315,7 +315,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 destroy(metadata_name)
                                 time.sleep(1)
                         try:
-                            if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key):
+                            if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key) or \
+                            _isSetGuestPassword(the_cmd_key) or _isInjectSshKey(the_cmd_key):
                                 rpcCallWithResult(cmd)
                             else:
                                 runCmd(cmd)

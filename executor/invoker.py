@@ -2644,7 +2644,7 @@ def _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name):
         if not boot_disk_path:
             raise ExecuteException('VirtctlError', 'Cannot get boot disk of domain %s' % metadata_name)
         if os_type == 'linux':
-            cmd = 'kubesds-adm customize --add %s --ssh-inject "%s:string:%s" ' % (boot_disk_path, user, ssh_key)
+            cmd = 'kubesds-adm customize --add %s --ssh_inject "%s:string:%s" ' % (boot_disk_path, user, ssh_key)
         else:
             raise ExecuteException('VirtctlError', 'Wrong parameters "os_type" %s.' % os_type)
         return [cmd]

@@ -1694,6 +1694,8 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)      
     if _isSetGuestPassword(the_cmd_key) or _isInjectSshKey(the_cmd_key):
+        if is_vm_active(metadata_name):
+            raise ExecuteException('VirtctlError', '400, Bad Request. Cannot finish the operation when vm is running.')
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         vm_agent_operations_queue = _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name)
@@ -2642,7 +2644,7 @@ def _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name):
         if not boot_disk_path:
             raise ExecuteException('VirtctlError', 'Cannot get boot disk of domain %s' % metadata_name)
         if os_type == 'linux':
-            cmd = 'kubesds-adm customize --add %s --ssh-inject %s:string:%s ' % (boot_disk_path, user, ssh_key)
+            cmd = 'kubesds-adm customize --add %s --ssh-inject "%s:string:%s" ' % (boot_disk_path, user, ssh_key)
         else:
             raise ExecuteException('VirtctlError', 'Wrong parameters "os_type" %s.' % os_type)
         return [cmd]

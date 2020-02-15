@@ -1632,7 +1632,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
     disk_operations_queue = []
     graphic_operations_queue = []
     redefine_vm_operations_queue = []
-    vm_password_operations_queue = []
+    vm_agent_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         '''
@@ -1693,17 +1693,17 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)      
-    if _isSetGuestPassword(the_cmd_key):
+    if _isSetGuestPassword(the_cmd_key) or _isInjectSshKey(the_cmd_key):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
-        vm_password_operations_queue = _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name)
+        vm_agent_operations_queue = _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)     
     operations_queue.extend(balloon_operation_queue)
     operations_queue.extend(network_operations_queue)
     operations_queue.extend(disk_operations_queue)
     operations_queue.extend(graphic_operations_queue)
     operations_queue.extend(redefine_vm_operations_queue)
-    operations_queue.extend(vm_password_operations_queue)
+    operations_queue.extend(vm_agent_operations_queue)
     return (jsondict, operations_queue)
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
@@ -1994,6 +1994,11 @@ def _isSetBootOrder(the_cmd_key):
 
 def _isSetGuestPassword(the_cmd_key):
     if the_cmd_key == "setGuestPassword":
+        return True
+    return False
+
+def _isInjectSshKey(the_cmd_key):
+    if the_cmd_key == "injectSshKey":
         return True
     return False
 
@@ -2608,7 +2613,7 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
     else:
         return []
 
-def _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name):
+def _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isSetGuestPassword(the_cmd_key):
         os_type = config_dict.get('os_type')
         user = config_dict.get('user')
@@ -2624,6 +2629,22 @@ def _get_vm_password_operations_queue(the_cmd_key, config_dict, metadata_name):
             cmd = 'kubesds-adm customize --add %s --user %s --password %s ' % (boot_disk_path, user, password)
         else:
             cmd = 'virsh set-user-password --domain %s --user %s --password %s' % (metadata_name, user, password)
+        return [cmd]
+    elif _isInjectSshKey(the_cmd_key):
+        os_type = config_dict.get('os_type')
+        user = config_dict.get('user')
+        ssh_key = config_dict.get('ssh_key')
+        boot_disk_path = get_boot_disk_path(metadata_name)
+        if not os_type or os_type not in ['linux']:
+            raise ExecuteException('VirtctlError', 'Wrong parameters "os_type" %s.' % os_type)
+        if not user or not ssh_key:
+            raise ExecuteException('VirtctlError', 'Wrong parameters "user" or "ssh_key".')
+        if not boot_disk_path:
+            raise ExecuteException('VirtctlError', 'Cannot get boot disk of domain %s' % metadata_name)
+        if os_type == 'linux':
+            cmd = 'kubesds-adm customize --add %s --ssh-inject %s:string:%s ' % (boot_disk_path, user, ssh_key)
+        else:
+            raise ExecuteException('VirtctlError', 'Wrong parameters "os_type" %s.' % os_type)
         return [cmd]
     else:
         return []

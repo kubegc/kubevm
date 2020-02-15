@@ -113,6 +113,7 @@ setBootOrder = virsh update-device
 setVncPassword = virsh update-device
 unsetVncPassword = virsh update-device
 setGuestPassword = virt-customize
+injectSshKey = virt-customize
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskFromDiskImage = kubesds-adm createDiskFromImage

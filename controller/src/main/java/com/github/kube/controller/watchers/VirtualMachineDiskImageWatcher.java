@@ -34,7 +34,7 @@ public class VirtualMachineDiskImageWatcher extends KubevirtWatcher implements W
 	}
 
 	public void eventReceived(Action action, VirtualMachineDiskImage image) {
-		eventReceived(action, image.getMetadata(), image.getSpec());
+		eventReceived(action, image.getKind(), image.getMetadata(), image.getSpec());
 	}
 
 	@Override

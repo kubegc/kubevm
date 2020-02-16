@@ -34,7 +34,7 @@ public class VirtualMachineWatcher extends KubevirtWatcher implements Watcher<Vi
 	}
 
 	public void eventReceived(Action action, VirtualMachine vm) {
-		eventReceived(action, vm.getMetadata(), vm.getSpec());
+		eventReceived(action, vm.getKind(), vm.getMetadata(), vm.getSpec());
 	}
 
 	@Override

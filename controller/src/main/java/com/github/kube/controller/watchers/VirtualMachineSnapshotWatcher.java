@@ -40,7 +40,7 @@ public class VirtualMachineSnapshotWatcher extends KubevirtWatcher implements Wa
 
 
 	public void eventReceived(Action action, VirtualMachineSnapshot snapshot) {
-		eventReceived(action, snapshot.getMetadata(), snapshot.getSpec());
+		eventReceived(action, snapshot.getKind(), snapshot.getMetadata(), snapshot.getSpec());
 	}
 
 	@Override

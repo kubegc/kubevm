@@ -34,7 +34,7 @@ public class VirtualMachineImageWatcher extends KubevirtWatcher implements Watch
 	}
 
 	public void eventReceived(Action action, VirtualMachineImage image) {
-		eventReceived(action, image.getMetadata(), image.getSpec());
+		eventReceived(action, image.getKind(), image.getMetadata(), image.getSpec());
 	}
 
 	@Override

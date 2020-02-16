@@ -35,7 +35,7 @@ public class VirtualMachineDiskWatcher extends KubevirtWatcher implements Watche
 
 
 	public void eventReceived(Action action, VirtualMachineDisk disk) {
-		eventReceived(action, disk.getMetadata(), disk.getSpec());
+		eventReceived(action, disk.getKind(), disk.getMetadata(), disk.getSpec());
 	}
 
 

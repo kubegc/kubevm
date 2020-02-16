@@ -34,7 +34,7 @@ public class VirtualMachineNetworkWatcher extends KubevirtWatcher implements Wat
 
 
 	public void eventReceived(Action action, VirtualMachineNetwork network) {
-		eventReceived(action, network.getMetadata(), network.getSpec());
+		eventReceived(action, network.getKind(), network.getMetadata(), network.getSpec());
 	}
 
 	@Override

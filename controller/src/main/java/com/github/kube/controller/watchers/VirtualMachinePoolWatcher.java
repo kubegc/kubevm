@@ -34,7 +34,7 @@ public class VirtualMachinePoolWatcher extends KubevirtWatcher implements Watche
 	}
 
 	public void eventReceived(Action action, VirtualMachinePool pool) {
-		eventReceived(action, pool.getMetadata(), pool.getSpec());
+		eventReceived(action, pool.getKind(), pool.getMetadata(), pool.getSpec());
 	}
 
 	@Override

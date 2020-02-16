@@ -3,6 +3,8 @@
  */
 package com.github.kube.controller;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -12,6 +14,7 @@ import com.github.kube.controller.watchers.VirtualMachineWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.ExtendedCustomResourceDefinitionSpec;
 
+import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
@@ -27,6 +30,17 @@ import io.fabric8.kubernetes.client.Watcher.Action;
  * AbstractWatcher provides a common method to convert VM-related CRD to Pod. 
  **/
 public abstract class KubevirtWatcher {
+	
+	
+	public static String HOSTNAME;
+	
+	static {
+		try {
+			HOSTNAME = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * m_logger
@@ -72,7 +86,12 @@ public abstract class KubevirtWatcher {
 	 * @param meta             meta
 	 * @param spec             spec
 	 */
-	public void eventReceived(Action action, ObjectMeta meta, Object spec) {
+	public synchronized void eventReceived(Action action, String kind, ObjectMeta meta, Object spec) {
+		
+		if (!lock(kind + "." + meta.getNamespace() + "." + meta.getName().toLowerCase())) {
+			return;
+		}
+		
 		try {
 			ExtendedCustomResourceDefinitionSpec espec = (ExtendedCustomResourceDefinitionSpec) spec;
 			Pod pod = convertor.createPod(meta, createAnnotations(meta.getName(), meta.getNamespace()), 
@@ -81,6 +100,36 @@ public abstract class KubevirtWatcher {
 			executor.execute(client, action, getKind(), pod);
 		} catch (Exception ex) {
 			m_logger.log(Level.SEVERE, ex.toString());
+		}
+		
+		unlock(kind + "." + meta.getNamespace() + "." + meta.getName().toLowerCase());
+	}
+
+
+	public void unlock(String name) {
+		client.configMaps().inNamespace("default").withName(name).delete();
+	}
+
+
+	public boolean lock(String name) {
+		try {
+			ConfigMap item = new ConfigMap();
+			ObjectMeta lock = new ObjectMeta();
+			lock.setName(name);
+			item.setMetadata(lock );
+			Map<String, String> data = new HashMap<String, String>();
+			data.put("host", HOSTNAME.toLowerCase());
+			item.setData(data );
+			client.configMaps().inNamespace("default").create(item);
+			return true;
+		} catch (Exception ex) {
+			ConfigMap item = client.configMaps().inNamespace("default")
+										.withName(name).get();
+			if (item == null) {
+				return false;
+			}
+			String hostname = item.getData().get("host");
+			return HOSTNAME.toLowerCase().equals(hostname) ? true : false;
 		}
 	}
 	

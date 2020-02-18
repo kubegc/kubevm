@@ -315,7 +315,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 destroy(metadata_name)
                                 time.sleep(1)
                         try:
-                            if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key):
+                            if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key) or \
+                                    _isExportVM(the_cmd_key) or _isBackupVM(the_cmd_key) or _isRestoreVM(the_cmd_key):
                                 rpcCallWithResult(cmd)
                             else:
                                 runCmd(cmd)
@@ -1897,6 +1898,21 @@ def _isMigrateVM(the_cmd_key):
 
 def _isMigrateVMDisk(the_cmd_key):
     if the_cmd_key == "migrateVMDisk":
+        return True
+    return False
+
+def _isExportVM(the_cmd_key):
+    if the_cmd_key == "exportVM":
+        return True
+    return False
+
+def _isBackupVM(the_cmd_key):
+    if the_cmd_key == "backupVM":
+        return True
+    return False
+
+def _isRestoreVM(the_cmd_key):
+    if the_cmd_key == "restoreVM":
         return True
     return False
 

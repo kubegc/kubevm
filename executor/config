@@ -114,6 +114,9 @@ setVncPassword = virsh update-device
 unsetVncPassword = virsh update-device
 setGuestPassword = virt-customize
 injectSshKey = virt-customize
+exportVM = kubesds-adm exportVM
+backupVM = kubesds-adm backupVM
+restoreVM = kubesds-adm restoreVM
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskFromDiskImage = kubesds-adm createDiskFromImage

@@ -117,6 +117,7 @@ injectSshKey = virt-customize
 exportVM = kubesds-adm exportVM
 backupVM = kubesds-adm backupVM
 restoreVM = kubesds-adm restoreVM
+passthroughUsb = /usr/bin/device-passthrough
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskFromDiskImage = kubesds-adm createDiskFromImage

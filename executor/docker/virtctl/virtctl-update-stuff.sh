@@ -45,6 +45,27 @@ rm -f /usr/bin/kubeovn-adm
 mv -f /usr/bin/kubeovn-adm.new /usr/bin/kubeovn-adm
 chmod +x /usr/bin/kubeovn-adm
 echo "--- Done: update kubeovn-adm"
+# update kubeovn-adm
+echo "+++ Processing: update kubeovn-adm"
+cp -f /home/kubevmm/bin/kubeovn-adm /usr/bin/kubeovn-adm.new
+rm -f /usr/bin/kubeovn-adm
+mv -f /usr/bin/kubeovn-adm.new /usr/bin/kubeovn-adm
+chmod +x /usr/bin/kubeovn-adm
+echo "--- Done: update kubeovn-adm"
+# update kubevirt-ctl
+echo "+++ Processing: update kubevirt-ctl"
+cp -f /home/kubevmm/bin/kubevirt-ctl /usr/bin/kubevirt-ctl.new
+rm -f /usr/bin/kubevirt-ctl
+mv -f /usr/bin/kubevirt-ctl.new /usr/bin/kubevirt-ctl
+chmod +x /usr/bin/kubevirt-ctl
+echo "--- Done: update kubevirt-ctl"
+# update device-passthrough
+echo "+++ Processing: update device-passthrough"
+cp -f /home/kubevmm/bin/device-passthrough /usr/bin/device-passthrough.new
+rm -f /usr/bin/device-passthrough
+mv -f /usr/bin/device-passthrough.new /usr/bin/device-passthrough
+chmod +x /usr/bin/device-passthrough
+echo "--- Done: update device-passthrough"
 # update vmm
 echo "+++ Processing: update vmm"
 cp -f /home/kubevmm/bin/vmm /usr/bin/vmm.new

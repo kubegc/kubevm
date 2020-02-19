@@ -44,6 +44,10 @@ gzexe ./kubeovn-adm
 cp -f kubeovn-adm ./dist
 gzexe -d ./kubeovn-adm
 rm -f ./kubeovn-adm~
+gzexe ./device-passthrough
+cp -f device-passthrough ./dist
+gzexe -d ./device-passthrough
+rm -f ./device-passthrough~
 gzexe ../scripts/kubevirt-ctl
 cp -f ../scripts/kubevirt-ctl ./dist
 gzexe -d ../scripts/kubevirt-ctl
@@ -100,7 +104,7 @@ rm -rf ./kubeext-SDS
 find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
-cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm ./dist/virt-monitor docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm ./dist/device-passthrough ./dist/kubevirt-ctl ./dist/virt-monitor docker/virtctl
 if [ $? -ne 0 ]; then
     echo "    Failed to copy stuff to docker/virtctl!"
     exit 1

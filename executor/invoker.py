@@ -1636,6 +1636,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
     graphic_operations_queue = []
     redefine_vm_operations_queue = []
     vm_agent_operations_queue = []
+    device_operations_queue = []
     if _isInstallVMFromISO(the_cmd_key):
         balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         '''
@@ -1703,12 +1704,18 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         vm_agent_operations_queue = _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)     
+    if _isPassthroughUsb(the_cmd_key):
+        config_dict = _get_fields(jsondict, the_cmd_key)
+        logger.debug(config_dict)
+        device_operations_queue = _get_device_operations_queue(the_cmd_key, config_dict, metadata_name)
+        jsondict = deleteLifecycleInJson(jsondict)
     operations_queue.extend(balloon_operation_queue)
     operations_queue.extend(network_operations_queue)
     operations_queue.extend(disk_operations_queue)
     operations_queue.extend(graphic_operations_queue)
     operations_queue.extend(redefine_vm_operations_queue)
     operations_queue.extend(vm_agent_operations_queue)
+    operations_queue.extend(device_operations_queue)
     return (jsondict, operations_queue)
 
 def _vm_snapshot_prepare_step(the_cmd_key, jsondict, metadata_name):
@@ -2014,6 +2021,11 @@ def _isSetBootOrder(the_cmd_key):
 
 def _isSetGuestPassword(the_cmd_key):
     if the_cmd_key == "setGuestPassword":
+        return True
+    return False
+
+def _isPassthroughUsb(the_cmd_key):
+    if the_cmd_key == "passthroughUsb":
         return True
     return False
 
@@ -2632,6 +2644,24 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
         return cmds
     else:
         return []
+    
+def _get_device_operations_queue(the_cmd_key, config_dict, metadata_name):
+    if _isPassthroughUsb(the_cmd_key):
+        action = config_dict.get('action')
+        subsystem = config_dict.get('subsystem') if config_dict.get('subsystem') else 'usb'
+        dev_type = config_dict.get('dev_type') if config_dict.get('dev_type') else 'usb_device'
+        bus_num = config_dict.get('bus_num')
+        dev_num = config_dict.get('dev_num')
+        live = config_dict.get('live')
+        if not bus_num or not dev_num:
+            raise ExecuteException('VirtctlError', 'Wrong parameters "bus_num" %s or "dev_num" %s.' % (bus_num, dev_num))
+        if live:
+            cmd = 'ACTION=%s SUBSYSTEM=%s DEVTYPE=%s BUSNUM=%s DEVNUM=%s LIVE=true device-passthrough %s' \
+            % (action, subsystem, dev_type, bus_num, dev_num, metadata_name)
+        else:
+            cmd = 'ACTION=%s SUBSYSTEM=%s DEVTYPE=%s BUSNUM=%s DEVNUM=%s device-passthrough %s' \
+            % (action, subsystem, dev_type, bus_num, dev_num, metadata_name)
+        return [cmd]
 
 def _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isSetGuestPassword(the_cmd_key):

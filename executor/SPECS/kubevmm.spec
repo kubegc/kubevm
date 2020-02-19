@@ -23,6 +23,7 @@ Source7:        kubesds-rpc
 Source8:        ovn-ovsdb.service
 Source9:        yum.repos.d
 Source10:       kubevirt-ctl
+Source11:       device-passthrough
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -39,6 +40,7 @@ install %{SOURCE4} %{buildroot}/%{_usr}/bin/kubeovn-adm
 install %{SOURCE6} %{buildroot}/%{_usr}/bin/kubesds-adm
 install %{SOURCE7} %{buildroot}/%{_usr}/bin/kubesds-rpc
 install %{SOURCE10} %{buildroot}/%{_usr}/bin/kubevirt-ctl
+install %{SOURCE11} %{buildroot}/%{_usr}/bin/device-passthrough
 install %{SOURCE8} %{buildroot}/%{_usr}/lib/systemd/system/ovn-ovsdb.service
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
@@ -61,6 +63,7 @@ rm -rf %{buildroot}
 /%{_usr}/bin/kubesds-adm
 /%{_usr}/bin/kubesds-rpc
 /%{_usr}/bin/kubevirt-ctl
+/%{_usr}/bin/device-passthrough
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 /etc/kubevmm/config

@@ -18,6 +18,10 @@ ADD config /home/kubevmm/bin/
 
 ADD kubeovn-adm /home/kubevmm/bin/
 
+ADD kubevirt-ctl /home/kubevmm/bin/
+
+ADD device-passthrough /home/kubevmm/bin/
+
 ADD kubevmm-adm /home/kubevmm/bin/
 
 ADD virt-monitor /home/kubevmm/bin/

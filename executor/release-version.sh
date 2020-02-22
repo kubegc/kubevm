@@ -53,8 +53,8 @@ cp -f ../scripts/kubevirt-ctl ./dist
 gzexe -d ../scripts/kubevirt-ctl
 rm -f ../scripts/kubevirt-ctl~
 cp -f ovn-ovsdb.service ./dist
-cp -f kubevmm-monitor.service ./dist
 cp -f virt-monitor-ctl ./dist
+cp -f kubevmm-monitor.service ./dist
 cp -rf ../yamls ./dist
 cp -rf ../scripts/etc/yum.repos.d ./dist
 echo ${VERSION} > ./VERSION

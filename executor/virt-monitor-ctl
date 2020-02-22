@@ -12,11 +12,7 @@ daemon_start() {
 
 daemon_stop() {
 
-    pid=`ps -ef | grep '/usr/bin/virt-monitor start' | awk '{ print $2 }'`
-
-    echo $pid
-
-    kill $pid
+    /usr/bin/virt-monitor stop
 
     sleep 1
 

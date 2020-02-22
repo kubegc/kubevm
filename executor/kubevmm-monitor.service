@@ -10,6 +10,7 @@ After=libvirtd.service
 
 [Service]
 Type=forking
+PIDFile=/var/run/virtmonitor_daemon.pid
 Restart=on-failure
 Environment=KUBECONFIG=/root/.kube/config
 ExecStart=/usr/bin/virt-monitor-ctl start

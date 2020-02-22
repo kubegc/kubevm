@@ -9,7 +9,7 @@ Requires=libvirtd.service
 After=libvirtd.service
 
 [Service]
-Type=simple
+Type=forking
 Restart=on-failure
 Environment=KUBECONFIG=/root/.kube/config
 ExecStart=/usr/bin/virt-monitor-ctl start

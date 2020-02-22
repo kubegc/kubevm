@@ -44,7 +44,7 @@ restart)
 
 *)
 
-    echo "Usage:  /usr/bin/virt-monitor {start|stop|restart}"
+    echo "Usage:  /usr/bin/virt-monitor-ctl {start|stop|restart}"
 
     exit 1
 

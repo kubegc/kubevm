@@ -11,6 +11,7 @@ After=libvirtd.service
 [Service]
 Type=simple
 Restart=on-failure
+Environment=KUBECONFIG=/root/.kube/config
 ExecStart=/usr/bin/virt-monitor-ctl start
 ExecStop=/usr/bin/virt-monitor-ctl stop
 [Install]

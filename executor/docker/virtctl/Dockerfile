@@ -30,9 +30,9 @@ ADD vmm /home/kubevmm/bin/
 
 ADD kubesds-adm /home/kubevmm/bin/
 
-ADD kubesds-rpc /home/kubevmm/bin/
+ADD kubesds-rpc-service /home/kubevmm/bin/
 
-ADD VERSION /home/kubevmm/bin
+ADD VERSION /home/kubevmm/bin/
 
 RUN rm -fr /tmp/*
 

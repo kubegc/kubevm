@@ -1,0 +1,17 @@
+# See virt-monitor(8) for details about virt-monitor.
+#
+
+
+[Unit]
+Description=kubevmm monitor
+After=syslog.target
+Requires=libvirtd.service
+After=libvirtd.service
+
+[Service]
+Type=simple
+Restart=on-failure
+ExecStart=/usr/bin/virt-monitor start
+ExecStop=/usr/bin/virt-monitor stop
+[Install]
+WantedBy=multi-user.target

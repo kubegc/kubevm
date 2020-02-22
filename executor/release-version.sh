@@ -52,7 +52,9 @@ gzexe ../scripts/kubevirt-ctl
 cp -f ../scripts/kubevirt-ctl ./dist
 gzexe -d ../scripts/kubevirt-ctl
 rm -f ../scripts/kubevirt-ctl~
-cp ovn-ovsdb.service ./dist
+cp -f ovn-ovsdb.service ./dist
+cp -f kubevmm-monitor.service ./dist
+cp -f virt-monitor.ctl ./dist
 cp -rf ../yamls ./dist
 cp -rf ../scripts/etc/yum.repos.d ./dist
 echo ${VERSION} > ./VERSION
@@ -87,17 +89,20 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <kubesds-adm>."
 fi
-pyinstaller -F kubesds-rpc.py
+pyinstaller -F kubesds-rpc-service.py
 if [ $? -ne 0 ]; then
-    echo "    Failed to compile <kubesds-rpc>!"
+    echo "    Failed to compile <kubesds-rpc-service>!"
     exit 1
 else
-    echo "    Success compile <kubesds-rpc>."
+    echo "    Success compile <kubesds-rpc-service>."
 fi
+cp -f ./kubesds-ctl.sh ../docker/virtctl
+cp -f ./kubesds-ctl.sh ../dist
+cp -f ./kubesds.service ../dist
 cp -f ./dist/kubesds-adm ../docker/virtctl
 cp -f ./dist/kubesds-adm ../dist
-cp -f ./dist/kubesds-rpc ../docker/virtctl
-cp -f ./dist/kubesds-rpc ../dist
+cp -f ./dist/kubesds-rpc-service ../docker/virtctl
+cp -f ./dist/kubesds-rpc-service ../dist
 cd ..
 rm -rf ./kubeext-SDS
 

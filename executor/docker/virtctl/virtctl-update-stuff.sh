@@ -84,12 +84,12 @@ cp -f /home/kubevmm/bin/kubesds-adm /usr/bin/kubesds-adm.new
 rm -f /usr/bin/kubesds-adm
 mv -f /usr/bin/kubesds-adm.new /usr/bin/kubesds-adm
 echo "--- Done: update kubesds-adm"
-# update kubesds-rpc
-echo "+++ Processing: update kubesds-rpc"
-cp -f /home/kubevmm/bin/kubesds-rpc /usr/bin/kubesds-rpc.new
-rm -f /usr/bin/kubesds-rpc
-mv -f /usr/bin/kubesds-rpc.new /usr/bin/kubesds-rpc
-echo "--- Done: update kubesds-rpc"
+# update kubesds-rpc-service
+echo "+++ Processing: update kubesds-rpc-service"
+cp -f /home/kubevmm/bin/kubesds-rpc-service /usr/bin/kubesds-rpc-service.new
+rm -f /usr/bin/kubesds-rpc-service
+mv -f /usr/bin/kubesds-rpc-service.new /usr/bin/kubesds-rpc-service
+echo "--- Done: update kubesds-rpc-service"
 # apply kubevirtResource.yaml
 if [ -f "/etc/kubevmm/yamls/kubevirtResource.yaml" ];then
 	echo "+++ Processing: apply new kubevirtResource.yaml"

@@ -118,7 +118,7 @@ def stop(ignore_warning=False, virtctl_only=False):
         
 def stop_kubesds_rpc(ignore_warning=False):
     _err = None
-    (_, _err) = runCmd('kubesds-rpc stop')
+    (_, _err) = runCmd('systemctl stop kubesds.service')
     if _err and not ignore_warning:
         print('do noting: %s\n' % (_err))
     return _err
@@ -132,7 +132,7 @@ def stop_virt_monitor(ignore_warning=False):
         
 def start_kubesds_rpc(ignore_warning=False):
     _err = None
-    (_, _err) = runCmd('kubesds-rpc start')
+    (_, _err) = runCmd('systemctl start kubesds.service')
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
     return _err

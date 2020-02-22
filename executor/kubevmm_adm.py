@@ -125,7 +125,7 @@ def stop_kubesds_rpc(ignore_warning=False):
         
 def stop_virt_monitor(ignore_warning=False):
     _err = None
-    (_, _err) = runCmd('virt-monitor stop')
+    (_, _err) = runCmd('systemctl stop kubevmm-monitor.service')
     if _err and not ignore_warning:
         print('do noting: %s\n' % (_err))
     return _err
@@ -135,11 +135,17 @@ def start_kubesds_rpc(ignore_warning=False):
     (_, _err) = runCmd('systemctl start kubesds.service')
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
+    (_, _err) = runCmd('systemctl enable kubesds.service')
+    if _err and not ignore_warning:
+        print('warning: %s\n' % (_err))
     return _err
         
 def start_virt_monitor(ignore_warning=False):
     _err = None
-    (_, _err) = runCmd('virt-monitor start')
+    (_, _err) = runCmd('systemctl start kubevmm-monitor.service')
+    if _err and not ignore_warning:
+        print('warning: %s\n' % (_err))
+    (_, _err) = runCmd('systemctl enable kubevmm-monitor.service')
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
     return _err

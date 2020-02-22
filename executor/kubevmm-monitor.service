@@ -11,7 +11,7 @@ After=libvirtd.service
 [Service]
 Type=simple
 Restart=on-failure
-ExecStart=/usr/bin/virt-monitor start
-ExecStop=/usr/bin/virt-monitor stop
+ExecStart=/usr/bin/virt-monitor-ctl start
+ExecStop=/usr/bin/virt-monitor-ctl stop
 [Install]
 WantedBy=multi-user.target

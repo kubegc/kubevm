@@ -1684,7 +1684,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key) or _isUpdateGraphic(the_cmd_key):
+    if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key):
         '''
         Parse graphic configurations
         '''
@@ -1692,7 +1692,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         graphic_operations_queue = _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    if _isSetBootOrder(the_cmd_key):
+    if _isSetBootOrder(the_cmd_key) or _isUpdateGraphic(the_cmd_key):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
@@ -2637,7 +2637,7 @@ def _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name):
         args = args + '--current '
     if config_dict.get('force'):
         args = args + '--force '
-    if _isSetVncPassword(the_cmd_key) or _isUpdateGraphic(the_cmd_key):
+    if _isSetVncPassword(the_cmd_key):
         plugDiskCmd = _updateDeviceFromXmlCmd(metadata_name, 'graphic', config_dict, args)
         return [plugDiskCmd]
     elif _isUnsetVncPassword(the_cmd_key):
@@ -2649,6 +2649,9 @@ def _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name):
 def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isSetBootOrder(the_cmd_key):
         cmds = _redefineVMFromXmlCmd(metadata_name, 'boot_order', config_dict)
+        return cmds
+    elif _isUpdateGraphic(the_cmd_key):
+        cmds = _redefineVMFromXmlCmd(metadata_name, 'graphic', config_dict)
         return cmds
     else:
         return []
@@ -2810,6 +2813,23 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
         for order in orders:
             cmds.append("sed -i \'/<devices>/n;/<target dev='\\''%s'\\''/a\      <boot order='\\''%d'\\''\/>\' /tmp/%s.xml" % (order, i, metadata_name))
             i = i+1
+        cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
+        return cmds
+    elif resource_type == 'graphic':
+        graphic_type = data.get('type') if data.get('type') else 'vnc'
+        password = data.get('password')
+        no_password = data.get('no_password')
+        if no_password:
+            tmpstring = '<graphics type="%s" autoport="yes" listen="0.0.0.0">' % (graphic_type)
+        elif not no_password and password:
+            tmpstring = '<graphics type="%s" passwd="%s" autoport="yes" listen="0.0.0.0">' % (graphic_type, password)
+        else:
+            raise ExecuteException('VirtctlError', 'Missing parameter "password" or "no_password".')
+        cmds = []
+        cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
+        cmd2 = 'sed -i \'/^    <graphics/c%s\' /tmp/%s.xml' %(tmpstring,metadata_name)
+        cmds.append(cmd1)
+        cmds.append(cmd2)
         cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
         return cmds
     else:

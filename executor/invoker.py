@@ -2424,6 +2424,8 @@ def _createGraphicXml(metadata_name, data, unset_vnc_password=False):
     root.setAttribute('type', graphic_type)
     if not unset_vnc_password and data.get('password'):
         root.setAttribute('passwd', data.get('password'))
+    elif not data.get('no_password') and data.get('password'):
+        root.setAttribute('passwd', data.get('password'))
     doc.appendChild(root)
     node = doc.createElement('listen')
     node.setAttribute('type', 'address')

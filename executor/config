@@ -112,6 +112,7 @@ tuneNICQoS = virsh domiftune
 setBootOrder = virsh update-device
 setVncPassword = virsh update-device
 unsetVncPassword = virsh update-device
+updateGraphic = virsh update-device
 setGuestPassword = virt-customize
 injectSshKey = virt-customize
 exportVM = kubesds-adm exportVM

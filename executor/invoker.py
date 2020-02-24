@@ -2004,6 +2004,11 @@ def _isDeleteAddress(the_cmd_key):
         return True
     return False
 
+def _isUpdateGraphic(the_cmd_key):
+    if the_cmd_key == "updateGraphic":
+        return True
+    return False
+
 def _isSetVncPassword(the_cmd_key):
     if the_cmd_key == "setVncPassword":
         return True
@@ -2415,7 +2420,8 @@ def _createGraphicXml(metadata_name, data, unset_vnc_password=False):
     '''
     doc = Document()
     root = doc.createElement('graphics')
-    root.setAttribute('type', 'vnc')
+    graphic_type = data.get('type') if data.get('type') else 'vnc'
+    root.setAttribute('type', graphic_type)
     if not unset_vnc_password and data.get('password'):
         root.setAttribute('passwd', data.get('password'))
     doc.appendChild(root)
@@ -2434,7 +2440,7 @@ def _createGraphicXml(metadata_name, data, unset_vnc_password=False):
         with open(file_path, 'w') as f:
             f.write(doc.toprettyxml(indent='\t'))
     except:
-        raise ExecuteException('VirtctlError', 'Execute plugDisk error: cannot create disk XML file \'%s\'' % file_path)  
+        raise ExecuteException('VirtctlError', 'Executing error: cannot create XML file \'%s\'' % file_path)  
     
     return file_path
 
@@ -2629,7 +2635,7 @@ def _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name):
         args = args + '--current '
     if config_dict.get('force'):
         args = args + '--force '
-    if _isSetVncPassword(the_cmd_key):
+    if _isSetVncPassword(the_cmd_key) or _isUpdateGraphic(the_cmd_key):
         plugDiskCmd = _updateDeviceFromXmlCmd(metadata_name, 'graphic', config_dict, args)
         return [plugDiskCmd]
     elif _isUnsetVncPassword(the_cmd_key):

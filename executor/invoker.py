@@ -1684,7 +1684,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key):
+    if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key) or _isUpdateGraphic(the_cmd_key):
         '''
         Parse graphic configurations
         '''

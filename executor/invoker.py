@@ -1692,7 +1692,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         graphic_operations_queue = _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    if _isSetBootOrder(the_cmd_key) or _isUpdateGraphic(the_cmd_key):
+    if _isSetBootOrder(the_cmd_key) or _isUpdateGraphic(the_cmd_key) or _isRedirectUsb(the_cmd_key):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
@@ -2006,6 +2006,11 @@ def _isDeleteAddress(the_cmd_key):
 
 def _isUpdateGraphic(the_cmd_key):
     if the_cmd_key == "updateGraphic":
+        return True
+    return False
+
+def _isRedirectUsb(the_cmd_key):
+    if the_cmd_key == "redirectUsb":
         return True
     return False
 
@@ -2653,6 +2658,9 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
     elif _isUpdateGraphic(the_cmd_key):
         cmds = _redefineVMFromXmlCmd(metadata_name, 'graphic', config_dict)
         return cmds
+    elif _isRedirectUsb(the_cmd_key):
+        cmds = _redefineVMFromXmlCmd(metadata_name, 'redirect_usb', config_dict)
+        return cmds
     else:
         return []
     
@@ -2804,7 +2812,7 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
                 raise ExecuteException('VirtctlError', 'Virtual machine %s has no device named "%s".' % (metadata_name, order))
         cmds = []
         cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
-        cmd2 = 'sed -i \'/<os>/n;/<boot /{:a;d;n;/<os\/>/!ba}\' /tmp/%s.xml' %(metadata_name)
+        cmd2 = 'sed -i \'/<os>/n;/<boot /{:a;d;n;/<\/os>/!ba}\' /tmp/%s.xml' %(metadata_name)
         cmd3 = 'sed -i \'/<domain /n;/<boot order=/{:a;d;n;/<\/domain>/!ba}\' /tmp/%s.xml' %(metadata_name)
         cmds.append(cmd1)
         cmds.append(cmd2)
@@ -2827,11 +2835,27 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
             raise ExecuteException('VirtctlError', 'Missing parameter "password" or "no_password".')
         cmds = []
         cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
-        cmd2 = 'sed -i \'/^    <graphics/c%s\' /tmp/%s.xml' %(tmpstring,metadata_name)
+        cmd2 = 'sed -i \'/^    <graphics/c\    %s\' /tmp/%s.xml' %(tmpstring,metadata_name)
         cmds.append(cmd1)
         cmds.append(cmd2)
         cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
         return cmds
+    elif resource_type == 'redirect_usb':
+        number = data.get('number') if data.get('number') else 4
+        action = data.get('action')
+        if not action or action not in ['on', 'off']:
+            raise ExecuteException('VirtctlError', 'Wrong parameter "action".')
+        cmds = []
+        cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
+        cmds.append(cmd1)
+        if action == 'on':
+            for i in xrange(0, int(number)):
+                cmd2 = 'sed -i \'/<devices>/a\    <redirdev bus="usb" type="spicevmc"\/>\' /tmp/%s.xml' %(metadata_name)
+                cmds.append(cmd2)
+        else:
+            cmd2 = 'sed -i \'/<redirdev /,/<\/redirdev>/d;\' /tmp/%s.xml' %(metadata_name)
+        cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
+        
     else:
         return []
 

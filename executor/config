@@ -112,13 +112,14 @@ tuneNICQoS = virsh domiftune
 setBootOrder = virsh update-device
 setVncPassword = virsh update-device
 unsetVncPassword = virsh update-device
-updateGraphic = virsh update-device
+updateGraphic = virsh define
 setGuestPassword = virt-customize
 injectSshKey = virt-customize
 exportVM = kubesds-adm exportVM
 backupVM = kubesds-adm backupVM
 restoreVM = kubesds-adm restoreVM
 passthroughUsb = /usr/bin/device-passthrough
+redirectUsb = virsh define
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskFromDiskImage = kubesds-adm createDiskFromImage

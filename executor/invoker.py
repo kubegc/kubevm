@@ -2849,13 +2849,16 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
         cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
         cmds.append(cmd1)
         if action == 'on':
+            cmd2 = 'sed -i \'/<redirdev /,/<\/redirdev>/d;\' /tmp/%s.xml' %(metadata_name)
+            cmds.append(cmd2)
             for i in xrange(0, int(number)):
-                cmd2 = 'sed -i \'/<devices>/a\    <redirdev bus="usb" type="spicevmc"\/>\' /tmp/%s.xml' %(metadata_name)
-                cmds.append(cmd2)
+                cmd3 = 'sed -i \'/<devices>/a\    <redirdev bus="usb" type="spicevmc"\/>\' /tmp/%s.xml' %(metadata_name)
+                cmds.append(cmd3)
         else:
             cmd2 = 'sed -i \'/<redirdev /,/<\/redirdev>/d;\' /tmp/%s.xml' %(metadata_name)
+            cmds.append(cmd2)
         cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
-        
+        return cmds
     else:
         return []
 

@@ -1327,3 +1327,15 @@ case $1 in
   help
   ;;
 esac
+dify-acl $*
+    ;;
+  "delete-qos")
+    delete-acl $*
+    ;;
+  "--help")
+    help
+    ;;
+  *)
+  help
+  ;;
+esac

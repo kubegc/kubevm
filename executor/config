@@ -175,7 +175,7 @@ unbindPortVlan = kubeovn-adm unbindport-vlan
 
 [L3NetworkSupportCmdsWithNameField]
 createSwitch = kubeovn-adm create-switch
-modidySwitch = kubeovn-adm modify-switch
+modifySwitch = kubeovn-adm modify-switch
 deleteSwitch = kubeovn-adm delete-switch
 createAddress = kubeovn-adm create-address
 modifyAddress = kubeovn-adm modify-address

@@ -117,8 +117,8 @@ else
     echo "    Success copy stuff to docker/virtctl."
 fi
 
-python -m py_compile *.py
-python -m py_compile utils/*.py
+#python -m py_compile *.py
+#python -m py_compile utils/*.py
 
 ##############################patch image#########################################
 
@@ -129,13 +129,13 @@ fi
 if [ ! -d "./docker/virtlet/utils" ]; then
 	mkdir ./docker/virtlet/utils
 fi
-cp -rf utils/*.pyc docker/virtctl/utils/
-cp -rf utils/*.pyc docker/virtlet/utils/
-cp -rf config arraylist.cfg virtctl_in_docker.pyc invoker.pyc virtctl.pyc docker/virtctl
-cp -rf config arraylist.cfg virtlet_in_docker.pyc host_cycler.pyc libvirt_event_handler_for_4_0.pyc libvirt_event_handler.pyc os_event_handler.pyc virtlet.pyc docker/virtlet
+cp -rf utils/*.py docker/virtctl/utils/
+cp -rf utils/*.py docker/virtlet/utils/
+cp -rf config arraylist.cfg virtctl_in_docker.py invoker.py virtctl.py docker/virtctl
+cp -rf config arraylist.cfg virtlet_in_docker.py host_cycler.py libvirt_event_handler_for_4_0.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
 
-rm -rf *.pyc
-rm -rf utils/*.pyc
+#rm -rf *.pyc
+#rm -rf utils/*.pyc
 
 #step 2 docker build
 cd docker

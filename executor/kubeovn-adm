@@ -42,7 +42,8 @@ TABLE_DHCP="DHCP_Options"
 ## OVN core, please install Kubernetes first
 
 MASTER=$(cat /root/.kube/config  | grep server |awk -F"server:" '{print$2}' | awk -F"https://" '{print$2}' | awk -F":" '{print$1}')
-THISIP=$(kubectl get node vm.$(hostname) -o yaml | grep -B 1 "type: InternalIP" | grep address | awk -F": " '{print$2}')
+#THISIP=$(kubectl get node vm.$(hostname) -o yaml | grep -B 1 "type: InternalIP" | grep address | awk -F": " '{print$2}')
+THISIP=$(kubectl get node vm.$(hostname) -o yaml | grep THISIP | awk -F":" 'NR==1{print$2}' | sed 's/ //g')
 
 NB_PORT="6641"
 SB_PORT="6642"
@@ -107,7 +108,7 @@ function checkDHCP()
 function start-central()
 {
   
-  start-worker
+  #start-worker
 
   systemctl start   ovn-ovsdb
   systemctl enable  ovn-ovsdb
@@ -1316,18 +1317,6 @@ case $1 in
     ;;
   "modify-qos")
     modify-acl $*
-    ;;
-  "delete-qos")
-    delete-acl $*
-    ;;
-  "--help")
-    help
-    ;;
-  *)
-  help
-  ;;
-esac
-dify-acl $*
     ;;
   "delete-qos")
     delete-acl $*

@@ -144,7 +144,7 @@ class HostCycler:
         return self.__node_status
 
     def _format_mem_to_Mi(self, mem):
-        return int(round(int(mem)))
+        return int(round(int(mem))) if int(round(int(mem))) > 0 else 0
     
     def get_node_spec(self):
         return V1NodeSpec()

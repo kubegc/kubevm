@@ -2212,7 +2212,7 @@ def _preprocessInCreateVMFromImage(jsondict):
                     del jsondict['raw_object']['spec']['lifecycle'][the_cmd_key][k]
                 else:
                     continue
-        print jsondict
+#         print jsondict
         return (jsondict, new_vm_vcpus, new_vm_memory)
     
 def _get_field(jsondict, the_cmd_key, field):

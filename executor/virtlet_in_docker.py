@@ -52,7 +52,7 @@ def main():
     if os.path.exists(TOKEN):
         config.load_kube_config(config_file=TOKEN)
         try:
-            thread_1 = Thread(target=get_libvirt_event_handler())
+            thread_1 = Thread(target=libvirt_event_handler)
             thread_1.daemon = True
             thread_1.name = 'libvirt_event_handler'
             thread_1.start()

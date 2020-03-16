@@ -7,7 +7,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 '''
  
 import os, sys, ConfigParser, traceback, time, socket
-from threading import Thread
+from multiprocessing import Process
 
 '''
 Import third party libs
@@ -57,16 +57,16 @@ class ClientDaemon(CDaemon):
         
         config.load_kube_config(config_file=TOKEN)
         try:
-            thread_1 = Thread(target=get_libvirt_event_handler())
+            thread_1 = Process(target=get_libvirt_event_handler())
             thread_1.daemon = True
             thread_1.name = 'libvirt_event_handler'
             thread_1.start()
-            thread_2 = Thread(target=os_event_handler)
+            thread_2 = Process(target=os_event_handler)
             thread_2.daemon = True
             thread_2.name = 'os_event_handler'
             thread_2.start()
 #             if not is_kubernetes_master():
-            thread_3 = Thread(target=host_cycler)
+            thread_3 = Process(target=host_cycler)
             thread_3.daemon = True
             thread_3.name = 'host_cycler'
             thread_3.start()

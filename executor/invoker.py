@@ -2373,7 +2373,10 @@ def _createDiskXml(metadata_name, data):
             driver[k] = v
         elif k == 'source':
             node = doc.createElement(k)
-            node.setAttribute('file', v)
+            if data.get('type') and data.get('type') == 'lun':
+                node.setAttribute('dev', v)
+            else:
+                node.setAttribute('file', v)
             root.appendChild(node)
         elif k == 'mode':
             node = doc.createElement(v)

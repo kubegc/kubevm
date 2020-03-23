@@ -2357,12 +2357,15 @@ def _createDiskXml(metadata_name, data):
     '''
     doc = Document()
     root = doc.createElement('disk')
-    root.setAttribute('type', 'file')
+    root.setAttribute('type', data.get('sourcetype') if data.get('sourcetype') else 'file')
     root.setAttribute('device', data.get('type') if data.get('type') else 'disk')
+    if data.get('type') and data.get('type') == 'lun':
+        root.setAttribute('sgio', data.get('sgio') if data.get('sgio') else 'unfiltered')
     doc.appendChild(root)
     driver = {}
     iotune = {}
     cache = {}
+    target_bus = data.get('targetbus') if data.get('targetbus') else None
     for k, v in data.items():
         if k == 'driver':
             driver[k] = v
@@ -2378,6 +2381,8 @@ def _createDiskXml(metadata_name, data):
         elif k == 'target':
             node = doc.createElement(k)
             node.setAttribute('dev', v)
+            if target_bus:
+                node.setAttribute('bus', target_bus)
             root.appendChild(node)
         elif k == 'read_bytes_sec':
             iotune[k] = v
@@ -2523,7 +2528,7 @@ def _network_config_parser_json(the_cmd_key, data):
         '''
         if net_type in ['l2bridge', 'l3bridge']:
             retv['virtualport'] = 'openvswitch'
-        retv['model'] = 'virtio'
+        retv['model'] = data.get('model') if data.get('model') else 'virtio'
         retv['target'] = 'fe%s' % (retv['mac'].replace(':', '')[2:])
     else:
         raise ExecuteException('VirtctlError', 'Network config error: no parameters or in wrong format, plz check it!')

@@ -120,7 +120,7 @@ backupVM = kubesds-adm backupVM
 restoreVM = kubesds-adm restoreVM
 passthroughUsb = /usr/bin/device-passthrough
 redirectUsb = virsh define
-autoStart = virsh autostart
+autostartVM = virsh autostart
 
 [VirtualMachineDiskSupportCmdsWithNameField]
 createDiskFromDiskImage = kubesds-adm createDiskFromImage

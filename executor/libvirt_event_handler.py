@@ -35,7 +35,7 @@ from xmljson import badgerfish as bf
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics
+from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics, list_autostart_vms, start
 from utils.utils import getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token
 from utils import logger
@@ -169,15 +169,20 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
-                    macs = get_macs(vm_name)
-                    for mac in macs:
-                        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
-                                (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
-                        if os.path.exists(net_cfg_file_path):
-                            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
-                            logger.debug(unbindSwPortCmd)
-                            retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
-                            logger.debug(retv)
+                    autostart_vms = list_autostart_vms()
+                    if vm_name in autostart_vms:
+                        logger.debug('**Automatic start VM**')
+                        start(vm_name)
+                    else:
+                        macs = get_macs(vm_name)
+                        for mac in macs:
+                            net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+                                    (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
+                            if os.path.exists(net_cfg_file_path):
+                                unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
+                                logger.debug(unbindSwPortCmd)
+                                retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
+                                logger.debug(retv)
                 except:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()

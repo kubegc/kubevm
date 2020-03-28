@@ -195,6 +195,23 @@ def list_active_vms():
         return vms
     finally:
         conn.close()
+        
+def list_autostart_vms():
+    '''
+    Return a list of names for active virtual machine on the minion
+
+    CLI Example::
+
+        salt '*' virt.list_active_vms
+    '''
+    conn = __get_conn()
+    try:
+        vms = []
+        for vm_ in conn.listAllDomains(libvirt.VIR_CONNECT_LIST_DOMAINS_AUTOSTART):
+            vms.append(vm_.name())
+        return vms
+    finally:
+        conn.close()
 
 
 def list_inactive_vms():
@@ -1027,7 +1044,7 @@ def runCmdAndGetResult(cmd, raise_it=True):
         p.stderr.close()
 
 if __name__ == '__main__':
-    print(get_disks_spec("vmtest222"))
+    print(list_autostart_vms())
     # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))

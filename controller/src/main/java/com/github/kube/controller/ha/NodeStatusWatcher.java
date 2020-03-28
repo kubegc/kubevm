@@ -50,7 +50,8 @@ public class NodeStatusWatcher implements Watcher<Node> {
 	}
 
 	public void onClose(KubernetesClientException cause) {
-		m_logger.log(Level.INFO, "Stop NodeStatusWatcher");
+		System.out.println(cause);
+		m_logger.log(Level.INFO, "Stop NodeStatusWatcher:" + cause);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -58,29 +59,34 @@ public class NodeStatusWatcher implements Watcher<Node> {
 	public void eventReceived(Action action, Node node) {
 
 		String nodeName = node.getMetadata().getName();
+		System.out.println(node.getMetadata().getName());
 
 		if (nodeName.startsWith("vm.") && NodeSelectorImpl.notReady(node)) {
 			Map<String, String> labels = new HashMap<String, String>();
 			labels.put("host", nodeName);
 
-			try {
-				for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
-					Status status = vm.getSpec().getStatus();
-					Map<String, Object> statusProps = status.getAdditionalProperties();
-					Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
-					Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
-					Map<String, Object> statusWait = (Map<String, Object>) (statusStat.get("waiting"));
-					statusWait.put("reason", "Shutdown");
-
-					final String statusUri = URLUtils.join(client.getMasterUrl().toString(), "apis", "cloudplus.io",
-							"v1alpha3", "namespaces", vm.getMetadata().getNamespace(), "virtualmachines",
-							vm.getMetadata().getName());
-					final RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"),
-							JSON.toJSONString(vm));
-					client.getHttpClient()
-							.newCall(new Request.Builder().method("PUT", requestBody).url(statusUri).build()).execute()
-							.close();
+			for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
+				try {
+						Status status = vm.getSpec().getStatus();
+						Map<String, Object> statusProps = status.getAdditionalProperties();
+						Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
+						Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
+						Map<String, Object> statusWait = (Map<String, Object>) (statusStat.get("waiting"));
+						statusWait.put("reason", "Shutdown");
+	
+						final String statusUri = URLUtils.join(client.getMasterUrl().toString(), 
+								"apis", "cloudplus.io", "v1alpha3", "namespaces", vm.getMetadata().getNamespace(), 
+								"virtualmachines", vm.getMetadata().getName(), "status");
+						final RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"),
+								JSON.toJSONString(vm));
+						client.getHttpClient()
+								.newCall(new Request.Builder().method("PUT", requestBody).url(statusUri).build()).execute()
+								.close();
 					
+				} catch (Exception e) {
+					System.out.println("Error to modify the VM's status:" + e.getCause());
+					m_logger.severe("Error to modify the VM's status:" + e.getCause());
+				} finally {
 					Event item = new Event();
 					ObjectReference involvedObject = new ObjectReference();
 					involvedObject.setKind(VirtualMachine.class.getSimpleName());
@@ -90,8 +96,6 @@ public class NodeStatusWatcher implements Watcher<Node> {
 					item.setReason("ShutdownVM");
 					client.events().create(item );
 				}
-			} catch (Exception e) {
-				m_logger.severe("Error to modify the VM's status:" + e.getCause());
 			}
 		}
 	}

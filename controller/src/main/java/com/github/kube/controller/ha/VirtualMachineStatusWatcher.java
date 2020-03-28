@@ -41,6 +41,8 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 
 	public void eventReceived(Action action, VirtualMachine vm) {
 		
+		System.out.println(vm.getMetadata().getName());
+		
 		String ha = vm.getMetadata().getLabels().get("ha");
 		// VM without HA setting
 		if (ha == null || ha.length() == 0 
@@ -70,8 +72,9 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 							vm.getMetadata().getName(), new StartVM());
 				} else {
 					client.virtualMachines().startVM(
-							vm.getMetadata().getName(), nodeName, new StartVM());
+							vm.getMetadata().getName(), newNode, new StartVM());
 				}
+				Thread.sleep(1000);
 			} catch (Exception e) {
 				m_logger.log(Level.SEVERE, "cannot start vm for " + e);
 			}
@@ -94,7 +97,7 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 	}
 
 	protected boolean isShutDown(Map<String, Object> status) {
-		return (status != null) && status.get("reason").equals("Shutdown");
+		return (status == null) || status.get("reason").equals("Shutdown");
 	}
 
 	@SuppressWarnings("unchecked")

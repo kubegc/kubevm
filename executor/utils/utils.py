@@ -579,6 +579,7 @@ def addPowerStatusMessage(jsondict, reason, message):
         spec = get_spec(jsondict)
         if spec:
             spec['status'] = status
+            spec['powerstate'] = reason
     return jsondict
 
 def addExceptionMessage(jsondict, reason, message):

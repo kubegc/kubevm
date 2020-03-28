@@ -65,7 +65,7 @@ public final class KubevirtController {
 	 * @throws Exception         exception
 	 */
 	public KubevirtController() throws Exception {
-		this(DEFAULT_TOKEN);
+		this(new File("conf/admin.conf").exists() ? "conf/admin.conf" : DEFAULT_TOKEN);
 	}
 	
 	/**

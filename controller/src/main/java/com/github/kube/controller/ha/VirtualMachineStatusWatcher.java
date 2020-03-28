@@ -3,6 +3,7 @@
  */
 package com.github.kube.controller.ha;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,14 +48,20 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 			return;
 		}
 
+		// get nodeName
+		String nodeName = vm.getSpec().getNodeName();
+					
 		// this vm is running or the vm is not marked as HA
-		if (isShutDown(getStatus(vm))) {
+		if (isShutDown(getStatus(vm)) && nodeName != null) {
 			
-			// get nodeName
-			String nodeName = vm.getSpec().getNodeName();
+			Map<String, String> filters = null;
+			if (vm.getMetadata().getLabels() != null && vm.getMetadata().getLabels().get("zone") != null) {
+				filters = new HashMap<String, String>();
+				filters.put("zone", vm.getMetadata().getLabels().get("zone"));
+			}
 			
 			String newNode = invalidNodeStatus(getNode(nodeName)) ? client.getNodeSelector()
-					.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName) : nodeName;
+					.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName, filters) : nodeName;
 			
 			// just start VM
 			try {
@@ -70,7 +77,6 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 			}
 		}
 	}
-
 
 	protected boolean invalidNodeStatus(Node node) {
 		return node == null 
@@ -88,15 +94,19 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 	}
 
 	protected boolean isShutDown(Map<String, Object> status) {
-		return status.get("reason").equals("Shutdown");
+		return (status != null) && status.get("reason").equals("Shutdown");
 	}
 
 	@SuppressWarnings("unchecked")
 	protected Map<String, Object> getStatus(VirtualMachine vm) {
-		Map<String, Object> statusProps = vm.getSpec().getStatus().getAdditionalProperties();	
-		Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
-		Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
-		return (Map<String, Object>) (statusStat.get("waiting"));
+		try {
+			Map<String, Object> statusProps = vm.getSpec().getStatus().getAdditionalProperties();	
+			Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
+			Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
+			return (Map<String, Object>) (statusStat.get("waiting"));
+		} catch (Exception ex) {
+			return null;
+		}
 	}
 
 	public void onClose(KubernetesClientException cause) {

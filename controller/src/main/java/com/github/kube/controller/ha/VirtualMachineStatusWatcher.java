@@ -94,7 +94,7 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 	}
 
 	protected boolean isShutDown(Map<String, Object> status) {
-		return (status != null) && status.get("reason").equals("Shutdown");
+		return (status == null) || status.get("reason").equals("Shutdown");
 	}
 
 	@SuppressWarnings("unchecked")

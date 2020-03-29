@@ -46,7 +46,7 @@ public final class KubevirtController {
 	/**
 	 * default token
 	 */
-	public final static String DEFAULT_TOKEN = "admin.conf";
+	public final static String DEFAULT_TOKEN = "/etc/kubernetes/admin.conf";
 	
 	/**
 	 * Kubernetes client, please see https://github.com/uit-plus/kubeext-jdk

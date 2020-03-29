@@ -56,10 +56,15 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 		// this vm is running or the vm is not marked as HA
 		if (isShutDown(getStatus(vm)) && nodeName != null) {
 			
-			Map<String, String> filters = null;
-			if (vm.getMetadata().getLabels() != null && vm.getMetadata().getLabels().get("zone") != null) {
-				filters = new HashMap<String, String>();
-				filters.put("zone", vm.getMetadata().getLabels().get("zone"));
+			Map<String, String> filters = new HashMap<String, String>();
+			if (vm.getMetadata().getLabels() != null) {
+				String cluster = vm.getMetadata().getLabels().get("cluster");
+				String zone = vm.getMetadata().getLabels().get("zone");
+				if (zone != null) {
+					filters.put("zone", zone);
+				} else if (cluster != null) {
+					filters.put("cluster", cluster);
+				} 
 			}
 			
 			String newNode = invalidNodeStatus(getNode(nodeName)) ? client.getNodeSelector()
@@ -67,14 +72,15 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 			
 			// just start VM
 			try {
-				if (nodeName.equals(newNode)) {
-					client.virtualMachines().startVM(
-							vm.getMetadata().getName(), new StartVM());
+				if (newNode == null || newNode.length() == 0) {
+					m_logger.log(Level.SEVERE, "cannot find avaiable nodes");
+				} else if (nodeName.equals(newNode)) {
+					client.virtualMachines().startVMWithPower(
+							vm.getMetadata().getName(), nodeName , new StartVM(), "Starting");
 				} else {
-					client.virtualMachines().startVM(
-							vm.getMetadata().getName(), newNode, new StartVM());
+					client.virtualMachines().startVMWithPower(
+							vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
 				}
-				Thread.sleep(1000);
 			} catch (Exception e) {
 				m_logger.log(Level.SEVERE, "cannot start vm for " + e);
 			}
@@ -82,10 +88,14 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 	}
 
 	protected boolean invalidNodeStatus(Node node) {
-		return node == null 
+		try {
+			return node == null 
 				|| NodeSelectorImpl.isMaster(node) 
 				|| NodeSelectorImpl.notReady(node) 
 				|| NodeSelectorImpl.unSched(node);
+		} catch (Exception ex) {
+			return true;
+		}
 	}
 
 	protected Node getNode(String nodeName) {
@@ -96,20 +106,20 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 		}
 	}
 
-	protected boolean isShutDown(Map<String, Object> status) {
-		return (status == null) || status.get("reason").equals("Shutdown");
+	protected boolean isShutDown(String status) {
+		return (status == null) || status.equals("Shutdown");
 	}
 
-	@SuppressWarnings("unchecked")
-	protected Map<String, Object> getStatus(VirtualMachine vm) {
-		try {
-			Map<String, Object> statusProps = vm.getSpec().getStatus().getAdditionalProperties();	
-			Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
-			Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
-			return (Map<String, Object>) (statusStat.get("waiting"));
-		} catch (Exception ex) {
-			return null;
-		}
+	protected String getStatus(VirtualMachine vm) {
+//		try {
+//			Map<String, Object> statusProps = vm.getSpec().getStatus().getAdditionalProperties();	
+//			Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
+//			Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
+//			return (Map<String, Object>) (statusStat.get("waiting"));
+//		} catch (Exception ex) {
+//			return null;
+//		}
+		return vm.getSpec().getPowerstate();
 	}
 
 	public void onClose(KubernetesClientException cause) {

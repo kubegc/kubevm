@@ -66,23 +66,6 @@ public class NodeStatusWatcher implements Watcher<Node> {
 					
 					vm.getSpec().setPowerstate("Shutdown");
 					client.virtualMachines().update(vm);
-//						Status status = vm.getSpec().getStatus();
-//						Map<String, Object> statusProps = status.getAdditionalProperties();
-//						Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
-//						Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
-//						Map<String, Object> statusWait = (Map<String, Object>) (statusStat.get("waiting"));
-//						statusWait.put("reason", "Shutdown");
-//	
-//						final String statusUri = URLUtils.join(client.getMasterUrl().toString(), 
-//								"apis", "cloudplus.io", "v1alpha3", "namespaces", vm.getMetadata().getNamespace(), 
-//								"virtualmachines", vm.getMetadata().getName());
-//						System.out.println(statusUri);
-//						final RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"),
-//								JSON.toJSONString(vm));
-//						client.getHttpClient()
-//								.newCall(new Request.Builder().method("POST", requestBody).url(statusUri).build()).execute()
-//								.close();
-					
 				} catch (Exception e) {
 					System.out.println("Error to modify the VM's status:" + e.getCause());
 					m_logger.severe("Error to modify the VM's status:" + e.getCause());

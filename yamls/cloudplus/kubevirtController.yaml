@@ -22,10 +22,10 @@ spec:
         node-role.kubernetes.io/master: ""
       hostNetwork: true
       containers:
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-controller-manager:v1.6.0
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-controller-manager:v1.7.0
         imagePullPolicy: Always
         name: kubevirt-controller-manager
-        command: [ "java", "-jar", "kubevirt-controller-1.6.0-jar-with-dependencies.jar" ]
+        command: [ "java", "-jar", "kubevirt-controller-1.7.0.jar" ]
         volumeMounts:
         - name: admin
           mountPath: /etc/kubernetes

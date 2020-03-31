@@ -41,8 +41,6 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 
 	public void eventReceived(Action action, VirtualMachine vm) {
 		
-		System.out.println(vm.getMetadata().getName());
-		
 		String ha = vm.getMetadata().getLabels().get("ha");
 		// VM without HA setting
 		if (ha == null || ha.length() == 0 
@@ -80,6 +78,12 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 				} else {
 					client.virtualMachines().startVMWithPower(
 							vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
+					VirtualMachine thisVM = client.virtualMachines().get(vm.getMetadata().getName());
+					if (isStartError(thisVM)) {
+						thisVM.getSpec().setPowerstate("Shutdown");
+						client.virtualMachines().update(thisVM);
+					}
+					//"RunCmdError"
 				}
 			} catch (Exception e) {
 				m_logger.log(Level.SEVERE, "cannot start vm for " + e);
@@ -108,6 +112,18 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 
 	protected boolean isShutDown(String status) {
 		return (status == null) || status.equals("Shutdown");
+	}
+	
+	protected boolean isStartError(VirtualMachine vm) {
+		try {
+			Map<String, Object> statusProps = vm.getSpec().getStatus().getAdditionalProperties();	
+			Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
+			Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
+			Map<String, Object> statusObj  = (Map<String, Object>) (statusStat.get("waiting"));
+			return statusObj.get("reason").equals("RunCmdError");
+		} catch (Exception ex) {
+			return true;
+		}
 	}
 
 	protected String getStatus(VirtualMachine vm) {

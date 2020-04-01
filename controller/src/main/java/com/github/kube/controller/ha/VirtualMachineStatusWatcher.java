@@ -42,10 +42,7 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 
 	public void eventReceived(Action action, VirtualMachine vm) {
 		
-		String ha = vm.getMetadata().getLabels().get("ha");
-		// VM without HA setting
-		if (ha == null || ha.length() == 0 
-					|| !ha.equals("true")) {
+		if(!enableHA(vm)) {
 			return;
 		}
 
@@ -55,7 +52,7 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 		// this vm is running or the vm is not marked as HA
 		if (isShutDown(getStatus(vm)) && nodeName != null) {
 			
-			m_logger.log(Level.INFO, "plan to start VM " + vm.getMetadata().getName());
+			m_logger.log(Level.INFO, "Plan to start VM " + vm.getMetadata().getName());
 			Map<String, String> filters = new HashMap<String, String>();
 			if (vm.getMetadata().getLabels() != null) {
 				String cluster = vm.getMetadata().getLabels().get("cluster");
@@ -82,16 +79,21 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 							vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
 					client.virtualMachines().get(vm.getMetadata().getName());
 					m_logger.log(Level.INFO, "Start VM " + vm.getMetadata().getName() + " on the node " + newNode);
-//					if (isStartError(thisVM)) {
-//						thisVM.getSpec().setPowerstate("Shutdown");
-//						client.virtualMachines().update(thisVM);
-//					}
-					//"RunCmdError"
 				}
 			} catch (Exception e) {
 				m_logger.log(Level.SEVERE, "cannot start vm for " + e);
 			}
 		}
+	}
+
+	public static boolean enableHA(VirtualMachine vm) {
+		String ha = vm.getMetadata().getLabels().get("ha");
+		// VM without HA setting
+		if (ha == null || ha.length() == 0 
+					|| !ha.equals("true")) {
+			return false;
+		}
+		return true;
 	}
 
 	protected boolean invalidNodeStatus(Node node) {
@@ -117,27 +119,8 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 		return (status == null) || status.equals("Shutdown");
 	}
 	
-	protected boolean isStartError(VirtualMachine vm) {
-		try {
-			Map<String, Object> statusProps = vm.getSpec().getStatus().getAdditionalProperties();	
-			Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
-			Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
-			Map<String, Object> statusObj  = (Map<String, Object>) (statusStat.get("waiting"));
-			return statusObj.get("reason").equals("RunCmdError");
-		} catch (Exception ex) {
-			return true;
-		}
-	}
 
 	protected String getStatus(VirtualMachine vm) {
-//		try {
-//			Map<String, Object> statusProps = vm.getSpec().getStatus().getAdditionalProperties();	
-//			Map<String, Object> statusCond = (Map<String, Object>) (statusProps.get("conditions"));
-//			Map<String, Object> statusStat = (Map<String, Object>) (statusCond.get("state"));
-//			return (Map<String, Object>) (statusStat.get("waiting"));
-//		} catch (Exception ex) {
-//			return null;
-//		}
 		return vm.getSpec().getPowerstate();
 	}
 

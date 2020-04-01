@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -19,7 +20,11 @@ import com.github.kube.controller.ha.NodeStatusWatcher;
 import com.github.kube.controller.ha.VirtualMachineStatusWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
 import com.github.kubesys.kubernetes.api.model.VirtualMachine;
+import com.github.kubesys.kubernetes.api.model.virtualmachine.Lifecycle.StartVM;
+import com.github.kubesys.kubernetes.impl.NodeSelectorImpl;
+import com.github.kubesys.kubernetes.impl.NodeSelectorImpl.Policy;
 
+import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.Watcher;
@@ -133,6 +138,56 @@ public final class KubevirtController {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public void startAllWatchers() throws Exception {
 		
+		for (Node node : client.nodes().list().getItems()) {
+			String nodeName = node.getMetadata().getName();
+			if (NodeSelectorImpl.isMaster(node) 
+					|| !nodeName.startsWith("vm") 
+					|| !NodeSelectorImpl.notReady(node)) {
+				continue;
+			}
+			
+			Map<String, String> labels = new HashMap<String, String>();
+			labels.put("host", nodeName);
+			for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
+				if (VirtualMachineStatusWatcher.enableHA(vm)) {
+					if (isShutDown(getStatus(vm)) && nodeName != null) {
+						
+						m_logger.log(Level.INFO, "Plan to start VM " + vm.getMetadata().getName());
+						Map<String, String> filters = new HashMap<String, String>();
+						if (vm.getMetadata().getLabels() != null) {
+							String cluster = vm.getMetadata().getLabels().get("cluster");
+							String zone = vm.getMetadata().getLabels().get("zone");
+							if (zone != null) {
+								filters.put("zone", zone);
+							} else if (cluster != null) {
+								filters.put("cluster", cluster);
+							} 
+						}
+						
+						String newNode = client.getNodeSelector().getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName, filters);
+						
+						m_logger.log(Level.INFO, "Select node " + newNode + " for VM " + vm.getMetadata().getName());
+						// just start VM
+						try {
+							if (newNode == null || newNode.length() == 0) {
+								m_logger.log(Level.SEVERE, "cannot find avaiable nodes");
+							} else if (nodeName.equals(newNode)) {
+								m_logger.log(Level.INFO, "Cannot start VM " + vm.getMetadata().getName() + " on the same machine.");
+							} else {
+								client.virtualMachines().startVMWithPower(
+										vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
+								client.virtualMachines().get(vm.getMetadata().getName());
+								m_logger.log(Level.INFO, "Start VM " + vm.getMetadata().getName() + " on the node " + newNode);
+							}
+						} catch (Exception e) {
+							m_logger.log(Level.SEVERE, "cannot start vm for " + e);
+						}
+					}
+				}
+			}
+		}
+		
+		
 		for (Method watcher : findAllWatchersBy(client.getClass())) {
 			startWatcher(watcher);
 		}
@@ -140,6 +195,14 @@ public final class KubevirtController {
 										VirtualMachine.class.getSimpleName());
 		vmWatcher.watch(new VirtualMachineStatusWatcher(client));
 		client.nodes().watch(new NodeStatusWatcher(client));
+	}
+	
+	protected String getStatus(VirtualMachine vm) {
+		return vm.getSpec().getPowerstate();
+	}
+	
+	protected boolean isShutDown(String status) {
+		return (status == null) || status.equals("Shutdown");
 	}
 
 	/**

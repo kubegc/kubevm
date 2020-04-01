@@ -138,7 +138,7 @@ public final class KubevirtController {
 	 * @throws Exception               exception 
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void startAllWatchers() throws Exception {
+	public synchronized void startAllWatchers() throws Exception {
 		
 		for (Node node : client.nodes().list().getItems()) {
 			String nodeName = node.getMetadata().getName();
@@ -157,23 +157,55 @@ public final class KubevirtController {
 				try {
 					
 					m_logger.log(Level.INFO, "Check VM " + vm.getMetadata().getName() + "'s power status.");
-					vm.getSpec().setPowerstate("Shutdown");
-					client.virtualMachines().update(vm);
-					m_logger.log(Level.INFO, "Update VM " + vm.getMetadata().getName() + " status to Shutdown.");
+					String power = vm.getSpec().getPowerstate();
+					if (power != null && !"Shutdown".equals(power)) {
+						vm.getSpec().setPowerstate("Shutdown");
+						client.virtualMachines().update(vm);
+						m_logger.log(Level.INFO, "Update VM " + vm.getMetadata().getName() + " status to Shutdown.");
+					} else {
+						m_logger.log(Level.INFO, "VM " + vm.getMetadata().getName() + "'s status is already Shutdown.");
+					}
+					
+					if(!NodeStatusWatcher.enableHA(vm)) {
+						continue;
+					}
+					
+					m_logger.log(Level.INFO, "Plan to start VM " + vm.getMetadata().getName() + "on another machine.");
+					Map<String, String> filters = new HashMap<String, String>();
+					if (vm.getMetadata().getLabels() != null) {
+						String cluster = vm.getMetadata().getLabels().get("cluster");
+						String zone = vm.getMetadata().getLabels().get("zone");
+						if (zone != null) {
+							filters.put("zone", zone);
+						} else if (cluster != null) {
+							filters.put("cluster", cluster);
+						} 
+					}
+					
+					String newNode = client.getNodeSelector()
+							.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName, filters);
+					
+					m_logger.log(Level.INFO, "Select node " + newNode + " for VM " + vm.getMetadata().getName());
+					// just start VM
+					try {
+						if (newNode == null || newNode.length() == 0) {
+							m_logger.log(Level.SEVERE, "cannot find avaiable nodes");
+						} else if (nodeName.equals(newNode)) {
+							m_logger.log(Level.INFO, "Cannot start VM " + vm.getMetadata().getName() + " on the same machine.");
+						} else {
+							client.virtualMachines().startVMWithPower(
+									vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
+							client.virtualMachines().get(vm.getMetadata().getName());
+							m_logger.log(Level.INFO, "Start VM " + vm.getMetadata().getName() + " on the node " + newNode);
+						}
+					} catch (Exception e) {
+						m_logger.log(Level.SEVERE, "cannot start vm for " + e);
+					}
+					
 				} catch (Exception e) {
 					System.out.println("Error to modify the VM's status:" + e.getCause());
 					m_logger.severe("Error to modify the VM's status:" + e.getCause());
 				} 
-//				finally {
-//					Event item = new Event();
-//					ObjectReference involvedObject = new ObjectReference();
-//					involvedObject.setKind(VirtualMachine.class.getSimpleName());
-//					involvedObject.setName(vm.getMetadata().getName());
-//					involvedObject.setNamespace(vm.getMetadata().getNamespace());
-//					item.setInvolvedObject(involvedObject );
-//					item.setReason("ShutdownVM");
-//					client.events().create(item );
-//				}
 			}
 		}
 		
@@ -181,9 +213,9 @@ public final class KubevirtController {
 		for (Method watcher : findAllWatchersBy(client.getClass())) {
 			startWatcher(watcher);
 		}
-		MixedOperation vmWatcher = ExtendedKubernetesClient.crdClients.get(
-										VirtualMachine.class.getSimpleName());
-		vmWatcher.watch(new VirtualMachineStatusWatcher(client));
+//		MixedOperation vmWatcher = ExtendedKubernetesClient.crdClients.get(
+//										VirtualMachine.class.getSimpleName());
+//		vmWatcher.watch(new VirtualMachineStatusWatcher(client));
 		client.nodes().watch(new NodeStatusWatcher(client));
 	}
 	

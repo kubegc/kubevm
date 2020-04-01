@@ -24,7 +24,9 @@ import com.github.kubesys.kubernetes.api.model.virtualmachine.Lifecycle.StartVM;
 import com.github.kubesys.kubernetes.impl.NodeSelectorImpl;
 import com.github.kubesys.kubernetes.impl.NodeSelectorImpl.Policy;
 
+import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.ObjectReference;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.Watcher;
@@ -145,44 +147,35 @@ public final class KubevirtController {
 					|| !NodeSelectorImpl.notReady(node)) {
 				continue;
 			}
-			
+
 			Map<String, String> labels = new HashMap<String, String>();
 			labels.put("host", nodeName);
+
 			for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
-				if (VirtualMachineStatusWatcher.enableHA(vm)) {
-					if (isShutDown(getStatus(vm)) && nodeName != null) {
-						
-						m_logger.log(Level.INFO, "Plan to start VM " + vm.getMetadata().getName());
-						Map<String, String> filters = new HashMap<String, String>();
-						if (vm.getMetadata().getLabels() != null) {
-							String cluster = vm.getMetadata().getLabels().get("cluster");
-							String zone = vm.getMetadata().getLabels().get("zone");
-							if (zone != null) {
-								filters.put("zone", zone);
-							} else if (cluster != null) {
-								filters.put("cluster", cluster);
-							} 
-						}
-						
-						String newNode = client.getNodeSelector().getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName, filters);
-						
-						m_logger.log(Level.INFO, "Select node " + newNode + " for VM " + vm.getMetadata().getName());
-						// just start VM
-						try {
-							if (newNode == null || newNode.length() == 0) {
-								m_logger.log(Level.SEVERE, "cannot find avaiable nodes");
-							} else if (nodeName.equals(newNode)) {
-								m_logger.log(Level.INFO, "Cannot start VM " + vm.getMetadata().getName() + " on the same machine.");
-							} else {
-								client.virtualMachines().startVMWithPower(
-										vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
-								client.virtualMachines().get(vm.getMetadata().getName());
-								m_logger.log(Level.INFO, "Start VM " + vm.getMetadata().getName() + " on the node " + newNode);
-							}
-						} catch (Exception e) {
-							m_logger.log(Level.SEVERE, "cannot start vm for " + e);
-						}
+				try {
+					
+					m_logger.log(Level.INFO, "Check VM " + vm.getMetadata().getName() + "'s power status.");
+					String power = vm.getSpec().getPowerstate();
+					if (power == null || "".equals(power) || "Shutdown".equals(power)) {
+						m_logger.log(Level.INFO, "VM " + vm.getMetadata().getName() + " is already shutdown.");
+						continue;
 					}
+					
+					vm.getSpec().setPowerstate("Shutdown");
+					client.virtualMachines().update(vm);
+					m_logger.log(Level.INFO, "Update VM " + vm.getMetadata().getName() + " status to Shutdown.");
+				} catch (Exception e) {
+					System.out.println("Error to modify the VM's status:" + e.getCause());
+					m_logger.severe("Error to modify the VM's status:" + e.getCause());
+				} finally {
+					Event item = new Event();
+					ObjectReference involvedObject = new ObjectReference();
+					involvedObject.setKind(VirtualMachine.class.getSimpleName());
+					involvedObject.setName(vm.getMetadata().getName());
+					involvedObject.setNamespace(vm.getMetadata().getNamespace());
+					item.setInvolvedObject(involvedObject );
+					item.setReason("ShutdownVM");
+					client.events().create(item );
 				}
 			}
 		}

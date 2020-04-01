@@ -17,6 +17,7 @@ import com.github.kubesys.kubernetes.impl.NodeSelectorImpl.Policy;
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
 
 /**
  * @author shizhonghao17@otcaix.iscas.ac.cn
@@ -73,8 +74,9 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 				if (newNode == null || newNode.length() == 0) {
 					m_logger.log(Level.SEVERE, "cannot find avaiable nodes");
 				} else if (nodeName.equals(newNode)) {
-					client.virtualMachines().startVMWithPower(
-							vm.getMetadata().getName(), nodeName , new StartVM(), "Starting");
+//					client.virtualMachines().startVMWithPower(
+//							vm.getMetadata().getName(), nodeName , new StartVM(), "Starting");
+					// ignore this condition
 				} else {
 					client.virtualMachines().startVMWithPower(
 							vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
@@ -139,7 +141,10 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 	}
 
 	public void onClose(KubernetesClientException cause) {
-		m_logger.log(Level.INFO, "Stop VirtualMachineStatusWatcher");
+		m_logger.log(Level.INFO, "Stop VirtualMachineStatusWatcher:" + cause);
+		MixedOperation vmWatcher = ExtendedKubernetesClient.crdClients.get(
+				VirtualMachine.class.getSimpleName());
+		vmWatcher.watch(new VirtualMachineStatusWatcher(client));
 	}
 
 }

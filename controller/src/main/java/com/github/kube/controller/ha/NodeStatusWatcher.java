@@ -46,6 +46,7 @@ public class NodeStatusWatcher implements Watcher<Node> {
 	public void onClose(KubernetesClientException cause) {
 		System.out.println(cause);
 		m_logger.log(Level.INFO, "Stop NodeStatusWatcher:" + cause);
+		client.nodes().watch(new NodeStatusWatcher(client));
 	}
 
 	@Override

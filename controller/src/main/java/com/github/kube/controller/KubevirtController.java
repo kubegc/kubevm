@@ -142,12 +142,14 @@ public final class KubevirtController {
 		
 		for (Node node : client.nodes().list().getItems()) {
 			String nodeName = node.getMetadata().getName();
+			m_logger.info("Check node " + nodeName);
 			if (NodeSelectorImpl.isMaster(node) 
 					|| !nodeName.startsWith("vm") 
 					|| !NodeSelectorImpl.notReady(node)) {
 				continue;
 			}
 
+			m_logger.info("Node " + nodeName + " is not ready.");
 			Map<String, String> labels = new HashMap<String, String>();
 			labels.put("host", nodeName);
 

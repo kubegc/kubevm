@@ -55,6 +55,7 @@ public class NodeStatusWatcher implements Watcher<Node> {
 		String nodeName = node.getMetadata().getName();
 
 		if (nodeName.startsWith("vm.") && NodeSelectorImpl.notReady(node)) {
+			m_logger.log(Level.INFO, "Node " + nodeName + " is shutdown.");
 			Map<String, String> labels = new HashMap<String, String>();
 			labels.put("host", nodeName);
 

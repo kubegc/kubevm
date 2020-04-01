@@ -169,16 +169,17 @@ public final class KubevirtController {
 				} catch (Exception e) {
 					System.out.println("Error to modify the VM's status:" + e.getCause());
 					m_logger.severe("Error to modify the VM's status:" + e.getCause());
-				} finally {
-					Event item = new Event();
-					ObjectReference involvedObject = new ObjectReference();
-					involvedObject.setKind(VirtualMachine.class.getSimpleName());
-					involvedObject.setName(vm.getMetadata().getName());
-					involvedObject.setNamespace(vm.getMetadata().getNamespace());
-					item.setInvolvedObject(involvedObject );
-					item.setReason("ShutdownVM");
-					client.events().create(item );
-				}
+				} 
+//				finally {
+//					Event item = new Event();
+//					ObjectReference involvedObject = new ObjectReference();
+//					involvedObject.setKind(VirtualMachine.class.getSimpleName());
+//					involvedObject.setName(vm.getMetadata().getName());
+//					involvedObject.setNamespace(vm.getMetadata().getNamespace());
+//					item.setInvolvedObject(involvedObject );
+//					item.setReason("ShutdownVM");
+//					client.events().create(item );
+//				}
 			}
 		}
 		

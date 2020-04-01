@@ -60,13 +60,17 @@ public class NodeStatusWatcher implements Watcher<Node> {
 
 			for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
 				try {
+					
+					m_logger.log(Level.INFO, "Check VM " + vm.getMetadata().getName() + "'s power status.");
 					String power = vm.getSpec().getPowerstate();
 					if (power == null || "".equals(power) || "Shutdown".equals(power)) {
+						m_logger.log(Level.INFO, "VM " + vm.getMetadata().getName() + " is already shutdown.");
 						continue;
 					}
 					
 					vm.getSpec().setPowerstate("Shutdown");
 					client.virtualMachines().update(vm);
+					m_logger.log(Level.INFO, "Update VM " + vm.getMetadata().getName() + " status to Shutdown.");
 				} catch (Exception e) {
 					System.out.println("Error to modify the VM's status:" + e.getCause());
 					m_logger.severe("Error to modify the VM's status:" + e.getCause());

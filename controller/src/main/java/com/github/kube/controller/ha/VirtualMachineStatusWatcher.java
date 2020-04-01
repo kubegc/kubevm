@@ -55,6 +55,7 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 		// this vm is running or the vm is not marked as HA
 		if (isShutDown(getStatus(vm)) && nodeName != null) {
 			
+			m_logger.log(Level.INFO, "plan to start VM " + vm.getMetadata().getName());
 			Map<String, String> filters = new HashMap<String, String>();
 			if (vm.getMetadata().getLabels() != null) {
 				String cluster = vm.getMetadata().getLabels().get("cluster");
@@ -69,22 +70,22 @@ public class VirtualMachineStatusWatcher implements Watcher<VirtualMachine> {
 			String newNode = invalidNodeStatus(getNode(nodeName)) ? client.getNodeSelector()
 					.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName, filters) : nodeName;
 			
+			m_logger.log(Level.INFO, "Select node " + newNode + " for VM " + vm.getMetadata().getName());
 			// just start VM
 			try {
 				if (newNode == null || newNode.length() == 0) {
 					m_logger.log(Level.SEVERE, "cannot find avaiable nodes");
 				} else if (nodeName.equals(newNode)) {
-//					client.virtualMachines().startVMWithPower(
-//							vm.getMetadata().getName(), nodeName , new StartVM(), "Starting");
-					// ignore this condition
+					m_logger.log(Level.INFO, "Cannot start VM " + vm.getMetadata().getName() + " on the same machine.");
 				} else {
 					client.virtualMachines().startVMWithPower(
 							vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
-					VirtualMachine thisVM = client.virtualMachines().get(vm.getMetadata().getName());
-					if (isStartError(thisVM)) {
-						thisVM.getSpec().setPowerstate("Shutdown");
-						client.virtualMachines().update(thisVM);
-					}
+					client.virtualMachines().get(vm.getMetadata().getName());
+					m_logger.log(Level.INFO, "Start VM " + vm.getMetadata().getName() + " on the node " + newNode);
+//					if (isStartError(thisVM)) {
+//						thisVM.getSpec().setPowerstate("Shutdown");
+//						client.virtualMachines().update(thisVM);
+//					}
 					//"RunCmdError"
 				}
 			} catch (Exception e) {

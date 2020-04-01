@@ -31,8 +31,8 @@ from kubernetes.client.models.v1_node_address import V1NodeAddress
 Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active
-from utils.utils import CDaemon, runCmd, get_hostname_in_lower_case
+from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
+from utils.utils import CDaemon, runCmd, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -68,7 +68,8 @@ def main():
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
             if ha_check:
                 for vm in list_vms():
-                    _ha_check_vm_in_libvirt(GROUP, VERSION, PLURAL, vm)
+                    _check_vm_by_hosting_node(GROUP, VERSION, PLURAL, vm)
+                    _check_ha_and_autostart_vm(GROUP, VERSION, PLURAL, vm)
                 ha_check = False
             if restart_service:
                 runCmd('kubevmm-adm service restart --virtctl-only')
@@ -80,10 +81,10 @@ def main():
             restart_service = True
             continue
         
-def _ha_check_vm_in_libvirt(group, version, plural, metadata_name):
+def _check_vm_by_hosting_node(group, version, plural, metadata_name):
     try:
-        logger.debug('Doing HA verification for VM: %s' % metadata_name)
-        node_name = _get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
+        logger.debug('1.Doing hosting node verification for VM: %s' % metadata_name)
+        node_name = get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
         if not node_name:
             logger.debug('Delete VM %s because it is not hosting by the Kubernetes cluster.' % (metadata_name))
             if is_vm_active(metadata_name):
@@ -97,6 +98,17 @@ def _ha_check_vm_in_libvirt(group, version, plural, metadata_name):
                 destroy(metadata_name)
                 time.sleep(1)
             undefine(metadata_name)    
+    except:
+        logger.error('Oops! ', exc_info=1)
+        
+def _check_ha_and_autostart_vm(group, version, plural, metadata_name):
+    try:
+        logger.debug('2.Doing HA verification for VM: %s' % metadata_name)
+        ha = get_ha_from_kubernetes(group, version, 'default', plural, metadata_name)
+        if ha:
+            logger.debug('Autostart HA VM: %s.' % (metadata_name))
+            if not is_vm_active(metadata_name):
+                start(metadata_name)
     except:
         logger.error('Oops! ', exc_info=1)
 
@@ -115,17 +127,6 @@ def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
     with open(backup_file, "w") as f1:
         f1.write(dumps(jsonStr))
-            
-def _get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
-    try:
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
-    except ApiException, e:
-        if e.reason == 'Not Found':
-            return None
-        else:
-            raise e
-    return jsonStr['metadata']['labels']['host']
 
 class HostCycler:
     

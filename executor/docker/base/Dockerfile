@@ -6,7 +6,7 @@ RUN yum install centos-release-openstack-rocky.noarch -y
 
 RUN yum install usbutils libguestfs-tools-c virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install qemu-kvm -y
 
-RUN yum install glusterfs-client-xlators glusterfs-cli lusterfs-extra-xlators glusterfs-fuse iscsiadm -y
+# RUN yum install glusterfs-client-xlators glusterfs-cli glusterfs-extra-xlators glusterfs-fuse iscsiadm -y
 
 RUN yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec -y
 

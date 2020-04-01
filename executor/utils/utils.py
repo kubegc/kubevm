@@ -276,6 +276,31 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     except:
         return None
     
+def get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            return None
+        else:
+            raise e
+    return jsonStr['metadata']['labels']['host']
+
+def get_ha_from_kubernetes(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            return False
+        else:
+            raise e
+    if 'ha' in jsonStr['metadata']['labels'].keys():
+        return True
+    else:
+        return False
+    
 def get_field(jsondict, index):
     retv = None
     '''

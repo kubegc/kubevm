@@ -35,9 +35,9 @@ from xmljson import badgerfish as bf
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics, list_autostart_vms, start
+from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics, start
 from utils.utils import getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
-    runCmdRaiseException, runCmd, modify_token
+    runCmdRaiseException, runCmd, modify_token, get_ha_from_kubernetes
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -169,9 +169,10 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
             if kwargs.has_key('event') and str(DOM_EVENTS[kwargs['event']]) == "Stopped":
                 try:
                     logger.debug('Callback domain shutdown to virtlet')
-                    autostart_vms = list_autostart_vms()
-                    if vm_name in autostart_vms:
-                        logger.debug('**Automatic start VM**')
+                    if get_ha_from_kubernetes(GROUP, VERSION, 'default', PLURAL, vm_name):
+#                     autostart_vms = list_autostart_vms()
+#                     if vm_name in autostart_vms:
+#                         logger.debug('**Automatic start VM**')
                         start(vm_name)
                     else:
                         macs = get_macs(vm_name)

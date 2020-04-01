@@ -58,7 +58,7 @@ public class NodeStatusWatcher implements Watcher<Node> {
 			m_logger.log(Level.INFO, "Node " + nodeName + " is shutdown.");
 			Map<String, String> labels = new HashMap<String, String>();
 			labels.put("host", nodeName);
-
+			m_logger.log(Level.INFO, "Labels are " + labels);
 			for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
 				try {
 					

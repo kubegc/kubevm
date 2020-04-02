@@ -8,7 +8,6 @@ import java.io.FileInputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -16,21 +15,13 @@ import java.util.logging.Logger;
 
 import org.yaml.snakeyaml.Yaml;
 
-import com.github.kube.controller.ha.NodeStatusWatcher;
-import com.github.kube.controller.ha.VirtualMachineStatusWatcher;
+import com.github.kube.controller.ha.VirtualMachineHA;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
-import com.github.kubesys.kubernetes.api.model.VirtualMachine;
-import com.github.kubesys.kubernetes.api.model.virtualmachine.Lifecycle.StartVM;
-import com.github.kubesys.kubernetes.impl.NodeSelectorImpl;
-import com.github.kubesys.kubernetes.impl.NodeSelectorImpl.Policy;
 
-import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.Node;
-import io.fabric8.kubernetes.api.model.ObjectReference;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.Watcher;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
 
 /**
  * @author wuheng@otcaix.iscas.ac.cn
@@ -137,95 +128,20 @@ public final class KubevirtController {
 	 * 
 	 * @throws Exception               exception 
 	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public synchronized void startAllWatchers() throws Exception {
 		
 		for (Node node : client.nodes().list().getItems()) {
-			String nodeName = node.getMetadata().getName();
-			m_logger.info("Check node " + nodeName);
-			if (NodeSelectorImpl.isMaster(node) 
-					|| !nodeName.startsWith("vm") 
-					|| !NodeSelectorImpl.notReady(node)) {
-				continue;
-			}
-
-			m_logger.info("Node " + nodeName + " is not ready.");
-			Map<String, String> labels = new HashMap<String, String>();
-			labels.put("host", nodeName);
-
-			for (VirtualMachine vm : client.virtualMachines().list(labels).getItems()) {
-				try {
-					
-					m_logger.log(Level.INFO, "Check VM " + vm.getMetadata().getName() + "'s power status.");
-					String power = vm.getSpec().getPowerstate();
-					if (power != null && !"Shutdown".equals(power)) {
-						vm.getSpec().setPowerstate("Shutdown");
-						client.virtualMachines().update(vm);
-						m_logger.log(Level.INFO, "Update VM " + vm.getMetadata().getName() + " status to Shutdown.");
-					} else {
-						m_logger.log(Level.INFO, "VM " + vm.getMetadata().getName() + "'s status is already Shutdown.");
-					}
-					
-					if(!NodeStatusWatcher.enableHA(vm)) {
-						continue;
-					}
-					
-					m_logger.log(Level.INFO, "Plan to start VM " + vm.getMetadata().getName() + "on another machine.");
-					Map<String, String> filters = new HashMap<String, String>();
-					if (vm.getMetadata().getLabels() != null) {
-						String cluster = vm.getMetadata().getLabels().get("cluster");
-						String zone = vm.getMetadata().getLabels().get("zone");
-						if (zone != null) {
-							filters.put("zone", zone);
-						} else if (cluster != null) {
-							filters.put("cluster", cluster);
-						} 
-					}
-					
-					String newNode = client.getNodeSelector()
-							.getNodename(Policy.minimumCPUUsageHostAllocatorStrategyMode, nodeName, filters);
-					
-					m_logger.log(Level.INFO, "Select node " + newNode + " for VM " + vm.getMetadata().getName());
-					// just start VM
-					try {
-						if (newNode == null || newNode.length() == 0) {
-							m_logger.log(Level.SEVERE, "cannot find avaiable nodes");
-						} else if (nodeName.equals(newNode)) {
-							m_logger.log(Level.INFO, "Cannot start VM " + vm.getMetadata().getName() + " on the same machine.");
-						} else {
-							client.virtualMachines().startVMWithPower(
-									vm.getMetadata().getName(), newNode, new StartVM(), "Starting");
-							client.virtualMachines().get(vm.getMetadata().getName());
-							m_logger.log(Level.INFO, "Start VM " + vm.getMetadata().getName() + " on the node " + newNode);
-						}
-					} catch (Exception e) {
-						m_logger.log(Level.SEVERE, "cannot start vm for " + e);
-					}
-					
-				} catch (Exception e) {
-					System.out.println("Error to modify the VM's status:" + e.getCause());
-					m_logger.severe("Error to modify the VM's status:" + e.getCause());
-				} 
-			}
+			VirtualMachineHA vmHA = new VirtualMachineHA(client);
+			vmHA.usingAnotherMachineToStartVMsOn(node);
 		}
 		
 		
 		for (Method watcher : findAllWatchersBy(client.getClass())) {
 			startWatcher(watcher);
 		}
-//		MixedOperation vmWatcher = ExtendedKubernetesClient.crdClients.get(
-//										VirtualMachine.class.getSimpleName());
-//		vmWatcher.watch(new VirtualMachineStatusWatcher(client));
-		client.nodes().watch(new NodeStatusWatcher(client));
+		client.nodes().watch(new VirtualMachineHA(client));
 	}
 	
-	protected String getStatus(VirtualMachine vm) {
-		return vm.getSpec().getPowerstate();
-	}
-	
-	protected boolean isShutDown(String status) {
-		return (status == null) || status.equals("Shutdown");
-	}
 
 	/**
 	 * start a watcher based on Java reflect mechanism

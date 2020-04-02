@@ -6,11 +6,12 @@ package com.github.kube.controller.watchers;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.github.kube.controller.KubevirtConstants;
 import com.github.kube.controller.KubevirtWatcher;
 import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
-import com.github.kubesys.kubernetes.api.model.VirtualMachineImage;
+import com.github.kubesys.kubernetes.api.model.VirtualMachineDiskSnapshot;
 
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
@@ -23,20 +24,25 @@ import io.fabric8.kubernetes.client.Watcher;
  * @version 1.0.0
  * @since Wed Aug 29 17:26:22 CST 2019
  * 
- * convert VirtualMachineImage to Pod. 
+ * convert VirtualMachineSnapshot to Pod. 
  **/
-public class VirtualMachineImageWatcher extends KubevirtWatcher implements Watcher<VirtualMachineImage> {
-
+public class VirtualMachineDiskSnapshotWatcher extends KubevirtWatcher implements Watcher<VirtualMachineDiskSnapshot> {
 
 	/**
-	 * @param client         client
+	 * m_logger
 	 */
-	public VirtualMachineImageWatcher(ExtendedKubernetesClient client) {
+	protected final static Logger m_logger = Logger.getLogger(VirtualMachineDiskSnapshotWatcher.class.getName());
+
+	/**
+	 * @param client              client
+	 */
+	public VirtualMachineDiskSnapshotWatcher(ExtendedKubernetesClient client) {
 		super(client);
 	}
 
-	public void eventReceived(Action action, VirtualMachineImage image) {
-		eventReceived(action, image.getKind(), image.getMetadata(), image.getSpec());
+
+	public void eventReceived(Action action, VirtualMachineDiskSnapshot snapshot) {
+		eventReceived(action, snapshot.getKind(), snapshot.getMetadata(), snapshot.getSpec());
 	}
 
 	@Override
@@ -49,10 +55,11 @@ public class VirtualMachineImageWatcher extends KubevirtWatcher implements Watch
 		return resources;
 	}
 
+
 	@Override
 	public void onClose(KubernetesClientException cause) {
 		m_logger.log(Level.SEVERE, cause.toString());
-		client.watchVirtualMachineImages(this);
+		client.watchVirtualMachineDiskSnapshots(this);
 	}
 
 }

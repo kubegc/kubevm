@@ -3055,6 +3055,39 @@ def _snapshot_file_exists(snapshot):
             return False
     return False
 
+def _set_vdiskfs_label_in_kubernetes(metadata_name):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+        group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**Object %s already deleted.' % metadata_name)
+            return
+        else:
+            raise e
+    jsondict['metadata']['labels']['vdiskfs'] = True
+    try:
+        client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name, body=jsondict)
+    except ApiException, e:
+        if e.reason == 'Conflict':
+            logger.error('**Conflict, other process updated %s.' % metadata_name)
+            raise e
+
+def _get_vdiskfs_label_in_kubernetes(metadata_name):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+        group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**Object %s already deleted.' % metadata_name)
+            return False
+        else:
+            raise e
+    if 'vdiskfs' in jsondict['metadata']['labels'].keys():
+        return True
+    else:
+        return False
 
 '''
 Unpack the CMD that will be executed in Json format.

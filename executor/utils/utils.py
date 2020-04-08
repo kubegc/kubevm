@@ -309,7 +309,7 @@ def get_field(jsondict, index):
     '''
     contents = jsondict
     for layer in index[:-1]:
-        print(contents)
+#         print(contents)
         contents = contents.get(layer)
     if not contents:
         return None

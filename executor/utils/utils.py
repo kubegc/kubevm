@@ -697,8 +697,7 @@ def update_vm_json(jsonstr):
         'suspend_to_mem', 'suspend-to-mem').replace('suspend_to_disk', 'suspend-to-disk').replace(
             'on_crash', 'on-crash').replace('on_poweroff', 'on-poweroff').replace('on_reboot', 'on-reboot').replace(
             'nested_hv', 'nested-hv').replace('read_bytes_sec', 'read-bytes-sec').replace(
-                'write_bytes_sec', 'write-bytes-sec').replace('_', '@').replace(
-                    'x86@64','x86_64').replace('guest@agent','guest_agent').replace('tsc@adjust','tsc_adjust').replace(
+                'write_bytes_sec', 'write-bytes-sec').replace('"_', '"@').replace("'_", "'@").replace(
                         'text', '#text').replace('\'', '"')
     return json
 

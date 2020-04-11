@@ -47,7 +47,9 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import updateNodeName, update_vm_json, trans_dict_to_xml, iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
+    iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, \
+    createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, report_failure, deleteLifecycleInJson, randomUUID, \
@@ -1679,6 +1681,9 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+        disk_path = jsondict.get('disk').split(',')[0].strip()
+        if check_vdiskfs_by_disk_path(disk_path):
+            _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isInstallVMFromImage(the_cmd_key):
         balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -1696,6 +1701,8 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+        if check_vdiskfs_by_disk_path(template_path):
+            _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key):
         '''
         Parse network configurations
@@ -1716,6 +1723,10 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
+        if _isPlugDisk(the_cmd_key):
+            disk_path = jsondict.get('source')
+            if check_vdiskfs_by_disk_path(disk_path):
+                _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key):
         '''
         Parse graphic configurations

@@ -1064,6 +1064,16 @@ def get_rebase_backing_file_cmds(source_dir, target_dir):
         raise ExecuteException('VirtctlError', 'Cannot find backing files of %s' % source_current)
     return set_backing_file_cmd
 
+def check_vdiskfs_by_disk_path(path):
+    result = runCmdWithResult('kubesds-adm showDiskPool --path %s' % path, False)
+    if result['data'] and 'pooltype' in result['data'].keys():
+        if result['data']['pooltype'] == 'vdiskfs':
+            return True
+        else:
+            return False
+    else:
+        return False
+
 '''
 Run back-end command in subprocess.
 '''
@@ -1105,7 +1115,7 @@ def runCmdWithResult(cmd, raise_it=True):
         p.stderr.close()
 
 def get_sn_chain(ss_path):
-    return runCmdWithResult('qemu-img info -U --backing-chain --output json '+ss_path)
+    return runCmdWithResult('qemu-img info -U --backing-chain --output json %s' % ss_path)
 
 def get_disk_snapshots(ss_path):
     ss_chain = get_sn_chain(ss_path)

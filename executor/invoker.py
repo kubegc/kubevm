@@ -1681,6 +1681,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+        logger.debug(jsondict)
         disk_path = jsondict.get('disk').split(',')[0].strip()
         if check_vdiskfs_by_disk_path(disk_path):
             _set_vdiskfs_label_in_kubernetes(metadata_name)

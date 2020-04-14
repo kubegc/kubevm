@@ -1065,9 +1065,9 @@ def get_rebase_backing_file_cmds(source_dir, target_dir):
     return set_backing_file_cmd
 
 def check_vdiskfs_by_disk_path(path):
-    result = runCmdWithResult('kubesds-adm showDiskPool --path %s' % path, False)
-    if result['data'] and 'pooltype' in result['data'].keys():
-        if result['data']['pooltype'] == 'vdiskfs':
+    result, data = runCmdWithResult('kubesds-adm showDiskPool --path %s' % path, False)
+    if data and 'pooltype' in data.keys():
+        if data['pooltype'] == 'vdiskfs':
             return True
         else:
             return False
@@ -1480,7 +1480,8 @@ if __name__ == '__main__':
 #     TOKEN = config_raw.get('Kubernetes', 'token_file')
 #     config.load_kube_config(config_file=TOKEN)
 #     print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
-    pprint.pprint(get_l3_network_info("switch1"))
+#     pprint.pprint(get_l3_network_info("switch1"))
+    check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/8c8a012b6092487f8cd6745735bf28a2/8c8a012b6092487f8cd6745735bf28a2/vmtest111disk1/vmtest111disk1')
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom
 #     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))

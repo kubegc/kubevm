@@ -1682,7 +1682,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
         logger.debug(jsondict)
-        disk_path = jsondict.get('disk').split(',')[0].strip()
+        disk_path = _get_field(jsondict, the_cmd_key, 'disk').split(',')[0].strip()
         if check_vdiskfs_by_disk_path(disk_path):
             _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isInstallVMFromImage(the_cmd_key):
@@ -1725,7 +1725,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
         if _isPlugDisk(the_cmd_key):
-            disk_path = jsondict.get('source')
+            disk_path = _get_field(jsondict, the_cmd_key, 'source')
             if check_vdiskfs_by_disk_path(disk_path):
                 _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key):

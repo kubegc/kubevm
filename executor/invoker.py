@@ -358,7 +358,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         #                         if cmd:
         #                             runCmd(cmd)
                         status = 'Done(Success)'
-                        if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key):
+                        if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key) and not _isMigrateVMDisk(the_cmd_key):
                             write_result_to_server(group, version, 'default', plural, metadata_name)
                     except libvirtError:
                         logger.error('Oops! ', exc_info=1)

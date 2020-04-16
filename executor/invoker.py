@@ -511,7 +511,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 raise ExecuteException('virtctl', 'error when operate volume %s' % result['msg'])
                             
                         status = 'Done(Success)'
-                        if not _isDeleteDisk(the_cmd_key) and not _isCloneDisk(the_cmd_key):
+                        if not _isDeleteDisk(the_cmd_key) and not _isCloneDisk(the_cmd_key) and not _isMigrateDisk(the_cmd_key):
                             write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                     except libvirtError:
                         logger.error('Oops! ', exc_info=1)
@@ -1949,6 +1949,11 @@ def _isMigrateVM(the_cmd_key):
 
 def _isMigrateVMDisk(the_cmd_key):
     if the_cmd_key == "migrateVMDisk":
+        return True
+    return False
+
+def _isMigrateDisk(the_cmd_key):
+    if the_cmd_key == "migrateDisk":
         return True
     return False
 

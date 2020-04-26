@@ -119,6 +119,7 @@ exportVM = kubesds-adm exportVM
 backupVM = kubesds-adm backupVM
 deleteRemoteBackup = kubesds-adm deleteRemoteBackup
 pullRemoteBackup = kubesds-adm pullRemoteBackup
+pushRemoteBackup = kubesds-adm pushBackup
 deleteVMBackup = kubesds-adm deleteVMBackup
 restoreVM = kubesds-adm restoreVM
 passthroughUsb = /usr/bin/device-passthrough

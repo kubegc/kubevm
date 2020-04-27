@@ -1065,6 +1065,8 @@ def get_rebase_backing_file_cmds(source_dir, target_dir):
     return set_backing_file_cmd
 
 def check_vdiskfs_by_disk_path(path):
+    if not path:
+        return False
     all_path = []
     if path.find("--disk") >= 0:
         for disk in path.split("--disk"):

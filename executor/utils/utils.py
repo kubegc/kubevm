@@ -1065,14 +1065,21 @@ def get_rebase_backing_file_cmds(source_dir, target_dir):
     return set_backing_file_cmd
 
 def check_vdiskfs_by_disk_path(path):
-    result, data = runCmdWithResult('kubesds-adm showDiskPool --path %s' % path, False)
-    if data and 'pooltype' in data.keys():
-        if data['pooltype'] == 'vdiskfs':
-            return True
+    all_path = []
+    if path.find("--disk") >= 0:
+        all_path = path.split("--disk")
+    else:
+        all_path.append(path)
+
+    for disk_path in all_path:
+        result, data = runCmdWithResult('kubesds-adm showDiskPool --path %s' % disk_path, False)
+        if data and 'pooltype' in data.keys():
+            if data['pooltype'] == 'vdiskfs':
+                return True
+            else:
+                return False
         else:
             return False
-    else:
-        return False
 
 '''
 Run back-end command in subprocess.

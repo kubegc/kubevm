@@ -2,19 +2,19 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: kubeext-scheduler
-  name: kubeext-scheduler
+    app: kubevirt-scheduler
+  name: kubevirt-scheduler
   namespace: cloudplus
 spec:
   selector:
     matchLabels:
-      app: kubeext-scheduler
+      app: kubevirt-scheduler
   replicas: 1
   template:
     metadata:
       labels:
-        app: kubeext-scheduler
-      name: kubeext-scheduler
+        app: kubevirt-scheduler
+      name: kubevirt-scheduler
       namespace: cloudplus
     spec:
       tolerations:
@@ -24,15 +24,15 @@ spec:
         node-role.kubernetes.io/master: ""
       containers:
         - command:
-          - /usr/local/bin/kubeext-scheduler
+          - /usr/local/bin/kubevirt-scheduler
           - --address=0.0.0.0
-          - --scheduler-name=kubeext-scheduler
+          - --scheduler-name=kubevirt-scheduler
           - --kubeconfig=/etc/kubernetes/admin.conf
           - --leader-elect=true
           - --port=10253
           - --secure-port=10261
           - --lock-object-namespace=default
-          image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubeext-scheduler:v1.14.6
+          image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-scheduler:v1.16.8
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 8

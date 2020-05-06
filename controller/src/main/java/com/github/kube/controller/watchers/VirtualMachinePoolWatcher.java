@@ -5,6 +5,7 @@ package com.github.kube.controller.watchers;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 import com.github.kube.controller.KubevirtConstants;
 import com.github.kube.controller.KubevirtWatcher;
@@ -13,6 +14,7 @@ import com.github.kubesys.kubernetes.api.model.VirtualMachinePool;
 
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
 
 /**
@@ -45,6 +47,12 @@ public class VirtualMachinePoolWatcher extends KubevirtWatcher implements Watche
 		requests.put(KubevirtConstants.RAM_RESOURCE, new Quantity("64Mi"));
 		resources.setRequests(requests);
 		return resources;
+	}
+
+	@Override
+	public void onClose(KubernetesClientException cause) {
+		m_logger.log(Level.SEVERE, cause.toString());
+		client.watchVirtualMachinePools(this);
 	}
 
 }

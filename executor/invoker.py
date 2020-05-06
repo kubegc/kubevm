@@ -47,7 +47,9 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import updateNodeName, update_vm_json, trans_dict_to_xml, iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
+from utils.utils import check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
+    iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, \
+    createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, report_failure, deleteLifecycleInJson, randomUUID, \
@@ -317,7 +319,9 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                     time.sleep(1)
                             try:
                                 if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key) or \
-                                        _isExportVM(the_cmd_key) or _isBackupVM(the_cmd_key) or _isRestoreVM(the_cmd_key):
+                                        _isExportVM(the_cmd_key) or _isBackupVM(the_cmd_key) or _isRestoreVM(the_cmd_key)\
+                                        or _isPullRemoteBackup(the_cmd_key) or _isDeleteVMBackup(the_cmd_key)  \
+                                        or _isDeleteRemoteBackup(the_cmd_key) or _isPushRemoteBackup(the_cmd_key):
                                     rpcCallWithResult(cmd)
                                 else:
                                     runCmd(cmd)
@@ -356,7 +360,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         #                         if cmd:
         #                             runCmd(cmd)
                         status = 'Done(Success)'
-                        if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key):
+                        if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key) and not _isMigrateVMDisk(the_cmd_key):
                             write_result_to_server(group, version, 'default', plural, metadata_name)
                     except libvirtError:
                         logger.error('Oops! ', exc_info=1)
@@ -485,11 +489,13 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
         #             except:
         #                 logger.warning('Oops! ', exc_info=1)
                     try:
-                        if not disk_type or not pool_name:
-                            raise ExecuteException('VirtctlError', "parameters \"type\" and \"pool\" must be set")
+
                         if operation_type == 'ADDED':
                             if cmd:
                                 if cmd.find("kubesds-adm") >= 0:
+                                    if not disk_type or not pool_name:
+                                        raise ExecuteException('VirtctlError',
+                                                               "parameters \"type\" and \"pool\" must be set")
                                     logger.debug(cmd)
                                     _, data = None, None
                                     if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
@@ -509,7 +515,8 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 raise ExecuteException('virtctl', 'error when operate volume %s' % result['msg'])
                             
                         status = 'Done(Success)'
-                        if not _isDeleteDisk(the_cmd_key) and not _isCloneDisk(the_cmd_key):
+                        if not _isDeleteDisk(the_cmd_key) and not _isCloneDisk(the_cmd_key) and not _isMigrateDisk(the_cmd_key)\
+                                and not _isDeleteVMDiskBackup(the_cmd_key):
                             write_result_to_server(group, version, 'default', plural, metadata_name, data=data)
                     except libvirtError:
                         logger.error('Oops! ', exc_info=1)
@@ -1634,6 +1641,7 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
     with open(xml_file, "w") as f1:
         f1.write(xml)
     runCmd('virsh define %s' % xml_file)
+    runCmd('kubesds-adm changeDiskPool --xml %s' % xml_file)
         
 def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     try:
@@ -1678,6 +1686,10 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+        logger.debug(jsondict)
+        disk_path = _get_field(jsondict, the_cmd_key, 'disk').split(',')[0].strip()
+        if check_vdiskfs_by_disk_path(disk_path):
+            _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isInstallVMFromImage(the_cmd_key):
         balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -1695,6 +1707,8 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
+        if check_vdiskfs_by_disk_path(template_path):
+            _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isPlugNIC(the_cmd_key) or _isUnplugNIC(the_cmd_key):
         '''
         Parse network configurations
@@ -1715,6 +1729,10 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         disk_operations_queue = _get_disk_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
+        if _isPlugDisk(the_cmd_key):
+            disk_path = _get_field(jsondict, the_cmd_key, 'source')
+            if check_vdiskfs_by_disk_path(disk_path):
+                _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isSetVncPassword(the_cmd_key) or _isUnsetVncPassword(the_cmd_key):
         '''
         Parse graphic configurations
@@ -1939,6 +1957,11 @@ def _isMigrateVMDisk(the_cmd_key):
         return True
     return False
 
+def _isMigrateDisk(the_cmd_key):
+    if the_cmd_key == "migrateDisk":
+        return True
+    return False
+
 def _isExportVM(the_cmd_key):
     if the_cmd_key == "exportVM":
         return True
@@ -1951,6 +1974,31 @@ def _isBackupVM(the_cmd_key):
 
 def _isRestoreVM(the_cmd_key):
     if the_cmd_key == "restoreVM":
+        return True
+    return False
+
+def _isPullRemoteBackup(the_cmd_key):
+    if the_cmd_key == "pullRemoteBackup":
+        return True
+    return False
+
+def _isPushRemoteBackup(the_cmd_key):
+    if the_cmd_key == "pushRemoteBackup":
+        return True
+    return False
+
+
+def _isDeleteRemoteBackup(the_cmd_key):
+    if the_cmd_key == "deleteRemoteBackup":
+        return True
+    return False
+def _isDeleteVMDiskBackup(the_cmd_key):
+    if the_cmd_key == "deleteVMDiskBackup":
+        return True
+    return False
+
+def _isDeleteVMBackup(the_cmd_key):
+    if the_cmd_key == "deleteVMBackup":
         return True
     return False
 
@@ -3054,6 +3102,39 @@ def _snapshot_file_exists(snapshot):
             return False
     return False
 
+def _set_vdiskfs_label_in_kubernetes(metadata_name):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+        group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**Object %s already deleted.' % metadata_name)
+            return
+        else:
+            raise e
+    jsondict['metadata']['labels']['vdiskfs'] = True
+    try:
+        client.CustomObjectsApi().replace_namespaced_custom_object(
+            group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name, body=jsondict)
+    except ApiException, e:
+        if e.reason == 'Conflict':
+            logger.error('**Conflict, other process updated %s.' % metadata_name)
+            raise e
+
+def _get_vdiskfs_label_in_kubernetes(metadata_name):
+    try:
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+        group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**Object %s already deleted.' % metadata_name)
+            return False
+        else:
+            raise e
+    if 'vdiskfs' in jsondict['metadata']['labels'].keys():
+        return True
+    else:
+        return False
 
 '''
 Unpack the CMD that will be executed in Json format.

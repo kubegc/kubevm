@@ -276,6 +276,31 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     except:
         return None
     
+def get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            return None
+        else:
+            raise e
+    return jsonStr['metadata']['labels']['host']
+
+def get_ha_from_kubernetes(group, version, namespace, plural, metadata_name):
+    try:
+        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            return False
+        else:
+            raise e
+    if 'ha' in jsonStr['metadata']['labels'].keys():
+        return True
+    else:
+        return False
+    
 def get_field(jsondict, index):
     retv = None
     '''
@@ -284,7 +309,7 @@ def get_field(jsondict, index):
     '''
     contents = jsondict
     for layer in index[:-1]:
-        print(contents)
+#         print(contents)
         contents = contents.get(layer)
     if not contents:
         return None
@@ -672,8 +697,7 @@ def update_vm_json(jsonstr):
         'suspend_to_mem', 'suspend-to-mem').replace('suspend_to_disk', 'suspend-to-disk').replace(
             'on_crash', 'on-crash').replace('on_poweroff', 'on-poweroff').replace('on_reboot', 'on-reboot').replace(
             'nested_hv', 'nested-hv').replace('read_bytes_sec', 'read-bytes-sec').replace(
-                'write_bytes_sec', 'write-bytes-sec').replace('_', '@').replace(
-                    'x86@64','x86_64').replace('guest@agent','guest_agent').replace('tsc@adjust','tsc_adjust').replace(
+                'write_bytes_sec', 'write-bytes-sec').replace('"_', '"@').replace("'_", "'@").replace(
                         'text', '#text').replace('\'', '"')
     return json
 
@@ -1040,6 +1064,24 @@ def get_rebase_backing_file_cmds(source_dir, target_dir):
         raise ExecuteException('VirtctlError', 'Cannot find backing files of %s' % source_current)
     return set_backing_file_cmd
 
+def check_vdiskfs_by_disk_path(path):
+    if not path:
+        return False
+    all_path = []
+    if path.find("--disk") >= 0:
+        for disk in path.split("--disk"):
+            all_path.append(disk.split(',')[0])
+    else:
+        all_path.append(path)
+
+    is_vdiskfs = False
+    for disk_path in all_path:
+        result, data = runCmdWithResult('kubesds-adm showDiskPool --path %s' % disk_path, False)
+        if data and 'pooltype' in data.keys():
+            if data['pooltype'] == 'vdiskfs':
+                is_vdiskfs = True
+    return is_vdiskfs
+
 '''
 Run back-end command in subprocess.
 '''
@@ -1081,7 +1123,7 @@ def runCmdWithResult(cmd, raise_it=True):
         p.stderr.close()
 
 def get_sn_chain(ss_path):
-    return runCmdWithResult('qemu-img info -U --backing-chain --output json '+ss_path)
+    return runCmdWithResult('qemu-img info -U --backing-chain --output json %s' % ss_path)
 
 def get_disk_snapshots(ss_path):
     ss_chain = get_sn_chain(ss_path)
@@ -1446,7 +1488,8 @@ if __name__ == '__main__':
 #     TOKEN = config_raw.get('Kubernetes', 'token_file')
 #     config.load_kube_config(config_file=TOKEN)
 #     print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
-    pprint.pprint(get_l3_network_info("switch1"))
+#     pprint.pprint(get_l3_network_info("switch1"))
+    check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/8c8a012b6092487f8cd6745735bf28a2/8c8a012b6092487f8cd6745735bf28a2/vmtest111disk1/vmtest111disk1')
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom
 #     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))

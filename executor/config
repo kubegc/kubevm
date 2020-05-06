@@ -117,6 +117,10 @@ setGuestPassword = virt-customize
 injectSshKey = virt-customize
 exportVM = kubesds-adm exportVM
 backupVM = kubesds-adm backupVM
+deleteRemoteBackup = kubesds-adm deleteRemoteBackup
+pullRemoteBackup = kubesds-adm pullRemoteBackup
+pushRemoteBackup = kubesds-adm pushBackup
+deleteVMBackup = kubesds-adm deleteVMBackup
 restoreVM = kubesds-adm restoreVM
 passthroughUsb = /usr/bin/device-passthrough
 redirectUsb = virsh define
@@ -133,6 +137,7 @@ migrateDisk = kubesds-adm migrateDisk
 deleteDisk = kubesds-adm deleteDisk
 backupDisk = kubesds-adm backupDisk
 restoreDisk = kubesds-adm restoreDisk
+deleteVMDiskBackup = kubesds-adm deleteVMDiskBackup
 
 [VirtualMachineDiskSnapshotSupportCmdsWithNameField]
 createDiskExternalSnapshot = kubesds-adm createExternalSnapshot

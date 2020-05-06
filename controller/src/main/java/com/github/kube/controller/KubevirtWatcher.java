@@ -206,11 +206,4 @@ public abstract class KubevirtWatcher {
 				+ getClass().getSimpleName() + ":" + cause);
 	}
 	
-	
-	/**
-	 * @param cause               cause
- 	 */
-	public void onClose(KubernetesClientException cause) {
-		logStopInfo(cause);
-	}
 }

@@ -1687,9 +1687,9 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         network_operations_queue = _get_network_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = _set_field(jsondict, the_cmd_key, 'network', 'none')
         logger.debug(jsondict)
-#         disk_path = _get_field(jsondict, the_cmd_key, 'disk')
-#         if check_vdiskfs_by_disk_path(disk_path):
-#             _set_vdiskfs_label_in_kubernetes(metadata_name)
+        disk_path = _get_field(jsondict, the_cmd_key, 'disk')
+        if check_vdiskfs_by_disk_path(disk_path):
+            _set_vdiskfs_label_in_kubernetes(metadata_name)
     if _isInstallVMFromImage(the_cmd_key):
         balloon_operation_queue = ['virsh dommemstat --period %s --domain %s --config --live' % (str(5), metadata_name)]
         template_path = _get_field(jsondict, the_cmd_key, 'cdrom')
@@ -3221,6 +3221,7 @@ def disk_prepare(the_cmd_key, jsondict, metadata_name):
             return
         for line in path.replace(' ', ',').split(','):
             if re.match('^\/(\w+\/?)+$', line):
+                logger.debug(line)
                 result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % line)
 '''
 Run back-end command in subprocess.

@@ -100,4 +100,5 @@ def rpcCall(cmd, raise_it=True):
         raise ExecuteException('RunCmdError', "Cmd: %s failed!" % cmd)
 
 if __name__ == '__main__':
-    rpcCall('python /tmp/pycharm_project_666/vmm.py  delete_vmdi  --sourcePool node22poolnfsvmdi --name disktest11daa.temp2')
+#     rpcCall('python /tmp/pycharm_project_666/vmm.py  delete_vmdi  --sourcePool node22poolnfsvmdi --name disktest11daa.temp2')
+    rpcCall('kubesds-adm prepareDisk --path /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')

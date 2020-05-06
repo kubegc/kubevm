@@ -1073,7 +1073,7 @@ def check_vdiskfs_by_disk_path(path):
             all_path.append(disk.split(',')[0])
     else:
         all_path.append(path)
-    print(all_path)
+#     print(all_path)
 
     is_vdiskfs = False
     for disk_path in all_path:
@@ -1108,8 +1108,8 @@ def runCmdWithResult(cmd, raise_it=True):
                 # print result
                 if result['result']['code'] != 0 and raise_it:
                     raise ExecuteException('VirtctlError', result['result']['msg'])
-                print('output')
-                print(result['result'], result['data'])
+#                 print('output')
+#                 print(result['result'], result['data'])
                 return result['result'], result['data']
             except Exception:
                 error_msg = ''
@@ -1118,8 +1118,8 @@ def runCmdWithResult(cmd, raise_it=True):
                         continue
                     error_msg = error_msg + str.strip(line)
                 error_msg = str.strip(error_msg)
-                print('error')
-                print(error_msg)
+#                 print('error')
+#                 print(error_msg)
                 raise ExecuteException('VirtctlError', error_msg)
         if std_err:
             raise ExecuteException('VirtctlError', std_err)

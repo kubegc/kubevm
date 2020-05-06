@@ -9,6 +9,7 @@ import xmltodict
 
 from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
 import json
+from xml.etree.ElementInclude import include
 
 '''
 Import python libs
@@ -1067,21 +1068,26 @@ def get_rebase_backing_file_cmds(source_dir, target_dir):
 def check_vdiskfs_by_disk_path(path):
     if not path:
         return False
-    all_path = []
-    if path.find("--disk") >= 0:
-        for disk in path.split("--disk"):
-            all_path.append(disk.split(',')[0])
-    else:
-        all_path.append(path)
 #     print(all_path)
 
     is_vdiskfs = False
-    for disk_path in all_path:
+    for disk_path in get_disks_path(path, True):
         result, data = runCmdWithResult('kubesds-adm showDiskPool --path %s' % disk_path, False)
         if data and 'pooltype' in data.keys():
             if data['pooltype'] == 'vdiskfs':
                 is_vdiskfs = True
     return is_vdiskfs
+
+def get_disks_path(path, include_iso=False):
+    retv = []
+    for line in path.replace(' ', ',').split(','):
+        if include_iso:
+            if line.startswith('/'):
+                retv.append(line)
+        else:
+            if line.startswith('/') and not line.endswith('.iso'):
+                retv.append(line)
+    return retv
 
 '''
 Run back-end command in subprocess.

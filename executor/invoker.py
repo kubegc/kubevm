@@ -54,7 +54,7 @@ from utils.utils import check_vdiskfs_by_disk_path, updateNodeName, update_vm_js
     updateJsonRemoveLifecycle, \
     addPowerStatusMessage, report_failure, deleteLifecycleInJson, randomUUID, \
     now_to_datetime, get_hostname_in_lower_case, UserDefinedEvent, \
-    add_spec_in_volume
+    add_spec_in_volume, get_disks_path
 from utils.cmdrpc import rpcCallWithResult, rpcCall
 
 
@@ -3219,9 +3219,7 @@ def disk_prepare(the_cmd_key, jsondict, metadata_name):
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'disk')
         if path is None:
             return
-        for line in path.replace(' ', ',').split(','):
-            if line.startswith('/') and not line.endswith('.iso'):
-                logger.debug(line)
+        for line in get_disks_path(path):
                 result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % line)
 '''
 Run back-end command in subprocess.

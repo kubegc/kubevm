@@ -3220,7 +3220,7 @@ def disk_prepare(the_cmd_key, jsondict, metadata_name):
         if path is None:
             return
         for line in path.replace(' ', ',').split(','):
-            if line.startswith('/'):
+            if line.startswith('/') and not line.endswith('.iso'):
                 logger.debug(line)
                 result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % line)
 '''

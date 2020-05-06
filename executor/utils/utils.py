@@ -1073,6 +1073,7 @@ def check_vdiskfs_by_disk_path(path):
             all_path.append(disk.split(',')[0])
     else:
         all_path.append(path)
+#     print(all_path)
 
     is_vdiskfs = False
     for disk_path in all_path:
@@ -1489,7 +1490,7 @@ if __name__ == '__main__':
 #     config.load_kube_config(config_file=TOKEN)
 #     print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
 #     pprint.pprint(get_l3_network_info("switch1"))
-    check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/8c8a012b6092487f8cd6745735bf28a2/8c8a012b6092487f8cd6745735bf28a2/vmtest111disk1/vmtest111disk1')
+    check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom
 #     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))

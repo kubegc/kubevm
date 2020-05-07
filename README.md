@@ -61,6 +61,3 @@ kubectl apply -f yamls/
 
 # Roadmap
 
-- **2019.7**: support VirtualMachine, VirtualMachineImage  and VirtualMachineSnapshot
-- **2019.8**: support VirtualNetwork, VirtualDisk and VirtualMachineStoragePool
-- **2019.9**: support some advanced capacities

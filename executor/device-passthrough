@@ -105,21 +105,21 @@ DEVNUM=$((10#$DEVNUM))
 #
 echo "Running virsh ${COMMAND} ${DOMAIN} for device bus=${BUSNUM} device=${DEVNUM}:" >&2
 if [ "${DEVTYPE}" == "usb_device" ]; then
-	virsh "${COMMAND}" ${ARGS} --domain "${DOMAIN}" --file /dev/stdin <<END
-	<hostdev mode='subsystem' type='usb'>
-	  <source>
-	    <address bus='${BUSNUM}' device='${DEVNUM}' />
-	  </source>
-	</hostdev>
-	END
+virsh "${COMMAND}" ${ARGS} --domain "${DOMAIN}" --file /dev/stdin <<END
+<hostdev mode='subsystem' type='usb'>
+  <source>
+    <address bus='${BUSNUM}' device='${DEVNUM}' />
+  </source>
+</hostdev>
+END
 else if [ "${DEVTYPE}" == "pci_device" ]; then
-	virsh "${COMMAND}" ${ARGS} --domain "${DOMAIN}" --file /dev/stdin <<END
-	<hostdev mode='subsystem' type='pci'>
-	  <source>
-	    <address bus='${BUSNUM}' slot='${DEVNUM}' />
-	  </source>
-	</hostdev>
-	END
+virsh "${COMMAND}" ${ARGS} --domain "${DOMAIN}" --file /dev/stdin <<END
+<hostdev mode='subsystem' type='pci'>
+  <source>
+    <address bus='${BUSNUM}' slot='${DEVNUM}' />
+  </source>
+</hostdev>
+END
 else
 	echo "Wrong device type."
 	exit 1

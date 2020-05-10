@@ -122,7 +122,7 @@ pullRemoteBackup = kubesds-adm pullRemoteBackup
 pushRemoteBackup = kubesds-adm pushBackup
 deleteVMBackup = kubesds-adm deleteVMBackup
 restoreVM = kubesds-adm restoreVM
-passthroughUsb = /usr/bin/device-passthrough
+passthroughDevice = /usr/bin/device-passthrough
 redirectUsb = virsh define
 autoStartVM = virsh autostart
 

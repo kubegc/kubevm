@@ -37,9 +37,9 @@ if [ -z "${SUBSYSTEM}" ]; then
   echo "Missing udev SUBSYSTEM environment variable." >&2
   exit 1
 fi
-if [ "${SUBSYSTEM}" != "usb" ]; then
+if [ "${SUBSYSTEM}" != "usb" -o "${SUBSYSTEM}" != "pci" ]; then
   echo "Invalid udev SUBSYSTEM: ${SUBSYSTEM}" >&2
-  echo "You should probably add a SUBSYSTEM=\"USB\" match to your udev rule." >&2
+  echo "You should probably add a SUBSYSTEM=\"USB\" or SUBSYSTEM=\"PCI\" match to your udev rule." >&2
   exit 1
 fi
 
@@ -52,7 +52,7 @@ if [ "${DEVTYPE}" == "usb_interface" ]; then
   # usb_interface events as well.
   exit 0
 fi
-if [ "${DEVTYPE}" != "usb_device" ]; then
+if [ "${DEVTYPE}" != "usb_device" -o "${DEVTYPE}" != "pci_device" ]; then
   echo "Invalid udev DEVTYPE: ${DEVTYPE}" >&2
   exit 1
 fi
@@ -103,11 +103,24 @@ DEVNUM=$((10#$DEVNUM))
 # Run the appropriate virsh-command, and ask it to read the
 # update XML from stdin.
 #
-echo "Running virsh ${COMMAND} ${DOMAIN} for USB bus=${BUSNUM} device=${DEVNUM}:" >&2
-virsh "${COMMAND}" ${ARGS} --domain "${DOMAIN}" --file /dev/stdin <<END
-<hostdev mode='subsystem' type='usb'>
-  <source>
-    <address bus='${BUSNUM}' device='${DEVNUM}' />
-  </source>
-</hostdev>
-END
+echo "Running virsh ${COMMAND} ${DOMAIN} for device bus=${BUSNUM} device=${DEVNUM}:" >&2
+if [ "${DEVTYPE}" == "usb_device" ]; then
+	virsh "${COMMAND}" ${ARGS} --domain "${DOMAIN}" --file /dev/stdin <<END
+	<hostdev mode='subsystem' type='usb'>
+	  <source>
+	    <address bus='${BUSNUM}' device='${DEVNUM}' />
+	  </source>
+	</hostdev>
+	END
+else if [ "${DEVTYPE}" == "pci_device" ]; then
+	virsh "${COMMAND}" ${ARGS} --domain "${DOMAIN}" --file /dev/stdin <<END
+	<hostdev mode='subsystem' type='pci'>
+	  <source>
+	    <address bus='${BUSNUM}' slot='${DEVNUM}' />
+	  </source>
+	</hostdev>
+	END
+else
+	echo "Wrong device type."
+	exit 1
+fi

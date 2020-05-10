@@ -1753,7 +1753,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         vm_agent_operations_queue = _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)     
-    if _isPassthroughUsb(the_cmd_key):
+    if _isPassthroughDevice(the_cmd_key):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         device_operations_queue = _get_device_operations_queue(the_cmd_key, config_dict, metadata_name)
@@ -2113,8 +2113,8 @@ def _isSetGuestPassword(the_cmd_key):
         return True
     return False
 
-def _isPassthroughUsb(the_cmd_key):
-    if the_cmd_key == "passthroughUsb":
+def _isPassthroughDevice(the_cmd_key):
+    if the_cmd_key == "passthroughDevice":
         return True
     return False
 
@@ -2752,10 +2752,15 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
         return []
     
 def _get_device_operations_queue(the_cmd_key, config_dict, metadata_name):
-    if _isPassthroughUsb(the_cmd_key):
+    if _isPassthroughDevice(the_cmd_key):
         action = config_dict.get('action')
-        subsystem = config_dict.get('subsystem') if config_dict.get('subsystem') else 'usb'
-        dev_type = config_dict.get('dev_type') if config_dict.get('dev_type') else 'usb_device'
+        dev_type = config_dict.get('dev_type') if config_dict.get('dev_type') else 'usb'
+        if dev_type == 'usb':
+            device_type = 'usb_device'
+            subsystem = 'usb'
+        else:
+            device_type = 'pci_device'
+            subsystem = 'pci'
         bus_num = config_dict.get('bus_num')
         dev_num = config_dict.get('dev_num')
         live = config_dict.get('live')
@@ -2763,10 +2768,10 @@ def _get_device_operations_queue(the_cmd_key, config_dict, metadata_name):
             raise ExecuteException('VirtctlError', 'Wrong parameters "bus_num" %s or "dev_num" %s.' % (bus_num, dev_num))
         if live:
             cmd = 'ACTION=%s SUBSYSTEM=%s DEVTYPE=%s BUSNUM=%s DEVNUM=%s LIVE=true device-passthrough %s' \
-            % (action, subsystem, dev_type, bus_num, dev_num, metadata_name)
+            % (action, subsystem, device_type, bus_num, dev_num, metadata_name)
         else:
             cmd = 'ACTION=%s SUBSYSTEM=%s DEVTYPE=%s BUSNUM=%s DEVNUM=%s device-passthrough %s' \
-            % (action, subsystem, dev_type, bus_num, dev_num, metadata_name)
+            % (action, subsystem, device_type, bus_num, dev_num, metadata_name)
         return [cmd]
 
 def _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name):

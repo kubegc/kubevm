@@ -37,9 +37,9 @@ if [ -z "${SUBSYSTEM}" ]; then
   echo "Missing udev SUBSYSTEM environment variable." >&2
   exit 1
 fi
-if [ "${SUBSYSTEM}" != "usb" -o "${SUBSYSTEM}" != "pci" ]; then
+if [ "${SUBSYSTEM}" != "usb" ] && [ "${SUBSYSTEM}" != "pci" ]; then
   echo "Invalid udev SUBSYSTEM: ${SUBSYSTEM}" >&2
-  echo "You should probably add a SUBSYSTEM=\"USB\" or SUBSYSTEM=\"PCI\" match to your udev rule." >&2
+  echo "You should probably add a SUBSYSTEM=\"usb\" or SUBSYSTEM=\"pci\" match to your udev rule." >&2
   exit 1
 fi
 
@@ -52,7 +52,7 @@ if [ "${DEVTYPE}" == "usb_interface" ]; then
   # usb_interface events as well.
   exit 0
 fi
-if [ "${DEVTYPE}" != "usb_device" -o "${DEVTYPE}" != "pci_device" ]; then
+if [ "${DEVTYPE}" != "usb_device" ] && [ "${DEVTYPE}" != "pci_device" ]; then
   echo "Invalid udev DEVTYPE: ${DEVTYPE}" >&2
   exit 1
 fi

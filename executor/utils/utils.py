@@ -828,7 +828,7 @@ def deleteVmdi(metadata_name, target):
     path = get_pool_path(target)
     return (['sed -i \'/vmdi = %s/d\' %s' % (path, RESOURCE_FILE_PATH)], 
             ['echo "vmdi = %s" >> %s' % (path, RESOURCE_FILE_PATH)])
-
+    
 class Domain(object):
     def __init__(self, libvirt_domain):
         self.libvirt_domain = libvirt_domain

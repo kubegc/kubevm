@@ -131,6 +131,8 @@ createDiskFromDiskImage = kubesds-adm createDiskFromImage
 
 [VirtualMachineDiskSupportCmdsWithVolField]
 createDisk = kubesds-adm createDisk
+createCloudInitUserDataImage = kubesds-adm createCloudInitUserDataImage
+deleteCloudInitUserDataImage = kubesds-adm deleteCloudInitUserDataImage
 resizeDisk = kubesds-adm resizeDisk
 cloneDisk = kubesds-adm cloneDisk
 migrateDisk = kubesds-adm migrateDisk

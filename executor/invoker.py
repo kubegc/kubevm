@@ -511,7 +511,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                                 cmd += lines[i] + ';;;'
                                             cmd += lines[-1]
                                             cmd = cmd.replace('-', '+').replace('++pool', '--pool').replace('++vol', '--vol')\
-                                                .replace('++userData', '--userData')
+                                                .replace('++userData', '--userData').replace('kubesds+adm', 'kubesds-adm')
                                         logger.debug(cmd)
                                     _, data = rpcCallWithResult(cmd)
                         elif operation_type == 'MODIFIED':

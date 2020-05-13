@@ -507,10 +507,11 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                         pool = _get_field(jsondict, the_cmd_key, 'pool')
                                         vol = _get_field(jsondict, the_cmd_key, 'vol')
                                         userData = _get_field(jsondict, the_cmd_key, 'userData')
+                                        logger.debug(userData)
                                         cfg = '/tmp/%s.cfg' % randomUUID().replace('-', '')
                                         with open(cfg, 'w') as f:
                                             f.write(userData)
-                                        cmd = 'kubesd-adm createCloudInitUserDataImage --pool %s --vol %s --userData %s' % (pool, vol, cfg)
+                                        cmd = 'kubesds-adm createCloudInitUserDataImage --pool %s --vol %s --userData %s' % (pool, vol, cfg)
                                         logger.debug(cmd)
                                     _, data = rpcCallWithResult(cmd)
                         elif operation_type == 'MODIFIED':

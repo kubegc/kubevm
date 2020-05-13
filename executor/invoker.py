@@ -505,8 +505,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 else:
                                     if cmd.find('createCloudInitUserDataImage') >= 0:
                                         pool = _get_field(jsondict, the_cmd_key, 'pool')
-                                        vol = _get_field(jsondict, the_cmd_key, 'pool')
-                                        cmd = 'kubesd-adm createCloudInitUserDataImage --pool %s --vol %s' % (pool, vol)
+                                        vol = _get_field(jsondict, the_cmd_key, 'vol')
+                                        userData = _get_field(jsondict, the_cmd_key, 'userData')
+                                        cfg = '/tmp/%s.cfg' % randomUUID()
+                                        with open(cfg, 'w') as f:
+                                            f.write(userData)
+                                        cmd = 'kubesd-adm createCloudInitUserDataImage --pool %s --vol %s --userData %s' % (pool, vol, cfg)
                                         logger.debug(cmd)
                                     _, data = rpcCallWithResult(cmd)
                         elif operation_type == 'MODIFIED':

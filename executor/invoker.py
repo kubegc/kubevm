@@ -492,16 +492,18 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 
                         if operation_type == 'ADDED':
                             if cmd:
-                                if cmd.find("kubesds-adm") >= 0:
+                                logger.debug(cmd)
+                                if cmd.find("createDiskFromImage") >= 0 or cmd.find("createDisk") >= 0:
                                     if not disk_type or not pool_name:
                                         raise ExecuteException('VirtctlError',
                                                                "parameters \"type\" and \"pool\" must be set")
-                                    logger.debug(cmd)
                                     _, data = None, None
                                     if not is_kubesds_disk_exists(disk_type, pool_name, metadata_name):
                                         _, data = rpcCallWithResult(cmd)
                                     else:
                                         _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
+                                else:
+                                    _, data = rpcCallWithResult(cmd)
                         elif operation_type == 'MODIFIED':
                             result, data = {}, None
                             result, data = rpcCallWithResult(cmd, raise_it=False)

@@ -503,6 +503,14 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                     else:
                                         _, data = get_kubesds_disk_info(disk_type, pool_name, metadata_name)
                                 else:
+                                    if cmd.find('createCloudInitUserDataImage') >= 0:
+                                        lines = cmd.splitlines()
+                                        cmd = ''
+                                        for line in lines:
+                                            cmd += line + ';;;'
+                                        cmd = cmd.replace('-', '+').replace('++pool', '--pool').replace('++vol', '--vol')\
+                                            .replace('++userData', '--userData')
+                                        logger.debug(cmd)
                                     _, data = rpcCallWithResult(cmd)
                         elif operation_type == 'MODIFIED':
                             result, data = {}, None
@@ -3165,8 +3173,6 @@ def unpackCmdFromJson(jsondict, the_cmd_key):
 #                     print k, v
                 cmd_body = '%s %s %s' % (cmd_body, k, v)
             cmd = '%s %s' % (cmd_head, cmd_body)
-        if cmd:
-            cmd.replace('\r', ' ').replace('\n', ' ')
         logger.debug("The CMD is: %s" % cmd)
     return cmd
 

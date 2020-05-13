@@ -505,11 +505,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                 else:
                                     if cmd.find('createCloudInitUserDataImage') >= 0:
                                         lines = cmd.splitlines()
-                                        cmd = ''
-                                        for line in lines:
-                                            cmd += line + ';;;'
-                                        cmd = cmd.replace('-', '+').replace('++pool', '--pool').replace('++vol', '--vol')\
-                                            .replace('++userData', '--userData')
+                                        if len(lines) > 1:
+                                            cmd = lines[0]
+                                            for line in range(1, len(lines)):
+                                                cmd += line + ';;;'
+                                            cmd = cmd.replace('-', '+').replace('++pool', '--pool').replace('++vol', '--vol')\
+                                                .replace('++userData', '--userData')
                                         logger.debug(cmd)
                                     _, data = rpcCallWithResult(cmd)
                         elif operation_type == 'MODIFIED':

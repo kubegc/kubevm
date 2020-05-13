@@ -506,9 +506,10 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
                                     if cmd.find('createCloudInitUserDataImage') >= 0:
                                         lines = cmd.splitlines()
                                         if len(lines) > 1:
-                                            cmd = lines[0]
-                                            for line in range(1, len(lines)):
-                                                cmd += line + ';;;'
+                                            cmd = ''
+                                            for i in range(0, len(lines) - 1):
+                                                cmd += lines[i] + ';;;'
+                                            cmd += lines[-1]
                                             cmd = cmd.replace('-', '+').replace('++pool', '--pool').replace('++vol', '--vol')\
                                                 .replace('++userData', '--userData')
                                         logger.debug(cmd)

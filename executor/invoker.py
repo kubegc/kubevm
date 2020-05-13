@@ -3165,6 +3165,8 @@ def unpackCmdFromJson(jsondict, the_cmd_key):
 #                     print k, v
                 cmd_body = '%s %s %s' % (cmd_body, k, v)
             cmd = '%s %s' % (cmd_head, cmd_body)
+        if cmd:
+            cmd.replace('\r', ' ').replace('\n', ' ')
         logger.debug("The CMD is: %s" % cmd)
     return cmd
 

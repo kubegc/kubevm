@@ -301,11 +301,11 @@ function create-bridge()
   then
     echo "BOOTPROTO=dhcp" >> $IFCFG"ifcfg-$name"
   else
-    echo $ip >> $IFCFG"ifcfg-$name"
-    echo $mask >> $IFCFG"ifcfg-$name"
-    echo $prefix >> $IFCFG"ifcfg-$name"
-    echo $gw >> $IFCFG"ifcfg-$name"
-    echo $dns >> $IFCFG"ifcfg-$name"
+    echo "$ip" >> $IFCFG"ifcfg-$name"
+    echo "$mask" >> $IFCFG"ifcfg-$name"
+    echo "$prefix" >> $IFCFG"ifcfg-$name"
+    echo "$gw" >> $IFCFG"ifcfg-$name"
+    echo "$dns" >> $IFCFG"ifcfg-$name"
   fi
 
   ovs-vsctl add-port $name $nic && ifdown $nic && ifup $nic && ifup $name
@@ -1394,7 +1394,5 @@ case $1 in
     ;;
   *)
   help
-  ;;
-esac
   ;;
 esac

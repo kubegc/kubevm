@@ -2774,8 +2774,12 @@ def _get_device_operations_queue(the_cmd_key, config_dict, metadata_name):
             device_type = 'pci_device'
             subsystem = 'pci'
         bus_num = config_dict.get('bus_num')
+        sub_bus_num = config_dict.get('sub_bus_num')
         dev_num = config_dict.get('dev_num')
         live = config_dict.get('live')
+        cmd0 = None
+        if dev_type == 'pci':
+            cmd0 = 'virsh nodedev-detach --device pci_0000_%s_%s_%s' % (bus_num, sub_bus_num, dev_num) 
         if not bus_num or not dev_num:
             raise ExecuteException('VirtctlError', 'Wrong parameters "bus_num" %s or "dev_num" %s.' % (bus_num, dev_num))
         if live:
@@ -2784,7 +2788,7 @@ def _get_device_operations_queue(the_cmd_key, config_dict, metadata_name):
         else:
             cmd = 'ACTION=%s SUBSYSTEM=%s DEVTYPE=%s BUSNUM=%s DEVNUM=%s device-passthrough %s' \
             % (action, subsystem, device_type, bus_num, dev_num, metadata_name)
-        return [cmd]
+        return [cmd0, cmd]
 
 def _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isSetGuestPassword(the_cmd_key):

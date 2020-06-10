@@ -2981,11 +2981,7 @@ def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, args):
                 net_type = 'bridge'
             else:
                 net_type = str(data.get('type'))
-            logger.debug(type(metadata_name))
-            logger.debug(type(net_type))
-            logger.debug(type(data.get('mac')))
-            logger.debug(type(args))
-            return 'virsh detach-interface --domain %s --type %s --mac %s %s' (metadata_name, net_type, str(data.get('mac')), args)
+            return 'virsh detach-interface --domain %s --type %s --mac %s %s' % (metadata_name, net_type, data.get('mac'), args)
     elif device_type == 'disk':
         file_path = '%s/%s-disk-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, str(data.get('target')))
         if not os.path.exists(file_path):

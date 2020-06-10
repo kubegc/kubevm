@@ -2974,7 +2974,6 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
         return []
 
 def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, args):
-    logger.debug(data)
     if device_type == 'nic':
         file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
         if not os.path.exists(file_path):
@@ -2982,6 +2981,7 @@ def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, args):
                 net_type = 'bridge'
             else:
                 net_type = data.get('type')
+            logger.debug(metadata_name, net_type, data.get('mac'), args)
             return 'virsh detach-interface --domain %s --type %s --mac %s %s' (metadata_name, net_type, data.get('mac'), args)
     elif device_type == 'disk':
         file_path = '%s/%s-disk-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('target'))

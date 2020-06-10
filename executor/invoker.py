@@ -341,12 +341,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                         if operations_queue:
                             for operation in operations_queue:
                                 logger.debug(operation)
-                                if operation.find('kubeovn-adm unbind-swport') != -1:
+                                if operation and operation.find('kubeovn-adm unbind-swport') != -1:
                                     try:
                                         runCmd(operation)
                                     except:
                                         pass
-                                elif operation.find('kubesds-adm') != -1:
+                                elif operation and operation.find('kubesds-adm') != -1:
                                     rpcCallWithResult(operation)
                                 else:
                                     runCmd(operation)
@@ -2698,13 +2698,13 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
         if config_dict.get('force'):
             args = args + '--force '
         unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
-        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
-                                (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-        if os.path.exists(net_cfg_file_path):
-            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
-            return [unbindSwPortCmd, unplugNICCmd]
-        else:
-            return [unplugNICCmd]
+#         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+#                                 (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+#         if os.path.exists(net_cfg_file_path):
+        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+        return [unbindSwPortCmd, unplugNICCmd]
+#         else:
+#             return [unplugNICCmd]
     else:
         return []
         
@@ -2788,7 +2788,10 @@ def _get_device_operations_queue(the_cmd_key, config_dict, metadata_name):
         else:
             cmd = 'ACTION=%s SUBSYSTEM=%s DEVTYPE=%s BUSNUM=%s DEVNUM=%s device-passthrough %s' \
             % (action, subsystem, device_type, bus_num, dev_num, metadata_name)
-        return [cmd0, cmd]
+        if cmd0:
+            return [cmd0, cmd]
+        else:
+            return [cmd]
 
 def _get_vm_agent_operations_queue(the_cmd_key, config_dict, metadata_name):
     if _isSetGuestPassword(the_cmd_key):
@@ -2971,6 +2974,7 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
         return []
 
 def _unplugDeviceFromXmlCmd(metadata_name, device_type, data, args):
+    logger.debug(data)
     if device_type == 'nic':
         file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
         if not os.path.exists(file_path):

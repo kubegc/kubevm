@@ -938,7 +938,7 @@ function unbind-fip()
 
   router=$switch"-router"
   fport="from-public-"${vmmac//:/}"-port"
-  $NB_CMD lrp-del $fport
+  $NB_CMD lsp-del $fport
   $NB_CMD lr-nat-del $router dnat $fip
   $NB_CMD lr-nat-del $router snat $vmip
 }

@@ -179,10 +179,6 @@ group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinenetworks
 
-[L2NetworkSupportCmdsWithNameField]
-bindPortVlan = kubeovn-adm bindport-vlan
-unbindPortVlan = kubeovn-adm unbindport-vlan
-
 [L3NetworkSupportCmdsWithNameField]
 createSwitch = kubeovn-adm create-switch
 modifySwitch = kubeovn-adm modify-switch

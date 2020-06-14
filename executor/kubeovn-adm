@@ -937,8 +937,10 @@ function unbind-fip()
   checkOVSStatus
 
   router=$switch"-router"
-  fport="from-public-"${vmmac//:/}"-port"
-  $NB_CMD lsp-del $fport
+  port1="public-"${vmmac//:/}"-port"
+  port2="from-public-"${vmmac//:/}"-port"
+  $NB_CMD lrp-del $port1
+  $NB_CMD lsp-del $port2
   $NB_CMD lr-nat-del $router dnat $fip
   $NB_CMD lr-nat-del $router snat $vmip
 }

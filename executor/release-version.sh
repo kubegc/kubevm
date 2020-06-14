@@ -30,7 +30,7 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success pull latest version."
 fi
-wget -O https://raw.githubusercontent.com/kubesys/kubeext-SDN/master/src/kubeovn-adm
+wget --retry-connrefused -O kubeovn-adm https://raw.githubusercontent.com/kubesys/kubeext-SDN/master/src/kubeovn-adm
 
 ##############################patch stuff#########################################
 SHELL_FOLDER=$(dirname $(readlink -f "$0"))

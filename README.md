@@ -65,5 +65,5 @@ kubectl apply -f yamls/
 
 1: http://39.106.124.113/uit-plus/
 
-- libvirt/virt-install: unable to clone paused VMs
+- virt-install: unable to clone paused VMs
 - kubeadm: unable to provide services after a year

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Node
+metadata:
+  annotations:
+    THISIP: 192.168.42.199
+  labels:
+    host: vm.leader
+  name: vm.leader

@@ -1172,6 +1172,8 @@ function delete-qos()
   tp=$(echo $* | awk -F"--type" '{print$2}' | awk '{print$1}')
   po=$(echo $* | awk -F"--rule" '{print$2}' | awk -F"--" '{print$1}')
   pr=$(echo $* | awk -F"--priority" '{print$2}' | awk '{print$1}')
+  rt=$(echo $* | awk -F"--rate" '{print$2}' | awk '{print$1}')
+  bu=$(echo $* | awk -F"--burst" '{print$2}' | awk '{print$1}')
   
   if [[ -z $1 || -z $sw || -z $tp || -z $po || $2 == "--help" ]]
   then
@@ -1181,6 +1183,8 @@ function delete-qos()
     echo -e "--type       \ttype, from or to"  >&2
     echo -e "--rule       \trule, IP, tcp"  >&2
     echo -e "--priority   \toptional, 1-32767"  >&2
+    echo -e "--rate       \trate, kbps"  >&2
+    echo -e "--burst      \toptional, burst, kbps"  >&2
     exit 1
   fi
   
@@ -1203,12 +1207,13 @@ function delete-qos()
     pr="100"
   fi
   
-  if [[ -z $bu ]]
-  then  
-    $NB_CMD qos-del $sw $ftport $pr "$po" rate=$rt
-  else
-    $NB_CMD qos-del $sw $ftport $pr "$po" rate=$rt burst=$bu
-  fi
+  $NB_CMD qos-del $sw $ftport $pr "$po"
+  #if [[ -z $bu ]]
+  #then  
+  #  $NB_CMD qos-del $sw $ftport $pr "$po" rate=$rt
+  #else
+  #  $NB_CMD qos-del $sw $ftport $pr "$po" rate=$rt burst=$bu
+  #fi
 }
 
 ###########################################################
@@ -1386,10 +1391,10 @@ case $1 in
     create-qos $*
     ;;
   "modify-qos")
-    modify-acl $*
+    modify-qos $*
     ;;
   "delete-qos")
-    delete-acl $*
+    delete-qos $*
     ;;
   "--help")
     help

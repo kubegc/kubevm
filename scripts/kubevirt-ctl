@@ -9,6 +9,18 @@
 ##
 ###############################################
 
+DOCKER_VERSION=19.03.5
+
+KUBE_VERSION=1.17.5
+
+OVS_VERSION=2.11.0
+
+KVM_VERSION=2.12.0
+
+VIRT_VERSION=1.5.0
+
+LIBVIRT_VERSION=4.5.0
+
 function init-env()
 {
   swapoff -a
@@ -30,9 +42,9 @@ function init-env()
 
 function init-master()
 {
-  yum install -y libibverbs docker-ce-19.03.5 docker-ce-cli-19.03.5 kubeadm-1.16.8 kubectl-1.16.8 kubelet-1.16.8 openvswitch-2.11.0 openvswitch-ipsec-2.11.0 openvswitch-ovn-central-2.11.0 openvswitch-ovn-common-2.11.0 openvswitch-ovn-host-2.11.0 openvswitch-ovn-vtep-2.11.0 
   yum install epel-release -y
-  yum install centos-release-openstack-rocky.noarch -y
+  yum install centos-release-openstack-train -y
+  yum install -y libibverbs docker-ce-$DOCKER_VERSION docker-ce-cli-$DOCKER_VERSION kubeadm-$KUBE_VERSION kubectl-$KUBE_VERSION kubelet-$KUBE_VERSION openvswitch-$OVS_VERSION openvswitch-ipsec-$OVS_VERSION openvswitch-ovn-central-$OVS_VERSION openvswitch-ovn-common-$OVS_VERSION openvswitch-ovn-host-$OVS_VERSION openvswitch-ovn-vtep-$OVS_VERSION
   yum install usbutils libguestfs-tools-c python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel virt-install -y
 #  pip install --upgrade pip
   pip install --ignore-installed prometheus_client kubernetes libvirt-python==5.9.0 xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil
@@ -46,9 +58,9 @@ function init-master()
 
 function init-node()
 {
-  yum install -y libibverbs docker-ce-19.03.5 docker-ce-cli-19.03.5 kubeadm-1.16.8 kubectl-1.16.8 kubelet-1.16.8 openvswitch-2.11.0 openvswitch-ipsec-2.11.0 openvswitch-ovn-central-2.11.0 openvswitch-ovn-common-2.11.0 openvswitch-ovn-host-2.11.0 openvswitch-ovn-vtep-2.11.0 virt-manager-1.5.0 libvirt-4.5.0 qemu-kvm-ev-2.12.0
   yum install epel-release -y
-  yum install centos-release-openstack-rocky.noarch -y
+  yum install centos-release-openstack-train -y
+  yum install -y libibverbs docker-ce-$DOCKER_VERSION docker-ce-cli-$DOCKER_VERSION kubeadm-$KUBE_VERSION kubectl-$KUBE_VERSION kubelet-$KUBE_VERSION openvswitch-$OVS_VERSION openvswitch-ipsec-$OVS_VERSION openvswitch-ovn-central-$OVS_VERSION openvswitch-ovn-common-$OVS_VERSION openvswitch-ovn-host-$OVS_VERSION openvswitch-ovn-vtep-$OVS_VERSION virt-manager-$VIRT_VERSION virt-install-$VIRT_VERSION libvirt-$LIBVIRT_VERSION qemu-kvm-ev-$KVM_VERSION
   yum install usbutils libguestfs-tools-c python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel virt-install -y
 #  pip install --upgrade pip
   pip install --ignore-installed prometheus_client kubernetes libvirt-python==5.9.0 xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil  

@@ -61,3 +61,9 @@ kubectl apply -f yamls/
 
 # Roadmap
 
+# Note:
+
+1: http://39.106.124.113/uit-plus/
+
+- virt-install: unable to clone paused VMs
+- kubeadm: unable to provide services after a year

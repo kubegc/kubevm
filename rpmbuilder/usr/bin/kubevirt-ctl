@@ -44,7 +44,7 @@ function init-master()
 {
   yum install epel-release -y
   yum install centos-release-openstack-train -y
-  yum install -y libibverbs docker-ce-$DOCKER_VERSION docker-ce-cli-$DOCKER_VERSION kubeadm-$KUBE_VERSION kubectl-$KUBE_VERSION kubelet-$KUBE_VERSION openvswitch-$OVS_VERSION openvswitch-ipsec-$OVS_VERSION openvswitch-ovn-central-$OVS_VERSION openvswitch-ovn-common-$OVS_VERSION openvswitch-ovn-host-$OVS_VERSION openvswitch-ovn-vtep-$OVS_VERSION
+  yum install -y libibverbs docker-ce-$DOCKER_VERSION docker-ce-cli-$DOCKER_VERSION kubeadm-$KUBE_VERSION kubectl-$KUBE_VERSION kubelet-$KUBE_VERSION openvswitch-$OVS_VERSION openvswitch-ipsec-$OVS_VERSION openvswitch-ovn-central-$OVS_VERSION openvswitch-ovn-common-$OVS_VERSION openvswitch-ovn-host-$OVS_VERSION openvswitch-ovn-vtep-$OVS_VERSION virt-manager-$VIRT_VERSION virt-install-$VIRT_VERSION libvirt-$LIBVIRT_VERSION qemu-kvm-ev-$KVM_VERSION
   yum install usbutils libguestfs-tools-c python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel virt-install -y
 #  pip install --upgrade pip
   pip install --ignore-installed prometheus_client kubernetes libvirt-python==5.9.0 xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil

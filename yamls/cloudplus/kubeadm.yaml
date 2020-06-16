@@ -1,7 +1,5 @@
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
-#localAPIEndpoint:
-#  advertiseAddress: "192.168.42.130"
 bootstrapTokens:
   - ttl: "0"
 ---

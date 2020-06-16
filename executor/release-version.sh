@@ -56,6 +56,7 @@ cp -f ovn-ovsdb.service ./dist
 cp -f virt-monitor-ctl ./dist
 cp -f kubevmm-monitor.service ./dist
 cp -rf ../yamls ./dist
+cp -rf ../monitor ./dist
 cp -rf ../scripts/etc/yum.repos.d ./dist
 echo ${VERSION} > ./VERSION
 pyinstaller -F kubevmm_adm.py -n kubevmm-adm

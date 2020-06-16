@@ -29,6 +29,7 @@ Source13:       virt-monitor
 Source14:       virt-monitor-ctl
 Source15:       kubevmm-monitor.service
 Source16:       kubesds-ctl.sh
+Source17:       monitor
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -59,6 +60,9 @@ install %{SOURCE3} %{buildroot}/etc/kubevmm
 rm -rf %{buildroot}/etc/kubevmm/yamls
 mkdir -p %{buildroot}/etc/kubevmm/yamls/cloudplus
 install %{SOURCE5}/cloudplus/* %{buildroot}/etc/kubevmm/yamls/cloudplus
+rm -rf %{buildroot}/etc/kubevmm/monitor
+mkdir -p %{buildroot}/etc/kubevmm/monitor
+install %{SOURCE17}/* %{buildroot}/etc/kubevmm/monitor
 mkdir -p %{buildroot}/etc/yum.repos.d
 install %{SOURCE9}/*.repo %{buildroot}/etc/yum.repos.d
 
@@ -86,3 +90,4 @@ rm -rf %{buildroot}
 %defattr(644, -, -, 755)
 /etc/kubevmm/yamls/cloudplus
 /etc/yum.repos.d
+/etc/kubevmm/monitor

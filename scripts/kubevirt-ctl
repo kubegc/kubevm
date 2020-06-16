@@ -110,6 +110,12 @@ function setup-master()
 
   ## Network
   kubeovn-adm start-central 
+  
+  ## prometheus & grafana
+  bash /etc/kubevmm/monitor/taint.sh `hostname`
+  kubectl apply -f /etc/kubevmm/monitor/node-exporter.yaml
+  kubectl apply -f /etc/kubevmm/monitor/prometheus.yaml
+  kubectl apply -f /etc/kubevmm/monitor/grafana.yaml
 }
 
 function setup-node()
@@ -120,6 +126,9 @@ function setup-node()
   # start our instances
   kubectl apply -f /etc/kubevmm/yamls/cloudplus/node.yaml
   kubeovn-adm start-worker
+  
+  ## prometheus & grafana
+  kubectl apply -f /etc/kubevmm/monitor/node-exporter.yaml
 }
 
 function cmddesc()

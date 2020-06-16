@@ -2585,7 +2585,8 @@ def _network_config_parser(data):
         '''
         if net_type in ['l2bridge', 'l3bridge']:
             retv['virtualport'] = 'openvswitch'
-        retv['model'] = 'virtio'
+        if not retv.get('model'):
+            retv['model'] = 'virtio'
         retv['target'] = 'fe%s' % (retv['mac'].replace(':', '')[2:])
     else:
         raise ExecuteException('VirtctlError', 'Network config error: no parameters or in wrong format, plz check it!')

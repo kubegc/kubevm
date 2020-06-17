@@ -1491,16 +1491,16 @@ class CDaemon:
         print 'base class run()'
 
 if __name__ == '__main__':
-#     cfg = "/etc/kubevmm/config"
-#     if not os.path.exists(cfg):
-#         cfg = "/home/kubevmm/bin/config"
-#     config_raw = parser()
-#     config_raw.read(cfg)
-#     TOKEN = config_raw.get('Kubernetes', 'token_file')
-#     config.load_kube_config(config_file=TOKEN)
-#     print(get_field_in_kubernetes_by_index('wyw123', 'cloudplus.io', 'v1alpha3', 'virtualmachinedisks', ['volume', 'format_specific', 'data', 'refcount_bits']))
+    cfg = "/etc/kubevmm/config"
+    if not os.path.exists(cfg):
+        cfg = "/home/kubevmm/bin/config"
+    config_raw = parser()
+    config_raw.read(cfg)
+    TOKEN = config_raw.get('Kubernetes', 'token_file')
+    config.load_kube_config(config_file=TOKEN)
+    print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
 #     pprint.pprint(get_l3_network_info("switch1"))
-    check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')
+#     check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom
 #     domain = Domain(_get_dom("950646e8c17a49d0b83c1c797811e004"))

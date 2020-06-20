@@ -59,7 +59,8 @@ def rpcCallWithResult(cmd, raise_it=True):
         if grpc.StatusCode.INVALID_ARGUMENT == status_code:
             # do your stuff here
             pass
-        raise ExecuteException('RunCmdError', "Cmd: %s failed!" % cmd)
+        logger.debug(cmd)
+        raise ExecuteException('RpcError', status_code.name)
     except Exception, e:
         logger.debug(traceback.format_exc())
         raise ExecuteException('RunCmdError', e.message)

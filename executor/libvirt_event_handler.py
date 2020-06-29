@@ -174,16 +174,16 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
 #                     if vm_name in autostart_vms:
 #                         logger.debug('**Automatic start VM**')
                         start(vm_name)
-                    else:
-                        macs = get_macs(vm_name)
-                        for mac in macs:
-                            net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
-                                    (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
-                            if os.path.exists(net_cfg_file_path):
-                                unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
-                                logger.debug(unbindSwPortCmd)
-                                retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
-                                logger.debug(retv)
+#                     else:
+#                         macs = get_macs(vm_name)
+#                         for mac in macs:
+#                             net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+#                                     (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
+#                             if os.path.exists(net_cfg_file_path):
+#                                 unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (mac)
+#                                 logger.debug(unbindSwPortCmd)
+#                                 retv = runCmdRaiseException(unbindSwPortCmd, 'kubeovn error')
+#                                 logger.debug(retv)
                 except:
                     logger.error('Oops! ', exc_info=1)
                     info=sys.exc_info()
@@ -218,8 +218,9 @@ def myDomainEventHandler(conn, dom, *args, **kwargs):
                         if switch and ip:
                             bindSwPortCmd = 'kubeovn-adm bind-swport --mac %s --switch %s --ip %s' % (mac, switch.strip(), ip.strip())
                             logger.debug(bindSwPortCmd)
-                            retv = runCmdRaiseException(bindSwPortCmd, 'Kubeovn error')
-                            logger.debug(retv)
+                            runCmd(bindSwPortCmd)
+#                             retv = runCmdRaiseException(bindSwPortCmd, 'Kubeovn error')
+#                             logger.debug(retv)
 #                             if vxlan != '-1':
 #                                 setVxlanCmd = 'kubeovn-adm setport-vxlan --mac %s -vxlan %s' % (mac, vxlan)
 #                                 logger.debug(setVxlanCmd)

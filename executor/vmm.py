@@ -963,7 +963,30 @@ def updateOS(name, source, target):
             logger.debug('**Other process updated %s, ignore this 409 error.' % name) 
         else:
             logger.error(e)
-            raise e   
+            raise e
+#     pool = os.path.basename(os.path.dirname(os.path.dirname(source)))
+#     vol = os.path.basename(source)
+#     if vol and pool:
+#         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
+#             group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol)
+#         vol_xml = get_volume_xml(pool, vol)
+#         vol_path = get_volume_current_path(pool, vol)
+#         vol_json = toKubeJson(xmlToJson(vol_xml))
+#         vol_json = addSnapshots(vol_path, loads(vol_json))
+#         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+#         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
+#         body = updateDescription(body)
+#         try:
+#             client.CustomObjectsApi().replace_namespaced_custom_object(
+#                 group=VMD_GROUP, version=VMD_VERSION, namespace='default', plural=VMD_PLURAL, name=vol, body=body)
+#         except ApiException, e:
+#             if e.reason == 'Conflict':
+#                 logger.debug('**Other process updated %s, ignore this 409 error.' % vol) 
+#             else:
+#                 logger.error(e)
+#                 raise e    
+#     else:
+#         logger.error("Cannot get vm pool name or vm disk name: vmp(%s), vmd(%s)" % (pool, vol))
     
 def create_disk_snapshot(vol, pool, snapshot):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(

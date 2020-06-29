@@ -12,6 +12,9 @@ import os, sys, time, datetime, socket, subprocess, time, traceback
 import ConfigParser
 from dateutil.tz import gettz
 from json import dumps
+from json import loads
+from xml.etree.ElementTree import fromstring
+from xmljson import badgerfish as bf
 
 '''
 Import third party libs
@@ -31,8 +34,8 @@ from kubernetes.client.models.v1_node_address import V1NodeAddress
 Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
-from utils.utils import CDaemon, runCmd, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
+from utils.libvirt_util import get_xml, vm_state, freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
+from utils.utils import updateDescription, addPowerStatusMessage, updateDomain, CDaemon, runCmd, get_field_in_kubernetes_by_index, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -70,6 +73,7 @@ def main():
                 for vm in list_vms():
                     _check_vm_by_hosting_node(GROUP, VERSION, PLURAL, vm)
                     _check_ha_and_autostart_vm(GROUP, VERSION, PLURAL, vm)
+                    _check_vm_power_state(GROUP, VERSION, PLURAL, vm)
                 ha_check = False
             if restart_service:
                 runCmd('kubevmm-adm service restart --virtctl-only')
@@ -111,6 +115,34 @@ def _check_ha_and_autostart_vm(group, version, plural, metadata_name):
                 start(metadata_name)
     except:
         logger.error('Oops! ', exc_info=1)
+        
+def _check_vm_power_state(group, version, plural, metadata_name):
+    try:
+        logger.debug('3.Check the power state of VM: %s' % metadata_name)
+        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=metadata_name)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**VM %s already deleted, ignore this 404 error.' % metadata_name)
+    except Exception, e:
+        logger.error('Oops! ', exc_info=1)
+    vm_xml = get_xml(metadata_name)
+    vm_power_state = vm_state(metadata_name).get(metadata_name)
+    vm_json = toKubeJson(xmlToJson(vm_xml))
+    vm_json = updateDomain(loads(vm_json))
+    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+    body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+    try:
+        modifyVM(group, version, plural, metadata_name, body)
+    except ApiException, e:
+        if e.reason == 'Not Found':
+            logger.debug('**VM %s already deleted, ignore this 404.' % metadata_name)
+        if e.reason == 'Conflict':
+            logger.debug('**Other process updated %s, ignore this 409.' % metadata_name)
+        else:
+            logger.error('Oops! ', exc_info=1)
+    except Exception, e:
+        logger.error('Oops! ', exc_info=1)
+    
 
 def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     try:
@@ -127,6 +159,33 @@ def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
     with open(backup_file, "w") as f1:
         f1.write(dumps(jsonStr))
+
+def modifyVM(group, version, plural, name, body):
+    body = updateDescription(body)
+    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    return retv
+        
+def xmlToJson(xmlStr):
+    return dumps(bf.data(fromstring(xmlStr)), sort_keys=True, indent=4)
+
+def toKubeJson(json):
+    return json.replace('@', '_').replace('$', 'text').replace(
+            'interface', '_interface').replace('transient', '_transient').replace(
+                    'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
+                    
+def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
+    if jsondict:
+        '''
+        Get target VM name from Json.
+        '''
+        spec = jsondict['spec']
+        if spec:
+            lifecycle = spec.get('lifecycle')
+            if lifecycle:
+                del spec['lifecycle']
+            spec.update(body)
+    return jsondict
 
 class HostCycler:
     

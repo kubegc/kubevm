@@ -2688,6 +2688,7 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
             return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
     elif _isUnplugNIC(the_cmd_key):
         args = ''
+        unbindSwPortCmd = ''
         if config_dict.get('live'):
             args = args + '--live '
         if config_dict.get('config'):
@@ -2699,13 +2700,14 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
         if config_dict.get('force'):
             args = args + '--force '
         unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
-#         net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
-#                                 (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-#         if os.path.exists(net_cfg_file_path):
-        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
-        return [unbindSwPortCmd, unplugNICCmd]
-#         else:
-#             return [unplugNICCmd]
+        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+                                (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+        if os.path.exists(net_cfg_file_path):
+            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+        if unbindSwPortCmd:
+            return [unbindSwPortCmd, unplugNICCmd]
+        else:
+            return [unplugNICCmd]
     else:
         return []
         

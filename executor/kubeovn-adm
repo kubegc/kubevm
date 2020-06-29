@@ -979,7 +979,15 @@ function create-acl()
   sid=$($NB_CMD ls-list | grep "($sw)" | awk '{print$1}')
   if [[ -z $sid ]]
   then
-    echo "switch not exist" >&2
+    echo "switch "$sw" not exist" >&2
+    exit 1
+  fi
+  
+  smac=$($NB_CMD show $sw | grep $vm)
+  
+  if [[ -z $smac ]]
+  then
+    echo "vmmac "$vm" not exist" >&2
     exit 1
   fi
   

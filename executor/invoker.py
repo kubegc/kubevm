@@ -3220,8 +3220,10 @@ def get_arg_from_lifecycle(jsondict, the_cmd_key, arg):
         return lifecycle.get(the_cmd_key).get(arg)
 
 def disk_prepare(the_cmd_key, jsondict, metadata_name):
+    cmds = []
     if the_cmd_key in ['cloneVM', 'startVMOnMachine', 'startVM', 'restartVM', 'resetVM']:
-        result, data = rpcCallWithResult('kubesds-adm prepareDisk --domain %s' % metadata_name)
+        cmds.append('kubesds-adm prepareDisk --domain %s' % metadata_name)
+        # result, data = rpcCallWithResult('kubesds-adm prepareDisk --domain %s' % metadata_name)
     # if the_cmd_key == 'cloneVM':
     #     path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'file')
     #     if path is None:
@@ -3231,23 +3233,41 @@ def disk_prepare(the_cmd_key, jsondict, metadata_name):
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'source')
         if path is None:
             return
-        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
+        cmds.append('kubesds-adm prepareDisk --path %s' % path)
+        # result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key == 'resizeVM':
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'path')
         if path is None:
             return
-        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
+        cmds.append('kubesds-adm prepareDisk --path %s' % path)
+        # result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key == 'updateOS':
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'target')
         if path is None:
             return
-        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
+        cmds.append('kubesds-adm prepareDisk --path %s' % path)
+        # result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % path)
     if the_cmd_key == 'createAndStartVMFromISO':
         path = get_arg_from_lifecycle(jsondict, the_cmd_key, 'disk')
         if path is None:
             return
         for line in get_disks_path(path):
-                result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % line)
+            cmds.append('kubesds-adm prepareDisk --path %s' % line)
+            # result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % line)
+
+    retry_times = 2
+    for cmd in cmds:
+        for i in range(retry_times):
+            try:
+                result, data = rpcCallWithResult(cmd)
+                break
+            except ExecuteException, e:
+                if e.reason == 'RpcError' and e.message == 'UNAVALIABLE':
+                    continue
+                else:
+                    raise e
+
+
 '''
 Run back-end command in subprocess.
 '''

@@ -40,7 +40,7 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr
 
-LOG = '/var/log/kubesds.log'
+LOG = '/var/log/virtctl.log'
 
 
 def set_logger(header, fn):
@@ -78,7 +78,7 @@ def modifyVM(name, body):
     return retv
 
 def deleteVM(name, body):
-    k8s_logger.debug('deleteVM %s name')
+    k8s_logger.debug('deleteVMBackupdebug %s name')
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)
     return retv

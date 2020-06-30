@@ -252,7 +252,7 @@ def modifyVM(name, body):
     return retv
 
 def deleteVM(name):
-    logger.debug('deleteVM %s' % name)
+    logger.debug('deleteVMBackupdebug %s' % name)
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=V1DeleteOptions())
     return retv

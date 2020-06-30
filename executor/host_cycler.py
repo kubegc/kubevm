@@ -76,7 +76,7 @@ def main():
                     _check_vm_power_state(GROUP, VERSION, PLURAL, vm)
                 ha_check = False
             if restart_service:
-                runCmd('kubevmm-adm service restart --virtctl-only')
+                runCmd('kubevmm-adm service restart')
                 restart_service = False
             time.sleep(8)
         except:

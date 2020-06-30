@@ -321,7 +321,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                                 if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key) or \
                                         _isExportVM(the_cmd_key) or _isBackupVM(the_cmd_key) or _isRestoreVM(the_cmd_key)\
                                         or _isPullRemoteBackup(the_cmd_key) or _isDeleteVMBackup(the_cmd_key)  \
-                                        or _isDeleteRemoteBackup(the_cmd_key) or _isPushRemoteBackup(the_cmd_key):
+                                        or _isDeleteRemoteBackup(the_cmd_key) or _isPushRemoteBackup(the_cmd_key) or _isUpdateOS(the_cmd_key):
                                     rpcCallWithResult(cmd)
                                 else:
                                     runCmd(cmd)
@@ -1999,6 +1999,10 @@ def _isPushRemoteBackup(the_cmd_key):
         return True
     return False
 
+def _isUpdateOS(the_cmd_key):
+    if the_cmd_key == "updateOS":
+        return True
+    return False
 
 def _isDeleteRemoteBackup(the_cmd_key):
     if the_cmd_key == "deleteRemoteBackup":

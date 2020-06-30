@@ -43,7 +43,7 @@ TABLE_DHCP="DHCP_Options"
 
 MASTER=$(cat /root/.kube/config  | grep server |awk -F"server:" '{print$2}' | awk -F"https://" '{print$2}' | awk -F":" '{print$1}')
 #THISIP=$(kubectl get node vm.$(hostname) -o yaml | grep -B 1 "type: InternalIP" | grep address | awk -F": " '{print$2}')
-THISIP=$(kubectl get node vm.$(hostname) -o yaml | grep THISIP | awk -F":" 'NR==1{print$2}' | sed 's/ //g')
+THISIP=$(kubectl get node vm.$(hostname) -o yaml | grep "THISIP:" | awk -F":" 'NR==1{print$2}' | sed 's/ //g')
 
 NB_PORT="6641"
 SB_PORT="6642"
@@ -572,6 +572,11 @@ function modify-switch()
   if [[ -n $dhcp ]]
   then
     thisdhcp=$dhcp
+    rr=$($NB_CMD show | grep -B 1 "$rmac" | grep port | awk '{print$2}')
+    mm=$($NB_CMD show | grep -A 1 "$rmac" | grep networks | awk -F"/" '{print$2}' | awk -F "\"" '{print$1}')
+    $NB_CMD lrp-del $rr
+    r=$(echo "$rr" | awk -F"router-port" '{print$1}')
+    $NB_CMD lrp-add $r"router" $rr $rmac $dhcp"/"$mm
   fi
 
   if [[ -n $gway ]]

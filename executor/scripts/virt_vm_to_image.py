@@ -23,6 +23,9 @@ from kubernetes.client.rest import ApiException
 from kubernetes.client import V1DeleteOptions
 from xmljson import badgerfish as bf
 
+import logging
+import logging.handlers
+
 '''
 Import local libs
 '''
@@ -35,7 +38,30 @@ class parser(ConfigParser.ConfigParser):
     def __init__(self, defaults=None):
         ConfigParser.ConfigParser.__init__(self, defaults=None)
     def optionxform(self, optionstr):  
-        return optionstr 
+        return optionstr
+
+LOG = '/var/log/kubesds.log'
+
+
+def set_logger(header, fn):
+    logger = logging.getLogger(header)
+
+    handler1 = logging.StreamHandler()
+    handler2 = logging.handlers.RotatingFileHandler(filename=fn, maxBytes=10000000, backupCount=10)
+
+    logger.setLevel(logging.DEBUG)
+    handler1.setLevel(logging.ERROR)
+    handler2.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter("%(asctime)s %(name)s %(lineno)s %(levelname)s %(message)s")
+    handler1.setFormatter(formatter)
+    handler2.setFormatter(formatter)
+
+    logger.addHandler(handler1)
+    logger.addHandler(handler2)
+    return logger
+
+k8s_logger = set_logger(os.path.basename(__file__), LOG)
     
 cfg = "%s/default.cfg" % os.path.dirname(os.path.realpath(__file__))
 config_raw = parser()
@@ -52,6 +78,7 @@ def modifyVM(name, body):
     return retv
 
 def deleteVM(name, body):
+    k8s_logger.debug('deleteVM %s name')
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)
     return retv

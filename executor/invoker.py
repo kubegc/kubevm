@@ -2018,11 +2018,6 @@ def _isDeleteVMBackup(the_cmd_key):
         return True
     return False
 
-def _isUpdateOS(the_cmd_key):
-    if the_cmd_key == "updateOS":
-        return True
-    return False
-
 def _isManageISO(the_cmd_key):
     if the_cmd_key == "manageISO":
         return True

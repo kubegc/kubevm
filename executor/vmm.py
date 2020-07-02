@@ -1175,6 +1175,7 @@ def write_result_to_server(name, op, kind, plural, params):
         except:
             logger.error('Oops! ', exc_info=1)
         try:
+            logger.debug('deleteVMBackupdebug %s' % name)
             client.CustomObjectsApi().delete_namespaced_custom_object(
                 group=GROUP, version=VERSION, namespace='default', plural=plural, name=name, body=V1DeleteOptions())
         except ApiException, e:

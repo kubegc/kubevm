@@ -252,6 +252,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             except:
                 logger.warning('Oops! ', exc_info=1)
             try:
+                if operation_type == 'DELETED':
+                    logger.debug(dumps(jsondict))
                 if the_cmd_key and operation_type != 'DELETED':
     #                 _vm_priori_step(the_cmd_key, jsondict)
     #                 node_name = _get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
@@ -360,7 +362,8 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         #                         if cmd:
         #                             runCmd(cmd)
                         status = 'Done(Success)'
-                        if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key) and not _isMigrateVMDisk(the_cmd_key):
+                        if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key) and not _isMigrateVMDisk(the_cmd_key) \
+                                and not _isBackupVM(the_cmd_key) and not _isDeleteVMBackup(the_cmd_key):
                             write_result_to_server(group, version, 'default', plural, metadata_name)
                     except libvirtError:
                         logger.error('Oops! ', exc_info=1)
@@ -1453,6 +1456,7 @@ def get_kubesds_disk_snapshot_info(type, pool, vol, name):
     return rpcCallWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), raise_it=False)
 
 def deleteStructure(name, body, group, version, plural):
+    logger.debug('deleteVMBackupdebug %s' % name)
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv

@@ -121,6 +121,7 @@ def modifyStructure(name, body, group, version, plural):
 
 
 def deleteStructure(name, body, group, version, plural):
+    logger.debug('deleteVMBackupdebug %s' % name)
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv

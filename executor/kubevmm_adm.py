@@ -12,7 +12,7 @@ import json
 import subprocess
 import traceback
 import socket
-import threading
+from multiprocessing import Process
 
 HOSTNAME = socket.gethostname()
 
@@ -220,10 +220,10 @@ def start_virt_monitor(ignore_warning=False):
 #         sys.exit(1)
 
 def restart(ignore_warning=False):
-    t1 = threading.Thread(target=restart_virtlet,args=(ignore_warning, False, VERSION,))
+    t1 = Process(target=restart_virtlet,args=(ignore_warning, False, VERSION,))
     t1.setDaemon(True)
     t1.start()
-    t2 = threading.Thread(target=restart_virtctl,args=(ignore_warning, False, VERSION,))
+    t2 = Process(target=restart_virtctl,args=(ignore_warning, False, VERSION,))
     t2.setDaemon(True)
     t2.start()
     t1.join()

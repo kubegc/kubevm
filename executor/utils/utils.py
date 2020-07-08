@@ -519,14 +519,6 @@ def runCmdRaiseException(cmd, head='VirtctlError', use_read=False, timeout=10):
         return
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        if use_read:
-            std_out = p.stdout.read()
-            std_err = p.stderr.read()
-        else:
-            std_out = p.stdout.readlines()
-            std_err = p.stderr.readlines()
-        if std_err:
-            raise ExecuteException(head, std_err)
         t_beginning = time.time() 
         seconds_passed = 0 
         while True: 
@@ -537,6 +529,14 @@ def runCmdRaiseException(cmd, head='VirtctlError', use_read=False, timeout=10):
                 p.terminate() 
                 raise TimeoutError(cmd, timeout) 
             time.sleep(0.1) 
+        if use_read:
+            std_out = p.stdout.read()
+            std_err = p.stderr.read()
+        else:
+            std_out = p.stdout.readlines()
+            std_err = p.stderr.readlines()
+        if std_err:
+            raise ExecuteException(head, std_err)
         return std_out
     finally:
         p.stdout.close()

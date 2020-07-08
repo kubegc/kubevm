@@ -178,7 +178,6 @@ def collect_storage_metrics(zone):
         all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point, timeout=2)
         for pool_storage in all_pool_storages:
             t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
-            t.setDaemon(True)
             t.start()
             t.join(2)
 #             get_pool_metrics(pool_storage, pool_type, zone)
@@ -287,7 +286,6 @@ def collect_vm_metrics(zone):
     vm_list = list_active_vms()
     for vm in vm_list:
         t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
-        t.setDaemon(True)
         t.start()
         t.join(2)
 #         get_vm_metrics(vm, zone)

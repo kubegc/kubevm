@@ -175,12 +175,16 @@ def collect_storage_metrics(zone):
     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
                 LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
     for mount_point, pool_type in storages.items():
-        all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point, timeout=2)
-        for pool_storage in all_pool_storages:
-            t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
-            t.start()
-            t.join(2)
-            t.kill()
+        try:
+            all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point, timeout=2)
+            for pool_storage in all_pool_storages:
+                t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
+                t.start()
+                t.join(2)
+                t.kill()
+        except:
+            logger.warning('Oops! ', exc_info=1)
+            return
 #             get_pool_metrics(pool_storage, pool_type, zone)
 
 def get_pool_metrics(pool_storage, pool_type, zone):
@@ -284,12 +288,16 @@ def get_macs(vm):
     return macs
 
 def collect_vm_metrics(zone):
-    vm_list = list_active_vms()
-    for vm in vm_list:
-        t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
-        t.start()
-        t.join(2)
-        t.kill()
+    try:
+        vm_list = list_active_vms()
+        for vm in vm_list:
+            t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
+            t.start()
+            t.join(2)
+            t.kill()
+    except:
+        logger.warning('Oops! ', exc_info=1)
+        return        
 #         get_vm_metrics(vm, zone)
         
 def get_vm_metrics(vm, zone):

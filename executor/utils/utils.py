@@ -513,7 +513,7 @@ def runCmd(cmd):
         p.stdout.close()
         p.stderr.close()
 
-def runCmdRaiseException(cmd, head='VirtctlError', use_read=False):
+def runCmdRaiseException(cmd, head='VirtctlError', use_read=False, timeout=10):
     std_err = None
     if not cmd:
         return
@@ -527,10 +527,23 @@ def runCmdRaiseException(cmd, head='VirtctlError', use_read=False):
             std_err = p.stderr.readlines()
         if std_err:
             raise ExecuteException(head, std_err)
+        t_beginning = time.time() 
+        seconds_passed = 0 
+        while True: 
+            if p.poll() is not None: 
+                break 
+            seconds_passed = time.time() - t_beginning 
+            if timeout and seconds_passed > timeout: 
+                p.terminate() 
+                raise TimeoutError(cmd, timeout) 
+            time.sleep(0.1) 
         return std_out
     finally:
         p.stdout.close()
         p.stderr.close()
+        
+class TimeoutError(Exception): 
+    pass 
 
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 

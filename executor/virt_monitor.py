@@ -8,6 +8,8 @@ import sys
 from prometheus_client import Gauge,start_http_server,Counter
 import time
 import threading
+import inspect
+import ctypes
 from kubernetes import config
 from json import loads, dumps
 
@@ -140,17 +142,46 @@ storage_disk_total_size_kilobytes = Gauge('storage_disk_total_size_kilobytes', '
 storage_disk_used_size_kilobytes = Gauge('storage_disk_used_size_kilobytes', 'Storage disk used size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type', 'disk'])
 
+class KillableThread:
+    def __init__(self, target, args=None):
+        self.th = threading.Thread(target=target, args=args)
+        self.kill_sema = threading.Semaphore(0)
+        self.start_sema = threading.Semaphore(0)
+        def daemon_thread(self):
+            self.th.setDaemon(True)
+            self.th.start()
+            self.start_sema.release()
+            self.kill_sema.acquire()
+        self.guard = threading.Thread(target=daemon_thread, args=(self,))
+
+    def start(self):
+        self.guard.start()
+        self.start_sema.acquire()
+
+    def join(self, secs=None):
+        self.th.join(secs)
+        if not self.th.is_alive():
+            self.kill_sema.release()
+
+    def is_alive(self):
+        return self.th.is_alive() and self.guard.is_alive()
+
+    def kill(self):
+        self.kill_sema.release()
+        while self.guard.is_alive():
+            pass
+
 def collect_storage_metrics(zone):
     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
                 LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
     for mount_point, pool_type in storages.items():
-        all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
+        all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point, timeout=2)
         for pool_storage in all_pool_storages:
-#             t = threading.Thread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
-#             t.setDaemon(True)
-#             t.start()
-#             t.join()
-            get_pool_metrics(pool_storage, pool_type, zone)
+            t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
+            t.setDaemon(True)
+            t.start()
+            t.join(2)
+#             get_pool_metrics(pool_storage, pool_type, zone)
 
 def get_pool_metrics(pool_storage, pool_type, zone):
     (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
@@ -184,7 +215,7 @@ def collect_disk_metrics(pool_mount_point, pool_type, zone):
 #     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
 def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
     try:
-        output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True))
+        output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True, timeout=1))
 #     output = loads()
 #     print(output)
     except:
@@ -255,11 +286,11 @@ def get_macs(vm):
 def collect_vm_metrics(zone):
     vm_list = list_active_vms()
     for vm in vm_list:
-#         t = threading.Thread(target=get_vm_metrics,args=(vm, zone,))
-#         t.setDaemon(True)
-#         t.start()
-#         t.join()
-        get_vm_metrics(vm, zone)
+        t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
+        t.setDaemon(True)
+        t.start()
+        t.join(2)
+#         get_vm_metrics(vm, zone)
         
 def get_vm_metrics(vm, zone):
     config.load_kube_config(config_file=TOKEN)

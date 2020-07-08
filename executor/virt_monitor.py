@@ -142,34 +142,26 @@ storage_disk_total_size_kilobytes = Gauge('storage_disk_total_size_kilobytes', '
 storage_disk_used_size_kilobytes = Gauge('storage_disk_used_size_kilobytes', 'Storage disk used size in kilobytes on host', \
                                 ['zone', 'host', 'pool', 'type', 'disk'])
 
-class KillableThread:
-    def __init__(self, target, args=None):
-        self.th = threading.Thread(target=target, args=args)
-        self.kill_sema = threading.Semaphore(0)
-        self.start_sema = threading.Semaphore(0)
-        def daemon_thread(self):
-            self.th.setDaemon(True)
-            self.th.start()
-            self.start_sema.release()
-            self.kill_sema.acquire()
-        self.guard = threading.Thread(target=daemon_thread, args=(self,))
+class KillableThread(threading.Thread):
+    def __init__(self, *args, **kw):
+        super(KillableThread, self).__init__(*args, **kw)
 
-    def start(self):
-        self.guard.start()
-        self.start_sema.acquire()
-
-    def join(self, secs=None):
-        self.th.join(secs)
-        if not self.th.is_alive():
-            self.kill_sema.release()
-
-    def is_alive(self):
-        return self.th.is_alive() and self.guard.is_alive()
+    def _async_raise(self, tid, exctype):
+        """raises the exception, performs cleanup if needed"""
+        tid = ctypes.c_long(tid)
+        if not inspect.isclass(exctype):
+            exctype = type(exctype)
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(exctype))
+        if res == 0:
+            raise ValueError("invalid thread id")
+        elif res != 1:
+            # """if it returns a number greater than one, you're in trouble,
+            # and you should call it again with exc=NULL to revert the effect"""
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
+            raise SystemError("PyThreadState_SetAsyncExc failed")
 
     def kill(self):
-        self.kill_sema.release()
-        while self.guard.is_alive():
-            pass
+        KillableThread._async_raise(self.ident, SystemExit)
 
 def collect_storage_metrics(zone):
     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
@@ -180,6 +172,7 @@ def collect_storage_metrics(zone):
             t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
             t.start()
             t.join(2)
+            t.kill()
 #             get_pool_metrics(pool_storage, pool_type, zone)
 
 def get_pool_metrics(pool_storage, pool_type, zone):
@@ -288,6 +281,7 @@ def collect_vm_metrics(zone):
         t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
         t.start()
         t.join(2)
+        t.kill()
 #         get_vm_metrics(vm, zone)
         
 def get_vm_metrics(vm, zone):

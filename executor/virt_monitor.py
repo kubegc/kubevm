@@ -146,10 +146,11 @@ def collect_storage_metrics(zone):
     for mount_point, pool_type in storages.items():
         all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
         for pool_storage in all_pool_storages:
-            t = threading.Thread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
-            t.setDaemon(True)
-            t.start()
-            t.join()
+#             t = threading.Thread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
+#             t.setDaemon(True)
+#             t.start()
+#             t.join()
+            get_pool_metrics(pool_storage, pool_type, zone)
 
 def get_pool_metrics(pool_storage, pool_type, zone):
     (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
@@ -254,10 +255,11 @@ def get_macs(vm):
 def collect_vm_metrics(zone):
     vm_list = list_active_vms()
     for vm in vm_list:
-        t = threading.Thread(target=get_vm_metrics,args=(vm, zone,))
-        t.setDaemon(True)
-        t.start()
-        t.join()
+#         t = threading.Thread(target=get_vm_metrics,args=(vm, zone,))
+#         t.setDaemon(True)
+#         t.start()
+#         t.join()
+        get_vm_metrics(vm, zone)
         
 def get_vm_metrics(vm, zone):
     config.load_kube_config(config_file=TOKEN)

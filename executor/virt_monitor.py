@@ -636,14 +636,14 @@ def daemonize():
         print help_msg    
         
 if __name__ == '__main__':
-#     daemonize()
-    start_http_server(19998)
-    config.load_kube_config(config_file=TOKEN)
-    zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
-    while True:
-        collect_vm_metrics(zone)
-#         collect_storage_metrics(zone)
-        time.sleep(10)    
+    daemonize()
+#     start_http_server(19998)
+#     config.load_kube_config(config_file=TOKEN)
+#     zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
+#     while True:
+#         collect_vm_metrics(zone)
+# #         collect_storage_metrics(zone)
+#         time.sleep(10)    
 #     print(get_macs("vm006"))
     # print get_disks_spec('vmtest222')
 #     import pprint

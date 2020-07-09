@@ -604,6 +604,7 @@ class ClientDaemon(CDaemon):
         config.load_kube_config(config_file=TOKEN)
         zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
         while True:
+            init()
             collect_vm_metrics(zone)
             collect_storage_metrics(zone)
             time.sleep(10)

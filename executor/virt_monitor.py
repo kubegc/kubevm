@@ -5,6 +5,7 @@ import ConfigParser
 import re
 import os
 import sys
+from prometheus_client.core import CollectorRegistry
 from prometheus_client import Gauge,start_http_server,Counter
 import time
 import threading
@@ -97,102 +98,102 @@ HOSTNAME = get_hostname_in_lower_case()
 #                                 ['zone', 'host', 'pool', 'type', 'disk'])
 
 # VMS_CACHE = []
-vm_cpu_system_proc_rate = None
-vm_cpu_usr_proc_rate = None
-vm_cpu_idle_rate = None
-vm_mem_total_bytes = None
-vm_mem_available_bytes = None
-vm_mem_buffers_bytes = None
-vm_mem_rate = None
-vm_disk_read_requests_per_secend = None
-vm_disk_write_requests_per_secend = None
-vm_disk_read_bytes_per_secend = None
-vm_disk_write_bytes_per_secend = None
-vm_network_receive_packages_per_secend = None
-vm_network_receive_bytes_per_secend = None
-vm_network_receive_errors_per_secend = None
-vm_network_receive_drops_per_secend = None
-vm_network_send_packages_per_secend = None
-vm_network_send_bytes_per_secend = None
-vm_network_send_errors_per_secend = None
-vm_network_send_drops_per_secend = None
-storage_pool_total_size_kilobytes = None
-storage_pool_used_size_kilobytes = None
-storage_disk_total_size_kilobytes = None
-storage_disk_used_size_kilobytes = None
+# vm_cpu_system_proc_rate = None
+# vm_cpu_usr_proc_rate = None
+# vm_cpu_idle_rate = None
+# vm_mem_total_bytes = None
+# vm_mem_available_bytes = None
+# vm_mem_buffers_bytes = None
+# vm_mem_rate = None
+# vm_disk_read_requests_per_secend = None
+# vm_disk_write_requests_per_secend = None
+# vm_disk_read_bytes_per_secend = None
+# vm_disk_write_bytes_per_secend = None
+# vm_network_receive_packages_per_secend = None
+# vm_network_receive_bytes_per_secend = None
+# vm_network_receive_errors_per_secend = None
+# vm_network_receive_drops_per_secend = None
+# vm_network_send_packages_per_secend = None
+# vm_network_send_bytes_per_secend = None
+# vm_network_send_errors_per_secend = None
+# vm_network_send_drops_per_secend = None
+# storage_pool_total_size_kilobytes = None
+# storage_pool_used_size_kilobytes = None
+# storage_disk_total_size_kilobytes = None
+# storage_disk_used_size_kilobytes = None
+# 
+# def init():
+#     
+#     global vm_cpu_system_proc_rate
+#     global vm_cpu_usr_proc_rate 
+#     global vm_cpu_idle_rate 
+#     global vm_mem_total_bytes 
+#     global vm_mem_available_bytes 
+#     global vm_mem_buffers_bytes 
+#     global vm_mem_rate 
+#     global vm_disk_read_requests_per_secend 
+#     global vm_disk_write_requests_per_secend 
+#     global vm_disk_read_bytes_per_secend 
+#     global vm_disk_write_bytes_per_secend 
+#     global vm_network_receive_packages_per_secend 
+#     global vm_network_receive_bytes_per_secend 
+#     global vm_network_receive_errors_per_secend 
+#     global vm_network_receive_drops_per_secend 
+#     global vm_network_send_packages_per_secend 
+#     global vm_network_send_bytes_per_secend 
+#     global vm_network_send_errors_per_secend 
+#     global vm_network_send_drops_per_secend 
+#     global storage_pool_total_size_kilobytes 
+#     global storage_pool_used_size_kilobytes 
+#     global storage_disk_total_size_kilobytes 
+#     global storage_disk_used_size_kilobytes 
 
-def init():
-    
-    global vm_cpu_system_proc_rate
-    global vm_cpu_usr_proc_rate 
-    global vm_cpu_idle_rate 
-    global vm_mem_total_bytes 
-    global vm_mem_available_bytes 
-    global vm_mem_buffers_bytes 
-    global vm_mem_rate 
-    global vm_disk_read_requests_per_secend 
-    global vm_disk_write_requests_per_secend 
-    global vm_disk_read_bytes_per_secend 
-    global vm_disk_write_bytes_per_secend 
-    global vm_network_receive_packages_per_secend 
-    global vm_network_receive_bytes_per_secend 
-    global vm_network_receive_errors_per_secend 
-    global vm_network_receive_drops_per_secend 
-    global vm_network_send_packages_per_secend 
-    global vm_network_send_bytes_per_secend 
-    global vm_network_send_errors_per_secend 
-    global vm_network_send_drops_per_secend 
-    global storage_pool_total_size_kilobytes 
-    global storage_pool_used_size_kilobytes 
-    global storage_disk_total_size_kilobytes 
-    global storage_disk_used_size_kilobytes 
-
-    vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-    vm_cpu_usr_proc_rate = Gauge('vm_cpu_usr_proc_rate', 'The CPU rate of running user processes in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-    vm_cpu_idle_rate = Gauge('vm_cpu_idle_rate', 'The CPU idle rate in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-    vm_mem_total_bytes = Gauge('vm_mem_total_bytes', 'The total memory bytes in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-    vm_mem_available_bytes = Gauge('vm_mem_available_bytes', 'The available memory bytes in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-    vm_mem_buffers_bytes = Gauge('vm_mem_buffers_bytes', 'The buffers memory bytes in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-    vm_mem_rate = Gauge('vm_mem_rate', 'The memory rate in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-    vm_disk_read_requests_per_secend = Gauge('vm_disk_read_requests_per_secend', 'Disk read requests per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_disk_write_requests_per_secend = Gauge('vm_disk_write_requests_per_secend', 'Disk write requests per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_disk_read_bytes_per_secend = Gauge('vm_disk_read_bytes_per_secend', 'Disk read bytes per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_disk_write_bytes_per_secend = Gauge('vm_disk_write_bytes_per_secend', 'Disk write bytes per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_receive_packages_per_secend = Gauge('vm_network_receive_packages_per_secend', 'Network receive packages per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_receive_bytes_per_secend = Gauge('vm_network_receive_bytes_per_secend', 'Network receive bytes per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_receive_errors_per_secend = Gauge('vm_network_receive_errors_per_secend', 'Network receive errors per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_receive_drops_per_secend = Gauge('vm_network_receive_drops_per_secend', 'Network receive drops per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_send_packages_per_secend = Gauge('vm_network_send_packages_per_secend', 'Network send packages per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_send_bytes_per_secend = Gauge('vm_network_send_bytes_per_secend', 'Network send bytes per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_send_errors_per_secend = Gauge('vm_network_send_errors_per_secend', 'Network send errors per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    vm_network_send_drops_per_secend = Gauge('vm_network_send_drops_per_secend', 'Network send drops per second in virtual machine', \
-                                    ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
-    storage_pool_total_size_kilobytes = Gauge('storage_pool_total_size_kilobytes', 'Storage pool total size in kilobytes on host', \
-                                    ['zone', 'host', 'pool', 'type'])
-    storage_pool_used_size_kilobytes = Gauge('storage_pool_used_size_kilobytes', 'Storage pool used size in kilobytes on host', \
-                                    ['zone', 'host', 'pool', 'type'])
-    storage_disk_total_size_kilobytes = Gauge('storage_disk_total_size_kilobytes', 'Storage disk total size in kilobytes on host', \
-                                    ['zone', 'host', 'pool', 'type', 'disk'])
-    storage_disk_used_size_kilobytes = Gauge('storage_disk_used_size_kilobytes', 'Storage disk used size in kilobytes on host', \
-                                    ['zone', 'host', 'pool', 'type', 'disk'])
+vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+vm_cpu_usr_proc_rate = Gauge('vm_cpu_usr_proc_rate', 'The CPU rate of running user processes in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+vm_cpu_idle_rate = Gauge('vm_cpu_idle_rate', 'The CPU idle rate in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+vm_mem_total_bytes = Gauge('vm_mem_total_bytes', 'The total memory bytes in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+vm_mem_available_bytes = Gauge('vm_mem_available_bytes', 'The available memory bytes in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+vm_mem_buffers_bytes = Gauge('vm_mem_buffers_bytes', 'The buffers memory bytes in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+vm_mem_rate = Gauge('vm_mem_rate', 'The memory rate in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+vm_disk_read_requests_per_secend = Gauge('vm_disk_read_requests_per_secend', 'Disk read requests per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_disk_write_requests_per_secend = Gauge('vm_disk_write_requests_per_secend', 'Disk write requests per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_disk_read_bytes_per_secend = Gauge('vm_disk_read_bytes_per_secend', 'Disk read bytes per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_disk_write_bytes_per_secend = Gauge('vm_disk_write_bytes_per_secend', 'Disk write bytes per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_receive_packages_per_secend = Gauge('vm_network_receive_packages_per_secend', 'Network receive packages per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_receive_bytes_per_secend = Gauge('vm_network_receive_bytes_per_secend', 'Network receive bytes per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_receive_errors_per_secend = Gauge('vm_network_receive_errors_per_secend', 'Network receive errors per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_receive_drops_per_secend = Gauge('vm_network_receive_drops_per_secend', 'Network receive drops per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_send_packages_per_secend = Gauge('vm_network_send_packages_per_secend', 'Network send packages per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_send_bytes_per_secend = Gauge('vm_network_send_bytes_per_secend', 'Network send bytes per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_send_errors_per_secend = Gauge('vm_network_send_errors_per_secend', 'Network send errors per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+vm_network_send_drops_per_secend = Gauge('vm_network_send_drops_per_secend', 'Network send drops per second in virtual machine', \
+                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster", 'device'])
+storage_pool_total_size_kilobytes = Gauge('storage_pool_total_size_kilobytes', 'Storage pool total size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type'])
+storage_pool_used_size_kilobytes = Gauge('storage_pool_used_size_kilobytes', 'Storage pool used size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type'])
+storage_disk_total_size_kilobytes = Gauge('storage_disk_total_size_kilobytes', 'Storage disk total size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type', 'disk'])
+storage_disk_used_size_kilobytes = Gauge('storage_disk_used_size_kilobytes', 'Storage disk used size in kilobytes on host', \
+                                ['zone', 'host', 'pool', 'type', 'disk'])
 
 class KillableThread:
     def __init__(self, target, args=None):
@@ -240,8 +241,8 @@ def collect_storage_metrics(zone):
 #             get_pool_metrics(pool_storage, pool_type, zone)
 
 def get_pool_metrics(pool_storage, pool_type, zone):
-    global storage_pool_total_size_kilobytes 
-    global storage_pool_used_size_kilobytes 
+#     global storage_pool_total_size_kilobytes 
+#     global storage_pool_used_size_kilobytes 
     (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
     storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_total)
     storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_used)
@@ -272,8 +273,8 @@ def collect_disk_metrics(pool_mount_point, pool_type, zone):
 #         t1.start()
 #     resource_utilization = {'host': HOSTNAME, 'vdisk_metrics': {}}
 def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
-    global storage_disk_total_size_kilobytes 
-    global storage_disk_used_size_kilobytes 
+#     global storage_disk_total_size_kilobytes 
+#     global storage_disk_used_size_kilobytes 
     try:
         output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True, timeout=1))
 #     output = loads()
@@ -366,25 +367,25 @@ def collect_vm_metrics(zone):
         
 def get_vm_metrics(vm, zone):
     
-    global vm_cpu_system_proc_rate
-    global vm_cpu_usr_proc_rate 
-    global vm_cpu_idle_rate 
-    global vm_mem_total_bytes 
-    global vm_mem_available_bytes 
-    global vm_mem_buffers_bytes 
-    global vm_mem_rate 
-    global vm_disk_read_requests_per_secend 
-    global vm_disk_write_requests_per_secend 
-    global vm_disk_read_bytes_per_secend 
-    global vm_disk_write_bytes_per_secend 
-    global vm_network_receive_packages_per_secend 
-    global vm_network_receive_bytes_per_secend 
-    global vm_network_receive_errors_per_secend 
-    global vm_network_receive_drops_per_secend 
-    global vm_network_send_packages_per_secend 
-    global vm_network_send_bytes_per_secend 
-    global vm_network_send_errors_per_secend 
-    global vm_network_send_drops_per_secend 
+#     global vm_cpu_system_proc_rate
+#     global vm_cpu_usr_proc_rate 
+#     global vm_cpu_idle_rate 
+#     global vm_mem_total_bytes 
+#     global vm_mem_available_bytes 
+#     global vm_mem_buffers_bytes 
+#     global vm_mem_rate 
+#     global vm_disk_read_requests_per_secend 
+#     global vm_disk_write_requests_per_secend 
+#     global vm_disk_read_bytes_per_secend 
+#     global vm_disk_write_bytes_per_secend 
+#     global vm_network_receive_packages_per_secend 
+#     global vm_network_receive_bytes_per_secend 
+#     global vm_network_receive_errors_per_secend 
+#     global vm_network_receive_drops_per_secend 
+#     global vm_network_send_packages_per_secend 
+#     global vm_network_send_bytes_per_secend 
+#     global vm_network_send_errors_per_secend 
+#     global vm_network_send_drops_per_secend 
 
     config.load_kube_config(config_file=TOKEN)
     labels = get_field_in_kubernetes_by_index(vm, GROUP, VERSION, PLURAL, ['metadata', 'labels'])
@@ -601,10 +602,11 @@ class ClientDaemon(CDaemon):
         logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
         logger.debug("---------------------------------------------------------------------------------")
         start_http_server(19998)
+#         registry = CollectorRegistry(auto_describe=False)
         config.load_kube_config(config_file=TOKEN)
         zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
         while True:
-            init()
+#             init(registry)
             collect_vm_metrics(zone)
             collect_storage_metrics(zone)
             time.sleep(10)

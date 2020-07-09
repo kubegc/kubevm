@@ -220,16 +220,16 @@ def start_virt_monitor(ignore_warning=False):
 #         sys.exit(1)
 
 def restart(ignore_warning=False):
-#     restart_virtctl(ignore_warning, VERSION)
-#     restart_virtlet(ignore_warning, VERSION)
-    t1 = Thread(target=restart_virtlet,args=(ignore_warning, VERSION,))
-    t1.daemon = True
-    t1.start()
-    t2 = Thread(target=restart_virtctl,args=(ignore_warning, VERSION,))
-    t2.daemon = True
-    t2.start()
-    t1.join()
-    t2.join()
+    restart_virtctl(ignore_warning, VERSION)
+    restart_virtlet(ignore_warning, VERSION)
+#     t1 = Thread(target=restart_virtlet,args=(ignore_warning, VERSION,))
+#     t1.daemon = True
+#     t1.start()
+#     t2 = Thread(target=restart_virtctl,args=(ignore_warning, VERSION,))
+#     t2.daemon = True
+#     t2.start()
+#     t1.join()
+#     t2.join()
 #     stop(ignore_warning=ignore_warning, virtctl_only=virtctl_only)
 #     start(ignore_warning=ignore_warning, virtctl_only=virtctl_only)
 #     restart_kubesds_rpc(ignore_warning=ignore_warning)

@@ -222,10 +222,10 @@ def start_virt_monitor(ignore_warning=False):
 def restart(ignore_warning=False):
 #     restart_virtctl(ignore_warning, VERSION)
 #     restart_virtlet(ignore_warning, VERSION)
-    t1 = Thread(target=restart_virtlet,args=(ignore_warning, False, VERSION,))
+    t1 = Thread(target=restart_virtlet,args=(ignore_warning, VERSION,))
     t1.daemon = True
     t1.start()
-    t2 = Thread(target=restart_virtctl,args=(ignore_warning, False, VERSION,))
+    t2 = Thread(target=restart_virtctl,args=(ignore_warning, VERSION,))
     t2.daemon = True
     t2.start()
     t1.join()

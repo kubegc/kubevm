@@ -221,10 +221,8 @@ def start_virt_monitor(ignore_warning=False):
 
 def restart(ignore_warning=False):
     t1 = Process(target=restart_virtlet,args=(ignore_warning, False, VERSION,))
-    t1.setDaemon(True)
     t1.start()
     t2 = Process(target=restart_virtctl,args=(ignore_warning, False, VERSION,))
-    t2.setDaemon(True)
     t2.start()
     t1.join()
     t2.join()

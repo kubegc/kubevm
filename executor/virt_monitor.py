@@ -98,55 +98,6 @@ HOSTNAME = get_hostname_in_lower_case()
 #                                 ['zone', 'host', 'pool', 'type', 'disk'])
 
 # VMS_CACHE = []
-# vm_cpu_system_proc_rate = None
-# vm_cpu_usr_proc_rate = None
-# vm_cpu_idle_rate = None
-# vm_mem_total_bytes = None
-# vm_mem_available_bytes = None
-# vm_mem_buffers_bytes = None
-# vm_mem_rate = None
-# vm_disk_read_requests_per_secend = None
-# vm_disk_write_requests_per_secend = None
-# vm_disk_read_bytes_per_secend = None
-# vm_disk_write_bytes_per_secend = None
-# vm_network_receive_packages_per_secend = None
-# vm_network_receive_bytes_per_secend = None
-# vm_network_receive_errors_per_secend = None
-# vm_network_receive_drops_per_secend = None
-# vm_network_send_packages_per_secend = None
-# vm_network_send_bytes_per_secend = None
-# vm_network_send_errors_per_secend = None
-# vm_network_send_drops_per_secend = None
-# storage_pool_total_size_kilobytes = None
-# storage_pool_used_size_kilobytes = None
-# storage_disk_total_size_kilobytes = None
-# storage_disk_used_size_kilobytes = None
-# 
-# def init():
-#     
-#     global vm_cpu_system_proc_rate
-#     global vm_cpu_usr_proc_rate 
-#     global vm_cpu_idle_rate 
-#     global vm_mem_total_bytes 
-#     global vm_mem_available_bytes 
-#     global vm_mem_buffers_bytes 
-#     global vm_mem_rate 
-#     global vm_disk_read_requests_per_secend 
-#     global vm_disk_write_requests_per_secend 
-#     global vm_disk_read_bytes_per_secend 
-#     global vm_disk_write_bytes_per_secend 
-#     global vm_network_receive_packages_per_secend 
-#     global vm_network_receive_bytes_per_secend 
-#     global vm_network_receive_errors_per_secend 
-#     global vm_network_receive_drops_per_secend 
-#     global vm_network_send_packages_per_secend 
-#     global vm_network_send_bytes_per_secend 
-#     global vm_network_send_errors_per_secend 
-#     global vm_network_send_drops_per_secend 
-#     global storage_pool_total_size_kilobytes 
-#     global storage_pool_used_size_kilobytes 
-#     global storage_disk_total_size_kilobytes 
-#     global storage_disk_used_size_kilobytes 
 
 vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
                                 ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
@@ -331,6 +282,17 @@ def list_active_vms():
             vms.append(line.split()[1])
     return vms
 
+def list_all_vms():
+    output = runCmdAndGetOutput('virsh list --all')
+    lines = output.splitlines()
+    if (len(lines) < 2):
+        return []
+    vms = []
+    for line in lines[2:]:
+        if (len(line.split()) >= 1):
+            vms.append(line.split()[1])
+    return vms
+
 def get_macs(vm):
     if not vm:
         return []
@@ -347,14 +309,19 @@ def get_macs(vm):
 def collect_vm_metrics(zone):
     try:
         vm_list = list_active_vms()
+        all_vm = list_all_vms()
+        
 #         print(vm_list)
-        global VMS_CACHE
+#         global VMS_CACHE
         vm_stopped = []
-        if VMS_CACHE:
-            vm_stopped = list(set(VMS_CACHE).difference(set(vm_list)))
-#             print(vm_stopped)
-        VMS_CACHE = vm_list
-#         print(VMS_CACHE)
+#         if VMS_CACHE:
+        print(all_vm)
+        print(vm_list)
+        if all_vm:
+            vm_stopped = list(set(all_vm).difference(set(vm_list)))
+            print(vm_stopped)
+#         VMS_CACHE = vm_list
+# #         print(VMS_CACHE)
         for vm in vm_list:
             t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
             t.start()
@@ -593,39 +560,23 @@ def zero_vm_metrics(vm, zone):
         disk_metrics = {}
         disk_device = disk_spec[0]
         disk_metrics['device'] = disk_device
-        stats1 = {}
-        stats2 = {}
-        disk_metrics['disk_read_requests_per_secend'] = '%.2f' % ((stats2['rd_req'] - stats1['rd_req']) / 0.1) \
-        if (stats2['rd_req'] - stats1['rd_req']) > 0 else '%.2f' % (0.00)
-        disk_metrics['disk_read_bytes_per_secend'] = '%.2f' % ((stats2['rd_bytes'] - stats1['rd_bytes']) / 0.1) \
-        if (stats2['rd_bytes'] - stats1['rd_bytes']) > 0 else '%.2f' % (0.00)
-        disk_metrics['disk_write_requests_per_secend'] = '%.2f' % ((stats2['wr_req'] - stats1['wr_req']) / 0.1) \
-        if (stats2['wr_req'] - stats1['wr_req']) > 0 else '%.2f' % (0.00)
-        disk_metrics['disk_write_bytes_per_secend'] = '%.2f' % ((stats2['wr_bytes'] - stats1['wr_bytes']) / 0.1) \
-        if (stats2['wr_bytes'] - stats1['wr_bytes']) > 0 else '%.2f' % (0.00)
+        disk_metrics['disk_read_requests_per_secend'] =  '%.2f' % (0.00)
+        disk_metrics['disk_read_bytes_per_secend'] = '%.2f' % (0.00)
+        disk_metrics['disk_write_requests_per_secend'] = '%.2f' % (0.00)
+        disk_metrics['disk_write_bytes_per_secend'] = '%.2f' % (0.00)
         resource_utilization['disks_metrics'].append(disk_metrics)
     macs = get_macs(vm)
     for mac in macs:
         net_metrics = {}
         net_metrics['device'] = mac.encode('utf-8')
-        stats1 = {}
-        stats2 = {}
-        net_metrics['network_read_packages_per_secend'] = '%.2f' % ((stats2['rx_packets'] - stats1['rx_packets']) / 0.1) \
-        if (stats2['rx_packets'] - stats1['rx_packets']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_read_bytes_per_secend'] = '%.2f' % ((stats2['rx_bytes'] - stats1['rx_bytes']) / 0.1) \
-        if (stats2['rx_bytes'] - stats1['rx_bytes']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_packages_per_secend'] = '%.2f' % ((stats2['tx_packets'] - stats1['tx_packets']) / 0.1) \
-        if (stats2['tx_packets'] - stats1['tx_packets']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_bytes_per_secend'] = '%.2f' % ((stats2['tx_bytes'] - stats1['tx_bytes']) / 0.1) \
-        if (stats2['tx_bytes'] - stats1['tx_bytes']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_read_errors_per_secend'] = '%.2f' % ((stats2['rx_errs'] - stats1['rx_errs']) / 0.1) \
-        if (stats2['rx_errs'] - stats1['rx_errs']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_read_drops_per_secend'] = '%.2f' % ((stats2['rx_drop'] - stats1['rx_drop']) / 0.1) \
-        if (stats2['rx_drop'] - stats1['rx_drop']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_errors_per_secend'] = '%.2f' % ((stats2['tx_errs'] - stats1['tx_errs']) / 0.1) \
-        if (stats2['tx_errs'] - stats1['tx_errs']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_drops_per_secend'] = '%.2f' % ((stats2['tx_drop'] - stats1['tx_drop']) / 0.1) \
-        if (stats2['tx_drop'] - stats1['tx_drop']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_read_packages_per_secend'] = '%.2f' % (0.00)
+        net_metrics['network_read_bytes_per_secend'] = '%.2f' % (0.00)
+        net_metrics['network_write_packages_per_secend'] = '%.2f' % (0.00)
+        net_metrics['network_write_bytes_per_secend'] = '%.2f' % (0.00)
+        net_metrics['network_read_errors_per_secend'] = '%.2f' % (0.00)
+        net_metrics['network_read_drops_per_secend'] = '%.2f' % (0.00)
+        net_metrics['network_write_errors_per_secend'] = '%.2f' % (0.00)
+        net_metrics['network_write_drops_per_secend'] = '%.2f' % (0.00)
         resource_utilization['networks_metrics'].append(net_metrics)  
     vm_cpu_system_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_system_rate'])
     vm_cpu_usr_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_user_rate'])

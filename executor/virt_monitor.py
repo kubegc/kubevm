@@ -348,18 +348,23 @@ def collect_vm_metrics(zone):
     try:
         vm_list = list_active_vms()
 #         print(vm_list)
-#         global VMS_CACHE
-#         vm_stopped = []
-#         if VMS_CACHE:
-#             vm_stopped = list(set(VMS_CACHE).difference(set(vm_list)))
-# #             print(vm_stopped)
-#         VMS_CACHE = vm_list
+        global VMS_CACHE
+        vm_stopped = []
+        if VMS_CACHE:
+            vm_stopped = list(set(VMS_CACHE).difference(set(vm_list)))
+#             print(vm_stopped)
+        VMS_CACHE = vm_list
 #         print(VMS_CACHE)
         for vm in vm_list:
             t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
             t.start()
             t.join(2)
             t.kill()
+        for vm in vm_stopped:
+            t = KillableThread(target=zero_vm_metrics,args=(vm, zone,))
+            t.start()
+            t.join(2)
+            t.kill()            
     except:
         logger.warning('Oops! ', exc_info=1)
         return        
@@ -526,6 +531,85 @@ def get_vm_metrics(vm, zone):
                 stats2['tx_errs'] = float(line.split(' ')[2].strip())
             elif line.find('tx_drop') != -1:
                 stats2['tx_drop'] = float(line.split(' ')[2].strip())
+        net_metrics['network_read_packages_per_secend'] = '%.2f' % ((stats2['rx_packets'] - stats1['rx_packets']) / 0.1) \
+        if (stats2['rx_packets'] - stats1['rx_packets']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_read_bytes_per_secend'] = '%.2f' % ((stats2['rx_bytes'] - stats1['rx_bytes']) / 0.1) \
+        if (stats2['rx_bytes'] - stats1['rx_bytes']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_write_packages_per_secend'] = '%.2f' % ((stats2['tx_packets'] - stats1['tx_packets']) / 0.1) \
+        if (stats2['tx_packets'] - stats1['tx_packets']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_write_bytes_per_secend'] = '%.2f' % ((stats2['tx_bytes'] - stats1['tx_bytes']) / 0.1) \
+        if (stats2['tx_bytes'] - stats1['tx_bytes']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_read_errors_per_secend'] = '%.2f' % ((stats2['rx_errs'] - stats1['rx_errs']) / 0.1) \
+        if (stats2['rx_errs'] - stats1['rx_errs']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_read_drops_per_secend'] = '%.2f' % ((stats2['rx_drop'] - stats1['rx_drop']) / 0.1) \
+        if (stats2['rx_drop'] - stats1['rx_drop']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_write_errors_per_secend'] = '%.2f' % ((stats2['tx_errs'] - stats1['tx_errs']) / 0.1) \
+        if (stats2['tx_errs'] - stats1['tx_errs']) > 0 else '%.2f' % (0.00)
+        net_metrics['network_write_drops_per_secend'] = '%.2f' % ((stats2['tx_drop'] - stats1['tx_drop']) / 0.1) \
+        if (stats2['tx_drop'] - stats1['tx_drop']) > 0 else '%.2f' % (0.00)
+        resource_utilization['networks_metrics'].append(net_metrics)  
+    vm_cpu_system_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_system_rate'])
+    vm_cpu_usr_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_user_rate'])
+    vm_cpu_idle_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
+    vm_mem_total_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_available'])
+    vm_mem_available_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_unused'])
+    vm_mem_buffers_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_buffers'])
+    vm_mem_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_rate'])
+    for disk_metrics in resource_utilization['disks_metrics']:
+        vm_disk_read_requests_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_read_requests_per_secend'])
+        vm_disk_read_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_read_bytes_per_secend'])
+        vm_disk_write_requests_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_write_requests_per_secend'])
+        vm_disk_write_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_write_bytes_per_secend'])
+    for net_metrics in resource_utilization['networks_metrics']:
+        vm_network_receive_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_bytes_per_secend'])
+        vm_network_receive_drops_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_drops_per_secend'])
+        vm_network_receive_errors_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_errors_per_secend'])
+        vm_network_receive_packages_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_packages_per_secend'])
+        vm_network_send_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_bytes_per_secend'])
+        vm_network_send_drops_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_drops_per_secend'])
+        vm_network_send_errors_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_errors_per_secend'])
+        vm_network_send_packages_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_packages_per_secend'])
+    return resource_utilization
+
+def zero_vm_metrics(vm, zone):
+    
+    config.load_kube_config(config_file=TOKEN)
+    labels = get_field_in_kubernetes_by_index(vm, GROUP, VERSION, PLURAL, ['metadata', 'labels'])
+#     labels_str = dumps(labels)
+    resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
+                            'disks_metrics': [], 'networks_metrics': [], 'cluster': labels.get('cluster'), 'router': labels.get('router'),
+                            'owner': labels.get('owner'), 'autoscalinggroup': labels.get('autoscalinggroup')}
+    resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
+    resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)
+    resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (0.00)
+    mem_unused = 0.00
+    mem_available = 0.00
+    resource_utilization['mem_metrics']['mem_unused'] = '%.2f' % (mem_unused)
+    resource_utilization['mem_metrics']['mem_available'] = '%.2f' % (mem_available)
+    resource_utilization['mem_metrics']['mem_buffers'] = '%.2f' % (0.00)
+    resource_utilization['mem_metrics']['mem_rate'] = '%.2f' % (0.00)
+    disks_spec = get_disks_spec(vm)
+    for disk_spec in disks_spec:
+        disk_metrics = {}
+        disk_device = disk_spec[0]
+        disk_metrics['device'] = disk_device
+        stats1 = {}
+        stats2 = {}
+        disk_metrics['disk_read_requests_per_secend'] = '%.2f' % ((stats2['rd_req'] - stats1['rd_req']) / 0.1) \
+        if (stats2['rd_req'] - stats1['rd_req']) > 0 else '%.2f' % (0.00)
+        disk_metrics['disk_read_bytes_per_secend'] = '%.2f' % ((stats2['rd_bytes'] - stats1['rd_bytes']) / 0.1) \
+        if (stats2['rd_bytes'] - stats1['rd_bytes']) > 0 else '%.2f' % (0.00)
+        disk_metrics['disk_write_requests_per_secend'] = '%.2f' % ((stats2['wr_req'] - stats1['wr_req']) / 0.1) \
+        if (stats2['wr_req'] - stats1['wr_req']) > 0 else '%.2f' % (0.00)
+        disk_metrics['disk_write_bytes_per_secend'] = '%.2f' % ((stats2['wr_bytes'] - stats1['wr_bytes']) / 0.1) \
+        if (stats2['wr_bytes'] - stats1['wr_bytes']) > 0 else '%.2f' % (0.00)
+        resource_utilization['disks_metrics'].append(disk_metrics)
+    macs = get_macs(vm)
+    for mac in macs:
+        net_metrics = {}
+        net_metrics['device'] = mac.encode('utf-8')
+        stats1 = {}
+        stats2 = {}
         net_metrics['network_read_packages_per_secend'] = '%.2f' % ((stats2['rx_packets'] - stats1['rx_packets']) / 0.1) \
         if (stats2['rx_packets'] - stats1['rx_packets']) > 0 else '%.2f' % (0.00)
         net_metrics['network_read_bytes_per_secend'] = '%.2f' % ((stats2['rx_bytes'] - stats1['rx_bytes']) / 0.1) \

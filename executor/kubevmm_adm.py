@@ -119,14 +119,17 @@ def stop(ignore_warning=False, virtctl_only=False):
 
 def restart_virtctl(ignore_warning=False, version=VERSION):
     virtctl_err1 = None
-#     virtctl_err2 = None
+    virtctl_err2 = None
     (virtctl_container_id, _, _, _) = status(ignore_warning=ignore_warning)
     print('restarting kubevmm services...')
     if not virtctl_container_id:
-        print('do noting: service \'virtctl\' is not running')
+        print('service \'virtctl\' is not running, start it now...\n')
+        (_, virtctl_err2) = run_virtctl(version=version)
+        if virtctl_err2:
+            print('warning: %s\n' % (virtctl_err2))
     else:
         print('>>> stopping \'virtctl\' in container \'%s\'...' % (str(virtctl_container_id)))
-        (_, virtctl_err1) = runCmd('docker stop %s; docker rm %s; docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s bash virtctl.sh' % (virtctl_container_id, virtctl_container_id, HOSTNAME, version))
+        (_, virtctl_err1) = runCmd('docker restart %s' % (virtctl_container_id))
         if virtctl_err1:
             print('warning: %s\n' % (virtctl_err1)) 
 #     (virtctl_container_id, virtctl_running_version, _, _) = status(ignore_warning=ignore_warning)
@@ -141,7 +144,7 @@ def restart_virtctl(ignore_warning=False, version=VERSION):
 #             print('error: a different version of service \'virtctl(%s)\' is running in container \'%s\'\n' % (virtctl_running_version, str(virtctl_container_id)))
 #         else:
 #             print('do noting: service \'virtctl\' is running in container \'%s\'' % str(virtctl_container_id))
-    if virtctl_err1:
+    if virtctl_err1 or virtctl_err2:
         sys.exit(1)
 
 def restart_virtlet(ignore_warning=False, version=VERSION):       
@@ -150,10 +153,14 @@ def restart_virtlet(ignore_warning=False, version=VERSION):
     _err2 = None
     (_, _, virtlet_container_id, _) = status(ignore_warning=ignore_warning)
     if not virtlet_container_id:
-        print('do noting: service \'virtlet\' is not running\n') 
+        print('service \'virtlet\' is not running, start it now...\n') 
+        (_, virtlet_err) = run_virtlet(version=version)
+        if virtlet_err:
+            print('warning: %s\n' % (virtlet_err))
     else:
         print('>>> stopping \'virtlet\' in container \'%s\'...\n' % (str(virtlet_container_id)))
-        (_, virtlet_err) = runCmd('docker stop %s; docker rm %s; docker run -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash virtlet.sh' % (virtlet_container_id, virtlet_container_id, HOSTNAME, version)) 
+        (_, virtlet_err) = runCmd('docker restart %s' % virtlet_container_id)
+#         (_, virtlet_err) = runCmd('docker restart -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /mnt:/mnt -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash virtlet.sh' % (HOSTNAME, version)) 
         if virtlet_err:
             print('warning: %s\n' % (virtlet_err))
     _err1 = stop_kubesds_rpc(ignore_warning=ignore_warning)

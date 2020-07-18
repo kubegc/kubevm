@@ -1435,7 +1435,7 @@ def main():
     try:
         # for ob in VOL_DIRS:
         #     if not os.path.exists(ob[1]):
-        #         os.makedirs(ob[1], 0711)
+        #         os.makedirs(ob[1], 0x0711)
         #         try:
         #             runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
         #         except:
@@ -1445,33 +1445,33 @@ def main():
         #     observer.schedule(event_handler,ob[1],True)
         # for ob in SYSTEM_VOL_DIRS:
         #     if not os.path.exists(ob[1]):
-        #         os.makedirs(ob[1], 0711)
+        #         os.makedirs(ob[1], 0x0711)
         #     event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
         #     observer.schedule(event_handler,ob[1],True)
         for ob in SNAP_DIRS:
             if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0711)
+                os.makedirs(ob[1], 0x0711)
             event_handler = VmSnapshotEventHandler(ob[0], ob[1], GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT,
                                                    PLURAL_VM_SNAPSHOT)
             observer.schedule(event_handler, ob[1], True)
         #         for ob in BLOCK_DEV_DIRS:
         #             if not os.path.exists(ob[1]):
-        #                 os.makedirs(ob[1], 0711)
+        #                 os.makedirs(ob[1], 0x0711)
         #             event_handler = VmBlockDevEventHandler(ob[0], ob[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
         #             observer.schedule(event_handler,ob[1],True)
         for ob in LIBVIRT_XML_DIRS:
             if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0711)
+                os.makedirs(ob[1], 0x0711)
             event_handler = VmLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VM, VERSION_VM, PLURAL_VM)
             observer.schedule(event_handler, ob[1], True)
         for ob in TEMPLATE_DIRS:
             if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0711)
+                os.makedirs(ob[1], 0x0711)
             event_handler = ImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
             observer.schedule(event_handler, ob[1], True)
         for ob in VMD_TEMPLATE_DIRS:
             if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0711)
+                os.makedirs(ob[1], 0x0711)
                 try:
                     runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
                 except:

@@ -237,7 +237,7 @@ def create_vm_image_from_vm(name, domain, targetPool):
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' %(dest_dir, name)
     if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir, 0711)
+        os.makedirs(dest_dir, 0x0711)
     step1 = step_1_dumpxml_to_path(name, domain, targetPool, 'step1')
     step2 = step_2_copy_template_to_path(name, domain, targetPool, 'step2')
 #     step3 = step_3_undefine_vm(name, 'step3')
@@ -604,7 +604,7 @@ def create_vmdi_from_disk(name, sourceVolume, source, target):
         raise Exception('Target pool\'s content type is not vmdi.')
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir, 0711)
+        os.makedirs(dest_dir, 0x0711)
 #     step1 = step_1_dumpxml_to_path(name, sourcePool, 'step1')
     step1 = step_1_copy_template_to_path(name, sourceVolume, sourcePool, targetPool, 'step1')
     try:
@@ -692,7 +692,7 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
     
         def option(self):
             if not os.path.exists(self.dest_dir):
-                os.makedirs(self.dest_dir, 0711)
+                os.makedirs(self.dest_dir, 0x0711)
             if os.path.exists(self.config_file):
                 raise Exception('409, Conflict. Resource %s already exists, aborting copy.' % self.config_file)
             
@@ -821,7 +821,7 @@ def create_vmdi(name, source, target):
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
     if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir, 0711)
+        os.makedirs(dest_dir, 0x0711)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     if not check_pool_content_type(targetPool, 'vmdi'):
@@ -856,7 +856,7 @@ def create_disk_from_vmdi(name, targetPool, source):
     dest = '%s/%s' % (dest_dir, name)
     dest_config_file = '%s/config.json' % (dest_dir)
     if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir, 0711)    
+        os.makedirs(dest_dir, 0x0711)
     if os.path.exists(dest_config_file):
         raise Exception('409, Conflict. Path %s already in use, aborting copy.' % dest_dir)
     cmd = 'cp -f %s %s' % (source, dest)

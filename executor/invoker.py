@@ -2435,7 +2435,7 @@ def _createNICXml(metadata_name, data):
     If DEFAULT_DEVICE_DIR not exists, create it.
     '''
     if not os.path.exists(DEFAULT_DEVICE_DIR):
-        os.makedirs(DEFAULT_DEVICE_DIR, 0711)
+        os.makedirs(DEFAULT_DEVICE_DIR, 0x0711)
     file_path = '%s/%s-nic-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('mac').replace(':', ''))
     try:
         with open(file_path, 'w') as f:
@@ -2511,7 +2511,7 @@ def _createDiskXml(metadata_name, data):
     If DEFAULT_DEVICE_DIR not exists, create it.
     '''
     if not os.path.exists(DEFAULT_DEVICE_DIR):
-        os.makedirs(DEFAULT_DEVICE_DIR, 0711)
+        os.makedirs(DEFAULT_DEVICE_DIR, 0x0711)
     file_path = '%s/%s-disk-%s.xml' % (DEFAULT_DEVICE_DIR, metadata_name, data.get('target'))
     try:
         with open(file_path, 'w') as f:
@@ -2543,7 +2543,7 @@ def _createGraphicXml(metadata_name, data, unset_vnc_password=False):
     If DEFAULT_DEVICE_DIR not exists, create it.
     '''
     if not os.path.exists(DEFAULT_DEVICE_DIR):
-        os.makedirs(DEFAULT_DEVICE_DIR, 0711)
+        os.makedirs(DEFAULT_DEVICE_DIR, 0x0711)
     file_path = '%s/%s-graphic.xml' % (DEFAULT_DEVICE_DIR, metadata_name)
     try:
         with open(file_path, 'w') as f:

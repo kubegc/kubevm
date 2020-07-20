@@ -526,7 +526,7 @@ def runCmdRaiseException(cmd, head='VirtctlError', use_read=False, timeout=10):
                 break 
             seconds_passed = time.time() - t_beginning 
             if timeout and seconds_passed > timeout: 
-                p.terminate() 
+                p.kill()
                 raise TimeoutError(cmd, timeout) 
             time.sleep(0.1) 
         if use_read:

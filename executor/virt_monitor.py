@@ -180,7 +180,7 @@ def collect_storage_metrics(zone):
                 LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
     for mount_point, pool_type in storages.items():
         try:
-            all_pool_storages = runCmdRaiseException('df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point, timeout=2)
+            all_pool_storages = runCmdRaiseException('timeout 2 df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
             for pool_storage in all_pool_storages:
                 t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
                 t.start()
@@ -227,7 +227,7 @@ def get_vdisk_metrics(pool_mount_point, disk_type, disk, zone):
 #     global storage_disk_total_size_kilobytes 
 #     global storage_disk_used_size_kilobytes 
     try:
-        output = loads(runCmdRaiseException('qemu-img info -U --output json %s' % (disk), use_read=True, timeout=1))
+        output = loads(runCmdRaiseException('timeout 2 qemu-img info -U --output json %s' % (disk), use_read=True))
 #     output = loads()
 #     print(output)
     except:

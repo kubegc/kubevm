@@ -296,7 +296,7 @@ def list_all_vms():
 def get_macs(vm):
     if not vm:
         return []
-    lines = runCmdRaiseException('virsh domiflist %s | awk \'NR>2{print $5}\'' % (vm))
+    lines = runCmdRaiseException('timeout 2 virsh domiflist %s | awk \'NR>2{print $5}\'' % (vm))
     # for child in root:
     #     print(child.tag, "----", child.attrib)
     macs = []
@@ -367,7 +367,7 @@ def get_vm_metrics(vm, zone):
                             'owner': labels.get('owner'), 'autoscalinggroup': labels.get('autoscalinggroup')}
 #     cpus = len(get_vcpus(vm)[0])
 #     print(cpus)
-    cpu_stats = runCmdRaiseException('virsh cpu-stats --total %s' % vm)
+    cpu_stats = runCmdRaiseException('timeout 2 virsh cpu-stats --total %s' % vm)
     cpu_time = 0.00
     cpu_system_time = 0.00
     cpu_user_time = 0.00
@@ -396,7 +396,7 @@ def get_vm_metrics(vm, zone):
         resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
         resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)
         resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (0.00)
-    mem_stats = runCmdRaiseException('virsh dommemstat %s' % vm)
+    mem_stats = runCmdRaiseException('timeout 2 virsh dommemstat %s' % vm)
     mem_actual = 0.00
     mem_unused = 0.00
     mem_available = 0.00
@@ -425,7 +425,7 @@ def get_vm_metrics(vm, zone):
         stats1 = {}
         stats2 = {}
         # logger.debug('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
-        blk_dev_stats1 = runCmdRaiseException('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
+        blk_dev_stats1 = runCmdRaiseException('timeout 2 virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         for line in blk_dev_stats1:
             if line.find('rd_req') != -1:
                 stats1['rd_req'] = float(line.split(' ')[2].strip())
@@ -436,7 +436,7 @@ def get_vm_metrics(vm, zone):
             elif line.find('wr_bytes') != -1:
                 stats1['wr_bytes'] = float(line.split(' ')[2].strip())
         time.sleep(0.1)
-        blk_dev_stats2 = runCmdRaiseException('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
+        blk_dev_stats2 = runCmdRaiseException('timeout 2 virsh domblkstat --device %s --domain %s' % (disk_device, vm))
         for line in blk_dev_stats2:
             if line.find('rd_req') != -1:
                 stats2['rd_req'] = float(line.split(' ')[2].strip())
@@ -461,7 +461,7 @@ def get_vm_metrics(vm, zone):
         net_metrics['device'] = mac.encode('utf-8')
         stats1 = {}
         stats2 = {}
-        net_dev_stats1 = runCmdRaiseException('virsh domifstat --interface %s --domain %s' % (mac, vm))
+        net_dev_stats1 = runCmdRaiseException('timeout 2 virsh domifstat --interface %s --domain %s' % (mac, vm))
         for line in net_dev_stats1:
             if line.find('rx_bytes') != -1:
                 stats1['rx_bytes'] = float(line.split(' ')[2].strip())
@@ -480,7 +480,7 @@ def get_vm_metrics(vm, zone):
             elif line.find('tx_drop') != -1:
                 stats1['tx_drop'] = float(line.split(' ')[2].strip())
         time.sleep(0.1)
-        net_dev_stats2 = runCmdRaiseException('virsh domifstat --interface %s --domain %s' % (mac, vm))
+        net_dev_stats2 = runCmdRaiseException('timeout 2 virsh domifstat --interface %s --domain %s' % (mac, vm))
         for line in net_dev_stats2:
             if line.find('rx_bytes') != -1:
                 stats2['rx_bytes'] = float(line.split(' ')[2].strip())

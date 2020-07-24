@@ -1351,7 +1351,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
                                 raise ExecuteException('virtctl', 'error when operate pool %s' % result['msg'])
     
                         status = 'Done(Success)'
-                        if not _isDeletePool(the_cmd_key):
+                        if not _isDeletePool(the_cmd_key) and not _isShowPool(the_cmd_key):
                             write_result_to_server(group, version, 'default', plural,
                                                    metadata_name, {'code': 0, 'msg': 'success'}, poolJson)
                     except libvirtError:
@@ -2060,6 +2060,11 @@ def _isDeleteDiskExternalSnapshot(the_cmd_key):
 
 def _isDeletePool(the_cmd_key):
     if the_cmd_key == "deletePool":
+        return True
+    return False
+
+def _isShowPool(the_cmd_key):
+    if the_cmd_key == "showPool":
         return True
     return False
 

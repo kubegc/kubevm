@@ -173,6 +173,7 @@ deletePool = kubesds-adm deletePool
 startPool = kubesds-adm startPool
 autoStartPool = kubesds-adm autoStartPool
 stopPool = kubesds-adm stopPool
+showPool = kubesds-adm showPool
 
 [VirtualMachineNetwork]
 group = cloudplus.io

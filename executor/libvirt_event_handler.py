@@ -987,7 +987,6 @@ def myConnectionCloseCallback(conn, reason, opaque):
         conn.getURI(), CONNECTION_EVENTS[reason]))
     global run
     run = False
-    raise
 
 def usage():
     print("usage: %s [-hdl] [uri]" % (os.path.basename(__file__),))
@@ -1113,7 +1112,7 @@ def main():
     # If the connection was closed, we cannot unregister anything.
     # Just abort now.
     if not run:
-        return
+        raise
 
     vc.domainEventDeregister(myDomainEventCallback)
 

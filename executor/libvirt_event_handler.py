@@ -988,7 +988,6 @@ def myConnectionCloseCallback(conn, reason, opaque):
     global run
     run = False
 
-
 def usage():
     print("usage: %s [-hdl] [uri]" % (os.path.basename(__file__),))
     print("   uri will default to qemu:///system")
@@ -1045,6 +1044,7 @@ def main():
             vc.close()
         if (old_exitfunc):
             old_exitfunc()
+        raise
 
     sys.exitfunc = exit
 

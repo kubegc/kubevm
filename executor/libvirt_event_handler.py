@@ -1024,7 +1024,7 @@ def main():
 #     else:
     uri = "qemu:///system"
 
-    print("Using uri '%s' and event loop '%s'" % (uri, event_impl))
+    logger.debug("Using uri '%s' and event loop '%s'" % (uri, event_impl))
 
     # Run a background thread with the event loop
     if event_impl == "poll":
@@ -1040,7 +1040,7 @@ def main():
     old_exitfunc = getattr(sys, 'exitfunc', None)
 
     def exit():
-        print("Closing " + vc.getURI())
+        logger.debug("Closing " + vc.getURI())
         if run:
             vc.close()
         if (old_exitfunc):
@@ -1136,4 +1136,8 @@ def main():
 
 if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
-    main()
+    try:
+        main()
+    except:
+        logger.error('Oops! ', exc_info=1)
+        main()

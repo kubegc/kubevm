@@ -268,8 +268,10 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     #                         continue
     #                     else:
     #                         raise ExecuteException('VirtctlError', 'Cannot operate %s, it is now hosting by another node %s.' % (metadata_name, node_name))
+                    by_ha = False
                     if not is_vm_exists(metadata_name):
                         _rebuild_from_kubernetes(group, version, 'default', plural, metadata_name)
+                        by_ha = True
                     (jsondict, operations_queue) \
                         = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
                     jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -284,8 +286,12 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     time_now = now_to_datetime()
                     time_start = time_now
                     time_end = time_now
-                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
-                    event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+                    if by_ha:
+                        operation_name = 'startVMbyHA'
+                    else:
+                        operation_name = the_cmd_key
+                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
+                    event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, operation_name, event_type)
                     try:
                         event.registerKubernetesEvent()
                     except:
@@ -405,7 +411,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
                     finally:
                         if the_cmd_key and operation_type != 'DELETED':
                             time_end = now_to_datetime()
-                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
                             event.set_message(message)
                             event.set_time_end(time_end)
                             try:

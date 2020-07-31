@@ -166,6 +166,8 @@ for k,v in config_raw._sections.items():
         elif string.find(k, 'WithOriginalField') != -1:
             ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD, **v)
             
+LAST_OPERATION = {}
+            
 def main():
     logger.debug("---------------------------------------------------------------------------------")
     logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")
@@ -280,8 +282,7 @@ def vMExecutor(group, version, plural, jsondict):
 #                         raise ExecuteException('VirtctlError', 'Cannot operate %s, it is now hosting by another node %s.' % (metadata_name, node_name))
             by_ha = False
             if not is_vm_exists(metadata_name):
-                _rebuild_from_kubernetes(group, version, 'default', plural, metadata_name)
-                by_ha = True
+                by_ha = _rebuild_from_kubernetes(group, version, 'default', plural, metadata_name)
             (jsondict, operations_queue) \
                 = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -1702,12 +1703,12 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**VM %s already deleted.' % metadata_name)
-            return
+            return False
         else:
             raise e
     if 'domain' not in jsonStr['spec'].keys():
         logger.debug('**VM %s is not in kubernetes.' % metadata_name)
-        return
+        return False
     domain = {'domain': jsonStr['spec']['domain']}
     domain = loads(update_vm_json(dumps(domain)))
     domain_dict = iterate_dict(domain)
@@ -1720,6 +1721,7 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
         f1.write(xml)
     runCmd('virsh define %s' % xml_file)
     runCmd('kubesds-adm changeDiskPool --xml %s' % xml_file)
+    return True
         
 def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     try:

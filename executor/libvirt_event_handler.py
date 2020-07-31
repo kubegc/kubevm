@@ -5,8 +5,6 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
-from pip._vendor.html5lib.treebuilders import dom
-from formencode.tests.test_doctests import args
 
 '''
 Import python libs

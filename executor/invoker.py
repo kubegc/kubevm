@@ -258,7 +258,8 @@ def vMExecutor(group, version, plural, jsondict):
         operation_type = jsondict.get('type')
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
-        logger.debug('metadata name: %s' % metadata_name)
+        logger.debug('------- Start time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
+#         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
         logger.debug('cmd key is: %s' % the_cmd_key)
     except:
@@ -382,6 +383,7 @@ def vMExecutor(group, version, plural, jsondict):
                 if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key) and not _isMigrateVMDisk(the_cmd_key) \
                         and not _isBackupVM(the_cmd_key) and not _isDeleteVMBackup(the_cmd_key):
                     write_result_to_server(group, version, 'default', plural, metadata_name)
+                logger.debug('------- Finish time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
             except libvirtError:
                 logger.error('Oops! ', exc_info=1)
                 info=sys.exc_info()

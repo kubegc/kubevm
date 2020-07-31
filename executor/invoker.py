@@ -247,7 +247,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             thread.daemon = True
             thread.name = 'vm_executor'
             thread.start()
-            thread.join()
+#             thread.join()
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -459,7 +459,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             thread.daemon = True
             thread.name = 'vm_disk_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -627,7 +627,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
             thread.daemon = True
             thread.name = 'vm_disk_image_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -787,7 +787,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             thread.daemon = True
             thread.name = 'vm_disk_snapshot_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -914,7 +914,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             thread.daemon = True
             thread.name = 'vm_image_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1057,7 +1057,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             thread.daemon = True
             thread.name = 'vm_snapshot_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1218,7 +1218,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             thread.daemon = True
             thread.name = 'vm_network_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1356,7 +1356,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
             thread.daemon = True
             thread.name = 'vm_pool_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)

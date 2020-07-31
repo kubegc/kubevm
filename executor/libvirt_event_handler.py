@@ -790,7 +790,7 @@ def myDomainEventCallback(conn, dom, event, detail, opaque):
         opaque, dom.name(), dom.ID(), DOM_EVENTS[event], DOM_EVENTS[event][detail]))
     t = MyDomainEventHandler(conn, dom, event=event, detail=detail, opaque=opaque)
     t.start()
-    t.join()
+#     t.join()
 
 def myDomainEventRebootCallback(conn, dom, opaque):
     logger.debug("myDomainEventRebootCallback: Domain %s(%s)" % (

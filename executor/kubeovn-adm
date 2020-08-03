@@ -286,6 +286,7 @@ function create-bridge()
   ovs-vsctl add-br $name
   ovs-vsctl add-br $name"-"$vlan $name $vlan
   ovs-vsctl set interface $name"-"$vlan type=internal
+  ovs-vsctl set port $name"-"$vlan fake_bridge=true
 
   static=$(cat $IFCFG"ifcfg-$nic.bak" | grep BOOTPROTO | grep static)
   ip=$(cat $IFCFG"ifcfg-$nic.bak" | grep IPADDR)
@@ -376,6 +377,7 @@ function setbridge-vlan()
 
   ovs-vsctl add-br $name"-"$vlan $name $vlan
   ovs-vsctl set interface $name"-"$vlan type=internal  
+  ovs-vsctl set port $name"-"$vlan fake_bridge=true
 }
 
 # Delete port's vlan id
@@ -401,6 +403,8 @@ function delbridge-vlan()
     echo "wrong vlan id in bridge $name" >&2
     exit 1
   fi
+
+  ovs-vsctl set port $name"-"$vlan fake_bridge=false
 
   ovs-vsctl --if-exist del-br $name"-"$vlan
 }

@@ -22,7 +22,7 @@ from utils import logger
 #     import xml.etree.ElementTree as ET
 
 # from utils.libvirt_util import list_active_vms, get_macs
-from utils.utils import list_objects_in_kubernetes, get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
+from utils.utils import get_hostname_in_lower_case, list_objects_in_kubernetes, get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
 
 LOG = '/var/log/virtmonitor.log'
 logger = logger.set_logger(os.path.basename(__file__), LOG)
@@ -181,26 +181,36 @@ class KillableThread:
 def collect_storage_metrics(zone):
     config.load_kube_config(config_file=TOKEN)
     vmps = list_objects_in_kubernetes(GROUP_VMP, VERSION_VMP, PLURAL_VMP)
-    storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
-                LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
-    for mount_point, pool_type in storages.items():
+#     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
+#                 LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
+    for vmp in vmps:
         try:
 #             all_pool_storages = runCmdRaiseException('timeout 2 df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
-            all_pool_storages = runCmdRaiseException('timeout 2 df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
-            for pool_storage in all_pool_storages:
-                t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))
-                t.start()
-                t.join(2)
-                t.kill()
+            (vmp_mount_point, vmp_type, vmp_uuid, vmp_nodename) = _get_pool_details(vmp)
+            if get_hostname_in_lower_case() != vmp_nodename:
+                continue
+            vmp_utils = loads(runCmdRaiseException('timeout 2 cstor-cli pool-show --poolname %s' % vmp_uuid))
+            pool_total, pool_used = int(vmp_utils['data'].get('total'))/1024, int(vmp_utils['data'].get('used'))/1024
+            t = KillableThread(target=get_pool_metrics,args=(pool_total, pool_used, vmp_mount_point, vmp_type, zone,))
+            t.start()
+            t.join(2)
+            t.kill()
         except:
             logger.warning('Oops! ', exc_info=1)
             return
 #             get_pool_metrics(pool_storage, pool_type, zone)
 
-def get_pool_metrics(pool_storage, pool_type, zone):
+def _get_pool_details(vm_pool):
+    try:
+        return (vm_pool['metadata'].get('name'), vm_pool['spec']['pool'].get('pooltype'), 
+                vm_pool['spec']['pool'].get('poolname'), vm_pool['spec'].get('nodeName'))
+    except:
+        logger.warning('Oops! ', exc_info=1)
+        return (None, None, None, None)
+
+def get_pool_metrics(pool_total, pool_used, pool_mount_point, pool_type, zone):
 #     global storage_pool_total_size_kilobytes 
 #     global storage_pool_used_size_kilobytes 
-    (pool_total, pool_used, pool_mount_point) = pool_storage.strip().split(' ') 
     storage_pool_total_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_total)
     storage_pool_used_size_kilobytes.labels(zone, HOSTNAME, pool_mount_point, pool_type).set(pool_used)
     collect_disk_metrics(pool_mount_point, pool_type, zone)

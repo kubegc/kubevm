@@ -1371,7 +1371,6 @@ def vMPoolExecutor(group, version, plural, jsondict):
     try:
         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
-        logger.debug(dumps(jsondict))
         logger.debug('cmd key is: %s' % the_cmd_key)
         if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name

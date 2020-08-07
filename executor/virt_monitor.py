@@ -189,9 +189,8 @@ def collect_storage_metrics(zone):
             (vmp_mount_point, vmp_type, vmp_uuid, vmp_nodename) = _get_pool_details(vmp)
             if get_hostname_in_lower_case() != vmp_nodename:
                 continue
-            vmp_utils = runCmdRaiseException('timeout 2 cstor-cli pool-show --poolname %s' % vmp_uuid)
-            pool_total = int(vmp_utils['data'].get('total'))/1024
-            pool_used = int(vmp_utils['data'].get('used'))/1024
+            vmp_utils = loads(runCmdRaiseException('timeout 2 cstor-cli pool-show --poolname %s' % vmp_uuid)[0])
+            pool_total, pool_used = int(vmp_utils['data'].get('total'))/1024, int(vmp_utils['data'].get('used'))/1024
             t = KillableThread(target=get_pool_metrics,args=(pool_total, pool_used, vmp_mount_point, vmp_type, zone,))
             t.start()
             t.join(2)

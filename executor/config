@@ -68,7 +68,7 @@ group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinesnapshots
 
-[VirtualMahcinePool]
+[VirtualMachinePool]
 group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinepools
@@ -165,10 +165,10 @@ createDiskImageFromDisk = /usr/bin/vmm create_vmdi_from_disk
 createDiskImage = /usr/bin/vmm create_vmdi
 deleteDiskImage = /usr/bin/vmm delete_vmdi
 
-[VirtualMahcinePoolSupportCmdsWithPoolField]
+[VirtualMachinePoolSupportCmdsWithPoolField]
 createPool = kubesds-adm createPool
 
-[VirtualMahcinePoolSupportCmdsWithPoolField]
+[VirtualMachinePoolSupportCmdsWithPoolField]
 deletePool = kubesds-adm deletePool
 startPool = kubesds-adm startPool
 autoStartPool = kubesds-adm autoStartPool

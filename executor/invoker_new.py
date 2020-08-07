@@ -98,9 +98,9 @@ GROUP_VM_DISK_SNAPSHOT = config_raw.get('VirtualMachineDiskSnapshot', 'group')
 FORCE_SHUTDOWN_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'stopVMForce')
 RESET_VM = config_raw.get('VirtualMachineSupportCmdsWithDomainField', 'resetVM')
 
-PLURAL_VM_POOL = config_raw.get('VirtualMahcinePool', 'plural')
-VERSION_VM_POOL = config_raw.get('VirtualMahcinePool', 'version')
-GROUP_VM_POOL = config_raw.get('VirtualMahcinePool', 'group')
+PLURAL_VM_POOL = config_raw.get('VirtualMachinePool', 'plural')
+VERSION_VM_POOL = config_raw.get('VirtualMachinePool', 'version')
+GROUP_VM_POOL = config_raw.get('VirtualMachinePool', 'group')
 
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')

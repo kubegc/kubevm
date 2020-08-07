@@ -22,7 +22,7 @@ from utils import logger
 #     import xml.etree.ElementTree as ET
 
 # from utils.libvirt_util import list_active_vms, get_macs
-from utils.utils import get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
+from utils.utils import list_objects_in_kubernetes, get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
 
 LOG = '/var/log/virtmonitor.log'
 logger = logger.set_logger(os.path.basename(__file__), LOG)
@@ -43,6 +43,9 @@ TOKEN = config_raw.get('Kubernetes', 'token_file')
 PLURAL = config_raw.get('VirtualMachine', 'plural')
 VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
+PLURAL_VMP = config_raw.get('VirtualMachinePool', 'plural')
+VERSION_VMP = config_raw.get('VirtualMachinePool', 'version')
+GROUP_VMP = config_raw.get('VirtualMachinePool', 'group')
 SHARE_FS_MOUNT_POINT = config_raw.get('Storage', 'share_fs_mount_point')
 VDISK_FS_MOUNT_POINT = config_raw.get('Storage', 'vdisk_fs_mount_point')
 LOCAL_FS_MOUNT_POINT = config_raw.get('Storage', 'local_fs_mount_point')
@@ -176,10 +179,13 @@ class KillableThread:
             pass
 
 def collect_storage_metrics(zone):
+    config.load_kube_config(config_file=TOKEN)
+    vmps = list_objects_in_kubernetes(GROUP_VMP, VERSION_VMP, PLURAL_VMP)
     storages = {VDISK_FS_MOUNT_POINT: 'vdiskfs', SHARE_FS_MOUNT_POINT: 'nfs/glusterfs', \
                 LOCAL_FS_MOUNT_POINT: 'localfs', BLOCK_FS_MOUNT_POINT: 'blockfs'}
     for mount_point, pool_type in storages.items():
         try:
+#             all_pool_storages = runCmdRaiseException('timeout 2 df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
             all_pool_storages = runCmdRaiseException('timeout 2 df -aT | grep %s | awk \'{print $3,$4,$7}\'' % mount_point)
             for pool_storage in all_pool_storages:
                 t = KillableThread(target=get_pool_metrics,args=(pool_storage, pool_type, zone,))

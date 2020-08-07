@@ -276,6 +276,13 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
         return get_field(jsondict, index)
     except:
         return None
+
+def list_objects_in_kubernetes(group, version, plural):
+    try:
+        return client.CustomObjectsApi().list_cluster_custom_object(
+        group=group, version=version, namespace='default', plural=plural)
+    except:
+        return None
     
 def get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
     try:
@@ -1511,7 +1518,8 @@ if __name__ == '__main__':
     config_raw.read(cfg)
     TOKEN = config_raw.get('Kubernetes', 'token_file')
     config.load_kube_config(config_file=TOKEN)
-    print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
+    pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
+#     print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
 #     pprint.pprint(get_l3_network_info("switch1"))
 #     check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')
 #     pprint.pprint(get_l2_network_info("br-native"))

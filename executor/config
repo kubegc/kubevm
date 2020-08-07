@@ -9,7 +9,7 @@ timeout = 31536000
 share_fs_mount_point = /var/lib/libvirt/cstor
 vdisk_fs_mount_point = /mnt/usb
 local_fs_mount_point = /mnt/localfs
-block_fs_mount_point = /mnt/blockdev
+block_fs_mount_point = /var/lib/libvirt/cstor
 
 [DefaultJsonBackupDir]
 default = /etc/kubevmm/backup

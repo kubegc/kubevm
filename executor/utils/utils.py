@@ -280,7 +280,7 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
 def list_objects_in_kubernetes(group, version, plural):
     try:
         return client.CustomObjectsApi().list_cluster_custom_object(
-        group=group, version=version, namespace='default', plural=plural)
+        group=group, version=version, plural=plural)
     except:
         return None
     

@@ -51,6 +51,14 @@ SB_PORT="6642"
 NB_CMD="ovn-nbctl --db=tcp:$MASTER:$NB_PORT"
 SB_CMD="ovn-sbctl --db=tcp:$MASTER:$SB_PORT"
 
+if [[ -f /etc/ovn.conf ]]
+then
+  ndb=$(cat /etc/ovn.conf|grep ovnnb|awk -F"=" '{print$2}')
+  NB_CMD="ovn-nbctl --db=$ndb"
+  sdb=$(cat /etc/ovn.conf|grep ovnsb|awk -F"=" '{print$2}')
+  SB_CMD="ovn-sbctl --db=$sdb"
+fi
+
 ###########################################################
 ##
 ##  Utils
@@ -145,9 +153,21 @@ function start-worker()
   sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
   #sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve
-  sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$MASTER:6642
-  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$THISIP 
-  sudo ovs-vsctl set open . external-ids:ovn-nb="tcp:$MASTER:6641" 
+  if [[ -f /etc/ovn.conf ]]
+  then
+    sdb=$(cat /etc/ovn.conf|grep ovnsb|awk -F"=" '{print$2}')
+    sudo ovs-vsctl set open . external-ids:ovn-remote=$sdb
+  else
+    sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$MASTER:6642
+  fi
+  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=$THISIP
+  if [[ -f /etc/ovn.conf ]]
+  then
+    ndb=$(cat /etc/ovn.conf|grep ovnnb|awk -F"=" '{print$2}')
+    sudo ovs-vsctl set open . external-ids:ovn-nb=$ndb
+  else
+    sudo ovs-vsctl set open . external-ids:ovn-nb="tcp:$MASTER:6641"
+  fi
 }
 
 function stop-worker()

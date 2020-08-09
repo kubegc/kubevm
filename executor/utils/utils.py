@@ -1171,16 +1171,19 @@ def list_all_disks(path, disk_type = 'f'):
         return []
     
 def get_desc(vm):
-    return runCmdRaiseException('timeout 2 virsh desc %s' % (vm))
+    return runCmdRaiseException('timeout 2 virsh desc %s' % (vm))[0].replace("'", '"')
     # for child in root:
     #     print(child.tag, "----", child.attrib)
     
 def get_update_description_command(vm, device, switch, ip, args):
     try:
         desc = get_desc(vm)
-        desc_dict = loads(desc)
+        if desc.startswith("No description"):
+            desc_dict = {}
+        else:
+            desc_dict = loads(desc)
         desc_dict[device] = {'switch': switch, 'ip': ip}
-        desc_str = dumps(desc_dict)
+        desc_str = dumps(desc_dict).replace('"', '\\"')
         return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
     except:
         return None
@@ -1533,7 +1536,7 @@ if __name__ == '__main__':
     config_raw.read(cfg)
     TOKEN = config_raw.get('Kubernetes', 'token_file')
     config.load_kube_config(config_file=TOKEN)
-    print(get_update_description_command('cloudinit1', 'fe540007a50c', 'switch2', '192.168.0.1'))
+    print(get_update_description_command('cloudinit1', 'fe540007a50c', 'switch2', '192.168.0.1', '--config'))
 #     pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
 #     print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
 #     pprint.pprint(get_l3_network_info("switch1"))

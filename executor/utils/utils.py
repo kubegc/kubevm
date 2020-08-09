@@ -4,7 +4,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
-from json import loads, load
+from json import loads, load, dumps
 import xmltodict
 
 from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
@@ -1169,7 +1169,22 @@ def list_all_disks(path, disk_type = 'f'):
         return runCmdRaiseException("timeout 10 find %s -type %s ! -name '*.json' ! -name '*.temp' ! -name 'content' ! -name '.*' ! -name '*.xml' ! -name '*.pem' | grep -v overlay2" % (path, disk_type))
     except:
         return []
-
+    
+def get_desc(vm):
+    return runCmdRaiseException('timeout 2 virsh desc %s' % (vm))
+    # for child in root:
+    #     print(child.tag, "----", child.attrib)
+    
+def get_update_description_command(vm, device, switch, ip, args):
+    try:
+        desc = get_desc(vm)
+        desc_dict = loads(desc)
+        desc_dict[device] = {'switch': switch, 'ip': ip}
+        desc_str = dumps(desc_dict)
+        return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
+    except:
+        return None
+    
 class UserDefinedEvent(object):
     
     swagger_types = {
@@ -1518,7 +1533,8 @@ if __name__ == '__main__':
     config_raw.read(cfg)
     TOKEN = config_raw.get('Kubernetes', 'token_file')
     config.load_kube_config(config_file=TOKEN)
-    pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
+    print(get_update_description_command('cloudinit1', 'fe540007a50c', 'switch2', '192.168.0.1'))
+#     pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
 #     print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
 #     pprint.pprint(get_l3_network_info("switch1"))
 #     check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')

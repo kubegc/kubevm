@@ -53,6 +53,8 @@ BLOCK_FS_MOUNT_POINT = config_raw.get('Storage', 'block_fs_mount_point')
 
 HOSTNAME = get_hostname_in_lower_case()
 
+CPU_UTILIZATION = {}
+
 # vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
 #                                 ['zone', 'host', 'vm', "labels"])
 # vm_cpu_usr_proc_rate = Gauge('vm_cpu_usr_proc_rate', 'The CPU rate of running user processes in virtual machine', \
@@ -403,11 +405,20 @@ def get_vm_metrics(vm, zone):
             m1 = re.match(p1, line)
             if m1:
                 cpu_user_time = float(m1.group(2))
-    if cpu_time and cpu_system_time and cpu_user_time:
-        resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (cpu_system_time / cpu_time)
-        resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (cpu_user_time / cpu_time)
+        first_time = False
+        global CPU_UTILIZATION
+        if vm in CPU_UTILIZATION.keys():
+            CPU_UTILIZATION[vm] = {'cpu_time': (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time'))/10),
+                                    'cpu_system_time': (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time'))/10), 
+                                    'cpu_user_time': (cpu_user_time - float(CPU_UTILIZATION[vm].get('cpu_user_time')))/10}
+        else:
+            CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'cpu_system_time': cpu_system_time, 'cpu_user_time': cpu_user_time}
+            first_time = True
+    if not first_time:
+        resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (CPU_UTILIZATION[vm].get('cpu_system_time'))
+        resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (CPU_UTILIZATION[vm].get('cpu_user_time'))
         resource_utilization['cpu_metrics']['cpu_idle_rate'] = \
-        '%.2f' % (100 - ((cpu_user_time + cpu_system_time) / cpu_time))
+        '%.2f' % (1 - float(CPU_UTILIZATION[vm].get('cpu_time')))
     else:
         resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
         resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)

@@ -1184,6 +1184,8 @@ def get_update_description_command(vm, device, switch, ip, args):
             desc_dict = loads(desc)
         desc_dict[device] = {'switch': switch, 'ip': ip}
         desc_str = dumps(desc_dict).replace('"', '\\"')
+        if args.find('--persistent') != -1:
+            args.replace('--persistent', '--config')
         return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
     except:
         return ''
@@ -1198,6 +1200,8 @@ def get_del_description_command(vm, device, args):
         if device in desc_dict.keys():
             del desc_dict[device]
         desc_str = dumps(desc_dict).replace('"', '\\"')
+        if args.find('--persistent') != -1:
+            args.replace('--persistent', '--config')
         return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
     except:
         return ''

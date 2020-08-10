@@ -427,7 +427,7 @@ def get_vm_metrics(vm, zone):
         resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (cpu_system_util)
         resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (cpu_user_util)
         resource_utilization['cpu_metrics']['cpu_idle_rate'] = \
-        '%.2f' % (1 - cpu_util)
+        '%.2f' % abs(1 - cpu_util)
     else:
         resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
         resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)

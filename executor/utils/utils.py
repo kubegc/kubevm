@@ -1186,7 +1186,36 @@ def get_update_description_command(vm, device, switch, ip, args):
         desc_str = dumps(desc_dict).replace('"', '\\"')
         return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
     except:
-        return None
+        return ''
+
+def get_del_description_command(vm, device, args):
+    try:
+        desc = get_desc(vm)
+        if desc.startswith("No description"):
+            desc_dict = {}
+        else:
+            desc_dict = loads(desc)
+        if device in desc_dict.keys():
+            del desc_dict[device]
+        desc_str = dumps(desc_dict).replace('"', '\\"')
+        return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
+    except:
+        return ''
+    
+def get_switch_and_ip_info(vm, device):
+    try:
+        desc = get_desc(vm)
+        if desc.startswith("No description"):
+            desc_dict = {}
+        else:
+            desc_dict = loads(desc)
+        device_dict = desc_dict.get(device)
+        if device_dict:
+            return (device_dict.get('switch'), device_dict.get('ip'))
+        else:
+            return (None, None)
+    except:
+        return (None, None)
     
 class UserDefinedEvent(object):
     

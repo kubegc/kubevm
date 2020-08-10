@@ -155,7 +155,7 @@ function start-worker()
   sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve
   if [[ -f /etc/ovn.conf ]]
   then
-    sdb=$(cat /etc/ovn.conf | grep ovnsb | awk -F"=" '{print$2}' | awk -F"," '{print$1})
+    sdb=$(cat /etc/ovn.conf | grep ovnsb | awk -F"=" '{print$2}' | awk -F"," '{print$1}')
     sudo ovs-vsctl set open . external-ids:ovn-remote=$sdb
   else
     sudo ovs-vsctl set open . external-ids:ovn-remote=tcp:$MASTER:6642

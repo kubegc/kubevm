@@ -405,15 +405,16 @@ def get_vm_metrics(vm, zone):
             m1 = re.match(p1, line)
             if m1:
                 cpu_user_time = float(m1.group(2))
-        first_time = False
-        global CPU_UTILIZATION
-        if vm in CPU_UTILIZATION.keys():
-            CPU_UTILIZATION[vm] = {'cpu_time': (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time'))/10),
-                                    'cpu_system_time': (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time'))/10), 
-                                    'cpu_user_time': (cpu_user_time - float(CPU_UTILIZATION[vm].get('cpu_user_time')))/10}
-        else:
-            CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'cpu_system_time': cpu_system_time, 'cpu_user_time': cpu_user_time}
-            first_time = True
+    first_time = False
+    global CPU_UTILIZATION
+    print(CPU_UTILIZATION[vm])
+    if vm in CPU_UTILIZATION.keys():
+        CPU_UTILIZATION[vm] = {'cpu_time': (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time'))/10),
+                                'cpu_system_time': (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time'))/10), 
+                                'cpu_user_time': (cpu_user_time - float(CPU_UTILIZATION[vm].get('cpu_user_time')))/10}
+    else:
+        CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'cpu_system_time': cpu_system_time, 'cpu_user_time': cpu_user_time}
+        first_time = True
     if not first_time:
         resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (CPU_UTILIZATION[vm].get('cpu_system_time'))
         resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (CPU_UTILIZATION[vm].get('cpu_user_time'))

@@ -407,7 +407,7 @@ def get_vm_metrics(vm, zone):
                 cpu_user_time = float(m1.group(2))
     first_time = False
     global CPU_UTILIZATION
-    print(CPU_UTILIZATION[vm])
+    print(CPU_UTILIZATION.get(vm))
     if vm in CPU_UTILIZATION.keys():
         CPU_UTILIZATION[vm] = {'cpu_time': (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time'))/10),
                                 'cpu_system_time': (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time'))/10), 

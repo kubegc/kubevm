@@ -411,16 +411,17 @@ def get_vm_metrics(vm, zone):
     cpu_user_util = 0.00
     global CPU_UTILIZATION
     logger.debug(vm)
-    logger.debug(CPU_UTILIZATION.get(vm))
     if vm in CPU_UTILIZATION.keys():
-        cpu_util = (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time')))/10
-        cpu_system_util = (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time')))/10
-        cpu_user_util = (cpu_user_time - float(CPU_UTILIZATION[vm].get('cpu_user_time')))/10
+        interval = time.time() - CPU_UTILIZATION[vm].get('time')
+        cpu_util = (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time')))/ interval
+        cpu_system_util = (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time')))/interval
+        cpu_user_util = (cpu_user_time - float(CPU_UTILIZATION[vm].get('cpu_user_time')))/interval
+        logger.debug(interval, cpu_util, cpu_system_util, cpu_user_util)
         CPU_UTILIZATION[vm] = {'cpu_time': cpu_time,
                                 'cpu_system_time': cpu_system_time, 
-                                'cpu_user_time': cpu_user_time}
+                                'cpu_user_time': cpu_user_time, 'time': time.time()}
     else:
-        CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'cpu_system_time': cpu_system_time, 'cpu_user_time': cpu_user_time}
+        CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'cpu_system_time': cpu_system_time, 'cpu_user_time': cpu_user_time, 'time': time.time()}
         first_time = True
     if not first_time:
         resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (cpu_system_util)

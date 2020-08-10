@@ -431,7 +431,7 @@ def get_vm_metrics(vm, zone):
     else:
         resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
         resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)
-        resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (0.00)
+        resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (1.00)
     mem_stats = runCmdRaiseException('timeout 2 virsh dommemstat %s' % vm)
     mem_actual = 0.00
     mem_unused = 0.00
@@ -584,7 +584,7 @@ def zero_vm_metrics(vm, zone):
                             'owner': labels.get('owner'), 'autoscalinggroup': labels.get('autoscalinggroup')}
     resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
     resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)
-    resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (0.00)
+    resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (1.00)
     mem_unused = 0.00
     mem_available = 0.00
     resource_utilization['mem_metrics']['mem_unused'] = '%.2f' % (mem_unused)

@@ -410,7 +410,8 @@ def get_vm_metrics(vm, zone):
     cpu_system_util = 0.00
     cpu_user_util = 0.00
     global CPU_UTILIZATION
-    print(CPU_UTILIZATION.get(vm))
+    logger.debug(vm)
+    logger.debug(CPU_UTILIZATION.get(vm))
     if vm in CPU_UTILIZATION.keys():
         cpu_util = (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time')))/10
         cpu_system_util = (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time')))/10

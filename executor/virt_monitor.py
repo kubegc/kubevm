@@ -577,8 +577,6 @@ def zero_vm_metrics(vm, zone):
     resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
                             'disks_metrics': [], 'networks_metrics': [], 'cluster': labels.get('cluster'), 'router': labels.get('router'),
                             'owner': labels.get('owner'), 'autoscalinggroup': labels.get('autoscalinggroup')}
-    resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
-    resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)
     resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (1.00)
     mem_unused = 0.00
     mem_available = 0.00
@@ -609,8 +607,6 @@ def zero_vm_metrics(vm, zone):
         net_metrics['network_write_errors_per_secend'] = '%.2f' % (0.00)
         net_metrics['network_write_drops_per_secend'] = '%.2f' % (0.00)
         resource_utilization['networks_metrics'].append(net_metrics)  
-    vm_cpu_system_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_system_rate'])
-    vm_cpu_usr_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_user_rate'])
     vm_cpu_idle_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
     vm_mem_total_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_available'])
     vm_mem_available_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_unused'])

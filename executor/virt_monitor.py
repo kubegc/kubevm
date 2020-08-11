@@ -104,10 +104,10 @@ CPU_UTILIZATION = {}
 
 # VMS_CACHE = []
 
-vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
-                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
-vm_cpu_usr_proc_rate = Gauge('vm_cpu_usr_proc_rate', 'The CPU rate of running user processes in virtual machine', \
-                                ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+# vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
+#                                 ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
+# vm_cpu_usr_proc_rate = Gauge('vm_cpu_usr_proc_rate', 'The CPU rate of running user processes in virtual machine', \
+#                                 ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
 vm_cpu_idle_rate = Gauge('vm_cpu_idle_rate', 'The CPU idle rate in virtual machine', \
                                 ['zone', 'host', 'vm', "owner", "router", "autoscalinggroup", "cluster"])
 vm_mem_total_bytes = Gauge('vm_mem_total_bytes', 'The total memory bytes in virtual machine', \
@@ -385,52 +385,48 @@ def get_vm_metrics(vm, zone):
                             'owner': labels.get('owner'), 'autoscalinggroup': labels.get('autoscalinggroup')}
 #     cpus = len(get_vcpus(vm)[0])
 #     print(cpus)
-    cpu_stats = runCmdRaiseException('timeout 2 virsh cpu-stats --total %s' % vm)
+    cpu_stats = runCmdRaiseException('timeout 2 virsh domstats --vcpu %s | grep time | awk \'{split($0,a,\"=\");print a[2]}\'' % vm)
     cpu_time = 0.00
-    cpu_system_time = 0.00
-    cpu_user_time = 0.00
+    cpu_number = 0
     for line in cpu_stats:
-        if line.find('cpu_time') != -1:
-            p1 = r'^(\s*cpu_time\s*)([\S*]+)\s*(\S*)'
-            m1 = re.match(p1, line)
-            if m1:
-                cpu_time = float(m1.group(2))
-        elif line.find('system_time') != -1:
-            p1 = r'^(\s*system_time\s*)([\S*]+)\s*(\S*)'
-            m1 = re.match(p1, line)
-            if m1:
-                cpu_system_time = float(m1.group(2))
-        elif line.find('user_time') != -1:
-            p1 = r'^(\s*user_time\s*)([\S*]+)\s*(\S*)'
-            m1 = re.match(p1, line)
-            if m1:
-                cpu_user_time = float(m1.group(2))
+        one_cpu_time_seconds = int(line) / 1000000000
+        cpu_time += one_cpu_time_seconds
+        cpu_number += 1
+#     cpu_system_time = 0.00
+#     cpu_user_time = 0.00
+#     for line in cpu_stats:
+#         if line.find('cpu_time') != -1:
+#             p1 = r'^(\s*cpu_time\s*)([\S*]+)\s*(\S*)'
+#             m1 = re.match(p1, line)
+#             if m1:
+#                 cpu_time = float(m1.group(2))
+#         elif line.find('system_time') != -1:
+#             p1 = r'^(\s*system_time\s*)([\S*]+)\s*(\S*)'
+#             m1 = re.match(p1, line)
+#             if m1:
+#                 cpu_system_time = float(m1.group(2))
+#         elif line.find('user_time') != -1:
+#             p1 = r'^(\s*user_time\s*)([\S*]+)\s*(\S*)'
+#             m1 = re.match(p1, line)
+#             if m1:
+#                 cpu_user_time = float(m1.group(2))
     first_time = False
     cpu_util = 0.00
-    cpu_system_util = 0.00
-    cpu_user_util = 0.00
     global CPU_UTILIZATION
 #     logger.debug(vm)
-    if vm in CPU_UTILIZATION.keys():
+    if vm in CPU_UTILIZATION.keys() and cpu_number == CPU_UTILIZATION[vm].get('cpu_number'):
         interval = time.time() - CPU_UTILIZATION[vm].get('time')
         cpu_util = (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time')))/ interval
-        cpu_system_util = (cpu_system_time - float(CPU_UTILIZATION[vm].get('cpu_system_time')))/interval
-        cpu_user_util = (cpu_user_time - float(CPU_UTILIZATION[vm].get('cpu_user_time')))/interval
 #         logger.debug('%.2f %.2f %.2f %.2f' % (interval, cpu_util, cpu_system_util, cpu_user_util))
         CPU_UTILIZATION[vm] = {'cpu_time': cpu_time,
-                                'cpu_system_time': cpu_system_time, 
-                                'cpu_user_time': cpu_user_time, 'time': time.time()}
+                                'time': time.time(), 'cpu_number': cpu_number}
     else:
-        CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'cpu_system_time': cpu_system_time, 'cpu_user_time': cpu_user_time, 'time': time.time()}
+        CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'time': time.time(), 'cpu_number': cpu_number}
         first_time = True
     if not first_time:
-        resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (cpu_system_util)
-        resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (cpu_user_util)
         resource_utilization['cpu_metrics']['cpu_idle_rate'] = \
         '%.2f' % abs(1 - cpu_util)
     else:
-        resource_utilization['cpu_metrics']['cpu_system_rate'] = '%.2f' % (0.00)
-        resource_utilization['cpu_metrics']['cpu_user_rate'] = '%.2f' % (0.00)
         resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (1.00)
     mem_stats = runCmdRaiseException('timeout 2 virsh dommemstat %s' % vm)
     mem_actual = 0.00
@@ -550,10 +546,9 @@ def get_vm_metrics(vm, zone):
         if (stats2['tx_errs'] - stats1['tx_errs']) > 0 else '%.2f' % (0.00)
         net_metrics['network_write_drops_per_secend'] = '%.2f' % ((stats2['tx_drop'] - stats1['tx_drop']) / 0.1) \
         if (stats2['tx_drop'] - stats1['tx_drop']) > 0 else '%.2f' % (0.00)
-        resource_utilization['networks_metrics'].append(net_metrics)  
-    vm_cpu_system_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_system_rate'])
-    vm_cpu_usr_proc_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_user_rate'])
-    vm_cpu_idle_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
+        resource_utilization['networks_metrics'].append(net_metrics) 
+    if cpu_number == CPU_UTILIZATION[vm].get('cpu_number'): 
+        vm_cpu_idle_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
     vm_mem_total_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_available'])
     vm_mem_available_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_unused'])
     vm_mem_buffers_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_buffers'])

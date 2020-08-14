@@ -47,6 +47,7 @@ class parser(ConfigParser.ConfigParser):
 
 DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
 RESOURCE_FILE_PATH = '/etc/kubevmm/resource'
+OVN_CONFIG_FILE = '/etc/ovn.conf'
 
 def get_IP():
     myname = socket.getfqdn(socket.gethostname())
@@ -123,7 +124,8 @@ def get_l3_network_info(name):
     Get switch informations.
     '''
     switchInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s' % (master_ip, nb_port, name))
+    ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s show %s' % (ovn_master_ip, name))
 #     if not (len(lines) -1) % 4 == 0:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     if lines:
@@ -166,7 +168,7 @@ def get_l3_network_info(name):
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s-router' % (master_ip, nb_port, name))
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s show %s-router' % (ovn_master_ip, name))
     if lines:
         (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
         ports = lines[1:]
@@ -207,14 +209,14 @@ def get_l3_network_info(name):
 #     if not switchId:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
     if switchId:
-        cmd = 'ovn-nbctl --db=tcp:%s:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name, name)
+        cmd = 'ovn-nbctl --db=tcp:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (ovn_master_ip, name, name)
     #     print(cmd)
         lines = runCmdRaiseException(cmd)
 #         if not lines:
 #             raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
         if lines:
             gatewayInfo['id'] = lines[0].strip()
-            cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
+            cmd = 'ovn-nbctl --db=tcp:%s dhcp-options-get-options %s' % (ovn_master_ip, gatewayInfo['id'])
         #     print(cmd)
             lines = runCmdRaiseException(cmd)
             for line in lines:
@@ -229,6 +231,21 @@ def get_l3_network_info(name):
     data['gatewayInfo'] = gatewayInfo
     return data
 
+def get_ovn_master_ip(master_ip, nb_port):
+    if os.path.exists(OVN_CONFIG_FILE):
+        try:
+            with open(OVN_CONFIG_FILE, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    if line.startswith('ovnnb'):
+                        return line.split('=')[1]
+                    else:
+                        continue
+        except:
+            return '%s:%s' %(master_ip,nb_port)
+    else:
+        return '%s:%s' %(master_ip,nb_port)
+
 def get_address_set_info(name):
     cfg = "/etc/kubevmm/config"
     if not os.path.exists(cfg):
@@ -241,7 +258,8 @@ def get_address_set_info(name):
     nb_port = '6641'
     data = {'addressInfo': ''}
     addressInfo = {'_uuid': '', 'addresses': [], 'external_ids': {}, 'name': ''}
-    cmd = 'ovn-nbctl --db=tcp:%s:%s list Address_Set %s' % (master_ip, nb_port, name)
+    ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
+    cmd = 'ovn-nbctl --db=tcp:%s list Address_Set %s' % (ovn_master_ip, name)
     lines = runCmdRaiseException(cmd)
     for line in lines:
         if line.find('_uuid') != -1:

@@ -102,6 +102,10 @@ PLURAL_VM_POOL = config_raw.get('VirtualMachinePool', 'plural')
 VERSION_VM_POOL = config_raw.get('VirtualMachinePool', 'version')
 GROUP_VM_POOL = config_raw.get('VirtualMachinePool', 'group')
 
+PLURAL_VM_BACKUP = config_raw.get('VirtualMachineBackup', 'plural')
+VERSION_VM_BACKUP = config_raw.get('VirtualMachineBackup', 'version')
+GROUP_VM_BACKUP = config_raw.get('VirtualMachineBackup', 'group')
+
 DEFAULT_STORAGE_DIR = config_raw.get('DefaultStorageDir', 'default')
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
 DEFAULT_SNAPSHOT_DIR = config_raw.get('DefaultSnapshotDir', 'snapshot')
@@ -216,6 +220,10 @@ def main():
         thread_10.daemon = True
         thread_10.name = 'vm_pool_watcher'
         thread_10.start()
+        thread_11 = Thread(target=vMBackupWatcher)
+        thread_11.daemon = True
+        thread_11.name = 'vm_backup_watcher'
+        thread_11.start()
         try:
             while True:
                 time.sleep(1)
@@ -231,6 +239,7 @@ def main():
 #         thread_8.join()
         thread_9.join()
         thread_10.join()
+        thread_11.join()
     except:
         logger.error('Oops! ', exc_info=1)
         
@@ -787,7 +796,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             thread.daemon = True
             thread.name = 'vm_disk_snapshot_executor'
             thread.start()
-#             thread.join()            
+#             thread.join()
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1422,6 +1431,126 @@ def vMPoolExecutor(group, version, plural, jsondict):
                 if not _isDeletePool(the_cmd_key) and not _isShowPool(the_cmd_key):
                     write_result_to_server(group, version, 'default', plural,
                                            metadata_name, {'code': 0, 'msg': 'success'}, poolJson)
+            except libvirtError:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning'
+                event.set_event_type(event_type)
+            except ExecuteException, e:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning'
+                event.set_event_type(event_type)
+            except:
+                logger.error('Oops! ', exc_info=1)
+                info=sys.exc_info()
+                try:
+                    report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+                except:
+                    logger.warning('Oops! ', exc_info=1)
+                status = 'Done(Error)'
+                event_type = 'Warning'
+                event.set_event_type(event_type)
+            finally:
+                if the_cmd_key and operation_type != 'DELETED':
+                    time_end = now_to_datetime()
+                    message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+                    event.set_message(message)
+                    event.set_time_end(time_end)
+                    try:
+                        event.updateKubernetesEvent()
+                    except:
+                        logger.warning('Oops! ', exc_info=1)
+    except ExecuteException, e:
+        logger.error('Oops! ', exc_info=1)
+        info=sys.exc_info()
+        try:
+            report_failure(metadata_name, jsondict, e.reason, e.message, group, version, plural)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+    except:
+        logger.warning('Oops! ', exc_info=1)
+        info=sys.exc_info()
+        try:
+            report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
+        except:
+            logger.warning('Oops! ', exc_info=1)
+
+def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP):
+    watcher = watch.Watch()
+    kwargs = {}
+    kwargs['label_selector'] = LABEL
+    kwargs['watch'] = True
+    kwargs['timeout_seconds'] = int(TIMEOUT)
+    try:
+        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                       group=group, version=version, plural=plural, **kwargs):
+            thread = Thread(target=vMBackupExecutor,args=(group, version, plural, jsondict))
+            thread.daemon = True
+            thread.name = 'vm_backup_executor'
+            thread.start()
+#             thread.join()
+    except:
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)
+
+def vMBackupExecutor(group, version, plural, jsondict):
+    try:
+        operation_type = jsondict.get('type')
+        logger.debug(operation_type)
+        metadata_name = getMetadataName(jsondict)
+    except:
+        logger.warning('Oops! ', exc_info=1)
+    try:
+        logger.debug('metadata name: %s' % metadata_name)
+        the_cmd_key = _getCmdKey(jsondict)
+        logger.debug('cmd key is: %s' % the_cmd_key)
+        if the_cmd_key and operation_type != 'DELETED':
+            involved_object_name = metadata_name
+            involved_object_kind = 'VirtualMachineBackup'
+            event_metadata_name = randomUUID()
+            event_type = 'Normal'
+            status = 'Doing(Success)'
+            reporter = 'virtctl'
+            event_id = _getEventId(jsondict)
+            time_now = now_to_datetime()
+            time_start = time_now
+            time_end = time_now
+            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
+            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
+            try:
+                event.registerKubernetesEvent()
+            except:
+                logger.error('Oops! ', exc_info=1)
+            pool_name = metadata_name
+            pool_type = getPoolType(the_cmd_key, jsondict)
+            logger.debug(dumps(jsondict))
+
+            jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
+            cmd = unpackCmdFromJson(jsondict, the_cmd_key)
+            try:
+                if operation_type == 'ADDED':
+                    _, poolJson = rpcCallWithResult(cmd)
+                elif operation_type == 'MODIFIED':
+                    result, poolJson = rpcCallWithResult(cmd, raise_it=False)
+                    try:
+                        deleteLifecycle(metadata_name, group, version, plural)
+                    except:
+                        pass
+                    if result['code'] != 0:
+                        raise ExecuteException('virtctl', 'error when operate pool %s' % result['msg'])
+
+                status = 'Done(Success)'
             except libvirtError:
                 logger.error('Oops! ', exc_info=1)
                 info=sys.exc_info()

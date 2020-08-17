@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
+from utils.utils import get_del_description_command, get_update_description_command, check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
     iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, \
     createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
@@ -2882,13 +2882,15 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
             else:
                 unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
                 bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
-            recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
-            (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-            recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
-            (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+            device = 'fe%s' % (config_dict.get('mac').replace(':', '')[2:])
+            updateDescriptionCmd = get_update_description_command(metadata_name, device, config_dict.get('switch'), config_dict.get('ip'), args)
+#             recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
+#             (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+#             recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
+#             (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
     #         recordVxlanToFileCmd = 'echo "vxlan=%s" >> %s/%s-nic-%s.cfg' % \
     #         (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-            return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
+            return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, updateDescriptionCmd]
     elif _isUnplugNIC(the_cmd_key):
         args = ''
         unbindSwPortCmd = ''
@@ -2903,14 +2905,10 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
         if config_dict.get('force'):
             args = args + '--force '
         unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
-        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
-                                (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-        if os.path.exists(net_cfg_file_path):
-            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
-        if unbindSwPortCmd:
-            return [unbindSwPortCmd, unplugNICCmd]
-        else:
-            return [unplugNICCmd]
+        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+        device = 'fe%s' % (config_dict.get('mac').replace(':', '')[2:])
+        delDescriptionCmd = get_del_description_command(metadata_name, device, args)
+        return [unplugNICCmd, delDescriptionCmd, unbindSwPortCmd]
     else:
         return []
         

@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
+from utils.utils import get_del_description_command, get_update_description_command, check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
     iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, \
     createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
@@ -247,7 +247,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             thread.daemon = True
             thread.name = 'vm_executor'
             thread.start()
-            thread.join()
+#             thread.join()
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -258,7 +258,8 @@ def vMExecutor(group, version, plural, jsondict):
         operation_type = jsondict.get('type')
         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
-        logger.debug('metadata name: %s' % metadata_name)
+        logger.debug('------- Start time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
+#         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
         logger.debug('cmd key is: %s' % the_cmd_key)
     except:
@@ -382,6 +383,7 @@ def vMExecutor(group, version, plural, jsondict):
                 if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key) and not _isMigrateVMDisk(the_cmd_key) \
                         and not _isBackupVM(the_cmd_key) and not _isDeleteVMBackup(the_cmd_key):
                     write_result_to_server(group, version, 'default', plural, metadata_name)
+                logger.debug('------- Finish time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
             except libvirtError:
                 logger.error('Oops! ', exc_info=1)
                 info=sys.exc_info()
@@ -457,7 +459,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             thread.daemon = True
             thread.name = 'vm_disk_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -625,7 +627,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
             thread.daemon = True
             thread.name = 'vm_disk_image_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -785,7 +787,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             thread.daemon = True
             thread.name = 'vm_disk_snapshot_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -912,7 +914,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             thread.daemon = True
             thread.name = 'vm_image_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1055,7 +1057,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             thread.daemon = True
             thread.name = 'vm_snapshot_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1216,7 +1218,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             thread.daemon = True
             thread.name = 'vm_network_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1354,7 +1356,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
             thread.daemon = True
             thread.name = 'vm_pool_executor'
             thread.start()
-            thread.join()            
+#             thread.join()            
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -2751,13 +2753,15 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
             else:
                 unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
                 bindSwPortCmd = '%s --mac %s --switch %s --ip %s' % (ALL_SUPPORT_CMDS.get('bindSwPort'), config_dict.get('mac'), config_dict.get('switch'), config_dict.get('ip') if config_dict.get('ip') else 'dynamic')
-            recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
-            (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-            recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
-            (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+            device = 'fe%s' % (config_dict.get('mac').replace(':', '')[2:])
+            updateDescriptionCmd = get_update_description_command(metadata_name, device, config_dict.get('switch'), config_dict.get('ip'), args)
+#             recordSwitchToFileCmd = 'echo "switch=%s" > %s/%s-nic-%s.cfg' % \
+#             (config_dict.get('switch'), DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
+#             recordIpToFileCmd = 'echo "ip=%s" >> %s/%s-nic-%s.cfg' % \
+#             (config_dict.get('ip') if config_dict.get('ip') else 'dynamic', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
     #         recordVxlanToFileCmd = 'echo "vxlan=%s" >> %s/%s-nic-%s.cfg' % \
     #         (config_dict.get('vxlan') if config_dict.get('vxlan') else '-1', DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-            return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, recordSwitchToFileCmd, recordIpToFileCmd]
+            return [plugNICCmd, unbindSwPortCmd, bindSwPortCmd, updateDescriptionCmd]
     elif _isUnplugNIC(the_cmd_key):
         args = ''
         unbindSwPortCmd = ''
@@ -2772,14 +2776,10 @@ def _get_network_operations_queue(the_cmd_key, config_dict, metadata_name):
         if config_dict.get('force'):
             args = args + '--force '
         unplugNICCmd = _unplugDeviceFromXmlCmd(metadata_name, 'nic', config_dict, args)
-        net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
-                                (DEFAULT_DEVICE_DIR, metadata_name, config_dict.get('mac').replace(':', ''))
-        if os.path.exists(net_cfg_file_path):
-            unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
-        if unbindSwPortCmd:
-            return [unbindSwPortCmd, unplugNICCmd]
-        else:
-            return [unplugNICCmd]
+        unbindSwPortCmd = 'kubeovn-adm unbind-swport --mac %s' % (config_dict.get('mac'))
+        device = 'fe%s' % (config_dict.get('mac').replace(':', '')[2:])
+        delDescriptionCmd = get_del_description_command(metadata_name, device, args)
+        return [unplugNICCmd, delDescriptionCmd, unbindSwPortCmd]
     else:
         return []
         

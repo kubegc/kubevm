@@ -36,8 +36,8 @@ from xmljson import badgerfish as bf
 Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state, get_macs, get_nics, start
-from utils.utils import getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.libvirt_util import get_target_devices, get_xml, vm_state, get_macs, get_nics, start
+from utils.utils import get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token, get_ha_from_kubernetes
 from utils import logger
 
@@ -206,25 +206,29 @@ class MyDomainEventHandler(threading.Thread):
                         logger.debug('Callback domain start to virtlet')
                         macs = get_macs(vm_name)
                         for mac in macs:
-                            net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
-                                    (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
-                            cfg = ''
-                            switch = ''
-                            ip = ''
-                            if os.path.exists(net_cfg_file_path):
-                                with open(net_cfg_file_path, 'r') as fr:
-                                    cfg = fr.read()
-                            if cfg:
-    #                             vxlan = ''
-                                for line in cfg.split("\n"):
-                                    line = line.strip()
-                                    if line.find('switch') != -1:
-                                        (_, switch) = line.split('=')
-                                    elif line.find('ip') != -1:
-                                        (_, ip) = line.split('=')
-    #                                 elif line.find('vxlan') != -1:
-    #                                     (_, vxlan) = line.split('=')
-    #                         if switch and ip and vxlan:
+                            device = 'fe%s' % (mac.replace(':', '')[2:])
+                            (switch, ip) = get_switch_and_ip_info(vm_name, device)
+#                         macs = get_macs(vm_name)
+#                         for mac in macs:
+#                             net_cfg_file_path = '%s/%s-nic-%s.cfg' % \
+#                                     (DEFAULT_DEVICE_DIR, vm_name, mac.replace(':', ''))
+#                             cfg = ''
+#                             switch = ''
+#                             ip = ''
+#                             if os.path.exists(net_cfg_file_path):
+#                                 with open(net_cfg_file_path, 'r') as fr:
+#                                     cfg = fr.read()
+#                             if cfg:
+#     #                             vxlan = ''
+#                                 for line in cfg.split("\n"):
+#                                     line = line.strip()
+#                                     if line.find('switch') != -1:
+#                                         (_, switch) = line.split('=')
+#                                     elif line.find('ip') != -1:
+#                                         (_, ip) = line.split('=')
+#     #                                 elif line.find('vxlan') != -1:
+#     #                                     (_, vxlan) = line.split('=')
+#     #                         if switch and ip and vxlan:
                             if switch and ip:
                                 bindSwPortCmd = 'kubeovn-adm bind-swport --mac %s --switch %s --ip %s' % (mac, switch.strip(), ip.strip())
                                 logger.debug(bindSwPortCmd)

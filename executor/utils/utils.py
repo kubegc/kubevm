@@ -4,7 +4,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
-from json import loads, load
+from json import loads, load, dumps
 import xmltodict
 
 from libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
@@ -47,6 +47,7 @@ class parser(ConfigParser.ConfigParser):
 
 DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
 RESOURCE_FILE_PATH = '/etc/kubevmm/resource'
+OVN_CONFIG_FILE = '/etc/ovn.conf'
 
 def get_IP():
     myname = socket.getfqdn(socket.gethostname())
@@ -123,7 +124,8 @@ def get_l3_network_info(name):
     Get switch informations.
     '''
     switchInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s' % (master_ip, nb_port, name))
+    ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s show %s' % (ovn_master_ip, name))
 #     if not (len(lines) -1) % 4 == 0:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     if lines:
@@ -166,7 +168,7 @@ def get_l3_network_info(name):
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s:%s show %s-router' % (master_ip, nb_port, name))
+    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s show %s-router' % (ovn_master_ip, name))
     if lines:
         (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
         ports = lines[1:]
@@ -207,14 +209,14 @@ def get_l3_network_info(name):
 #     if not switchId:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
     if switchId:
-        cmd = 'ovn-nbctl --db=tcp:%s:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (master_ip, nb_port, name, name)
+        cmd = 'ovn-nbctl --db=tcp:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (ovn_master_ip, name, name)
     #     print(cmd)
         lines = runCmdRaiseException(cmd)
 #         if not lines:
 #             raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
         if lines:
             gatewayInfo['id'] = lines[0].strip()
-            cmd = 'ovn-nbctl --db=tcp:%s:%s dhcp-options-get-options %s' % (master_ip, nb_port, gatewayInfo['id'])
+            cmd = 'ovn-nbctl --db=tcp:%s dhcp-options-get-options %s' % (ovn_master_ip, gatewayInfo['id'])
         #     print(cmd)
             lines = runCmdRaiseException(cmd)
             for line in lines:
@@ -229,6 +231,21 @@ def get_l3_network_info(name):
     data['gatewayInfo'] = gatewayInfo
     return data
 
+def get_ovn_master_ip(master_ip, nb_port):
+    if os.path.exists(OVN_CONFIG_FILE):
+        try:
+            with open(OVN_CONFIG_FILE, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    if line.startswith('ovnnb'):
+                        return line.split('=')[1]
+                    else:
+                        continue
+        except:
+            return '%s:%s' %(master_ip,nb_port)
+    else:
+        return '%s:%s' %(master_ip,nb_port)
+
 def get_address_set_info(name):
     cfg = "/etc/kubevmm/config"
     if not os.path.exists(cfg):
@@ -241,7 +258,8 @@ def get_address_set_info(name):
     nb_port = '6641'
     data = {'addressInfo': ''}
     addressInfo = {'_uuid': '', 'addresses': [], 'external_ids': {}, 'name': ''}
-    cmd = 'ovn-nbctl --db=tcp:%s:%s list Address_Set %s' % (master_ip, nb_port, name)
+    ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
+    cmd = 'ovn-nbctl --db=tcp:%s list Address_Set %s' % (ovn_master_ip, name)
     lines = runCmdRaiseException(cmd)
     for line in lines:
         if line.find('_uuid') != -1:
@@ -1169,7 +1187,58 @@ def list_all_disks(path, disk_type = 'f'):
         return runCmdRaiseException("timeout 10 find %s -type %s ! -name '*.json' ! -name '*.temp' ! -name 'content' ! -name '.*' ! -name '*.xml' ! -name '*.pem' | grep -v overlay2" % (path, disk_type))
     except:
         return []
+    
+def get_desc(vm):
+    return runCmdRaiseException('timeout 2 virsh desc %s' % (vm))[0].replace("'", '"')
+    # for child in root:
+    #     print(child.tag, "----", child.attrib)
+    
+def get_update_description_command(vm, device, switch, ip, args):
+    try:
+        desc = get_desc(vm)
+        if desc.startswith("No description"):
+            desc_dict = {}
+        else:
+            desc_dict = loads(desc)
+        desc_dict[device] = {'switch': switch, 'ip': ip}
+        desc_str = dumps(desc_dict).replace('"', '\\"')
+        if args.find('--persistent') != -1:
+            args = args.replace('--persistent', '--config')
+        return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
+    except:
+        return ''
 
+def get_del_description_command(vm, device, args):
+    try:
+        desc = get_desc(vm)
+        if desc.startswith("No description"):
+            desc_dict = {}
+        else:
+            desc_dict = loads(desc)
+        if device in desc_dict.keys():
+            del desc_dict[device]
+        desc_str = dumps(desc_dict).replace('"', '\\"')
+        if args.find('--persistent') != -1:
+            args = args.replace('--persistent', '--config')
+        return 'virsh desc --domain %s --new-desc \"%s\" %s' % (vm, desc_str, args)
+    except:
+        return ''
+    
+def get_switch_and_ip_info(vm, device):
+    try:
+        desc = get_desc(vm)
+        if desc.startswith("No description"):
+            desc_dict = {}
+        else:
+            desc_dict = loads(desc)
+        device_dict = desc_dict.get(device)
+        if device_dict:
+            return (device_dict.get('switch'), device_dict.get('ip'))
+        else:
+            return (None, None)
+    except:
+        return (None, None)
+    
 class UserDefinedEvent(object):
     
     swagger_types = {
@@ -1518,7 +1587,8 @@ if __name__ == '__main__':
     config_raw.read(cfg)
     TOKEN = config_raw.get('Kubernetes', 'token_file')
     config.load_kube_config(config_file=TOKEN)
-    pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
+    print(get_update_description_command('cloudinit1', 'fe540007a50c', 'switch2', '192.168.0.1', '--config'))
+#     pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
 #     print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
 #     pprint.pprint(get_l3_network_info("switch1"))
 #     check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')

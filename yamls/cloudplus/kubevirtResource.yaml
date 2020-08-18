@@ -303,9 +303,6 @@ spec:
     - JSONPath: .spec.backup.disk
       name: DISK
       type: string
-    - JSONPath: .spec.backup.space
-      name: SPACE
-      type: string
     - JSONPath: .spec.status.conditions.state.waiting.reason
       name: STATUS
       type: string

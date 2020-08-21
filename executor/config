@@ -73,6 +73,11 @@ group = cloudplus.io
 version = v1alpha3
 plural = virtualmachinepools
 
+[VirtualMachineBackup]
+group = cloudplus.io
+version = v1alpha3
+plural = virtualmachinebackups
+
 [VirtualMachineSupportCmdsWithNameField]
 createAndStartVMFromISO = virt-install
 createAndStartVMFromImage = virt-install
@@ -210,3 +215,5 @@ delBridgeVlan = kubeovn-adm delbridge-vlan
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
 
+[VirtualMachineBackupSupportCmdsWithDomainField]
+cleanVMBackup = kubesds-adm cleanVMBackup

@@ -285,3 +285,40 @@ spec:
     singular: virtualmachinedisksnapshot
   scope: Namespaced
   version: v1alpha3
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    kubevirt.io: ""
+  name: virtualmachinebackups.cloudplus.io
+spec:
+  additionalPrinterColumns:
+    - JSONPath: .spec.backup.domain
+      name: DOMAIN
+      type: string
+    - JSONPath: .spec.backup.pool
+      name: POOL
+      type: string
+    - JSONPath: .spec.backup.disk
+      name: DISK
+      type: string
+    - JSONPath: .spec.status.conditions.state.waiting.reason
+      name: STATUS
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    - JSONPath: .spec.nodeName
+      name: NODE
+      type: string
+  group: cloudplus.io
+  names:
+    kind: VirtualMachineBackup
+    plural: virtualmachinebackups
+    shortNames:
+      - vmb
+      - vmbs
+    singular: virtualmachinebackup
+  scope: Namespaced
+  version: v1alpha3

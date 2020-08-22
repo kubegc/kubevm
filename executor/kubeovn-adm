@@ -125,11 +125,11 @@ function start-central()
   systemctl start   ovn-controller
   systemctl enable  ovn-controller
 
-  sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
-  sudo ovs-vsctl set open . external-ids:ovn-remote=unix:/usr/var/run/openvswitch/ovnsb_db.sock
-  sudo ovs-vsctl set open . external-ids:ovn-encap-ip=127.0.0.1
+  #sudo ovs-vsctl set open . external-ids:ovn-bridge=br-int
+  #sudo ovs-vsctl set open . external-ids:ovn-remote=unix:/usr/var/run/openvswitch/ovnsb_db.sock
+  #sudo ovs-vsctl set open . external-ids:ovn-encap-ip=127.0.0.1
   #sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
-  sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve
+  #sudo ovs-vsctl set open . external-ids:ovn-encap-type=geneve
 }
 
 function stop-central()

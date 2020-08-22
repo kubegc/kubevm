@@ -238,7 +238,7 @@ def get_ovn_master_ip(master_ip, nb_port):
                 lines = f.readlines()
                 for line in lines:
                     if line.startswith('ovnnb'):
-                        return line.split('=')[1]
+                        return line.split('=')[1].strip()
                     else:
                         continue
         except:

@@ -350,7 +350,8 @@ def vMExecutor(group, version, plural, jsondict):
                         if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key) or \
                                 _isExportVM(the_cmd_key) or _isBackupVM(the_cmd_key) or _isRestoreVM(the_cmd_key)\
                                 or _isPullRemoteBackup(the_cmd_key) or _isDeleteVMBackup(the_cmd_key)  \
-                                or _isDeleteRemoteBackup(the_cmd_key) or _isPushRemoteBackup(the_cmd_key) or _isUpdateOS(the_cmd_key):
+                                or _isDeleteRemoteBackup(the_cmd_key) or _isPushRemoteBackup(the_cmd_key) or _isUpdateOS(the_cmd_key)\
+                                or _isCleanBackup(the_cmd_key) or _isCleanRemoteBackup(the_cmd_key) or _isScanBackup(the_cmd_key):
                             rpcCallWithResult(cmd)
                         else:
                             runCmd(cmd)
@@ -2185,6 +2186,21 @@ def _isBackupVM(the_cmd_key):
 
 def _isRestoreVM(the_cmd_key):
     if the_cmd_key == "restoreVM":
+        return True
+    return False
+
+def _isCleanBackup(the_cmd_key):
+    if the_cmd_key == "cleanBackup":
+        return True
+    return False
+
+def _isCleanRemoteBackup(the_cmd_key):
+    if the_cmd_key == "cleanRemoteBackup":
+        return True
+    return False
+
+def _isScanBackup(the_cmd_key):
+    if the_cmd_key == "scanBackup":
         return True
     return False
 

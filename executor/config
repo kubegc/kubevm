@@ -127,6 +127,9 @@ pullRemoteBackup = kubesds-adm pullRemoteBackup
 pushRemoteBackup = kubesds-adm pushBackup
 deleteVMBackup = kubesds-adm deleteVMBackup
 restoreVM = kubesds-adm restoreVM
+cleanBackup = kubesds-adm cleanBackup
+cleanBackup = kubesds-adm cleanRemoteBackup
+scanBackup = kubesds-adm scanBackup
 passthroughDevice = /usr/bin/device-passthrough
 redirectUsb = virsh define
 autoStartVM = virsh autostart
@@ -215,5 +218,3 @@ delBridgeVlan = kubeovn-adm delbridge-vlan
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
 
-[VirtualMachineBackupSupportCmdsWithDomainField]
-cleanVMBackup = kubesds-adm cleanVMBackup

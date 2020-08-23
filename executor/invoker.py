@@ -260,6 +260,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
         
 def vMExecutor(group, version, plural, jsondict):
     try:
@@ -473,6 +474,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
 
 def vMDiskExecutor(group, version, plural, jsondict):
     try:
@@ -641,6 +643,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
 
 def vMDiskImageExecutor(group, version, plural, jsondict):
     try:
@@ -801,6 +804,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
 
 def vMDiskSnapshotExecutor(group, version, plural, jsondict):        
     try:
@@ -928,6 +932,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
 
 def vMImageExecutor(group, version, plural, jsondict):   
     try:
@@ -1071,6 +1076,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
 
 def vMSnapshotExecutor(group, version, plural, jsondict): 
     try:
@@ -1232,6 +1238,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
 
 def vMNetworkExecutor(group, version, plural, jsondict): 
     try:
@@ -1370,6 +1377,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
 
 def vMPoolExecutor(group, version, plural, jsondict):
     try:

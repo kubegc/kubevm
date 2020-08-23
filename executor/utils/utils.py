@@ -125,7 +125,7 @@ def get_l3_network_info(name):
     '''
     switchInfo = {'id': '', 'name': '', 'ports': []}
     ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s show %s' % (ovn_master_ip, name))
+    lines = runCmdRaiseException('ovn-nbctl --db=%s show %s' % (ovn_master_ip, name))
 #     if not (len(lines) -1) % 4 == 0:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     if lines:
@@ -168,7 +168,7 @@ def get_l3_network_info(name):
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=tcp:%s show %s-router' % (ovn_master_ip, name))
+    lines = runCmdRaiseException('ovn-nbctl --db=%s show %s-router' % (ovn_master_ip, name))
     if lines:
         (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
         ports = lines[1:]
@@ -209,14 +209,14 @@ def get_l3_network_info(name):
 #     if not switchId:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
     if switchId:
-        cmd = 'ovn-nbctl --db=tcp:%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (ovn_master_ip, name, name)
+        cmd = 'ovn-nbctl --db=%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (ovn_master_ip, name, name)
     #     print(cmd)
         lines = runCmdRaiseException(cmd)
 #         if not lines:
 #             raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
         if lines:
             gatewayInfo['id'] = lines[0].strip()
-            cmd = 'ovn-nbctl --db=tcp:%s dhcp-options-get-options %s' % (ovn_master_ip, gatewayInfo['id'])
+            cmd = 'ovn-nbctl --db=%s dhcp-options-get-options %s' % (ovn_master_ip, gatewayInfo['id'])
         #     print(cmd)
             lines = runCmdRaiseException(cmd)
             for line in lines:
@@ -238,13 +238,13 @@ def get_ovn_master_ip(master_ip, nb_port):
                 lines = f.readlines()
                 for line in lines:
                     if line.startswith('ovnnb'):
-                        return line.split('=')[1]
+                        return line.split('=')[1].strip()
                     else:
                         continue
         except:
-            return '%s:%s' %(master_ip,nb_port)
+            return 'tcp:%s:%s' %(master_ip,nb_port)
     else:
-        return '%s:%s' %(master_ip,nb_port)
+        return 'tcp:%s:%s' %(master_ip,nb_port)
 
 def get_address_set_info(name):
     cfg = "/etc/kubevmm/config"
@@ -259,7 +259,7 @@ def get_address_set_info(name):
     data = {'addressInfo': ''}
     addressInfo = {'_uuid': '', 'addresses': [], 'external_ids': {}, 'name': ''}
     ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
-    cmd = 'ovn-nbctl --db=tcp:%s list Address_Set %s' % (ovn_master_ip, name)
+    cmd = 'ovn-nbctl --db=%s list Address_Set %s' % (ovn_master_ip, name)
     lines = runCmdRaiseException(cmd)
     for line in lines:
         if line.find('_uuid') != -1:
@@ -1587,10 +1587,10 @@ if __name__ == '__main__':
     config_raw.read(cfg)
     TOKEN = config_raw.get('Kubernetes', 'token_file')
     config.load_kube_config(config_file=TOKEN)
-    print(get_update_description_command('cloudinit1', 'fe540007a50c', 'switch2', '192.168.0.1', '--config'))
+#     print(get_update_description_command('cloudinit1', 'fe540007a50c', 'switch2', '192.168.0.1', '--config'))
 #     pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
 #     print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
-#     pprint.pprint(get_l3_network_info("switch1"))
+    pprint.pprint(get_l3_network_info("switch"))
 #     check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom

@@ -215,5 +215,3 @@ delBridgeVlan = kubeovn-adm delbridge-vlan
 bindSwPort = kubeovn-adm bind-swport
 unbindSwPort = kubeovn-adm unbind-swport
 
-[VirtualMachineBackupSupportCmdsWithDomainField]
-cleanVMBackup = kubesds-adm cleanVMBackup

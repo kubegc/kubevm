@@ -284,7 +284,7 @@ def update_online(version='latest'):
                 elif line.find('registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet') != -1:
                     line = '%s: %s:%s\n' % (line.split(':')[0], line.split(':')[1], version)
                 else:
-                    line = '%s' % (line)
+                    line = '%s\n' % (line.rstrip())
                 allLine.append(line)
         with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
             fw.writelines(allLine)

@@ -275,9 +275,22 @@ def status(print_result=False, ignore_warning=False):
 def update_online(version='latest'):
     print('updating online')
     print('pulling from official repository...\n')
-#     if os.path.exists("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml"):
-#         with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
-#             for line in 
+    if os.path.exists("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml"):
+        with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
+            allLine = []
+            for line in fw.readlines():
+                line = line.strip()
+                if line.find('registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl') != -1:
+                    line = '%s:%s\n' % (line.split(':')[0], version)
+                elif line.find('registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet') != -1:
+                    line = '%s:%s\n' % (line.split(':')[0], version)
+                else:
+                    line = '%s\n' % (line)
+                allLine.append(line)
+            fw.write(allLine)
+    (_, _err) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
+    if _err:
+        sys.exit(1)
 #     time.sleep(3)
 #     (_, virtctl_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s" % version)
 #     (_, virtlet_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s" % version)

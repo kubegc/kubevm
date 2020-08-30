@@ -276,8 +276,8 @@ def update_online(version='latest'):
     print('updating online')
     print('pulling from official repository...\n')
     if os.path.exists("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml"):
-        with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
-            allLine = []
+        allLine = []
+        with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "r") as fw:
             for line in fw.readlines():
                 line = line.strip()
                 if line.find('registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl') != -1:
@@ -287,6 +287,7 @@ def update_online(version='latest'):
                 else:
                     line = '%s\n' % (line)
                 allLine.append(line)
+        with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
             fw.write(allLine)
     (_, _err) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
     if _err:

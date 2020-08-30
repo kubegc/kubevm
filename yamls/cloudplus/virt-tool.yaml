@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.6
-        command: bash virtctl-update-stuff.sh
+        command: ["bash", "virtctl-update-stuff.sh"]
         - sleep
         - '3600'
         imagePullPolicy: IfNotPresent
@@ -52,7 +52,7 @@ spec:
           - name: tmp
           - mountPath: /tmp/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.6
-        command: bash virtlet-update-stuff.sh
+        command: ["bash", "virtlet-update-stuff.sh"]
         - sleep
         - '3600'
         imagePullPolicy: IfNotPresent

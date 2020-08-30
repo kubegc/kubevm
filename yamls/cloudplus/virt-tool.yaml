@@ -24,33 +24,33 @@ spec:
         name: virtctl
         volumeMounts:
           - name: etc
-          - mountPath: /etc/
+            mountPath: /etc/
           - name: dev
-          - mountPath: /dev/
+            mountPath: /dev/
           - name: opt
-          - mountPath: /opt/
+            mountPath: /opt/
           - name: varlog
-          - mountPath: /var/log/
+            mountPath: /var/log/
           - name: libvirt
-          - mountPath: /var/lib/libvirt/
+            mountPath: /var/lib/libvirt/
           - name: varrun
-          - mountPath: /var/run/
+            mountPath: /var/run/
           - name: uit
-          - mountPath: /uit/
+            mountPath: /uit/
           - name: mnt
-          - mountPath: /mnt/
+            mountPath: /mnt/
           - name: usrlib64
-          - mountPath: /usr/lib64/
+            mountPath: /usr/lib64/
           - name: usrbin
-          - mountPath: /usr/bin/
+            mountPath: /usr/bin/
           - name: uraid
-          - mountPath: /usr/lib/uraid
+            mountPath: /usr/lib/uraid
           - name: usrshare
-          - mountPath: /usr/share/
+            mountPath: /usr/share/
           - name: kube
-          - mountPath: /root/.kube/
+            mountPath: /root/.kube/
           - name: tmp
-          - mountPath: /tmp/
+            mountPath: /tmp/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.6
         command: 
         - bash
@@ -59,33 +59,33 @@ spec:
         name: virtlet
         volumeMounts:
           - name: etc
-          - mountPath: //
+            mountPath: /etc/
           - name: dev
-          - mountPath: /dev/
+            mountPath: /dev/
           - name: opt
-          - mountPath: /opt/
+            mountPath: /opt/
           - name: varlog
-          - mountPath: /var/log/
+            mountPath: /var/log/
           - name: libvirt
-          - mountPath: /var/lib/libvirt/
+            mountPath: /var/lib/libvirt/
           - name: varrun
-          - mountPath: /var/run/
+            mountPath: /var/run/
           - name: uit
-          - mountPath: /uit/
+            mountPath: /uit/
           - name: mnt
-          - mountPath: /mnt/
+            mountPath: /mnt/
           - name: usrlib64
-          - mountPath: /usr/lib64/
+            mountPath: /usr/lib64/
           - name: usrbin
-          - mountPath: /usr/bin/
+            mountPath: /usr/bin/
           - name: uraid
-          - mountPath: /usr/lib/uraid
+            mountPath: /usr/lib/uraid
           - name: usrshare
-          - mountPath: /usr/share/
+            mountPath: /usr/share/
           - name: kube
-          - mountPath: /root/.kube/
+            mountPath: /root/.kube/
           - name: tmp
-          - mountPath: /tmp/
+            mountPath: /tmp/
       volumes: 
         - name: etc
           hostPath: 

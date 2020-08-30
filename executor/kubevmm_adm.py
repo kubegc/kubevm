@@ -288,7 +288,7 @@ def update_online(version='latest'):
                     line = '%s\n' % (line)
                 allLine.append(line)
         with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
-            fw.write(allLine)
+            fw.write(str(allLine))
     (_, _err) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
     if _err:
         sys.exit(1)

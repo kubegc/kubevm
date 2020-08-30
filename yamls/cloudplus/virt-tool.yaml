@@ -1,0 +1,131 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: virt-tool
+  namespace: cloudplus
+  labels:
+    app: virt-tool
+spec:
+  selector:
+    matchLabels:
+      app: virt-tool
+  template:
+    metadata:
+      labels:
+        app: virt-tool
+    spec:
+      containers:
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.6
+        command: bash virtctl-update-stuff.sh
+        - sleep
+        - '3600'
+        imagePullPolicy: IfNotPresent
+        name: virtctl
+        volumeMounts:
+          - name: etc
+          - mountPath: /etc/
+          - name: dev
+          - mountPath: /dev/
+          - name: opt
+          - mountPath: /opt/
+          - name: varlog
+          - mountPath: /var/log/
+          - name: libvirt
+          - mountPath: /var/lib/libvirt/
+          - name: varrun
+          - mountPath: /var/run/
+          - name: uit
+          - mountPath: /uit/
+          - name: mnt
+          - mountPath: /mnt/
+          - name: usrlib64
+          - mountPath: /usr/lib64/
+          - name: usrbin
+          - mountPath: /usr/bin/
+          - name: uraid
+          - mountPath: /usr/lib/uraid
+          - name: usrshare
+          - mountPath: /usr/share/
+          - name: kube
+          - mountPath: /root/.kube/
+          - name: tmp
+          - mountPath: /tmp/
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.6
+        command: bash virtlet-update-stuff.sh
+        - sleep
+        - '3600'
+        imagePullPolicy: IfNotPresent
+        name: virtlet
+        volumeMounts:
+          - name: etc
+          - mountPath: //
+          - name: dev
+          - mountPath: /dev/
+          - name: opt
+          - mountPath: /opt/
+          - name: varlog
+          - mountPath: /var/log/
+          - name: libvirt
+          - mountPath: /var/lib/libvirt/
+          - name: varrun
+          - mountPath: /var/run/
+          - name: uit
+          - mountPath: /uit/
+          - name: mnt
+          - mountPath: /mnt/
+          - name: usrlib64
+          - mountPath: /usr/lib64/
+          - name: usrbin
+          - mountPath: /usr/bin/
+          - name: uraid
+          - mountPath: /usr/lib/uraid
+          - name: usrshare
+          - mountPath: /usr/share/
+          - name: kube
+          - mountPath: /root/.kube/
+          - name: tmp
+          - mountPath: /tmp/
+      volumes: 
+        - name: etc
+          hostPath: 
+            path: /etc/ 
+        - name: dev
+          hostPath: 
+            path: /dev/
+        - name: opt
+          hostPath: 
+            path: /opt/
+        - name: varlog
+          hostPath: 
+            path: /var/log/
+        - name: libvirt
+          hostPath: 
+            path: /var/lib/libvirt/
+        - name: varrun
+          hostPath: 
+            path: /var/run/
+        - name: uit
+          hostPath: 
+            path: /uit/
+        - name: mnt
+          hostPath: 
+            path: /mnt/
+        - name: usrlib64
+          hostPath: 
+            path: /usr/lib64/
+        - name: usrbin
+          hostPath: 
+            path: /usr/bin/
+        - name: uraid
+          hostPath: 
+            path: /usr/lib/uraid
+        - name: usrshare
+          hostPath: 
+            path: /usr/share/
+        - name: kube
+          hostPath: 
+            path: /root/.kube/
+        - name: tmp
+          hostPath: 
+            path: /tmp/

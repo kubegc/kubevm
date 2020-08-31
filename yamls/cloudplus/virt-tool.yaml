@@ -21,7 +21,7 @@ spec:
         command: 
         - bash
         - 'virtctl-update-stuff.sh'
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: virtctl
         volumeMounts:
           - name: etc
@@ -56,7 +56,7 @@ spec:
         command: 
         - bash
         - 'virtlet-update-stuff.sh'
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: virtlet
         volumeMounts:
           - name: etc

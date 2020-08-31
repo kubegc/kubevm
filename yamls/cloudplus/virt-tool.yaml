@@ -17,7 +17,7 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.6
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.7
         command: 
         - bash
         - 'virtctl-update-stuff.sh'
@@ -52,7 +52,7 @@ spec:
             mountPath: /root/.kube/
           - name: tmp
             mountPath: /tmp/
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.6
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.7
         command: 
         - bash
         - 'virtlet-update-stuff.sh'

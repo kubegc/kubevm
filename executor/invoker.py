@@ -349,10 +349,7 @@ def vMExecutor(group, version, plural, jsondict):
                             time.sleep(1)
                     try:
                         if _isMigrateVM(the_cmd_key) or _isMigrateVMDisk(the_cmd_key) or \
-                                _isExportVM(the_cmd_key) or _isBackupVM(the_cmd_key) or _isRestoreVM(the_cmd_key)\
-                                or _isPullRemoteBackup(the_cmd_key) or _isDeleteVMBackup(the_cmd_key)  \
-                                or _isDeleteRemoteBackup(the_cmd_key) or _isPushRemoteBackup(the_cmd_key) or _isUpdateOS(the_cmd_key)\
-                                or _isCleanBackup(the_cmd_key) or _isCleanRemoteBackup(the_cmd_key) or _isScanBackup(the_cmd_key):
+                                _isExportVM(the_cmd_key) or _isBackupVM(the_cmd_key) or _isUpdateOS(the_cmd_key):
                             rpcCallWithResult(cmd)
                         else:
                             runCmd(cmd)
@@ -1407,20 +1404,14 @@ def vMPoolExecutor(group, version, plural, jsondict):
                 event.registerKubernetesEvent()
             except:
                 logger.error('Oops! ', exc_info=1)
-            pool_name = metadata_name
-            pool_type = getPoolType(the_cmd_key, jsondict)
-            logger.debug("pool_name is :"+pool_name)
-            logger.debug("pool_type is :" + pool_type)
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
             cmd = unpackCmdFromJson(jsondict, the_cmd_key)
             try:
                 if operation_type == 'ADDED':
-                    # judge pool path exist or not
-
-                    # POOL_PATH = getPoolPathWhenCreate(jsondict)
-                    # # file_dir = os.path.split(POOL_PATH)[0]
-                    # if not os.path.isdir(POOL_PATH):
-                    #     os.makedirs(POOL_PATH)
+                    pool_name = metadata_name
+                    pool_type = getPoolType(the_cmd_key, jsondict)
+                    logger.debug("pool_name is :" + pool_name)
+                    logger.debug("pool_type is :" + pool_type)
                     if not is_kubesds_pool_exists(pool_type, pool_name):
                         _, poolJson = rpcCallWithResult(cmd)
                         logger.debug('create pool')
@@ -1437,7 +1428,9 @@ def vMPoolExecutor(group, version, plural, jsondict):
                         raise ExecuteException('virtctl', 'error when operate pool %s' % result['msg'])
 
                 status = 'Done(Success)'
-                if not _isDeletePool(the_cmd_key) and not _isShowPool(the_cmd_key):
+                if the_cmd_key not in ["deletePool", "showPool", "deleteVMBackup", "restoreVM", "cleanVMBackup",
+                                       "scanVMBackup", "restoreDisk", "deleteVMDiskBackup", "pullRemoteBackup",
+                                       "pushRemoteBackup", "deleteRemoteBackup", "cleanVMRemoteBackup"]:
                     write_result_to_server(group, version, 'default', plural,
                                            metadata_name, {'code': 0, 'msg': 'success'}, poolJson)
             except libvirtError:
@@ -1541,23 +1534,21 @@ def vMBackupExecutor(group, version, plural, jsondict):
                 event.registerKubernetesEvent()
             except:
                 logger.error('Oops! ', exc_info=1)
-            pool_name = metadata_name
-            pool_type = getPoolType(the_cmd_key, jsondict)
             logger.debug(dumps(jsondict))
 
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
             cmd = unpackCmdFromJson(jsondict, the_cmd_key)
             try:
                 if operation_type == 'ADDED':
-                    _, poolJson = rpcCallWithResult(cmd)
+                    pass
                 elif operation_type == 'MODIFIED':
-                    result, poolJson = rpcCallWithResult(cmd, raise_it=False)
+                    result, json = rpcCallWithResult(cmd, raise_it=False)
                     try:
                         deleteLifecycle(metadata_name, group, version, plural)
                     except:
                         pass
                     if result['code'] != 0:
-                        raise ExecuteException('virtctl', 'error when operate pool %s' % result['msg'])
+                        raise ExecuteException('virtctl', 'error when operate backup %s' % result['msg'])
 
                 status = 'Done(Success)'
             except libvirtError:
@@ -2189,11 +2180,6 @@ def _isExportVM(the_cmd_key):
 
 def _isBackupVM(the_cmd_key):
     if the_cmd_key == "backupVM":
-        return True
-    return False
-
-def _isRestoreVM(the_cmd_key):
-    if the_cmd_key == "restoreVM":
         return True
     return False
 

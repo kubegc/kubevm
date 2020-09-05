@@ -30,10 +30,6 @@ support VM's lifecycle.
 kubectl apply -f yamls/
 ```
 
-## Guide
-
-- [API introduction](docs/API.md)
-
 
 ## Limitations
 

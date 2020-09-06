@@ -15,7 +15,6 @@ spec:
       labels:
         app: virt-tool
     spec:
-      privileged: true
       hostNetwork: true
       containers:
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.7

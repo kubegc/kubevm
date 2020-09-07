@@ -17,12 +17,18 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.7
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.8
         command: 
         - bash
         - 'virtctl-update-stuff.sh'
         imagePullPolicy: Always
         name: virtctl
+        securityContext:
+          runAsUser: 0
+          allowPrivilegeEscalation: true
+          capabilities:
+            add: 
+            - SYS_TIME
         volumeMounts:
           - name: etc
             mountPath: /etc/
@@ -52,12 +58,18 @@ spec:
             mountPath: /root/.kube/
           - name: tmp
             mountPath: /tmp/
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.7
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.8
         command: 
         - bash
         - 'virtlet-update-stuff.sh'
         imagePullPolicy: Always
         name: virtlet
+        securityContext:
+          runAsUser: 0
+          allowPrivilegeEscalation: true
+          capabilities:
+            add: 
+            - SYS_TIME
         volumeMounts:
           - name: etc
             mountPath: /etc/

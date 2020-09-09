@@ -1428,7 +1428,7 @@ def vMPoolExecutor(group, version, plural, jsondict):
                         raise ExecuteException('virtctl', 'error when operate pool %s' % result['msg'])
 
                 status = 'Done(Success)'
-                if the_cmd_key not in ["deletePool", "showPool", "deleteVMBackup", "restoreVM", "cleanVMBackup",
+                if the_cmd_key not in ["deletePool", "showPool", "deleteVMBackup", "restoreVMBackup", "cleanVMBackup",
                                        "scanVMBackup", "restoreDisk", "deleteVMDiskBackup", "pullRemoteBackup",
                                        "pushRemoteBackup", "deleteRemoteBackup", "cleanVMRemoteBackup"]:
                     write_result_to_server(group, version, 'default', plural,

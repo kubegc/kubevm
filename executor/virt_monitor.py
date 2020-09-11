@@ -427,7 +427,7 @@ def get_vm_metrics(vm, zone):
         first_time = True
     if not first_time:
         resource_utilization['cpu_metrics']['cpu_idle_rate'] = \
-        '%.2f' % abs(1 - cpu_util) if abs(1 - cpu_util) < 1.00 and abs(1 - cpu_util) > 0.00 else 0.00
+        '%.2f' % abs(1 - cpu_util) if abs(1 - cpu_util) <= 1.00 and abs(1 - cpu_util) >= 0.00 else 0.00
     else:
         resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (1.00)
     mem_stats = runCmdRaiseException('timeout 2 virsh dommemstat %s' % vm)

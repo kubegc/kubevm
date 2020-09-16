@@ -387,7 +387,7 @@ def get_vm_metrics(vm, zone):
     this_tags = {'zone': zone, 'host': HOSTNAME, 'owner': labels.get('owner'), 
                      "router": labels.get('router'), "autoscalinggroup": labels.get('autoscalinggroup'), 
                      "cluster": labels.get('cluster')}
-    if vm in LAST_TAGS.keys() and LAST_TAGS[vm] == this_tags:
+    if vm in LAST_TAGS.keys() and LAST_TAGS[vm] != this_tags:
         delete_duplicated_data = True
         tags = {'zone': LAST_TAGS[vm].get('zone'), 'host': LAST_TAGS[vm].get('host'), 'owner': LAST_TAGS[vm].get('owner'), 
                      "router": LAST_TAGS[vm].get('router'), "autoscalinggroup": LAST_TAGS[vm].get('autoscalinggroup'), 

@@ -54,6 +54,7 @@ BLOCK_FS_MOUNT_POINT = config_raw.get('Storage', 'block_fs_mount_point')
 HOSTNAME = get_hostname_in_lower_case()
 
 CPU_UTILIZATION = {}
+LAST_TAGS = {}
 
 # vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
 #                                 ['zone', 'host', 'vm', "labels"])
@@ -378,9 +379,20 @@ def get_vm_metrics(vm, zone):
 #     global vm_network_send_bytes_per_secend 
 #     global vm_network_send_errors_per_secend 
 #     global vm_network_send_drops_per_secend 
-
+    global LAST_TAGS
+    delete_duplicated_data = False
+    tags = {}
     config.load_kube_config(config_file=TOKEN)
     labels = get_field_in_kubernetes_by_index(vm, GROUP, VERSION, PLURAL, ['metadata', 'labels'])
+    this_tags = {'zone': zone, 'host': HOSTNAME, 'owner': labels.get('owner'), 
+                     "router": labels.get('router'), "autoscalinggroup": labels.get('autoscalinggroup'), 
+                     "cluster": labels.get('cluster')}
+    if vm in LAST_TAGS.keys() and LAST_TAGS[vm] == this_tags:
+        delete_duplicated_data = True
+        tags = {'zone': LAST_TAGS[vm].get('zone'), 'host': LAST_TAGS[vm].get('host'), 'owner': LAST_TAGS[vm].get('owner'), 
+                     "router": LAST_TAGS[vm].get('router'), "autoscalinggroup": LAST_TAGS[vm].get('autoscalinggroup'), 
+                     "cluster": LAST_TAGS[vm].get('cluster'), 'vm': vm}
+    LAST_TAGS[vm] = this_tags
 #     labels_str = dumps(labels)
     resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
                             'disks_metrics': [], 'networks_metrics': [], 'cluster': labels.get('cluster'), 'router': labels.get('router'),
@@ -549,6 +561,8 @@ def get_vm_metrics(vm, zone):
         net_metrics['network_write_drops_per_secend'] = '%.2f' % ((stats2['tx_drop'] - stats1['tx_drop']) / 0.1) \
         if (stats2['tx_drop'] - stats1['tx_drop']) > 0 else '%.2f' % (0.00)
         resource_utilization['networks_metrics'].append(net_metrics) 
+    if delete_duplicated_data:
+        delete_vm_metrics(tags, resource_utilization['disks_metrics'], resource_utilization['networks_metrics'])
     if cpu_number == CPU_UTILIZATION[vm].get('cpu_number'): 
         vm_cpu_idle_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
     vm_mem_total_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_available'])
@@ -570,6 +584,34 @@ def get_vm_metrics(vm, zone):
         vm_network_send_errors_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_errors_per_secend'])
         vm_network_send_packages_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_packages_per_secend'])
     return resource_utilization
+
+def delete_vm_metrics(tags, disk_metrics, network_metrics):
+    zone = tags.get('zone')
+    host = tags.get('host')
+    vm = tags.get('vm')
+    owner = tags.get('owner')
+    router = tags.get('router')
+    autoscalinggroup = tags.get('autoscalinggroup')
+    cluster = tags.get('cluster')
+    vm_cpu_idle_rate.remove(zone, host, vm, owner, router, autoscalinggroup, cluster)
+    vm_mem_total_bytes.remove(zone, host, vm, owner, router, autoscalinggroup, cluster)
+    vm_mem_available_bytes.remove(zone, host, vm, owner, router, autoscalinggroup, cluster)
+    vm_mem_buffers_bytes.remove(zone, host, vm, owner, router, autoscalinggroup, cluster)
+    vm_mem_rate.remove(zone, host, vm, owner, router, autoscalinggroup, cluster)
+    for disks in disk_metrics:
+        vm_disk_read_requests_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, disks['device'])
+        vm_disk_read_bytes_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, disks['device'])
+        vm_disk_write_requests_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, disks['device'])
+        vm_disk_write_bytes_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, disks['device'])
+    for nets in network_metrics:
+        vm_network_receive_bytes_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])
+        vm_network_receive_drops_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])
+        vm_network_receive_errors_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])
+        vm_network_receive_packages_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])
+        vm_network_send_bytes_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])
+        vm_network_send_drops_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])
+        vm_network_send_errors_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])
+        vm_network_send_packages_per_secend.remove(zone, host, vm, owner, router, autoscalinggroup, cluster, nets['device'])    
 
 def zero_vm_metrics(vm, zone):
     

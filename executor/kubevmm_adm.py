@@ -290,6 +290,7 @@ def update_online(version='latest'):
             fw.writelines(allLine)
     (_, _err1) = runCmd("kubectl delete -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
     (_, _err2) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
+    restart()
     if _err1 or _err2:
         sys.exit(1)
 #     time.sleep(3)

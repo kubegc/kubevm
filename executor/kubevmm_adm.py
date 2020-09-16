@@ -288,8 +288,9 @@ def update_online(version='latest'):
                 allLine.append(line)
         with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
             fw.writelines(allLine)
-    (_, _err) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
-    if _err:
+    (_, _err1) = runCmd("kubectl delete -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
+    (_, _err2) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
+    if _err1 or _err2:
         sys.exit(1)
 #     time.sleep(3)
 #     (_, virtctl_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s" % version)

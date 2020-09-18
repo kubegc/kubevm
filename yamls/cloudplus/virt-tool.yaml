@@ -15,6 +15,8 @@ spec:
       labels:
         app: virt-tool
     spec:
+      nodeSelector:
+        cloudplus/virt.tool: ""
       hostNetwork: true
       containers:
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.9.rc2

@@ -19,7 +19,7 @@ spec:
   - JSONPath: .spec.domain.currentMemory.text
     name: RAM(KB)
     type: string
-  - JSONPath: .spec.status.conditions.state.waiting.reason
+  - JSONPath: .spec.powerstate
     name: STATUS
     type: string
   - JSONPath: .metadata.creationTimestamp

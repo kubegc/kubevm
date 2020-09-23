@@ -83,7 +83,7 @@ def main():
             time.sleep(8)
         except Exception, e:
             logger.debug(e.reason)
-            if e.reason == 'MaxRetryError':
+            if e.reason.find('Connection refused') != -1:
                 master_ip = change_master_and_reload_config(fail_times)
                 config.load_kube_config(config_file=TOKEN)
                 fail_times += 1

@@ -82,8 +82,8 @@ def main():
             fail_times = 0
             time.sleep(8)
         except Exception, e:
-            logger.debug(e.reason)
-            if e.reason.find('Connection refused') != -1:
+            logger.debug(repr(e))
+            if repr(e).find('Connection refused') != -1:
                 logger.debug('in here!')
                 master_ip = change_master_and_reload_config(fail_times)
                 config.load_kube_config(config_file=TOKEN)

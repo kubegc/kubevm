@@ -81,15 +81,12 @@ def main():
 #                 restart_service = False
             fail_times = 0
             time.sleep(8)
-        except ApiException, e:
+        except Exception, e:
             if e.reason == 'NewConnectionError':
                 master_ip = change_master_and_reload_config(fail_times)
                 config.load_kube_config(config_file=TOKEN)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
-            logger.error('Oops! ', exc_info=1)
-            time.sleep(8)
-        except:
             logger.error('Oops! ', exc_info=1)
             time.sleep(8)
 #             restart_service = True

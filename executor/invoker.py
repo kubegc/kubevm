@@ -259,7 +259,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             thread.start()
             fail_times = 0
 #             thread.join()
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             master_ip = change_master_and_reload_config(fail_times)
             config.load_kube_config(config_file=TOKEN)
@@ -267,11 +267,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=0)
-        logger.warning('Oops! ', exc_info=1)
-        vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
-        time.sleep(3)
-    except:
-        info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
         time.sleep(3)
@@ -482,14 +477,9 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             thread.name = 'vm_disk_executor'
             thread.start()
 #             thread.join() 
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)   
-        vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
-        time.sleep(3)        
-    except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
@@ -659,16 +649,10 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
             thread.name = 'vm_disk_image_executor'
             thread.start()
 #             thread.join()
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
-        vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
-        time.sleep(3)                
-    except:
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
         vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
         time.sleep(3)
 
@@ -828,16 +812,10 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             thread.name = 'vm_disk_snapshot_executor'
             thread.start()
 #             thread.join()
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)   
-        vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
-        time.sleep(3) 
-    except:
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
         vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
         time.sleep(3)
 
@@ -964,16 +942,10 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             thread.name = 'vm_image_executor'
             thread.start()
 #             thread.join()         
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1) 
-        vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
-        time.sleep(3)      
-    except:
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
         vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
         time.sleep(3)  
 
@@ -1116,16 +1088,10 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             thread.name = 'vm_snapshot_executor'
             thread.start()
 #             thread.join()   
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)           
-        vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
-        time.sleep(3)  
-    except:
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
         vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
         time.sleep(3)  
 
@@ -1286,16 +1252,10 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             thread.name = 'vm_network_executor'
             thread.start()
 #             thread.join()     
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)  
-        vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
-        time.sleep(3)         
-    except:
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
         vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
         time.sleep(3)
 
@@ -1433,16 +1393,10 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
             thread.name = 'vm_pool_executor'
             thread.start()
 #             thread.join()     
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)   
-        vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
-        time.sleep(3)        
-    except:
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
         vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
         time.sleep(3)
 
@@ -1572,16 +1526,10 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
             thread.name = 'vm_backup_executor'
             thread.start()
 #             thread.join()
-    except ApiException, e:
+    except Exception, e:
         if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
-        vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
-        time.sleep(3)    
-    except:
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
         vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
         time.sleep(3)  
 

@@ -616,6 +616,8 @@ function modify-switch()
   if [[ -n $dnss  ]]
   then
     thisdns=$dnss
+  else
+    thisdns=""
   fi
 
   cmd="$dhcpid server_mac=$rmac lease_time=3600 mtu=$thismtu"

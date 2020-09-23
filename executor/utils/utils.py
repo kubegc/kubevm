@@ -267,6 +267,18 @@ def get_master_ip():
             return []
     else:
         return []
+    
+def change_master_ip(ip):
+    cfg = "/etc/kubevmm/config"
+    if not os.path.exists(cfg):
+        cfg = "/home/kubevmm/bin/config"
+    config_raw = parser()
+    config_raw.read(cfg)
+    token = config_raw.get('Kubernetes', 'token_file')
+    
+    current_master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
+    change_master_ip_cmd = 'sed -i \'/%s/%s\' /root/.kube/config' % (current_master_ip,ip)
+    print(change_master_ip_cmd)
 
 def get_address_set_info(name):
     cfg = "/etc/kubevmm/config"
@@ -1612,7 +1624,7 @@ if __name__ == '__main__':
 #     print(get_update_description_command('cloudinit1', 'fe540007a50c', 'switch2', '192.168.0.1', '--config'))
 #     pprint.pprint(list_objects_in_kubernetes('cloudplus.io', 'v1alpha3', 'virtualmachinepools'))
 #     print(get_field_in_kubernetes_by_index('cloudinit', 'cloudplus.io', 'v1alpha3', 'virtualmachines', ['metadata', 'labels']))
-    pprint.pprint(get_master_ip())
+    pprint.pprint(change_master_ip('192.168.66.102'))
 #     check_vdiskfs_by_disk_path('/var/lib/libvirt/cstor/3eebd453b21c4b8fad84a60955598195/3eebd453b21c4b8fad84a60955598195/77a5b25d34be4bcdbaeb9f5929661f8f/77a5b25d34be4bcdbaeb9f5929661f8f --disk /var/lib/libvirt/cstor/076fe6aa813842d3ba141f172e3f8eb6/076fe6aa813842d3ba141f172e3f8eb6/4a2b67b44f4c4fca87e7a811e9fd545c.iso,device=cdrom,perms=ro')
 #     pprint.pprint(get_l2_network_info("br-native"))
 #     from libvirt_util import _get_dom

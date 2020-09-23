@@ -266,7 +266,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             fail_times += 1
             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=0)
         logger.warning('Oops! ', exc_info=1)
         vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
         time.sleep(3)

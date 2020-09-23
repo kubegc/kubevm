@@ -1,7 +1,7 @@
 %if 0%{?_version:1}
 %define         _verstr      %{_version}
 %else
-%define         _verstr      v1.9.9.rc6
+%define         _verstr      v1.9.9.rc7
 %endif
  
 Name:           kubevmm

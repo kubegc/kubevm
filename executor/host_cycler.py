@@ -82,7 +82,7 @@ def main():
             fail_times = 0
             time.sleep(8)
         except ApiException, e:
-            if e.reason == 'MaxRetryError':
+            if e.reason == 'NewConnectionError':
                 master_ip = change_master_and_reload_config(fail_times)
                 config.load_kube_config(config_file=TOKEN)
                 fail_times += 1

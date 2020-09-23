@@ -1202,10 +1202,12 @@ if __name__ == "__main__":
     try:
         main()
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         logger.error('Oops! ', exc_info=1)
+        time.sleep(5)
     except:
         logger.error('Oops! ', exc_info=1)
         main()
+        time.sleep(5)

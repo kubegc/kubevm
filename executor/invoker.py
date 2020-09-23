@@ -260,18 +260,21 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             fail_times = 0
 #             thread.join()
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             master_ip = change_master_and_reload_config(fail_times)
             config.load_kube_config(config_file=TOKEN)
             fail_times += 1
             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
         info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=0)
         logger.warning('Oops! ', exc_info=1)
         vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
+        time.sleep(3)
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
+        time.sleep(3)
         
 def vMExecutor(group, version, plural, jsondict):
     try:
@@ -480,14 +483,17 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             thread.start()
 #             thread.join() 
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)           
+        logger.warning('Oops! ', exc_info=1)   
+        vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
+        time.sleep(3)        
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
+        time.sleep(3)
 
 def vMDiskExecutor(group, version, plural, jsondict):
     try:
@@ -654,14 +660,17 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
             thread.start()
 #             thread.join()
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)                
+        logger.warning('Oops! ', exc_info=1)
+        vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
+        time.sleep(3)                
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
+        time.sleep(3)
 
 def vMDiskImageExecutor(group, version, plural, jsondict):
     try:
@@ -820,14 +829,17 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             thread.start()
 #             thread.join()
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)    
+        logger.warning('Oops! ', exc_info=1)   
+        vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
+        time.sleep(3) 
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
+        time.sleep(3)
 
 def vMDiskSnapshotExecutor(group, version, plural, jsondict):        
     try:
@@ -953,14 +965,17 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             thread.start()
 #             thread.join()         
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)       
+        logger.warning('Oops! ', exc_info=1) 
+        vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
+        time.sleep(3)      
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
+        time.sleep(3)  
 
 def vMImageExecutor(group, version, plural, jsondict):   
     try:
@@ -1102,14 +1117,17 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             thread.start()
 #             thread.join()   
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)             
+        logger.warning('Oops! ', exc_info=1)           
+        vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
+        time.sleep(3)  
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
+        time.sleep(3)  
 
 def vMSnapshotExecutor(group, version, plural, jsondict): 
     try:
@@ -1269,14 +1287,17 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             thread.start()
 #             thread.join()     
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)           
+        logger.warning('Oops! ', exc_info=1)  
+        vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
+        time.sleep(3)         
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
+        time.sleep(3)
 
 def vMNetworkExecutor(group, version, plural, jsondict): 
     try:
@@ -1413,14 +1434,17 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
             thread.start()
 #             thread.join()     
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)           
+        logger.warning('Oops! ', exc_info=1)   
+        vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
+        time.sleep(3)        
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
         vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
+        time.sleep(3)
 
 def vMPoolExecutor(group, version, plural, jsondict):
     try:
@@ -1549,13 +1573,17 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
             thread.start()
 #             thread.join()
     except ApiException, e:
-        if e.reason == 'MaxRetryError':
+        if e.reason == 'NewConnectionError':
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)    
+        logger.warning('Oops! ', exc_info=1)
+        vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
+        time.sleep(3)    
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
+        vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
+        time.sleep(3)  
 
 def vMBackupExecutor(group, version, plural, jsondict):
     try:

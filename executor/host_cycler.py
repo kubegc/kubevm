@@ -90,7 +90,7 @@ def main():
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
             logger.error('Oops! ', exc_info=1)
-            time.sleep(8)
+            time.sleep(3)
 #             restart_service = True
             continue
         

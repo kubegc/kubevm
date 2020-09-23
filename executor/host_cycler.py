@@ -61,7 +61,7 @@ HOSTNAME = get_hostname_in_lower_case()
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 def main():
-    restart_service = False
+#     restart_service = False
     ha_check = True
     while True:
         try:
@@ -75,14 +75,14 @@ def main():
                     _check_ha_and_autostart_vm(GROUP, VERSION, PLURAL, vm)
                     _check_vm_power_state(GROUP, VERSION, PLURAL, vm)
                 ha_check = False
-            if restart_service:
-                runCmd('kubevmm-adm service restart')
-                restart_service = False
+#             if restart_service:
+#                 runCmd('kubevmm-adm service restart')
+#                 restart_service = False
             time.sleep(8)
         except:
             logger.error('Oops! ', exc_info=1)
             time.sleep(8)
-            restart_service = True
+#             restart_service = True
             continue
         
 def _check_vm_by_hosting_node(group, version, plural, metadata_name):

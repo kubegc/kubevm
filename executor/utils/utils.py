@@ -245,6 +245,28 @@ def get_ovn_master_ip(master_ip, nb_port):
             return 'tcp:%s:%s' %(master_ip,nb_port)
     else:
         return 'tcp:%s:%s' %(master_ip,nb_port)
+    
+def get_master_ip():
+    ips = []
+    if os.path.exists(OVN_CONFIG_FILE):
+        try:
+            with open(OVN_CONFIG_FILE, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    if line.startswith('ovnnb'):
+                        content = line.split('=')[1].strip()
+                        if content:
+                            ips_and_ports = content.split(',')
+                            if ips_and_ports:
+                                for ip_and_port in ips_and_ports:
+                                    ips.append(ip_and_port.split(':')[1])
+                        return ips
+                    else:
+                        continue
+        except:
+            return []
+    else:
+        return []
 
 def get_address_set_info(name):
     cfg = "/etc/kubevmm/config"

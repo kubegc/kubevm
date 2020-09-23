@@ -1524,4 +1524,13 @@ def main():
 
 if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
-    main()
+    try:
+        main()
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.error('Oops! ', exc_info=1)
+    except:
+        logger.error('Oops! ', exc_info=1)
+        main()

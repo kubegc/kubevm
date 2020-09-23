@@ -246,7 +246,7 @@ def get_ovn_master_ip(master_ip, nb_port):
     else:
         return 'tcp:%s:%s' %(master_ip,nb_port)
     
-def get_master_ip():
+def get_master_ips():
     ips = []
     if os.path.exists(OVN_CONFIG_FILE):
         try:
@@ -277,8 +277,27 @@ def change_master_ip(ip):
     token = config_raw.get('Kubernetes', 'token_file')
     
     current_master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % token)[0].strip()
-    change_master_ip_cmd = 'sed -i \'/%s/%s\' /root/.kube/config' % (current_master_ip,ip)
-    print(change_master_ip_cmd)
+    if current_master_ip != ip:
+        change_master_ip_cmd = 'sed -i \'s/%s/%s/g\' /root/.kube/config' % (current_master_ip,ip)
+#     print(change_master_ip_cmd)
+        runCmdRaiseException(change_master_ip_cmd)
+        return True
+    else:
+        return False
+
+def change_master_and_reload_config(count):
+    master_ip = None
+    master_ips = get_master_ips()
+    if master_ips:
+        list_length = len(master_ips)
+        master_ip = master_ips[count % list_length]
+        if change_master_ip(master_ip):
+            return master_ip
+        else:
+            count += 1
+            master_ip = master_ips[count % list_length]
+            change_master_ip(master_ip)
+    return master_ip      
 
 def get_address_set_info(name):
     cfg = "/etc/kubevmm/config"

@@ -35,7 +35,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_xml, vm_state, freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
-from utils.utils import updateDescription, addPowerStatusMessage, updateDomain, CDaemon, runCmd, get_field_in_kubernetes_by_index, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
+from utils.utils import change_master_and_reload_config, updateDescription, addPowerStatusMessage, updateDomain, CDaemon, runCmd, get_field_in_kubernetes_by_index, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -63,6 +63,7 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 def main():
 #     restart_service = False
     ha_check = True
+    fail_times = 0
     while True:
         try:
             host = client.CoreV1Api().read_node_status(name=HOSTNAME)
@@ -78,6 +79,15 @@ def main():
 #             if restart_service:
 #                 runCmd('kubevmm-adm service restart')
 #                 restart_service = False
+            fail_times = 0
+            time.sleep(8)
+        except ApiException, e:
+            if e.reason == 'MaxRetryError':
+                master_ip = change_master_and_reload_config(fail_times)
+                config.load_kube_config(config_file=TOKEN)
+                fail_times += 1
+                logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+            logger.error('Oops! ', exc_info=1)
             time.sleep(8)
         except:
             logger.error('Oops! ', exc_info=1)

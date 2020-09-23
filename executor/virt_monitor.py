@@ -12,6 +12,7 @@ import threading
 import inspect
 import ctypes
 from kubernetes import config
+from kubernetes.client.rest import ApiException
 from json import loads, dumps
 
 from utils import logger

@@ -47,7 +47,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import get_del_description_command, get_update_description_command, check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
+from utils.utils import change_master_and_reload_config, get_del_description_command, get_update_description_command, check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
     iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, \
     createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
@@ -249,6 +249,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     kwargs['label_selector'] = LABEL
     kwargs['watch'] = True
     kwargs['timeout_seconds'] = int(TIMEOUT)
+    fail_times = 0
     try:
         for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                     group=group, version=version, plural=plural, **kwargs):
@@ -256,7 +257,17 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             thread.daemon = True
             thread.name = 'vm_executor'
             thread.start()
+            fail_times = 0
 #             thread.join()
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            master_ip = change_master_and_reload_config(fail_times)
+            config.load_kube_config(config_file=TOKEN)
+            fail_times += 1
+            logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)
+        vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -467,7 +478,12 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             thread.daemon = True
             thread.name = 'vm_disk_executor'
             thread.start()
-#             thread.join()            
+#             thread.join() 
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)           
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -636,7 +652,12 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
             thread.daemon = True
             thread.name = 'vm_disk_image_executor'
             thread.start()
-#             thread.join()            
+#             thread.join()
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)                
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -798,6 +819,11 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             thread.name = 'vm_disk_snapshot_executor'
             thread.start()
 #             thread.join()
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)    
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -925,7 +951,12 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             thread.daemon = True
             thread.name = 'vm_image_executor'
             thread.start()
-#             thread.join()            
+#             thread.join()         
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)       
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1069,7 +1100,12 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             thread.daemon = True
             thread.name = 'vm_snapshot_executor'
             thread.start()
-#             thread.join()            
+#             thread.join()   
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)             
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1231,7 +1267,12 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             thread.daemon = True
             thread.name = 'vm_network_executor'
             thread.start()
-#             thread.join()            
+#             thread.join()     
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)           
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1370,7 +1411,12 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
             thread.daemon = True
             thread.name = 'vm_pool_executor'
             thread.start()
-#             thread.join()            
+#             thread.join()     
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)           
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -1502,6 +1548,11 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
             thread.name = 'vm_backup_executor'
             thread.start()
 #             thread.join()
+    except ApiException, e:
+        if e.reason == 'MaxRetryError':
+            config.load_kube_config(config_file=TOKEN)
+        info=sys.exc_info()
+        logger.warning('Oops! ', exc_info=1)    
     except:
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)

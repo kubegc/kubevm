@@ -1982,7 +1982,8 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
-        jsondict = deleteLifecycleInJson(jsondict)      
+        if not _isChangeNumberOfCPU(the_cmd_key):
+            jsondict = deleteLifecycleInJson(jsondict)      
     if _isSetGuestPassword(the_cmd_key) or _isInjectSshKey(the_cmd_key):
         if is_vm_active(metadata_name):
             raise ExecuteException('VirtctlError', '400, Bad Request. Cannot finish the operation when vm is running.')

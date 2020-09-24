@@ -1526,13 +1526,10 @@ if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
     try:
         main()
-    except ApiException, e:
-        if e.reason == 'NewConnectionError':
+    except Exception, e:
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
-        logger.error('Oops! ', exc_info=1)
-        time.sleep(5)
-    except:
         logger.error('Oops! ', exc_info=1)
         main()
         time.sleep(5)

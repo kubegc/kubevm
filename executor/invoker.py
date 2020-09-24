@@ -249,7 +249,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
     kwargs['label_selector'] = LABEL
     kwargs['watch'] = True
     kwargs['timeout_seconds'] = int(TIMEOUT)
-    fail_times = 0
+#     fail_times = 0
     try:
         for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                     group=group, version=version, plural=plural, **kwargs):
@@ -257,16 +257,15 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             thread.daemon = True
             thread.name = 'vm_executor'
             thread.start()
-            fail_times = 0
+#             fail_times = 0
 #             thread.join()
     except Exception, e:
-        if e.reason == 'NewConnectionError':
-            master_ip = change_master_and_reload_config(fail_times)
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
+#             master_ip = change_master_and_reload_config(fail_times)
             config.load_kube_config(config_file=TOKEN)
-            fail_times += 1
-            logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+#             fail_times += 1
+#             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
         info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=0)
         logger.warning('Oops! ', exc_info=1)
         vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
         time.sleep(3)
@@ -478,7 +477,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             thread.start()
 #             thread.join() 
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         logger.warning('Oops! ', exc_info=1)
@@ -650,7 +649,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
             thread.start()
 #             thread.join()
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
@@ -813,7 +812,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             thread.start()
 #             thread.join()
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
@@ -943,7 +942,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             thread.start()
 #             thread.join()         
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
@@ -1089,7 +1088,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             thread.start()
 #             thread.join()   
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
@@ -1253,7 +1252,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             thread.start()
 #             thread.join()     
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
@@ -1394,7 +1393,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
             thread.start()
 #             thread.join()     
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
@@ -1527,7 +1526,7 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
             thread.start()
 #             thread.join()
     except Exception, e:
-        if e.reason == 'NewConnectionError':
+        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
             config.load_kube_config(config_file=TOKEN)
         info=sys.exc_info()
         vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)

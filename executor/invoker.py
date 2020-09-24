@@ -1979,7 +1979,7 @@ def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):
         logger.debug(config_dict)
         graphic_operations_queue = _get_graphic_operations_queue(the_cmd_key, config_dict, metadata_name)
         jsondict = deleteLifecycleInJson(jsondict)
-    if _isSetBootOrder(the_cmd_key) or _isUpdateGraphic(the_cmd_key) or _isRedirectUsb(the_cmd_key):
+    if _isSetBootOrder(the_cmd_key) or _isUpdateGraphic(the_cmd_key) or _isRedirectUsb(the_cmd_key) or _isChangeNumberOfCPU(the_cmd_key):
         config_dict = _get_fields(jsondict, the_cmd_key)
         logger.debug(config_dict)
         redefine_vm_operations_queue = _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name)
@@ -2342,6 +2342,11 @@ def _isUpdateGraphic(the_cmd_key):
 
 def _isRedirectUsb(the_cmd_key):
     if the_cmd_key == "redirectUsb":
+        return True
+    return False
+
+def _isChangeNumberOfCPU(the_cmd_key):
+    if the_cmd_key == "changeNumberOfCPU":
         return True
     return False
 
@@ -3001,6 +3006,9 @@ def _get_redefine_vm_operations_queue(the_cmd_key, config_dict, metadata_name):
     elif _isRedirectUsb(the_cmd_key):
         cmds = _redefineVMFromXmlCmd(metadata_name, 'redirect_usb', config_dict)
         return cmds
+    elif _isChangeNumberOfCPU(the_cmd_key):
+        cmds = _redefineVMFromXmlCmd(metadata_name, 'change_number_of_cpu', config_dict)
+        return cmds
     else:
         return []
     
@@ -3211,6 +3219,44 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
             cmds.append(cmd2)
         cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
         return cmds
+    elif resource_type == 'change_number_of_cpu':
+        cmds = []
+        maximum = data.get('maximum')
+        if not maximum:
+            return cmds
+        else:
+            count = data.get('count')
+            cores = data.get('cores')
+            sockets = data.get('sockets')
+            threads = data.get('threads')
+            if not count or not cores or not sockets or not threads:
+                raise ExecuteException('VirtctlError', 'Missing parameter "count" or "cores" or "sockets" or "threads".')
+            if int(count) != int(cores) * int(sockets) * int(threads):
+                raise ExecuteException('VirtctlError', 'Unsupported parameter "count" = "cores" * "sockets" * "threads" .')
+            if is_vm_active(metadata_name):
+                raise ExecuteException('VirtctlError', '400, Bad Request. Cannot finish the operation when vm is running.')
+            tmpstring = '<topology sockets="%s" cores="%s" threads="%s">' % (sockets, cores, threads)
+            output = runCmd('sed -n \'/^  <vcpu placement/p\' /tmp/%s.xml' (metadata_name))
+            tmpstring1 = ""
+            if output:
+                output = output[0].strip()
+                e = output.split('>',1)
+                for i in e:
+                    if i.find('vcpu>') != -1:
+                        continue
+                    tmpstring1 += i
+                tmpstring1 = tmpstring1 + '>%s</vcpu>' % count
+                tmpstring1 = tmpstring1.replace("'", '"')
+            if not tmpstring1:
+                raise ExecuteException('VirtctlError', '400, Bad Request. Cannot parse "<vcpu><\vcpu>" parameters in vm\'s XML.')
+            cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
+            cmd2 = 'sed -i \'/^  <vcpu placement/c\  %s\' /tmp/%s.xml' (tmpstring1, metadata_name)
+            cmd3 = 'sed -i \'/^    <topology/c\    %s\' /tmp/%s.xml' (tmpstring, metadata_name)
+            cmds.append(cmd1)   
+            cmds.append(cmd2)
+            cmds.append(cmd3)
+            cmds.append('virsh define --file /tmp/%s.xml' % (metadata_name))
+            return cmds
     else:
         return []
 

@@ -3249,8 +3249,8 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
             if not tmpstring1:
                 raise ExecuteException('VirtctlError', '400, Bad Request. Cannot parse "<vcpu><\vcpu>" parameters in vm\'s XML.')
             cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
-            cmd2 = 'sed -i \'/^  <vcpu placement/c\  %s\' /tmp/%s.xml' (tmpstring1, metadata_name)
-            cmd3 = 'sed -i \'/^    <topology/c\    %s\' /tmp/%s.xml' (tmpstring, metadata_name)
+            cmd2 = 'sed -i \'/^  <vcpu placement/c\  %s\' /tmp/%s.xml' % (tmpstring1, metadata_name)
+            cmd3 = 'sed -i \'/^    <topology/c\    %s\' /tmp/%s.xml' % (tmpstring, metadata_name)
             cmds.append(cmd1)   
             cmds.append(cmd2)
             cmds.append(cmd3)

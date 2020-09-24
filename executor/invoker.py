@@ -3234,7 +3234,7 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
                 raise ExecuteException('VirtctlError', 'Unsupported parameter "count" = "cores" * "sockets" * "threads" .')
             if is_vm_active(metadata_name):
                 raise ExecuteException('VirtctlError', '400, Bad Request. Cannot finish the operation when vm is running.')
-            tmpstring = '<topology sockets="%s" cores="%s" threads="%s">' % (sockets, cores, threads)
+            tmpstring = '<topology sockets="%s" cores="%s" threads="%s"/>' % (sockets, cores, threads)
             output = runCmd('sed -n \'/^  <vcpu placement/p\' /tmp/%s.xml' % (metadata_name))
             tmpstring1 = ""
             if output:

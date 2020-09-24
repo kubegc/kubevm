@@ -28,6 +28,9 @@ spec:
   - JSONPath: .spec.nodeName
     name: NODE
     type: string
+  - JSONPath: .spec.status.conditions.state.waiting.reason
+    name: MESSAGE
+    type: string
   - JSONPath: .spec.image
     name: IMAGE
     type: string

@@ -86,9 +86,9 @@ def main():
             if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1:
                 logger.debug('in here!')
                 master_ip = change_master_and_reload_config(fail_times)
-                config.load_kube_config(config_file=TOKEN)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+            config.load_kube_config(config_file=TOKEN)
             logger.error('Oops! ', exc_info=1)
             time.sleep(3)
 #             restart_service = True

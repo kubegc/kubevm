@@ -76,6 +76,7 @@ def main():
 #             if not is_kubernetes_master():
             thread_3.join()
         except:
+            config.load_kube_config(config_file=TOKEN)
             logger.error('Oops! ', exc_info=1)
             
 def is_kubernetes_master():

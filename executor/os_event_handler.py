@@ -100,6 +100,7 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
 
 def createStructure(body, group, version, plural):
+    config.load_kube_config(config_file=TOKEN)
     body = updateDescription(body)
     retv = client.CustomObjectsApi().create_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, body=body)
@@ -107,6 +108,7 @@ def createStructure(body, group, version, plural):
 
 
 def modifyStructure(name, body, group, version, plural):
+    config.load_kube_config(config_file=TOKEN)
     body = updateDescription(body)
     try:
         retv = client.CustomObjectsApi().replace_namespaced_custom_object(
@@ -122,6 +124,7 @@ def modifyStructure(name, body, group, version, plural):
 
 def deleteStructure(name, body, group, version, plural):
     logger.debug('deleteVMBackupdebug %s' % name)
+    config.load_kube_config(config_file=TOKEN)
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=group, version=version, namespace='default', plural=plural, name=name, body=body)
     return retv
@@ -154,6 +157,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
     #     print(jsondict)
     if event == "Delete":
         try:
+            config.load_kube_config(config_file=TOKEN)
             refresh_pool(pool)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
@@ -222,6 +226,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                       version=version,
                                                                                       namespace='default',
@@ -237,6 +242,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
             try:
+                config.load_kube_config(config_file=TOKEN)
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,
                                                                                   namespace='default',
@@ -248,6 +254,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
     elif event == "Modify":
         try:
             logger.debug('Modify vm disk %s current, report to virtlet' % name)
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -270,6 +277,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 modifyStructure(name, body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                       version=version,
                                                                                       namespace='default',
@@ -284,6 +292,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
             try:
+                config.load_kube_config(config_file=TOKEN)
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,
                                                                                   namespace='default',
@@ -294,6 +303,7 @@ def myVmVolEventHandler(event, pool, name, group, version, plural):
                 logger.error('Oops! ', exc_info=1)
     else:
         refresh_pool(pool)
+        config.load_kube_config(config_file=TOKEN)
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                           version=version,
                                                                           namespace='default',
@@ -536,6 +546,7 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
     #     print(jsondict)
     if event == "Delete":
         try:
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -597,6 +608,7 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                       version=version,
                                                                                       namespace='default',
@@ -612,6 +624,7 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
             try:
+                config.load_kube_config(config_file=TOKEN)
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,
                                                                                   namespace='default',
@@ -622,6 +635,7 @@ def myVmSnapshotEventHandler(event, vm, name, group, version, plural):
                 logger.error('Oops! ', exc_info=1)
     else:
         try:
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -699,6 +713,7 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
     #     print(jsondict)
     if event == "Delete":
         try:
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -756,6 +771,7 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                       version=version,
                                                                                       namespace='default',
@@ -771,6 +787,7 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
             try:
+                config.load_kube_config(config_file=TOKEN)
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,
                                                                                   namespace='default',
@@ -781,6 +798,7 @@ def myVmBlockDevEventHandler(event, name, group, version, plural):
                 logger.error('Oops! ', exc_info=1)
     else:
         try:
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -865,6 +883,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                       version=version,
                                                                                       namespace='default',
@@ -888,6 +907,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
             try:
+                config.load_kube_config(config_file=TOKEN)
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,
                                                                                   namespace='default',
@@ -897,6 +917,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
             except:
                 logger.error('Oops! ', exc_info=1)
     elif event == "Modify":
+        config.load_kube_config(config_file=TOKEN)
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                           version=version,
                                                                           namespace='default',
@@ -928,6 +949,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
         logger.debug('***Delete VM %s , report to virtlet***' % name)
         time.sleep(1)
         try:
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -1071,6 +1093,7 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                       version=version,
                                                                                       namespace='default',
@@ -1087,6 +1110,7 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
             try:
+                config.load_kube_config(config_file=TOKEN)
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,
                                                                                   namespace='default',
@@ -1101,6 +1125,7 @@ def myVmdImageLibvirtXmlEventHandler(event, name, pool, xml_path, group, version
             Refresh pool manually
             '''
             refresh_pool(pool)
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',
@@ -1234,6 +1259,7 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
                 createStructure(body, group, version, plural)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                       version=version,
                                                                                       namespace='default',
@@ -1250,6 +1276,7 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
             logger.error('Oops! ', exc_info=1)
             info = sys.exc_info()
             try:
+                config.load_kube_config(config_file=TOKEN)
                 jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                                   version=version,
                                                                                   namespace='default',
@@ -1259,6 +1286,7 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
             except:
                 logger.error('Oops! ', exc_info=1)
     elif event == "Modify":
+        config.load_kube_config(config_file=TOKEN)
         jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                           version=version,
                                                                           namespace='default',
@@ -1288,6 +1316,7 @@ def myImageLibvirtXmlEventHandler(event, name, xml_path, group, version, plural)
         #                                                                               plural=plural,
         #                                                                               name=name)
         try:
+            config.load_kube_config(config_file=TOKEN)
             jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
                                                                               version=version,
                                                                               namespace='default',

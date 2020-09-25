@@ -43,6 +43,7 @@ def main():
         try:
             invoker.main()
         except:
+            config.load_kube_config(config_file=TOKEN)
             logger.error('Oops! ', exc_info=1)
             
 if __name__ == '__main__':

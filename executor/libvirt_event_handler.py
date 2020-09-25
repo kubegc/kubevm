@@ -137,6 +137,7 @@ class MyDomainEventHandler(threading.Thread):
                 ignore_pushing = False
                 step1_done = False
                 try:
+                    config.load_kube_config(config_file=TOKEN)
                     jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
                 except ApiException, e:
                     if e.reason == 'Not Found':
@@ -260,12 +261,14 @@ class MyDomainEventHandler(threading.Thread):
 #         logger.error('Oops! ', exc_info=1)
 
 def modifyVM(name, body):
+    config.load_kube_config(config_file=TOKEN)
     body = updateDescription(body)
     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)
     return retv
 
 def deleteVM(name):
+    config.load_kube_config(config_file=TOKEN)
     logger.debug('deleteVMBackupdebug %s' % name)
     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=V1DeleteOptions())
@@ -1202,8 +1205,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception, e:
-        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
-            config.load_kube_config(config_file=TOKEN)
+        config.load_kube_config(config_file=TOKEN)
         logger.error('Oops! ', exc_info=1)
         main()
         time.sleep(5)

@@ -1477,12 +1477,12 @@ def main():
         #         os.makedirs(ob[1], 0x0711)
         #     event_handler = VmVolEventHandler(ob[0], ob[1], GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK)
         #     observer.schedule(event_handler,ob[1],True)
-        for ob in SNAP_DIRS:
-            if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0x0711)
-            event_handler = VmSnapshotEventHandler(ob[0], ob[1], GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT,
-                                                   PLURAL_VM_SNAPSHOT)
-            observer.schedule(event_handler, ob[1], True)
+#         for ob in SNAP_DIRS:
+#             if not os.path.exists(ob[1]):
+#                 os.makedirs(ob[1], 0x0711)
+#             event_handler = VmSnapshotEventHandler(ob[0], ob[1], GROUP_VM_SNAPSHOT, VERSION_VM_SNAPSHOT,
+#                                                    PLURAL_VM_SNAPSHOT)
+#             observer.schedule(event_handler, ob[1], True)
         #         for ob in BLOCK_DEV_DIRS:
         #             if not os.path.exists(ob[1]):
         #                 os.makedirs(ob[1], 0x0711)

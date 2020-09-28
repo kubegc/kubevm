@@ -1493,11 +1493,11 @@ def main():
                 os.makedirs(ob[1], 0x0711)
             event_handler = VmLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VM, VERSION_VM, PLURAL_VM)
             observer.schedule(event_handler, ob[1], True)
-        for ob in TEMPLATE_DIRS:
-            if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0x0711)
-            event_handler = ImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
-            observer.schedule(event_handler, ob[1], True)
+#         for ob in TEMPLATE_DIRS:
+#             if not os.path.exists(ob[1]):
+#                 os.makedirs(ob[1], 0x0711)
+#             event_handler = ImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
+#             observer.schedule(event_handler, ob[1], True)
         for ob in VMD_TEMPLATE_DIRS:
             if not os.path.exists(ob[1]):
                 os.makedirs(ob[1], 0x0711)

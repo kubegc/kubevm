@@ -820,10 +820,10 @@ def create_vmdi(name, source, target):
     targetPool = pool_info['poolname']
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir, 0x0711)
     if os.path.exists(dest_dir) and os.path.isfile(dest_dir):
         raise Exception('409, Conflict. same dir name as File %s already exists, aborting copy.' % dest)
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir, 0x0711)
     if os.path.exists(dest):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     if not check_pool_content_type(targetPool, 'vmdi'):

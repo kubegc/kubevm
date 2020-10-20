@@ -36,7 +36,7 @@ def rpcCallWithResult(cmd, raise_it=True):
         # ideally, you should have try catch block here too
         response = client.CallWithResult(cmdcall_pb2.CallRequest(cmd=cmd))
         result = loads(str(response.json))
-        logger.debug(result)
+        # logger.debug(result)
         if result is None:
             raise ExecuteException('RunCmdError', 'can not get cmd output.')
         if result['result']['code'] != 0 and raise_it:

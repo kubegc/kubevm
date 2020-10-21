@@ -19,7 +19,7 @@ spec:
         cloudplus/virt.tool: ""
       hostNetwork: true
       containers:
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v1.9.9.rc2
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:v2.0.4
         command: 
         - bash
         - 'virtctl-update-stuff.sh'
@@ -61,7 +61,9 @@ spec:
             mountPath: /root/.kube/
           - name: tmp
             mountPath: /tmp/
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v1.9.9.rc2
+          - name: usrlib
+            mountPath: /usr/lib
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:v2.0.4
         command: 
         - bash
         - 'virtlet-update-stuff.sh'
@@ -103,6 +105,8 @@ spec:
             mountPath: /root/.kube/
           - name: tmp
             mountPath: /tmp/
+          - name: usrlib
+            mountPath: /usr/lib
       volumes: 
         - name: etc
           hostPath: 
@@ -146,3 +150,6 @@ spec:
         - name: tmp
           hostPath: 
             path: /tmp/
+        - name: usrlib
+          hostPath: 
+            path: /usr/lib

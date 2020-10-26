@@ -828,7 +828,7 @@ def create_vmdi(name, source, target):
         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     if not check_pool_content_type(targetPool, 'vmdi'):
         raise Exception('Target pool\'s content type is not vmdi.')
-    cmd = 'cp -f %s %s' % (source, dest)
+    cmd = 'cp -rf %s %s' % (source, dest)
     try:
         runCmd(cmd)
     except:

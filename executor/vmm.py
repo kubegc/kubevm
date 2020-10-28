@@ -811,31 +811,31 @@ def convert_vmdi_to_vmd(name, sourcePool, targetPool):
         step2.rotating_option()
         step1.rotating_option()
         
-def create_vmdi(name, source, target):
+def create_vmdi(name, target):
     pool_info = get_pool_info_from_k8s(target)
-    try:
-        result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % source, raise_it=False)
-    except Exception:
-        pass
+#     try:
+#         result, data = rpcCallWithResult('kubesds-adm prepareDisk --path %s' % source, raise_it=False)
+#     except Exception:
+#         pass
     targetPool = pool_info['poolname']
     dest_dir = '%s/%s' % (get_pool_path(targetPool), name)
     dest = '%s/%s' % (dest_dir, name)
-    if os.path.exists(dest_dir) and os.path.isfile(dest_dir):
-        raise Exception('409, Conflict. same dir name as File %s already exists, aborting copy.' % dest)
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir, 0x0711)
-    if os.path.exists(dest):
-        raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
+    if not os.path.exists(dest_dir) or not os.path.isfile(dest):
+        raise Exception('404, Not found. Target file %s not exists.' % dest)
+#     if not os.path.exists(dest_dir):
+#         os.makedirs(dest_dir, 0x0711)
+#     if os.path.exists(dest):
+#         raise Exception('409, Conflict. File %s already exists, aborting copy.' % dest)
     if not check_pool_content_type(targetPool, 'vmdi'):
         raise Exception('Target pool\'s content type is not vmdi.')
-    cmd = 'cp -f %s %s' % (source, dest)
-    logger.debug(cmd)
-    try:
-        runCmd(cmd)
-    except:
-        if os.path.exists(dest_dir):
-            runCmd('rm -rf %s' % dest_dir)
-        raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
+#     cmd = 'cp -f %s %s' % (source, dest)
+#     logger.debug(cmd)
+#     try:
+#         runCmd(cmd)
+#     except:
+#         if os.path.exists(dest_dir):
+#             runCmd('rm -rf %s' % dest_dir)
+#         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
     cmd1 = 'qemu-img rebase -f qcow2 %s -b "" -u' % (dest)
     try:
         runCmd(cmd1)
@@ -1224,7 +1224,7 @@ def main():
 #     elif sys.argv[1] == 'delete_image':
 #         delete_image(params['--name'])
     elif sys.argv[1] == 'create_vmdi':
-        create_vmdi(params['--name'], params['--source'], params['--targetPool'])
+        create_vmdi(params['--name'], params['--targetPool'])
     elif sys.argv[1] == 'delete_vmdi':
         delete_vmdi(params['--name'], params['--sourcePool'])
     elif sys.argv[1] == 'update-os':

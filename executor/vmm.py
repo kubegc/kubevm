@@ -829,6 +829,7 @@ def create_vmdi(name, source, target):
     if not check_pool_content_type(targetPool, 'vmdi'):
         raise Exception('Target pool\'s content type is not vmdi.')
     cmd = 'cp -rf %s %s' % (source, dest)
+    logger.debug(cmd)
     try:
         runCmd(cmd)
     except:

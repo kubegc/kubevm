@@ -53,8 +53,8 @@ install %{SOURCE11} %{buildroot}/%{_usr}/bin/device-passthrough
 install %{SOURCE16} %{buildroot}/%{_usr}/bin/kubesds-ctl.sh
 install %{SOURCE13} %{buildroot}/%{_usr}/bin/virt-monitor
 install %{SOURCE14} %{buildroot}/%{_usr}/bin/virt-monitor-ctl
-install %{SOURCE13} %{buildroot}/%{_usr}/bin/libvirt-event-handler
-install %{SOURCE14} %{buildroot}/%{_usr}/bin/libvirt-event-handler-ctl
+install %{SOURCE18} %{buildroot}/%{_usr}/bin/libvirt-event-handler
+install %{SOURCE19} %{buildroot}/%{_usr}/bin/libvirt-event-handler-ctl
 install %{SOURCE8} %{buildroot}/%{_usr}/lib/systemd/system/ovn-ovsdb.service
 install %{SOURCE12} %{buildroot}/%{_usr}/lib/systemd/system/kubesds.service
 install %{SOURCE15} %{buildroot}/%{_usr}/lib/systemd/system/kubevmm-monitor.service

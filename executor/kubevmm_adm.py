@@ -194,6 +194,13 @@ def stop_virt_monitor(ignore_warning=False):
     if _err and not ignore_warning:
         print('do noting: %s\n' % (_err))
     return _err
+
+def stop_libvirt_event_handler(ignore_warning=False):
+    _err = None
+    (_, _err) = runCmd('systemctl stop libvirt-event-handler.service')
+    if _err and not ignore_warning:
+        print('do noting: %s\n' % (_err))
+    return _err
         
 def start_kubesds_rpc(ignore_warning=False):
     _err = None
@@ -211,6 +218,16 @@ def start_virt_monitor(ignore_warning=False):
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
     (_, _err) = runCmd('systemctl enable kubevmm-monitor.service')
+    if _err and not ignore_warning:
+        print('warning: %s\n' % (_err))
+    return _err
+
+def start_libvirt_event_handler(ignore_warning=False):
+    _err = None
+    (_, _err) = runCmd('systemctl start libvirt-event-handler.service')
+    if _err and not ignore_warning:
+        print('warning: %s\n' % (_err))
+    (_, _err) = runCmd('systemctl enable libvirt-event-handler.service')
     if _err and not ignore_warning:
         print('warning: %s\n' % (_err))
     return _err

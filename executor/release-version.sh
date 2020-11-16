@@ -53,6 +53,8 @@ cp -f ../scripts/kubevirt-ctl ./dist
 gzexe -d ../scripts/kubevirt-ctl
 rm -f ../scripts/kubevirt-ctl~
 cp -f ovn-ovsdb.service ./dist
+cp -f kubevmm-monitor.service ./dist
+cp -f libvirt-event-handler.service ./dist
 cp -rf ../yamls ./dist
 cp -rf ../monitor ./dist
 cp -rf ../scripts/etc/yum.repos.d ./dist
@@ -85,10 +87,6 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <libvirt-event-handler>."
 fi
-cp -f virt-monitor-ctl ./dist
-cp -f kubevmm-monitor.service ./dist
-cp -f libvirt-event-handler ./dist
-cp -f libvirt-event-handler.service ./dist
 
 git clone -b uit https://github.com/uit-plus/kubeext-SDS.git
 cd ./kubeext-SDS

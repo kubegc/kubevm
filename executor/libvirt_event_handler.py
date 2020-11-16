@@ -1214,14 +1214,15 @@ class ClientDaemon(CDaemon):
         logger.debug("---------------------------------------------------------------------------------")
 #         registry = CollectorRegistry(auto_describe=False)
         config.load_kube_config(config_file=TOKEN)
-        main()
+        while True:
+            main()
         
 def daemonize():
     help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]
     if len(sys.argv) != 2:
         print help_msg
         sys.exit(1)
-    p_name = 'virtmonitor'
+    p_name = 'libvirt_event_handler'
     pid_fn = '/var/run/libvirt_event_handler.pid'
     log_fn = '/var/log/libvirt_event_handler.log'
     err_fn = '/var/log/libvirt_event_handler.log'

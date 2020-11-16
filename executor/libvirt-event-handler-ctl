@@ -7,12 +7,12 @@
 
 daemon_start() {
     echo "Server started."
-    /usr/bin/virt-monitor start
+    /usr/bin/libvirt_event_handler start
 }
 
 daemon_stop() {
 
-    /usr/bin/virt-monitor stop
+    /usr/bin/libvirt_event_handler stop
 
     sleep 1
 
@@ -44,7 +44,7 @@ restart)
 
 *)
 
-    echo "Usage:  /usr/bin/virt-monitor-ctl {start|stop|restart}"
+    echo "Usage:  /usr/bin/libvirt-event-handler-ctl {start|stop|restart}"
 
     exit 1
 

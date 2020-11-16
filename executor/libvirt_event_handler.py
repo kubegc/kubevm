@@ -1199,18 +1199,64 @@ def main():
 
     # Allow delayed event loop cleanup to run, just for sake of testing
     time.sleep(2)
+    
+class ClientDaemon(CDaemon):
+    def __init__(self, name, save_path, stdin=os.devnull, stdout=os.devnull, stderr=os.devnull, home_dir='.', umask=022, verbose=1):
+        CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
+        self.name = name
+        
+    def run(self, output_fn, **kwargs):
+        logger.debug("---------------------------------------------------------------------------------")
+        logger.debug("--------------------Welcome to Libvirt Handler Daemon.---------------------------")
+        logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
+        logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
+        logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
+        logger.debug("---------------------------------------------------------------------------------")
+#         registry = CollectorRegistry(auto_describe=False)
+        config.load_kube_config(config_file=TOKEN)
+        main()
+        
+def daemonize():
+    help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]
+    if len(sys.argv) != 2:
+        print help_msg
+        sys.exit(1)
+    p_name = 'virtmonitor'
+    pid_fn = '/var/run/libvirt_event_handler.pid'
+    log_fn = '/var/log/libvirt_event_handler.log'
+    err_fn = '/var/log/libvirt_event_handler.log'
+    cD = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
+ 
+    if sys.argv[1] == 'start':
+        cD.start(log_fn)
+    elif sys.argv[1] == 'stop':
+        cD.stop()
+    elif sys.argv[1] == 'restart':
+        cD.restart(log_fn)
+    elif sys.argv[1] == 'status':
+        alive = cD.is_running()
+        if alive:
+            print 'process [%s] is running ......' % cD.get_pid()
+        else:
+            print 'daemon process [%s] stopped' %cD.name
+    else:
+        print 'invalid argument!'
+        print help_msg    
+        
+if __name__ == '__main__':
+    daemonize()
 
-if __name__ == "__main__":
-    config.load_kube_config(config_file=TOKEN)
-    while True:
-        try:
-            main()
-        except Exception, e:
-            config.load_kube_config(config_file=TOKEN)
-            logger.error('Oops! ', exc_info=1)
-            try:
-                main()
-            except:
-                config.load_kube_config(config_file=TOKEN)
-                logger.error('Oops! ', exc_info=1)
-            time.sleep(5)
+# if __name__ == "__main__":
+#     config.load_kube_config(config_file=TOKEN)
+#     while True:
+#         try:
+#             main()
+#         except Exception, e:
+#             config.load_kube_config(config_file=TOKEN)
+#             logger.error('Oops! ', exc_info=1)
+#             try:
+#                 main()
+#             except:
+#                 config.load_kube_config(config_file=TOKEN)
+#                 logger.error('Oops! ', exc_info=1)
+#             time.sleep(5)

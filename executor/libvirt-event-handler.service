@@ -1,4 +1,4 @@
-# See virt-monitor(8) for details about virt-monitor.
+# See libvirt-event-handler(8) for details about libvirt-event-handler.
 #
 
 
@@ -9,7 +9,7 @@ Requires=libvirtd.service
 After=libvirtd.service
 
 [Service]
-Type=forking
+Type=simple
 PIDFile=/var/run/libvirt_event_handler.pid
 Restart=on-failure
 ExecStart=/usr/bin/libvirt-event-handler-ctl start

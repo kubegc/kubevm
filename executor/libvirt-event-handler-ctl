@@ -7,12 +7,12 @@
 
 daemon_start() {
     echo "Server started."
-    /usr/bin/libvirt_event_handler start
+    /usr/bin/libvirt-event-handler start
 }
 
 daemon_stop() {
 
-    /usr/bin/libvirt_event_handler stop
+    /usr/bin/libvirt-event-handler stop
 
     sleep 1
 

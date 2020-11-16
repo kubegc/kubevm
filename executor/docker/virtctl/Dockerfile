@@ -26,6 +26,8 @@ ADD kubevmm-adm /home/kubevmm/bin/
 
 ADD virt-monitor /home/kubevmm/bin/
 
+ADD libvirt-event-handler /home/kubevmm/bin/
+
 ADD vmm /home/kubevmm/bin/
 
 ADD kubesds-adm /home/kubevmm/bin/

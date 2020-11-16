@@ -53,10 +53,10 @@ def main():
     if os.path.exists(TOKEN):
         config.load_kube_config(config_file=TOKEN)
         try:
-            thread_1 = Process(target=get_libvirt_event_handler())
-            thread_1.daemon = True
-            thread_1.name = 'libvirt_event_handler'
-            thread_1.start()
+#             thread_1 = Process(target=get_libvirt_event_handler())
+#             thread_1.daemon = True
+#             thread_1.name = 'libvirt_event_handler'
+#             thread_1.start()
             thread_2 = Process(target=os_event_handler)
             thread_2.daemon = True
             thread_2.name = 'os_event_handler'
@@ -71,7 +71,7 @@ def main():
                     time.sleep(1)
             except KeyboardInterrupt:
                 return
-            thread_1.join()
+#             thread_1.join()
             thread_2.join()
 #             if not is_kubernetes_master():
             thread_3.join()

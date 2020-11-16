@@ -78,6 +78,12 @@ cp -f /home/kubevmm/bin/virt-monitor /usr/bin/virt-monitor.new
 rm -f /usr/bin/virt-monitor
 mv -f /usr/bin/virt-monitor.new /usr/bin/virt-monitor
 echo "--- Done: update virt-monitor"
+# update libvirt-event-handler
+echo "+++ Processing: update libvirt-event-handler"
+cp -f /home/kubevmm/bin/libvirt-event-handler /usr/bin/libvirt-event-handler.new
+rm -f /usr/bin/libvirt-event-handler
+mv -f /usr/bin/libvirt-event-handler.new /usr/bin/libvirt-event-handler
+echo "--- Done: update libvirt-event-handler"
 # update kubesds-adm
 echo "+++ Processing: update kubesds-adm"
 cp -f /home/kubevmm/bin/kubesds-adm /usr/bin/kubesds-adm.new

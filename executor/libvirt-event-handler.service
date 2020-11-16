@@ -9,10 +9,12 @@ Requires=libvirtd.service
 After=libvirtd.service
 
 [Service]
-Type=simple
+Type=forking
 PIDFile=/var/run/libvirt_event_handler.pid
 Restart=on-failure
 ExecStart=/usr/bin/libvirt-event-handler-ctl start
 ExecStop=/usr/bin/libvirt-event-handler-ctl stop
+Restart=/usr/bin/libvirt-event-handler-ctl restart
+RestartSec=3
 [Install]
 WantedBy=multi-user.target

@@ -85,6 +85,11 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <libvirt-event-handler>."
 fi
+cp -f virt-monitor-ctl ./dist
+cp -f kubevmm-monitor.service ./dist
+cp -f libvirt-event-handler ./dist
+cp -f libvirt-event-handler.service ./dist
+
 git clone -b uit https://github.com/uit-plus/kubeext-SDS.git
 cd ./kubeext-SDS
 
@@ -102,10 +107,6 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <kubesds-rpc-service>."
 fi
-cp -f virt-monitor-ctl ./dist
-cp -f kubevmm-monitor.service ./dist
-cp -f libvirt-event-handler ./dist
-cp -f libvirt-event-handler.service ./dist
 cp -f ./kubesds-ctl.sh ../docker/virtctl
 cp -f ./kubesds-ctl.sh ../dist
 cp -f ./kubesds.service ../dist

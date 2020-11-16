@@ -1179,7 +1179,7 @@ def main():
     # If the connection was closed, we cannot unregister anything.
     # Just abort now.
     if not run:
-        raise
+        raise Exception('Connection closed by peer.')
 
     vc.domainEventDeregister(myDomainEventCallback)
 
@@ -1202,10 +1202,15 @@ def main():
 
 if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
-    try:
-        main()
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        logger.error('Oops! ', exc_info=1)
-        main()
-        time.sleep(5)
+    while True:
+        try:
+            main()
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            logger.error('Oops! ', exc_info=1)
+            try:
+                main()
+            except:
+                config.load_kube_config(config_file=TOKEN)
+                logger.error('Oops! ', exc_info=1)
+            time.sleep(5)

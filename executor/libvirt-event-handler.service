@@ -12,8 +12,8 @@ After=libvirtd.service
 Type=forking
 PIDFile=/var/run/libvirt_event_handler.pid
 Restart=on-failure
-ExecStart=/usr/bin/libvirt-event-handler-ctl start
-ExecStop=/usr/bin/libvirt-event-handler-ctl stop
+ExecStart=/usr/bin/libvirt-event-handler start
+ExecStop=/usr/bin/libvirt-event-handler stop
 RestartSec=3s
 RemainAfterExit=no
 [Install]

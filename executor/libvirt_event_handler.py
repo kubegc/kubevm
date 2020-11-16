@@ -1214,8 +1214,7 @@ class ClientDaemon(CDaemon):
         logger.debug("---------------------------------------------------------------------------------")
 #         registry = CollectorRegistry(auto_describe=False)
         config.load_kube_config(config_file=TOKEN)
-        while True:
-            main()
+        main()
         
 def daemonize():
     help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]

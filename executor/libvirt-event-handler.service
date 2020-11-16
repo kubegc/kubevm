@@ -14,7 +14,7 @@ PIDFile=/var/run/libvirt_event_handler.pid
 Restart=on-failure
 ExecStart=/usr/bin/libvirt-event-handler-ctl start
 ExecStop=/usr/bin/libvirt-event-handler-ctl stop
-Restart=/usr/bin/libvirt-event-handler-ctl restart
-RestartSec=3
+RestartSec=3s
+RemainAfterExit=no
 [Install]
 WantedBy=multi-user.target

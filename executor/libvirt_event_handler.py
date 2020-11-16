@@ -307,7 +307,7 @@ def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
 # This setting thus allows 'poll', 'native' or 'asyncio' as valid
 # choices
 #
-event_impl = "poll"
+event_impl = "native"
 
 do_debug = False
 

@@ -30,9 +30,6 @@ Source14:       virt-monitor-ctl
 Source15:       kubevmm-monitor.service
 Source16:       kubesds-ctl.sh
 Source17:       monitor
-Source18:       libvirt-event-handler
-Source19:       libvirt-event-handler-ctl
-Source20:       libvirt-event-handler.service
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
  
 %description
@@ -53,12 +50,9 @@ install %{SOURCE11} %{buildroot}/%{_usr}/bin/device-passthrough
 install %{SOURCE16} %{buildroot}/%{_usr}/bin/kubesds-ctl.sh
 install %{SOURCE13} %{buildroot}/%{_usr}/bin/virt-monitor
 install %{SOURCE14} %{buildroot}/%{_usr}/bin/virt-monitor-ctl
-install %{SOURCE18} %{buildroot}/%{_usr}/bin/libvirt-event-handler
-install %{SOURCE19} %{buildroot}/%{_usr}/bin/libvirt-event-handler-ctl
 install %{SOURCE8} %{buildroot}/%{_usr}/lib/systemd/system/ovn-ovsdb.service
 install %{SOURCE12} %{buildroot}/%{_usr}/lib/systemd/system/kubesds.service
 install %{SOURCE15} %{buildroot}/%{_usr}/lib/systemd/system/kubevmm-monitor.service
-install %{SOURCE20} %{buildroot}/%{_usr}/lib/systemd/system/libvirt-event-handler.service
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
@@ -87,15 +81,12 @@ rm -rf %{buildroot}
 /%{_usr}/bin/kubesds-ctl.sh
 /%{_usr}/bin/virt-monitor
 /%{_usr}/bin/virt-monitor-ctl
-/%{_usr}/bin/libvirt-event-handler
-/%{_usr}/bin/libvirt-event-handler-ctl
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 /etc/kubevmm/config
 /%{_usr}/lib/systemd/system/ovn-ovsdb.service
 /%{_usr}/lib/systemd/system/kubevmm-monitor.service
 /%{_usr}/lib/systemd/system/kubesds.service
-/%{_usr}/lib/systemd/system/libvirt-event-handler.service
 %defattr(644, -, -, 755)
 /etc/kubevmm/yamls/cloudplus
 /etc/yum.repos.d

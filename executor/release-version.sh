@@ -54,8 +54,6 @@ gzexe -d ../scripts/kubevirt-ctl
 rm -f ../scripts/kubevirt-ctl~
 cp -f virt-monitor-ctl ./dist
 cp -f kubevmm-monitor.service ./dist
-cp -f libvirt-event-handler-ctl ./dist
-cp -f libvirt-event-handler.service ./dist
 cp -f ovn-ovsdb.service ./dist
 cp -rf ../yamls ./dist
 cp -rf ../monitor ./dist
@@ -81,13 +79,6 @@ if [ $? -ne 0 ]; then
     exit 1
 else
     echo "    Success compile <virt-monitor>."
-fi
-pyinstaller -F libvirt_event_handler.py -n libvirt-event-handler
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <libvirt-event-handler>!"
-    exit 1
-else
-    echo "    Success compile <libvirt-event-handler>."
 fi
 
 git clone -b uit https://github.com/uit-plus/kubeext-SDS.git
@@ -120,7 +111,7 @@ rm -rf ./kubeext-SDS
 find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
-cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm ./dist/device-passthrough ./dist/kubevirt-ctl ./dist/virt-monitor ./dist/libvirt-event-handler docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/vmm ./dist/kubevmm-adm ./dist/config ./dist/kubeovn-adm ./dist/device-passthrough ./dist/kubevirt-ctl ./dist/virt-monitor docker/virtctl
 if [ $? -ne 0 ]; then
     echo "    Failed to copy stuff to docker/virtctl!"
     exit 1

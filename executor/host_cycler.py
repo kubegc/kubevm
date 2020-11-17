@@ -91,7 +91,7 @@ def main():
                 master_ip = change_master_and_reload_config(fail_times)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
-            elif repr(e).find('libvirt') != -1:
+            elif repr(e).find('failed to open a connection to the hypervisor software') != -1:
                 libvirt_watcher_id = runCmd("docker ps | grep libvirtwatcher | awk -F ' ' '{print $1}'")
                 logger.debug('libvirt error occurred, restart container %s' % libvirt_watcher_id)
                 if libvirt_watcher_id:

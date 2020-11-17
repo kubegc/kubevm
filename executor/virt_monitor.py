@@ -714,9 +714,15 @@ class ClientDaemon(CDaemon):
         zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
         while True:
 #             init(registry)
-            collect_vm_metrics(zone)
-            collect_storage_metrics(zone)
-            time.sleep(10)
+            try:
+                collect_vm_metrics(zone)
+                collect_storage_metrics(zone)
+                time.sleep(10)
+            except Exception, e:
+                config.load_kube_config(config_file=TOKEN)
+                logger.error('Oops! ', exc_info=1)
+                time.sleep(10)
+                continue
         
 def daemonize():
     help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]

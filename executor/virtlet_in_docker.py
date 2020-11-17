@@ -20,6 +20,8 @@ Import local libs
 '''
 from utils.utils import singleton, runCmd
 from utils import logger
+from libvirt_event_handler import main as libvirt_event_handler
+from libvirt_event_handler_for_4_0 import main as libvirt_event_handler_4_0
 from os_event_handler import main as os_event_handler
 from host_cycler import main as host_cycler
 
@@ -51,10 +53,10 @@ def main():
     if os.path.exists(TOKEN):
         config.load_kube_config(config_file=TOKEN)
         try:
-#             thread_1 = Process(target=get_libvirt_event_handler())
-#             thread_1.daemon = True
-#             thread_1.name = 'libvirt_event_handler'
-#             thread_1.start()
+            thread_1 = Process(target=get_libvirt_event_handler())
+            thread_1.daemon = True
+            thread_1.name = 'libvirt_event_handler'
+            thread_1.start()
             thread_2 = Process(target=os_event_handler)
             thread_2.daemon = True
             thread_2.name = 'os_event_handler'
@@ -69,7 +71,7 @@ def main():
                     time.sleep(1)
             except KeyboardInterrupt:
                 return
-#             thread_1.join()
+            thread_1.join()
             thread_2.join()
 #             if not is_kubernetes_master():
             thread_3.join()
@@ -83,6 +85,13 @@ def is_kubernetes_master():
     else:
         return False
     
+def get_libvirt_event_handler():
+    retv = runCmd('virsh --version')
+    if retv.strip().startswith("4.0"):
+        return libvirt_event_handler_4_0
+    else:
+        return libvirt_event_handler
+            
 if __name__ == '__main__':
     main()
 

@@ -131,10 +131,15 @@ fi
 if [ ! -d "./docker/virtlet/utils" ]; then
 	mkdir ./docker/virtlet/utils
 fi
+if [ ! -d "./docker/libvirtwatcher/utils" ]; then
+	mkdir ./docker/libvirtwatcher/utils
+fi
 cp -rf utils/*.py docker/virtctl/utils/
 cp -rf utils/*.py docker/virtlet/utils/
+cp -rf utils/*.py docker/libvirtwatcher/utils/
 cp -rf config arraylist.cfg virtctl_in_docker.py invoker.py virtctl.py docker/virtctl
-cp -rf config arraylist.cfg virtlet_in_docker.py host_cycler.py libvirt_event_handler_for_4_0.py libvirt_event_handler.py os_event_handler.py virtlet.py docker/virtlet
+cp -rf config arraylist.cfg virtlet_in_docker.py host_cycler.py os_event_handler.py virtlet.py docker/virtlet
+cp -rf config arraylist.cfg libvirt_watcher_in_docker.py libvirt_event_handler_for_4_0.py libvirt_event_handler.py docker/libvirtwatcher
 
 #rm -rf *.pyc
 #rm -rf utils/*.pyc
@@ -143,8 +148,10 @@ cp -rf config arraylist.cfg virtlet_in_docker.py host_cycler.py libvirt_event_ha
 cd docker
 docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
 docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${VERSION}
+docker build libvirtwatcher -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-libvirtwatcher:${VERSION}
 docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${VERSION}
 docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:latest
+docker build libvirtwatcher -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-libvirtwatcher:latest
 docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:latest
 
 #step 3 docker push
@@ -160,8 +167,10 @@ fi
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:${VERSION}
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-libvirtwatcher:${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:latest
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:latest
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-libvirtwatcher:latest
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"

@@ -20,8 +20,6 @@ Import local libs
 '''
 from utils.utils import singleton, runCmd
 from utils import logger
-from libvirt_event_handler import main as libvirt_event_handler
-from libvirt_event_handler_for_4_0 import main as libvirt_event_handler_4_0
 from os_event_handler import main as os_event_handler
 from host_cycler import main as host_cycler
 
@@ -85,13 +83,6 @@ def is_kubernetes_master():
     else:
         return False
     
-def get_libvirt_event_handler():
-    retv = runCmd('virsh --version')
-    if retv.strip().startswith("4.0"):
-        return libvirt_event_handler_4_0
-    else:
-        return libvirt_event_handler
-            
 if __name__ == '__main__':
     main()
 

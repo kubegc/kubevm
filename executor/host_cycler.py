@@ -34,7 +34,7 @@ from kubernetes.client.models.v1_node_address import V1NodeAddress
 Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import get_xml, vm_state, freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
+from utils.libvirt_util import __get_conn, get_xml, vm_state, freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
 from utils.utils import change_master_and_reload_config, updateDescription, addPowerStatusMessage, updateDomain, CDaemon, runCmd, get_field_in_kubernetes_by_index, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
 from utils import logger
 
@@ -70,6 +70,9 @@ def main():
             node_watcher = HostCycler()
             host.status = node_watcher.get_node_status()
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
+            check_libvirt_conn = __get_conn()
+            if check_libvirt_conn:
+                check_libvirt_conn.close()
             if ha_check:
                 for vm in list_vms():
                     _check_vm_by_hosting_node(GROUP, VERSION, PLURAL, vm)
@@ -91,7 +94,8 @@ def main():
             elif repr(e).find('libvirt') != -1:
                 libvirt_watcher_id = runCmd("docker ps | grep libvirtwatcher | awk -F ' ' '{print $1}'")
                 logger.debug('libvirt error occurred, restart container %s' % libvirt_watcher_id)
-                runCmd('docker stop %s' % libvirt_watcher_id)
+                if libvirt_watcher_id:
+                    runCmd('docker stop %s' % libvirt_watcher_id)
             config.load_kube_config(config_file=TOKEN)
             logger.error('Oops! ', exc_info=1)
             time.sleep(3)

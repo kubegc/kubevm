@@ -1542,6 +1542,7 @@ def main():
             except Exception, e:
                 logger.debug(traceback.print_exc())
                 logger.debug("error occur when watch all storage pool")
+                time.sleep(3)
 
             time.sleep(1)
     except KeyboardInterrupt:
@@ -1553,12 +1554,13 @@ def main():
 
 if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
-    try:
-        main()
-    except Exception, e:
-        if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
-            config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        logger.error('Oops! ', exc_info=1)
-        main()
-        time.sleep(5)
+    while True:
+        try:
+            main()
+        except Exception, e:
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1:
+                config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+            logger.error('Oops! ', exc_info=1)
+            time.sleep(5)
+            continue

@@ -39,7 +39,7 @@ TOKEN = config_raw.get('Kubernetes', 'token_file')
 HOSTNAME = socket.gethostname()
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
-@singleton('/var/run/virtlet_in_docker.pid')
+@singleton('/var/run/libvirt_watcher_in_docker.pid')
 def main():
     logger.debug("---------------------------------------------------------------------------------")
     logger.debug("--------------------Welcome to Libvirt Watcher Daemon.---------------------------")

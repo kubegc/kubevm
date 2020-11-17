@@ -44,7 +44,7 @@ class ClientDaemon(CDaemon):
         CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
         self.name = name
  
-    @singleton('/var/run/virtlet_daemon.pid')
+    @singleton('/var/run/libvirt_watcher_daemon.pid')
     def run(self, output_fn, **kwargs):
         logger.debug("---------------------------------------------------------------------------------")
         logger.debug("--------------------Welcome to Libvirt Watcher Daemon.---------------------------")

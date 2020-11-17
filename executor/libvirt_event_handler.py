@@ -1203,8 +1203,4 @@ def main():
 if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
     while True:
-        try:
-            main()
-        except Exception, e:
-            config.load_kube_config(config_file=TOKEN)
-            logger.error('Oops! ', exc_info=1)
+        main()

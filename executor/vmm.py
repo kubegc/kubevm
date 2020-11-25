@@ -836,13 +836,22 @@ def create_vmdi(name, target):
 #         if os.path.exists(dest_dir):
 #             runCmd('rm -rf %s' % dest_dir)
 #         raise Exception('400, Bad Reqeust. Copy %s to %s failed!' % (source, dest))
-#     cmd1 = 'qemu-img rebase -f qcow2 %s -b "" -u' % (dest)
-#     try:
-#         runCmd(cmd1)
-#     except:
-#         if os.path.exists(dest_dir):
-#             runCmd('rm -rf %s' % dest_dir)
-#         raise Exception('400, Bad Reqeust. Execute "qemu-img rebase -f qcow2 %s" failed!' % (dest))
+    retv = None
+    cmd0 = 'qemu-img info -U %s | grep "file format" | grep "qcow2"' % (dest)
+    try:
+        retv = runCmd(cmd0)
+    except:
+        if os.path.exists(dest_dir):
+            runCmd('rm -rf %s' % dest_dir)
+        raise Exception('400, Bad Reqeust. Execute "qemu-img info -U %s" failed!' % (dest))
+    if retv:
+        cmd1 = 'qemu-img rebase -f qcow2 %s -b "" -u' % (dest)
+        try:
+            runCmd(cmd1)
+        except:
+            if os.path.exists(dest_dir):
+                runCmd('rm -rf %s' % dest_dir)
+            raise Exception('400, Bad Reqeust. Execute "qemu-img rebase -f qcow2 %s" failed!' % (dest))
     
     config = {}
     config['name'] = name

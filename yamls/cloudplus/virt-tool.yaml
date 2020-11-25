@@ -47,8 +47,6 @@ spec:
             mountPath: /var/run/
           - name: uit
             mountPath: /uit/
-          - name: mnt
-            mountPath: /mnt/
           - name: usrlib64
             mountPath: /usr/lib64/
           - name: usrbin
@@ -91,8 +89,6 @@ spec:
             mountPath: /var/run/
           - name: uit
             mountPath: /uit/
-          - name: mnt
-            mountPath: /mnt/
           - name: usrlib64
             mountPath: /usr/lib64/
           - name: usrbin
@@ -135,8 +131,6 @@ spec:
             mountPath: /var/run/
           - name: uit
             mountPath: /uit/
-          - name: mnt
-            mountPath: /mnt/
           - name: usrlib64
             mountPath: /usr/lib64/
           - name: usrbin
@@ -173,9 +167,6 @@ spec:
         - name: uit
           hostPath: 
             path: /uit/
-        - name: mnt
-          hostPath: 
-            path: /mnt/
         - name: usrlib64
           hostPath: 
             path: /usr/lib64/

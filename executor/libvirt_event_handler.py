@@ -37,7 +37,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_target_devices, get_xml, vm_state, get_macs, get_nics, start
-from utils.utils import get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.utils import UserDefinedEvent, randomUUID, now_to_datetime, get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token, get_ha_from_kubernetes
 from utils import logger
 
@@ -184,7 +184,37 @@ class MyDomainEventHandler(threading.Thread):
     #                     autostart_vms = list_autostart_vms()
     #                     if vm_name in autostart_vms:
     #                         logger.debug('**Automatic start VM**')
+                            involved_object_name = vm_name
+                            involved_object_kind = 'VirtualMachine'
+                            event_metadata_name = randomUUID()
+                            event_type = 'Normal'
+                            status = 'Doing(Success)'
+                            reporter = 'virtctl'
+                            event_id = _getEventId(jsondict)
+                            time_now = now_to_datetime()
+                            time_start = time_now
+                            time_end = time_now
+                            operation_name = 'startVMbyHA'
+                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
+                            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, operation_name, event_type)
+                            try:
+                                event.registerKubernetesEvent()
+                            except:
+                                logger.error('Oops! ', exc_info=1)
+                            """
+                            Start VM by HA
+                            """
                             start(vm_name)
+                            
+                            status = 'Done(Success)'
+                            time_end = now_to_datetime()
+                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
+                            event.set_message(message)
+                            event.set_time_end(time_end)
+                            try:
+                                event.updateKubernetesEvent()
+                            except:
+                                logger.warning('Oops! ', exc_info=1)
     #                     else:
     #                         macs = get_macs(vm_name)
     #                         for mac in macs:
@@ -259,6 +289,15 @@ class MyDomainEventHandler(threading.Thread):
 #         logger.debug(dom)
 #     except:
 #         logger.error('Oops! ', exc_info=1)
+
+'''
+Get event id.
+'''
+def _getEventId(jsondict):
+    metadata = jsondict['raw_object'].get('metadata')
+    labels = metadata.get('labels')
+    logger.debug(labels)
+    return labels.get('eventId') if labels.get('eventId') else '-1'
 
 def modifyVM(name, body):
     config.load_kube_config(config_file=TOKEN)

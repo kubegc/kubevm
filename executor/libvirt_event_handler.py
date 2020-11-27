@@ -204,8 +204,15 @@ class MyDomainEventHandler(threading.Thread):
                             """
                             Start VM by HA
                             """
-                            start(vm_name)
-                            
+                            for i in range(1,4):
+                                logger.debug("Starting VM %s by HA, a %d try." % (vm_name, i))
+                                try:
+                                    start(vm_name)
+                                    break;
+                                except:
+                                    if i == 3:
+                                        raise Exception("Starting VM %s failed, reason: maximum tries of 3." % vm_name)
+                                    time.sleep(3)
                             status = 'Done(Success)'
                             time_end = now_to_datetime()
                             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())

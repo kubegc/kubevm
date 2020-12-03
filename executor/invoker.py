@@ -1526,14 +1526,14 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
 def vMBackupExecutor(group, version, plural, jsondict):
     try:
         operation_type = jsondict.get('type')
-        logger.debug(operation_type)
+#         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
     except:
         logger.warning('Oops! ', exc_info=1)
     try:
-        logger.debug('metadata name: %s' % metadata_name)
+#         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
-        logger.debug('cmd key is: %s' % the_cmd_key)
+#         logger.debug('cmd key is: %s' % the_cmd_key)
         if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachineBackup'

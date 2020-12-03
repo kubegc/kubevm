@@ -3469,7 +3469,7 @@ def unpackCmdFromJson(jsondict, the_cmd_key):
 Run back-end command in subprocess.
 '''
 def runCmd(cmd):
-    for i in range(1,6):
+    for i in range(1,60):
         logger.debug("Executing command %s, a %d try." % (cmd, i))
         std_err = None
         if not cmd:
@@ -3490,12 +3490,12 @@ def runCmd(cmd):
                 p.stdout.close()
                 p.stderr.close()
         except:
-            if i == 5:
+            if i == 59:
                 raise ExecuteException('VirtctlError', std_err)
-            if i < 4:
-                time.sleep(3)
-            else:
-                time.sleep(i)
+#             if i < 4:
+            time.sleep(3)
+#             else:
+#                 time.sleep(i)
             continue
 
 def get_arg_from_lifecycle(jsondict, the_cmd_key, arg):

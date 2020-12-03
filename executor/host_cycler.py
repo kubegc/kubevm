@@ -91,10 +91,14 @@ def main():
                 master_ip = change_master_and_reload_config(fail_times)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+                virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
+                if virtctl_id:
+                    logger.debug('kubernetes error occurred, restart container %s' % virtctl_id)
+                    runCmd('docker stop %s' % virtctl_id)
             elif repr(e).find('failed to open a connection to the hypervisor software') != -1:
                 libvirt_watcher_id = runCmd("docker ps | grep libvirtwatcher | awk -F ' ' '{print $1}'")
-                logger.debug('libvirt error occurred, restart container %s' % libvirt_watcher_id)
                 if libvirt_watcher_id:
+                    logger.debug('libvirt error occurred, restart container %s' % libvirt_watcher_id)
                     runCmd('docker stop %s' % libvirt_watcher_id)
             config.load_kube_config(config_file=TOKEN)
             logger.error('Oops! ', exc_info=1)

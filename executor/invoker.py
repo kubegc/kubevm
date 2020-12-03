@@ -3490,13 +3490,16 @@ def runCmd(cmd):
                 p.stdout.close()
                 p.stderr.close()
         except:
-            if i == 59:
+            if cmd.find('virsh start') != -1 and i == 59:
                 raise ExecuteException('VirtctlError', std_err)
+            elif cmd.find('virsh start') == -1 and i ==3:
+                raise ExecuteException('VirtctlError', std_err)
+            else:
 #             if i < 4:
-            time.sleep(3)
+                time.sleep(3)
 #             else:
 #                 time.sleep(i)
-            continue
+                continue
 
 def get_arg_from_lifecycle(jsondict, the_cmd_key, arg):
     if jsondict:

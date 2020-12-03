@@ -273,12 +273,12 @@ def vMExecutor(group, version, plural, jsondict):
     try:
         # logger.debug(jsondict)
         operation_type = jsondict.get('type')
-        logger.debug(operation_type)
+#         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
-        logger.debug('------- Start time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
+#         logger.debug('------- Start time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
 #         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
-        logger.debug('cmd key is: %s' % the_cmd_key)
+#         logger.debug('cmd key is: %s' % the_cmd_key)
     except:
         logger.warning('Oops! ', exc_info=1)
     try:
@@ -398,7 +398,7 @@ def vMExecutor(group, version, plural, jsondict):
                 if not _isDeleteVM(the_cmd_key) and not _isMigrateVM(the_cmd_key) and not _isMigrateVMDisk(the_cmd_key) \
                         and not _isBackupVM(the_cmd_key) and not _isDeleteVMBackup(the_cmd_key):
                     write_result_to_server(group, version, 'default', plural, metadata_name)
-                logger.debug('------- Finish time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
+#                 logger.debug('------- Finish time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
             except libvirtError:
                 logger.error('Oops! ', exc_info=1)
                 info=sys.exc_info()
@@ -518,8 +518,8 @@ def vMDiskExecutor(group, version, plural, jsondict):
                 pool_name = _get_field(jsondict, the_cmd_key, 'targetPool')
             disk_type = get_field_in_kubernetes_by_index(pool_name, GROUP_VM_POOL, VERSION_VM_POOL, PLURAL_VM_POOL,
                                                          ['spec', 'pool', 'pooltype'])
-            logger.debug(pool_name)
-            logger.debug(disk_type)
+#             logger.debug(pool_name)
+#             logger.debug(disk_type)
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
             # logger.debug(jsondict)
             cmd = unpackCmdFromJson(jsondict, the_cmd_key)
@@ -655,14 +655,14 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
 def vMDiskImageExecutor(group, version, plural, jsondict):
     try:
         operation_type = jsondict.get('type')
-        logger.debug(operation_type)
+#         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
     except:
         logger.warning('Oops! ', exc_info=1)
     try:
-        logger.debug('metadata name: %s' % metadata_name)
+#         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
-        logger.debug('cmd key is: %s' % the_cmd_key)
+#         logger.debug('cmd key is: %s' % the_cmd_key)
         if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachineDiskImage'
@@ -697,10 +697,10 @@ def vMDiskImageExecutor(group, version, plural, jsondict):
             try:
                 if operation_type == 'ADDED':
                     if cmd:
-                        rpcCall(cmd)
+                        rpcCallWithResult(cmd)
                 elif operation_type == 'MODIFIED':
                     try:
-                        rpcCall(cmd)
+                        rpcCallWithResult(cmd)
                     except Exception, e:
                         if _isDeleteDiskImage(the_cmd_key):
                             logger.warning("***Disk image %s not exists, delete it from virtlet" % metadata_name)
@@ -3469,23 +3469,31 @@ def unpackCmdFromJson(jsondict, the_cmd_key):
 Run back-end command in subprocess.
 '''
 def runCmd(cmd):
-    std_err = None
-    if not cmd:
-#         logger.debug('No CMD to execute.')
-        return
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    try:
-        std_out = p.stdout.readlines()
-        std_err = p.stderr.readlines()
-        if std_out:
-            logger.debug(std_out)
-        if std_err:
-            logger.error(std_err)
-            raise ExecuteException('VirtctlError', std_err)
-        return std_out
-    finally:
-        p.stdout.close()
-        p.stderr.close()
+    for i in range(1,4):
+        logger.debug("Executing command %s, a %d try." % (cmd, i))
+        std_err = None
+        if not cmd:
+    #         logger.debug('No CMD to execute.')
+            return
+        try:
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                std_out = p.stdout.readlines()
+                std_err = p.stderr.readlines()
+                if std_out:
+                    logger.debug(std_out)
+                if std_err:
+                    logger.error(std_err)
+                    raise ExecuteException('VirtctlError', std_err)
+                return std_out
+            finally:
+                p.stdout.close()
+                p.stderr.close()
+        except:
+            if i == 3:
+                raise ExecuteException('VirtctlError', std_err)
+            time.sleep(3)
+            continue
 
 def get_arg_from_lifecycle(jsondict, the_cmd_key, arg):
     if jsondict:

@@ -301,6 +301,10 @@ def vMExecutor(group, version, plural, jsondict):
             by_ha = False
             if not is_vm_exists(metadata_name):
                 by_ha = _rebuild_from_kubernetes(group, version, 'default', plural, metadata_name)
+            if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+                if is_vm_exists(metadata_name):
+                    logger.warning('***VM %s has already existed and can no longer be created.' % metadata_name)
+                    return
             (jsondict, operations_queue) \
                 = _vm_prepare_step(the_cmd_key, jsondict, metadata_name)
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)

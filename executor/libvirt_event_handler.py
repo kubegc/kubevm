@@ -180,48 +180,51 @@ class MyDomainEventHandler(threading.Thread):
                 if self.kwargs.has_key('event') and str(DOM_EVENTS[self.kwargs['event']]) == "Stopped":
                     try:
                         logger.debug('Callback domain shutdown to virtlet')
-                        if get_ha_from_kubernetes(GROUP, VERSION, 'default', PLURAL, vm_name):
-    #                     autostart_vms = list_autostart_vms()
-    #                     if vm_name in autostart_vms:
-    #                         logger.debug('**Automatic start VM**')
-                            involved_object_name = vm_name
-                            involved_object_kind = 'VirtualMachine'
-                            event_metadata_name = randomUUID()
-                            event_type = 'Normal'
-                            status = 'Doing(Success)'
-                            reporter = 'virtctl'
-                            event_id = _getEventId(jsondict)
-                            time_now = now_to_datetime()
-                            time_start = time_now
-                            time_end = time_now
-                            operation_name = 'startVMbyHA'
-                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
-                            event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, operation_name, event_type)
-                            try:
-                                event.registerKubernetesEvent()
-                            except:
-                                logger.error('Oops! ', exc_info=1)
-                            """
-                            Start VM by HA
-                            """
-                            for i in range(1,4):
-                                logger.debug("Starting VM %s by HA, a %d try." % (vm_name, i))
+                        if getCmdKey(jsondict) == 'migrateVM':
+                            logger.debug('VM %s is migrating, ignore its stop signal.' % vm_name)
+                        else:
+                            if get_ha_from_kubernetes(GROUP, VERSION, 'default', PLURAL, vm_name):
+        #                     autostart_vms = list_autostart_vms()
+        #                     if vm_name in autostart_vms:
+        #                         logger.debug('**Automatic start VM**')
+                                involved_object_name = vm_name
+                                involved_object_kind = 'VirtualMachine'
+                                event_metadata_name = randomUUID()
+                                event_type = 'Normal'
+                                status = 'Doing(Success)'
+                                reporter = 'virtctl'
+                                event_id = _getEventId(jsondict)
+                                time_now = now_to_datetime()
+                                time_start = time_now
+                                time_end = time_now
+                                operation_name = 'startVMbyHA'
+                                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
+                                event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, operation_name, event_type)
                                 try:
-                                    start(vm_name)
-                                    break;
+                                    event.registerKubernetesEvent()
                                 except:
-                                    if i == 3:
-                                        raise Exception("Starting VM %s failed, reason: maximum tries of 3." % vm_name)
-                                    time.sleep(3)
-                            status = 'Done(Success)'
-                            time_end = now_to_datetime()
-                            message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
-                            event.set_message(message)
-                            event.set_time_end(time_end)
-                            try:
-                                event.updateKubernetesEvent()
-                            except:
-                                logger.warning('Oops! ', exc_info=1)
+                                    logger.error('Oops! ', exc_info=1)
+                                """
+                                Start VM by HA
+                                """
+                                for i in range(1,4):
+                                    logger.debug("Starting VM %s by HA, a %d try." % (vm_name, i))
+                                    try:
+                                        start(vm_name)
+                                        break;
+                                    except:
+                                        if i == 3:
+                                            raise Exception("Starting VM %s failed, reason: maximum tries of 3." % vm_name)
+                                        time.sleep(3)
+                                status = 'Done(Success)'
+                                time_end = now_to_datetime()
+                                message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
+                                event.set_message(message)
+                                event.set_time_end(time_end)
+                                try:
+                                    event.updateKubernetesEvent()
+                                except:
+                                    logger.warning('Oops! ', exc_info=1)
     #                     else:
     #                         macs = get_macs(vm_name)
     #                         for mac in macs:

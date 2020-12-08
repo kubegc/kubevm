@@ -180,8 +180,8 @@ class MyDomainEventHandler(threading.Thread):
                 if self.kwargs.has_key('event') and str(DOM_EVENTS[self.kwargs['event']]) == "Stopped":
                     try:
                         logger.debug('Callback domain shutdown to virtlet')
-                        if getCmdKey(jsondict) == 'migrateVM':
-                            logger.debug('VM %s is migrating, ignore its stop signal.' % vm_name)
+                        if self.kwargs['event']['detail'] == 'Migrated':
+                            logger.debug('VM %s has been migrated, ignore its stop signal.' % vm_name)
                         else:
                             if get_ha_from_kubernetes(GROUP, VERSION, 'default', PLURAL, vm_name):
         #                     autostart_vms = list_autostart_vms()

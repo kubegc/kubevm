@@ -715,7 +715,7 @@ class ClientDaemon(CDaemon):
         while True:
 #             init(registry)
             collect_vm_metrics(zone)
-            collect_storage_metrics(zone)
+#             collect_storage_metrics(zone)
             time.sleep(10)
         
 def daemonize():

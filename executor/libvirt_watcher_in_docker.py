@@ -20,8 +20,10 @@ Import local libs
 '''
 from utils.utils import singleton, runCmd
 from utils import logger
-from libvirt_event_handler import main as libvirt_event_handler
-from libvirt_event_handler_for_4_0 import main as libvirt_event_handler_4_0
+import libvirt_event_handler_for_4_0
+import libvirt_event_handler
+# from libvirt_event_handler import main as libvirt_event_handler
+# from libvirt_event_handler_for_4_0 import main as libvirt_event_handler_4_0
 
 class parser(ConfigParser.ConfigParser):  
     def __init__(self,defaults=None):  
@@ -51,16 +53,17 @@ def main():
     if os.path.exists(TOKEN):
         config.load_kube_config(config_file=TOKEN)
         try:
-            thread_1 = Process(target=get_libvirt_event_handler())
-            thread_1.daemon = True
-            thread_1.name = 'libvirt_event_handler'
-            thread_1.start()
-            try:
-                while True:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                return
-            thread_1.join()
+#             thread_1 = Process(target=get_libvirt_event_handler())
+#             thread_1.daemon = True
+#             thread_1.name = 'libvirt_event_handler'
+#             thread_1.start()
+#             try:
+#                 while True:
+#                     time.sleep(1)
+#             except KeyboardInterrupt:
+#                 return
+#             thread_1.join()
+            run_libvirt_event_handler()
         except:
             config.load_kube_config(config_file=TOKEN)
             logger.error('Oops! ', exc_info=1)
@@ -71,12 +74,12 @@ def is_kubernetes_master():
     else:
         return False
     
-def get_libvirt_event_handler():
+def run_libvirt_event_handler():
     retv = runCmd('virsh --version')
     if retv.strip().startswith("4.0"):
-        return libvirt_event_handler_4_0
+        libvirt_event_handler_for_4_0.main()
     else:
-        return libvirt_event_handler
+        libvirt_event_handler.main()
             
 if __name__ == '__main__':
     main()

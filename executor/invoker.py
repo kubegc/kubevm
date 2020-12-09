@@ -1445,7 +1445,7 @@ def vMPoolExecutor(group, version, plural, jsondict):
                 status = 'Done(Success)'
                 if the_cmd_key not in ["deletePool", "showPool", "deleteVMBackup", "restoreVMBackup", "cleanVMBackup",
                                        "scanVMBackup", "restoreDisk", "deleteVMDiskBackup", "pullRemoteBackup",
-                                       "pushRemoteBackup", "deleteRemoteBackup", "cleanVMRemoteBackup"]:
+                                       "pushRemoteBackup", "deleteRemoteBackup", "cleanVMRemoteBackup", "deleteRemoteBackupServer"]:
                     write_result_to_server(group, version, 'default', plural,
                                            metadata_name, {'code': 0, 'msg': 'success'}, poolJson)
             except libvirtError:

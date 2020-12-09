@@ -182,6 +182,7 @@ pullRemoteBackup = kubesds-adm pullRemoteBackup
 pushRemoteBackup = kubesds-adm pushBackup
 deleteRemoteBackup = kubesds-adm deleteRemoteBackup
 cleanVMRemoteBackup = kubesds-adm cleanRemoteBackup
+deleteRemoteBackupServer = kubesds-adm deleteRemoteBackupServer
 
 [VirtualMachineNetwork]
 group = cloudplus.io

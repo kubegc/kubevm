@@ -701,10 +701,10 @@ def vMDiskImageExecutor(group, version, plural, jsondict):
             try:
                 if operation_type == 'ADDED':
                     if cmd:
-                        rpcCallWithResult(cmd)
+                        rpcCall(cmd)
                 elif operation_type == 'MODIFIED':
                     try:
-                        rpcCallWithResult(cmd)
+                        rpcCall(cmd)
                     except Exception, e:
                         if _isDeleteDiskImage(the_cmd_key):
                             logger.warning("***Disk image %s not exists, delete it from virtlet" % metadata_name)
@@ -3475,6 +3475,7 @@ Run back-end command in subprocess.
 def runCmd(cmd):
     for i in range(1,60):
         logger.debug("Executing command %s, a %d try." % (cmd, i))
+        std_out = None
         std_err = None
         if not cmd:
     #         logger.debug('No CMD to execute.')
@@ -3498,6 +3499,14 @@ def runCmd(cmd):
                 raise ExecuteException('VirtctlError', std_err)
             elif cmd.find('virsh start') == -1 and i ==3:
                 raise ExecuteException('VirtctlError', std_err)
+            elif cmd.find('virt-install') != -1:
+                if std_err.find('already in use') != -1:
+                    logger.warning('***VM has already existed and can no longer be created.')
+                    return std_out
+                elif i ==3:
+                    raise ExecuteException('VirtctlError', std_err)
+                else:
+                    continue
             else:
 #             if i < 4:
                 time.sleep(3)

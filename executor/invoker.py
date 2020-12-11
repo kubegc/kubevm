@@ -3500,7 +3500,7 @@ def runCmd(cmd):
             elif cmd.find('virsh start') == -1 and i ==3:
                 raise ExecuteException('VirtctlError', std_err)
             elif cmd.find('virt-install') != -1:
-                if std_err.find('already in use') != -1:
+                if std_err and std_err[0].find('already in use') != -1:
                     logger.warning('***VM has already existed and can no longer be created.')
                     return std_out
                 elif i ==3:

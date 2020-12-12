@@ -283,7 +283,7 @@ def vMExecutor(group, version, plural, jsondict):
         logger.warning('Oops! ', exc_info=1)
     try:
         if operation_type == 'DELETED':
-            logger.debug(dumps(jsondict))
+            logger.debug('***Deleting VM %s by operation %s' % (metadata_name, the_cmd_key))
         if the_cmd_key and operation_type != 'DELETED':
 #                 _vm_priori_step(the_cmd_key, jsondict)
 #                 node_name = _get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
@@ -299,7 +299,7 @@ def vMExecutor(group, version, plural, jsondict):
 #                     else:
 #                         raise ExecuteException('VirtctlError', 'Cannot operate %s, it is now hosting by another node %s.' % (metadata_name, node_name))
             by_ha = False
-            if not is_vm_exists(metadata_name):
+            if not is_vm_exists(metadata_name) and the_cmd_key:
                 by_ha = _rebuild_from_kubernetes(group, version, 'default', plural, metadata_name)
             if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
                 if is_vm_exists(metadata_name):
@@ -1398,14 +1398,14 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
 def vMPoolExecutor(group, version, plural, jsondict):
     try:
         operation_type = jsondict.get('type')
-        logger.debug(operation_type)
+#         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
     except:
         logger.warning('Oops! ', exc_info=1)
     try:
-        logger.debug('metadata name: %s' % metadata_name)
+#         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
-        logger.debug('cmd key is: %s' % the_cmd_key)
+#         logger.debug('cmd key is: %s' % the_cmd_key)
         if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachinePool'
@@ -3509,6 +3509,9 @@ def runCmd(cmd):
                     continue
             else:
 #             if i < 4:
+                if cmd.find('virsh start') != -1 and std_err \
+                and std_err[0].find('Domain is already active') != -1:
+                    return std_out
                 time.sleep(3)
 #             else:
 #                 time.sleep(i)

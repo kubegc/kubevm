@@ -34,7 +34,7 @@ from kubernetes.client.models.v1_node_address import V1NodeAddress
 Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
-from utils.libvirt_util import __get_conn, get_xml, vm_state, freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
+from utils.libvirt_util import is_vm_exists, __get_conn, get_xml, vm_state, freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
 from utils.utils import change_master_and_reload_config, updateDescription, addPowerStatusMessage, updateDomain, CDaemon, runCmd, get_field_in_kubernetes_by_index, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
 from utils import logger
 
@@ -112,17 +112,19 @@ def _check_vm_by_hosting_node(group, version, plural, metadata_name):
         node_name = get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
         if not node_name:
             logger.debug('Delete VM %s because it is not hosting by the Kubernetes cluster.' % (metadata_name))
-            if is_vm_active(metadata_name):
-                destroy(metadata_name)
-                time.sleep(1)
-            undefine(metadata_name)    
+            if is_vm_exists(metadata_name):
+                if is_vm_active(metadata_name):
+                    destroy(metadata_name)
+                    time.sleep(1)
+                undefine(metadata_name)    
         elif node_name != get_hostname_in_lower_case():
             logger.debug('Delete VM %s because it is now hosting by another node %s.' % (metadata_name, node_name))
             _backup_json_to_file(group, version, 'default', plural, metadata_name)
-            if is_vm_active(metadata_name):
-                destroy(metadata_name)
-                time.sleep(1)
-            undefine(metadata_name)    
+            if is_vm_exists(metadata_name):
+                if is_vm_active(metadata_name):
+                    destroy(metadata_name)
+                    time.sleep(1)
+                undefine(metadata_name)    
     except:
         logger.error('Oops! ', exc_info=1)
         
@@ -132,7 +134,7 @@ def _check_ha_and_autostart_vm(group, version, plural, metadata_name):
         ha = get_ha_from_kubernetes(group, version, 'default', plural, metadata_name)
         if ha:
             logger.debug('Autostart HA VM: %s.' % (metadata_name))
-            if not is_vm_active(metadata_name):
+            if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
                 start(metadata_name)
     except:
         logger.error('Oops! ', exc_info=1)
@@ -146,23 +148,24 @@ def _check_vm_power_state(group, version, plural, metadata_name):
             logger.debug('**VM %s already deleted, ignore this 404 error.' % metadata_name)
     except Exception, e:
         logger.error('Oops! ', exc_info=1)
-    vm_xml = get_xml(metadata_name)
-    vm_power_state = vm_state(metadata_name).get(metadata_name)
-    vm_json = toKubeJson(xmlToJson(vm_xml))
-    vm_json = updateDomain(loads(vm_json))
-    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-    body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-    try:
-        modifyVM(group, version, plural, metadata_name, body)
-    except ApiException, e:
-        if e.reason == 'Not Found':
-            logger.debug('**VM %s already deleted, ignore this 404.' % metadata_name)
-        if e.reason == 'Conflict':
-            logger.debug('**Other process updated %s, ignore this 409.' % metadata_name)
-        else:
+    if is_vm_exists(metadata_name):
+        vm_xml = get_xml(metadata_name)
+        vm_power_state = vm_state(metadata_name).get(metadata_name)
+        vm_json = toKubeJson(xmlToJson(vm_xml))
+        vm_json = updateDomain(loads(vm_json))
+        jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+        body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+        try:
+            modifyVM(group, version, plural, metadata_name, body)
+        except ApiException, e:
+            if e.reason == 'Not Found':
+                logger.debug('**VM %s already deleted, ignore this 404.' % metadata_name)
+            if e.reason == 'Conflict':
+                logger.debug('**Other process updated %s, ignore this 409.' % metadata_name)
+            else:
+                logger.error('Oops! ', exc_info=1)
+        except Exception, e:
             logger.error('Oops! ', exc_info=1)
-    except Exception, e:
-        logger.error('Oops! ', exc_info=1)
     
 
 def _backup_json_to_file(group, version, namespace, plural, metadata_name):

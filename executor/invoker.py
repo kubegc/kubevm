@@ -1748,8 +1748,10 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
                 return
             else:
                 raise e
-    except:
+    except Exception, e:
         logger.error('Oops! ', exc_info=1)
+        if repr(e).find('Domain not found') != -1:
+            return
         info=sys.exc_info()
         raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
 
@@ -3506,6 +3508,16 @@ def runCmd(cmd):
                 elif i ==3:
                     raise ExecuteException('VirtctlError', std_err)
                 else:
+                    time.sleep(3)
+                    continue
+            elif cmd.find('kubeovn-adm unbind-swport') != -1:
+                if std_err and std_err[0].find('mac does not exist') != -1:
+                    logger.warning('***Switch port already deleted.')
+                    return std_out
+                elif i ==3:
+                    raise ExecuteException('VirtctlError', std_err)
+                else:
+                    time.sleep(3)
                     continue
             else:
 #             if i < 4:

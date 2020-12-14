@@ -66,15 +66,15 @@ def main():
     fail_times = 0
     while True:
         try:
-            host = client.CoreV1Api().read_node_status(name=HOSTNAME)
-            node_watcher = HostCycler()
-            host.status = node_watcher.get_node_status()
             if ha_check:
                 for vm in list_vms():
                     _check_vm_by_hosting_node(GROUP, VERSION, PLURAL, vm)
                     _check_ha_and_autostart_vm(GROUP, VERSION, PLURAL, vm)
                     _check_vm_power_state(GROUP, VERSION, PLURAL, vm)
                 ha_check = False
+            host = client.CoreV1Api().read_node_status(name=HOSTNAME)
+            node_watcher = HostCycler()
+            host.status = node_watcher.get_node_status()
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
             check_libvirt_conn = __get_conn()
             if check_libvirt_conn:

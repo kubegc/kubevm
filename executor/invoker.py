@@ -4,6 +4,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
+from __builtin__ import True
 
 '''
 Import python libs
@@ -14,6 +15,7 @@ import re
 import subprocess
 import ConfigParser
 import socket
+import threading
 import string
 import traceback
 from datetime import datetime
@@ -169,8 +171,16 @@ for k,v in config_raw._sections.items():
             ALL_SUPPORT_CMDS_WITH_POOL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_POOL_FIELD, **v)
         elif string.find(k, 'WithOriginalField') != -1:
             ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD = dict(ALL_SUPPORT_CMDS_WITH_ORIGINAL_FIELD, **v)
-            
-LAST_OPERATION = {}
+
+create_vm_mutex = threading.Lock()            
+start_vm_mutex = threading.Lock()
+stop_vm_mutex = threading.Lock()
+reboot_vm_mutex = threading.Lock()
+destroy_vm_mutex = threading.Lock()
+delete_vm_mutex = threading.Lock()
+reset_vm_mutex = threading.Lock()
+suspend_vm_mutex = threading.Lock()
+migrate_vm_mutex = threading.Lock()
             
 def main():
     logger.debug("---------------------------------------------------------------------------------")
@@ -279,6 +289,8 @@ def vMExecutor(group, version, plural, jsondict):
 #         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
 #         logger.debug('cmd key is: %s' % the_cmd_key)
+        if the_cmd_key:
+            _acquire_mutex_lock(the_cmd_key)
     except:
         logger.warning('Oops! ', exc_info=1)
     try:
@@ -464,6 +476,9 @@ def vMExecutor(group, version, plural, jsondict):
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
         except:
             logger.warning('Oops! ', exc_info=1)
+    finally:
+        if the_cmd_key:
+            _release_mutex_lock(the_cmd_key)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
     watcher = watch.Watch()
@@ -2157,6 +2172,36 @@ def deleteLifecycle(name, group, version, plural):
 '''
 Install VM from ISO.
 '''
+def _isStartVM(the_cmd_key):
+    if the_cmd_key == "startVM":
+        return True
+    return False
+
+def _isStopVM(the_cmd_key):
+    if the_cmd_key == "stopVM":
+        return True
+    return False
+
+def _isForceStopVM(the_cmd_key):
+    if the_cmd_key == "stopVMForce":
+        return True
+    return False
+   
+def _isRebootVM(the_cmd_key):
+    if the_cmd_key == "rebootVM":
+        return True
+    return False
+
+def _isResetVM(the_cmd_key):
+    if the_cmd_key == "resetVM":
+        return True
+    return False
+
+def _isSuspendVM(the_cmd_key):
+    if the_cmd_key == "suspendVM":
+        return True
+    return False
+
 def _isInstallVMFromISO(the_cmd_key):
     if the_cmd_key == "createAndStartVMFromISO":
         return True
@@ -3445,7 +3490,65 @@ def _get_vdiskfs_label_in_kubernetes(metadata_name):
         return True
     else:
         return False
-
+    
+def _acquire_mutex_lock(the_cmd_key):
+#     global CREATE_VM_MUTEX
+#     global START_VM_MUTEX
+#     global STOP_VM_MUTEX
+#     global REBOOT_VM_MUTEX
+#     global DESTROY_VM_MUTEX
+#     global DELETE_VM_MUTEX
+#     global RESET_VM_MUTEX
+#     global SUSPEND_VM_MUTEX
+#     global MIGRATE_VM_MUTEX
+    if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+        create_vm_mutex.acquire()
+    elif _isStartVM(the_cmd_key):
+        start_vm_mutex.acquire()
+    elif _isStopVM(the_cmd_key):
+        stop_vm_mutex.acquire()
+    elif _isRebootVM(the_cmd_key):
+        reboot_vm_mutex.acquire()
+    elif _isForceStopVM(the_cmd_key):
+        destroy_vm_mutex.acquire()
+    elif _isDeleteVM(the_cmd_key):
+        delete_vm_mutex.acquire()
+    elif _isResetVM(the_cmd_key):
+        reset_vm_mutex.acquire()
+    elif _isSuspendVM(the_cmd_key):
+        suspend_vm_mutex.acquire()
+    elif _isMigrateVM(the_cmd_key):
+        migrate_vm_mutex.acquire()
+    
+def _release_mutex_lock(the_cmd_key):
+#     global CREATE_VM_MUTEX
+#     global START_VM_MUTEX
+#     global STOP_VM_MUTEX
+#     global REBOOT_VM_MUTEX
+#     global DESTROY_VM_MUTEX
+#     global DELETE_VM_MUTEX
+#     global RESET_VM_MUTEX
+#     global SUSPEND_VM_MUTEX
+#     global MIGRATE_VM_MUTEX
+    if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
+        create_vm_mutex.release()
+    elif _isStartVM(the_cmd_key):
+        start_vm_mutex.release()
+    elif _isStopVM(the_cmd_key):
+        stop_vm_mutex.release()
+    elif _isRebootVM(the_cmd_key):
+        reboot_vm_mutex.release()
+    elif _isForceStopVM(the_cmd_key):
+        destroy_vm_mutex.release()
+    elif _isDeleteVM(the_cmd_key):
+        delete_vm_mutex.release()
+    elif _isResetVM(the_cmd_key):
+        reset_vm_mutex.release()
+    elif _isSuspendVM(the_cmd_key):
+        suspend_vm_mutex.release()
+    elif _isMigrateVM(the_cmd_key):
+        migrate_vm_mutex.release()
+        
 '''
 Unpack the CMD that will be executed in Json format.
 '''

@@ -174,10 +174,18 @@ def list_vms():
 
         salt '*' virt.list_vms
     '''
-    vms = []
-    vms.extend(list_active_vms())
-    vms.extend(list_inactive_vms())
-    return vms
+    conn = __get_conn()
+    try:
+        vms = []
+        for vm in conn.listAllDomains():
+            vms.append(vm.name())
+        return vms
+    finally:
+        conn.close()
+#     vms = []
+#     vms.extend(list_active_vms())
+#     vms.extend(list_inactive_vms())
+#     return vms
 
 def list_active_vms():
     '''
@@ -190,8 +198,8 @@ def list_active_vms():
     conn = __get_conn()
     try:
         vms = []
-        for id_ in conn.listDomainsID():
-            vms.append(conn.lookupByID(id_).name())
+        for vm in conn.listAllDomains(libvirt.VIR_CONNECT_LIST_DOMAINS_ACTIVE):
+            vms.append(vm.name())
         return vms
     finally:
         conn.close()
@@ -225,8 +233,8 @@ def list_inactive_vms():
     conn = __get_conn()
     try:
         vms = []
-        for id_ in conn.listDefinedDomains():
-            vms.append(id_)
+        for vm in conn.listAllDomains(libvirt.VIR_CONNECT_LIST_DOMAINS_INACTIVE):
+            vms.append(vm.name())
         return vms
     finally:
         conn.close()
@@ -1059,7 +1067,8 @@ def runCmdAndGetResult(cmd, raise_it=True):
         p.stderr.close()
 
 if __name__ == '__main__':
-    print(list_autostart_vms())
+    print(list_vms())
+    print(list_active_vms())
     # pprint(vm_info("750646e8c17a49d0b83c1c797811e078"))
     # print(get_boot_disk_path("750646e8c17a49d0b83c1c797811e078"))
     # print(get_pool_xml('pool1'))

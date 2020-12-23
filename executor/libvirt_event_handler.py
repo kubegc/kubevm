@@ -852,11 +852,11 @@ DISK_EVENTS = Description("Change missing on start", "Drop missing on start")
 TRAY_EVENTS = Description("Opened", "Closed")
 
 def myDomainEventCallback(conn, dom, event, detail, opaque):
+    threadmax.acquire()
     logger.debug("myDomainEventCallback%s EVENT: Domain %s(%s) %s %s" % (
         opaque, dom.name(), dom.ID(), DOM_EVENTS[event], DOM_EVENTS[event][detail]))
     t = MyDomainEventHandler(conn, dom, event=event, detail=detail, opaque=opaque)
     t.start()
-
 #     t.join()
 
 def myDomainEventRebootCallback(conn, dom, opaque):

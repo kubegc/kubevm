@@ -3218,9 +3218,13 @@ def _redefineVMFromXmlCmd(metadata_name, resource_type, data):
         cmd1 = 'virsh dumpxml %s > /tmp/%s.xml' % (metadata_name, metadata_name)
         cmd2 = 'sed -i \'/<os>/n;/<boot /{:a;d;n;/<\/os>/!ba}\' /tmp/%s.xml' %(metadata_name)
         cmd3 = 'sed -i \'/<domain /n;/<boot order=/{:a;d;n;/<\/domain>/!ba}\' /tmp/%s.xml' %(metadata_name)
+        cmd4 = "sed -i \"/    <bootmenu enable=/d\" /tmp/%s.xml" %(metadata_name)
+        cmd5 = "sed -i \"/<os>/a\    <bootmenu enable='yes' timeout='30000'/>\" /tmp/%s.xml" %(metadata_name)
         cmds.append(cmd1)
         cmds.append(cmd2)
         cmds.append(cmd3)
+        cmds.append(cmd4)
+        cmds.append(cmd5)
         i = 1
         for order in orders:
             cmds.append("sed -i \'/<devices>/n;/<target dev='\\''%s'\\''/a\      <boot order='\\''%d'\\''\/>\' /tmp/%s.xml" % (order, i, metadata_name))

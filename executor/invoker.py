@@ -1889,7 +1889,7 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
     with open(xml_file, "w") as f1:
         f1.write(xml)
     runCmd('virsh define %s' % xml_file)
-    runCmd('kubesds-adm changeDiskPool --xml %s' % xml_file)
+    rpcCall('kubesds-adm changeDiskPool --xml %s' % xml_file)
     return True
         
 def _backup_json_to_file(group, version, namespace, plural, metadata_name):

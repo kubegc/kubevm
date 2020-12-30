@@ -28,7 +28,7 @@ spec:
         - java
         - -jar
         - kubevirt-controller-1.7.0.jar
-        image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-controller-manager:v1.7.0
+        image: registry.cn-beijing.aliyuncs.com/doslab/kubevirt-controller-manager:v1.8.0
         imagePullPolicy: IfNotPresent
         name: kubevirt-controller-manager
         resources: {}

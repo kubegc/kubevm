@@ -323,12 +323,16 @@ def update_online(version='latest'):
                 allLine.append(line)
         with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
             fw.writelines(allLine)
-    disable_HA = "kubectl label node %s nodeHA=disable --overwrite" % (NODENAME)
-    (_, _err3) = runCmd(disable_HA)
+    nodes = runCmd("kubectl get pods -n cloudplus -o wide | grep Running | grep virt-tool | awk -F \" \" '{print $7}'")
+    for node in nodes:
+        if node:
+            node_name = "vm.%s" % (node)
+            disable_HA = "kubectl label node %s nodeHA=disable --overwrite" % (node_name)
+            (_, _) = runCmd(disable_HA)
     (_, _err1) = runCmd("kubectl delete -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
     (_, _err2) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
     restart()
-    if _err1 or _err2 or _err3:
+    if _err1 or _err2:
         sys.exit(1)
 #     time.sleep(3)
 #     (_, virtctl_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s" % version)

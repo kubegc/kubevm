@@ -63,7 +63,8 @@ public class VirtualMachineHA implements Watcher<Node> {
 
 		if (NodeSelectorImpl.isMaster(node) 
 				|| !fromNode.startsWith("vm") 
-				|| !NodeSelectorImpl.notReady(node)) {
+				|| !NodeSelectorImpl.notReady(node)
+				|| disableNodeHA(node)) {
 			return;
 		}
 		
@@ -143,6 +144,15 @@ public class VirtualMachineHA implements Watcher<Node> {
 		} else {
 			m_logger.log(Level.INFO, "VM " + vm.getMetadata().getName() + "'s status is already Shutdown.");
 		}
+	}
+	
+	public boolean disableNodeHA(Node node) {
+		Map<String, String> labels = node.getMetadata().getLabels();
+		if (labels.containsKey("nodeHA") && labels.get("nodeHA")
+									.trim().equals("disable")) {
+			return true;
+		}
+		return false;
 	}
 	
 }

@@ -63,6 +63,7 @@ logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 def main():
 #     restart_service = False
     ha_check = True
+    ha_enable = True
     fail_times = 0
     while True:
         try:
@@ -76,6 +77,9 @@ def main():
             node_watcher = HostCycler()
             host.status = node_watcher.get_node_status()
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
+            if ha_enable:
+                _check_and_enable_HA()
+                ha_enable = False
             check_libvirt_conn = __get_conn()
             if check_libvirt_conn:
                 check_libvirt_conn.close()
@@ -138,6 +142,9 @@ def _check_ha_and_autostart_vm(group, version, plural, metadata_name):
                 start(metadata_name)
     except:
         logger.error('Oops! ', exc_info=1)
+        
+def _check_and_enable_HA():
+    runCmd("kubectl label node %s nodeHA-" % (HOSTNAME))
         
 def _check_vm_power_state(group, version, plural, metadata_name):
     try:

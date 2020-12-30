@@ -11,10 +11,26 @@ import time
 import json
 import subprocess
 import traceback
+import ConfigParser
 import socket
 from threading import Thread
+from utils.utils import get_hostname_in_lower_case
+
+class parser(ConfigParser.ConfigParser):  
+    def __init__(self,defaults=None):  
+        ConfigParser.ConfigParser.__init__(self,defaults=None)  
+    def optionxform(self, optionstr):  
+        return optionstr 
+    
+cfg = "/etc/kubevmm/config"
+if not os.path.exists(cfg):
+    cfg = "/home/kubevmm/bin/config"
+config_raw = parser()
+config_raw.read(cfg)
 
 HOSTNAME = socket.gethostname()
+NODENAME = get_hostname_in_lower_case()
+TOKEN = config_raw.get('Kubernetes', 'token_file')
 
 try:
     version_file = '/etc/kubevmm/VERSION'
@@ -307,10 +323,12 @@ def update_online(version='latest'):
                 allLine.append(line)
         with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
             fw.writelines(allLine)
+    disable_HA = "kubectl label node %s nodeHA=disable --overwrite" % (NODENAME)
+    (_, _err3) = runCmd(disable_HA)
     (_, _err1) = runCmd("kubectl delete -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
     (_, _err2) = runCmd("kubectl apply -f /etc/kubevmm/yamls/cloudplus/virt-tool.yaml")
     restart()
-    if _err1 or _err2:
+    if _err1 or _err2 or _err3:
         sys.exit(1)
 #     time.sleep(3)
 #     (_, virtctl_err) = runCmd("docker pull registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtctl:%s" % version)

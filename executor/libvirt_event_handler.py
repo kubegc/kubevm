@@ -153,7 +153,7 @@ class MyDomainEventHandler(threading.Thread):
                 if not ignore_pushing:
                     try:
                         logger.debug('Callback domain changes to virtlet')
-                        if getCmdKey(jsondict) == 'migrateVM':
+                        if getCmdKey(jsondict) == 'migrateVM' or str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == 'Migrated':
                             logger.debug('VM %s is migrating, ignore changes.' % vm_name)
                             return
                         vm_xml = get_xml(vm_name)

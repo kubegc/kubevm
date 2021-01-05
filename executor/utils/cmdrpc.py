@@ -89,6 +89,7 @@ def rpcCall(cmd, raise_it=True):
                 raise ExecuteException('RunCmdError', 'can not get cmd output.')
             if result['result']['code'] != 0 and raise_it:
                 raise ExecuteException('RunCmdError', result['result']['msg'])
+            return
         except grpc.RpcError, e:
             logger.debug(traceback.format_exc())
             # ouch!

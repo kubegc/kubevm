@@ -33,6 +33,7 @@ from six import iteritems
 from xml.etree import ElementTree
 from collections import namedtuple
 from kubernetes.client import V1DeleteOptions
+from kubernetes.client.rest import ApiException
 
 '''
 Import third party libs
@@ -57,12 +58,14 @@ def create_custom_object(group, version, plural, body):
             retv = client.CustomObjectsApi().create_namespaced_custom_object(group=group, 
                 version=version, namespace='default', plural=plural,  body=body)
             return retv
-        except Exception, e:   
+        except ApiException, e:   
             if i == 5:
                 raise e
             else:
                 time.sleep(3)
                 continue
+        except Exception, e:
+            raise e
 
 def get_custom_object(group, version, plural, metadata_name):
     for i in range(1,5):
@@ -71,7 +74,7 @@ def get_custom_object(group, version, plural, metadata_name):
             jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
                 group=group, version=version, namespace='default', plural=plural, name=metadata_name)
             return jsonStr
-        except Exception, e:   
+        except ApiException, e:   
             if e.reason == 'Not Found':
                 raise e
             elif i == 5:
@@ -79,6 +82,8 @@ def get_custom_object(group, version, plural, metadata_name):
             else:
                 time.sleep(3)
                 continue
+        except Exception, e:
+            raise e
 
 def list_custom_object(group, version, plural):
     for i in range(1,5):
@@ -87,7 +92,7 @@ def list_custom_object(group, version, plural):
             jsonStr = client.CustomObjectsApi().list_cluster_custom_object(
                 group=group, version=version, plural=plural).get('items')
             return jsonStr
-        except Exception, e:   
+        except ApiException, e:   
             if e.reason == 'Not Found':
                 raise e
             elif i == 5:
@@ -95,6 +100,8 @@ def list_custom_object(group, version, plural):
             else:
                 time.sleep(3)
                 continue
+        except Exception, e:
+            raise e
             
 def update_custom_object(group, version, plural, metadata_name, body):
     for i in range(1,5):
@@ -104,7 +111,7 @@ def update_custom_object(group, version, plural, metadata_name, body):
             retv = client.CustomObjectsApi().replace_namespaced_custom_object(
                 group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
             return retv
-        except Exception, e:   
+        except ApiException, e:   
             if e.reason == 'Not Found':
                 raise e
             elif i == 5:
@@ -112,6 +119,8 @@ def update_custom_object(group, version, plural, metadata_name, body):
             else:
                 time.sleep(3)
                 continue
+        except Exception, e:
+            raise e
             
 def delete_custom_object(group, version, plural, metadata_name):
     for i in range(1,5):
@@ -120,7 +129,7 @@ def delete_custom_object(group, version, plural, metadata_name):
             retv = client.CustomObjectsApi().delete_namespaced_custom_object(
                 group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=V1DeleteOptions())
             return retv
-        except Exception, e:   
+        except ApiException, e:   
             if e.reason == 'Not Found':
                 return
             elif i == 5:
@@ -128,6 +137,8 @@ def delete_custom_object(group, version, plural, metadata_name):
             else:
                 time.sleep(3)
                 continue
+        except Exception, e:
+            raise e
 
 def get_IP():
     myname = socket.getfqdn(socket.gethostname())

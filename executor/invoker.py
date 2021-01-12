@@ -49,7 +49,7 @@ from utils.libvirt_util import get_boot_disk_path, get_xml, vm_state, _get_dom, 
     is_pool_exists, _get_pool_info, get_pool_info, get_vol_info_by_qemu
 from utils import logger
 # from utils.uit_utils import is_block_dev_exists
-from utils.utils import change_master_and_reload_config, get_del_description_command, get_update_description_command, check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
+from utils.utils import create_custom_object, get_custom_object, update_custom_object, delete_custom_object, change_master_and_reload_config, get_del_description_command, get_update_description_command, check_vdiskfs_by_disk_path, updateNodeName, update_vm_json, trans_dict_to_xml, \
     iterate_dict, get_address_set_info, get_spec, get_field_in_kubernetes_by_index, deleteVmi, \
     createVmi, deleteVmdi, createVmdi, updateDescription, updateJsonRemoveLifecycle, \
     updateDomain, Domain, get_l2_network_info, get_l3_network_info, randomMAC, ExecuteException, \
@@ -312,7 +312,7 @@ def vMExecutor(group, version, plural, jsondict):
 #                         raise ExecuteException('VirtctlError', 'Cannot operate %s, it is now hosting by another node %s.' % (metadata_name, node_name))
             by_ha = False
             if not is_vm_exists(metadata_name) and the_cmd_key:
-                by_ha = _rebuild_from_kubernetes(group, version, 'default', plural, metadata_name)
+                by_ha = _rebuild_from_kubernetes(group, version, plural, metadata_name)
             if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
                 if is_vm_exists(metadata_name):
                     logger.warning('***VM %s has already existed and can no longer be created.' % metadata_name)
@@ -379,7 +379,7 @@ def vMExecutor(group, version, plural, jsondict):
                     except Exception, e:
                         if _isDeleteVM(the_cmd_key) and not is_vm_exists(metadata_name):
                             logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
-                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            deleteStructure(metadata_name, group, version, plural)
                         else:
                             raise e
                                     
@@ -726,7 +726,7 @@ def vMDiskImageExecutor(group, version, plural, jsondict):
                             # jsondict = deleteLifecycleInJson(jsondict)
                             # modifyStructure(metadata_name, jsondict, group, version, plural)
                             # time.sleep(0.5)
-                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            deleteStructure(metadata_name, group, version, plural)
                         else:
                             raise e
 #                     elif operation_type == 'DELETED':
@@ -1021,7 +1021,7 @@ def vMImageExecutor(group, version, plural, jsondict):
                             # jsondict = deleteLifecycleInJson(jsondict)
                             # modifyStructure(metadata_name, jsondict, group, version, plural)
                             # time.sleep(0.5)
-                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            deleteStructure(metadata_name, group, version, plural)
                         else:
                             raise e
 #                     elif operation_type == 'DELETED':
@@ -1162,7 +1162,7 @@ def vMSnapshotExecutor(group, version, plural, jsondict):
                             # jsondict = deleteLifecycleInJson(jsondict)
                             # modifyStructure(metadata_name, jsondict, group, version, plural)
                             # time.sleep(0.5)
-                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            deleteStructure(metadata_name, group, version, plural)
                         else:
                             raise e
                 '''
@@ -1315,14 +1315,14 @@ def vMNetworkExecutor(group, version, plural, jsondict):
                     try:
                         runCmd(cmd)
                         if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key) or _isDeleteAddress(the_cmd_key):
-                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            deleteStructure(metadata_name, group, version, plural)
                     except Exception, e:
                         if _isDeleteNetwork(the_cmd_key) or _isDeleteBridge(the_cmd_key) or _isDeleteAddress(the_cmd_key):
                             logger.warning("***Network %s not exists, delete it from virtlet" % metadata_name)
                             # jsondict = deleteLifecycleInJson(jsondict)
                             # modifyStructure(metadata_name, jsondict, group, version, plural)
                             # time.sleep(0.5)
-                            deleteStructure(metadata_name, V1DeleteOptions(), group, version, plural)
+                            deleteStructure(metadata_name, group, version, plural)
                         else:
                             raise e
                 elif operation_type == 'DELETED':
@@ -1645,9 +1645,7 @@ def vMBackupExecutor(group, version, plural, jsondict):
 def get_disk_path_from_server(metadata_name):
     logger.debug("try get disk path from server")
     try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=GROUP_VM_DISK, version=VERSION_VM_DISK, namespace='default', plural=PLURAL_VM_DISK,
-            name=metadata_name)
+        jsondict = get_custom_object(GROUP_VM_DISK, VERSION_VM_DISK, PLURAL_VM_DISK, metadata_name)
         if 'volume' in jsondict['spec'].keys():
             return jsondict['spec']['volume']['current']
     except ApiException, e:
@@ -1685,16 +1683,14 @@ def get_kubesds_disk_info(type, pool, vol):
 def get_kubesds_disk_snapshot_info(type, pool, vol, name):
     return rpcCallWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), raise_it=False)
 
-def deleteStructure(name, body, group, version, plural):
+def deleteStructure(name, group, version, plural):
     logger.debug('deleteVMBackupdebug %s' % name)
-    retv = client.CustomObjectsApi().delete_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    retv = delete_custom_object(group, version, plural, name)
     return retv
 
 def get_backing_file_from_k8s(name):
     try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, namespace='default', plural=PLURAL_VM_DISK_SNAPSHOT, name=name)
+        jsondict = get_custom_object(GROUP_VM_DISK_SNAPSHOT, VERSION_VM_DISK_SNAPSHOT, PLURAL_VM_DISK_SNAPSHOT, name)
         return jsondict['spec']['volume']['full_backing_filename']
     except Exception:
         return None
@@ -1704,8 +1700,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
     try:
         # involved_object_name actually is nodeerror occurred during processing json data from apiserver
         try:
-            jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-                group=group, version=version, namespace=namespace, plural=plural, name=name)
+            jsonStr = get_custom_object(group, version, plural, name)
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**Object %s already deleted.' % name)
@@ -1755,8 +1750,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         jsonDict = updateDescription(jsonDict)
         jsonDict = updateNodeName(jsonDict)
         try:
-            client.CustomObjectsApi().replace_namespaced_custom_object(
-                group=group, version=version, namespace='default', plural=plural, name=name, body=jsonDict)
+            update_custom_object(group, version, plural, name, jsonDict)
         except ApiException, e:
             if e.reason == 'Conflict':
                 logger.debug('**Other process updated %s, ignore this 409 error.' % name)
@@ -1771,11 +1765,7 @@ def write_result_to_server(group, version, namespace, plural, name, result=None,
         raise ExecuteException('VirtctlError', 'write result to apiserver failure: %s' % info[1])
 
 def modify_disk(pool, poolname, name, group, version, plural):
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                      version=version,
-                                                                      namespace='default',
-                                                                      plural=plural,
-                                                                      name=name)
+    jsondict = get_custom_object(group, version, plural, name)
     if os.path.isfile("%s/%s/config.json" % (get_pool_info(poolname)['path'], name)):
         with open("%s/%s/config.json" % (get_pool_info(poolname)['path'], name), "r") as f:
             config = load(f)
@@ -1789,20 +1779,14 @@ def modify_disk(pool, poolname, name, group, version, plural):
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         try:
-            modifyStructure(name, body, group, version, plural)
+            update_custom_object(group, version, plural, name, body)
         except ApiException, e:
             logger.debug(traceback.format_exc())
             if e.reason == 'Conflict':
-                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                                  version=version,
-                                                                                  namespace='default',
-                                                                                  plural=plural,
-                                                                                  name=name)
-                jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                modifyStructure(name, body, group, version, plural)
+                logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+                return
             else:
-                logger.error(e)
+                raise e
 
 def modify_snapshot(data, group, version, plural):
     pool = data['pool']
@@ -1820,40 +1804,31 @@ def modify_snapshot(data, group, version, plural):
         vol_json = {'volume': volume}
 
 
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                          version=version,
-                                                                          namespace='default',
-                                                                          plural=plural,
-                                                                          name=name)
+        jsondict = get_custom_object(group, version, plural, name)
         jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
         try:
-            modifyStructure(name, body, group, version, plural)
+            update_custom_object(group, version, plural, name, body)
         except ApiException, e:
+            logger.debug(traceback.format_exc())
             if e.reason == 'Conflict':
-                jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                                  version=version,
-                                                                                  namespace='default',
-                                                                                  plural=plural,
-                                                                                  name=name)
-                jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
-                body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-                modifyStructure(name, body, group, version, plural)
+                logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+                return
             else:
-                logger.error(e)
+                raise e
 
-def modifyStructure(name, body, group, version, plural):
-    body = updateDescription(body)
-    try:
-        retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-    except ApiException, e:
-        if e.reason == 'Conflict':
-            logger.debug('**Other process updated %s, ignore this 409 error.' % name)
-            return None
-        else:
-            raise e
-    return retv
+# def modifyStructure(name, body, group, version, plural):
+#     body = updateDescription(body)
+#     try:
+#         retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+#             group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+#     except ApiException, e:
+#         if e.reason == 'Conflict':
+#             logger.debug('**Other process updated %s, ignore this 409 error.' % name)
+#             return None
+#         else:
+#             raise e
+#     return retv
 
 def _vm_priori_step(the_cmd_key, jsondict):
     if _isPlugDisk(the_cmd_key):
@@ -1865,10 +1840,9 @@ def _vm_priori_step(the_cmd_key, jsondict):
         if os.path.split(vmd_path)[0] == DEFAULT_VMD_TEMPLATE_DIR:
             raise ExecuteException('VirtctlError', "Cannot plug disk image %s." % vmd_path)
 
-def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
+def _rebuild_from_kubernetes(group, version, plural, metadata_name):
     try:
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+        jsonStr = get_custom_object(group, version, plural, metadata_name)
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**VM %s already deleted.' % metadata_name)
@@ -1892,29 +1866,27 @@ def _rebuild_from_kubernetes(group, version, namespace, plural, metadata_name):
     rpcCall('kubesds-adm changeDiskPool --xml %s' % xml_file)
     return True
         
-def _backup_json_to_file(group, version, namespace, plural, metadata_name):
-    try:
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
-    except ApiException, e:
-        if e.reason == 'Not Found':
-            logger.debug('**VM %s already deleted.' % metadata_name)
-            return
-        else:
-            raise e
-    if not os.path.exists(DEFAULT_JSON_BACKUP_DIR):
-        os.mkdir(DEFAULT_JSON_BACKUP_DIR)
-    backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
-    with open(backup_file, "w") as f1:
-        f1.write(jsonStr)
+# def _backup_json_to_file(group, version, plural, metadata_name):
+#     try:
+#         jsonStr = get_custom_object(group, version, plural, metadata_name)
+#     except ApiException, e:
+#         if e.reason == 'Not Found':
+#             logger.debug('**VM %s already deleted.' % metadata_name)
+#             return
+#         else:
+#             raise e
+#     if not os.path.exists(DEFAULT_JSON_BACKUP_DIR):
+#         os.mkdir(DEFAULT_JSON_BACKUP_DIR)
+#     backup_file = '%s/%s.json' % (DEFAULT_JSON_BACKUP_DIR, metadata_name)
+#     with open(backup_file, "w") as f1:
+#         f1.write(jsonStr)
         
-def _get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
-    try:
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
-    except ApiException, e:
-        raise e
-    return jsonStr['spec']['nodeName']
+# def _get_node_name_from_kubernetes(group, version, plural, metadata_name):
+#     try:
+#         jsonStr = get_custom_object(group, version, plural, metadata_name)
+#     except ApiException, e:
+#         raise e
+#     return jsonStr['spec']['nodeName']
         
 def _vm_prepare_step(the_cmd_key, jsondict, metadata_name):    
     operations_queue = []
@@ -2150,7 +2122,7 @@ def addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version,
     jsoncopy = jsoncopy.get('raw_object')
     try:
         body = updateDescription(jsoncopy)
-        client.CustomObjectsApi().create_namespaced_custom_object(group=group, version=version, namespace='default', plural=plural,  body=body)
+        create_custom_object(group, version, plural, body)
     except:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
@@ -2158,14 +2130,10 @@ def addResourceToServer(the_cmd_key, jsondict, newname, newdata, group, version,
 
 def deleteLifecycle(name, group, version, plural):
     try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                          version=version,
-                                                                          namespace='default',
-                                                                          plural=plural,
-                                                                          name=name)
+        jsondict = get_custom_object(group, version, plural, name)
         jsondict = deleteLifecycleInJson(jsondict)
         body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')
-        modifyStructure(name, body, group, version, plural)
+        update_custom_object(group, version, plural, name, body)
     except ApiException, e:
         pass
 
@@ -3463,8 +3431,7 @@ def _snapshot_file_exists(snapshot):
 
 def _set_vdiskfs_label_in_kubernetes(metadata_name):
     try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name)
+        jsondict = get_custom_object(GROUP_VM, VERSION_VM, PLURAL_VM, metadata_name)
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**Object %s already deleted.' % metadata_name)
@@ -3473,8 +3440,7 @@ def _set_vdiskfs_label_in_kubernetes(metadata_name):
             raise e
     jsondict['metadata']['labels']['vdiskfs'] = True
     try:
-        client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name, body=jsondict)
+        update_custom_object(GROUP_VM, VERSION_VM, PLURAL_VM, metadata_name, jsondict)
     except ApiException, e:
         if e.reason == 'Conflict':
             logger.error('**Conflict, other process updated %s.' % metadata_name)
@@ -3482,8 +3448,7 @@ def _set_vdiskfs_label_in_kubernetes(metadata_name):
 
 def _get_vdiskfs_label_in_kubernetes(metadata_name):
     try:
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=GROUP_VM, version=VERSION_VM, namespace='default', plural=PLURAL_VM, name=metadata_name)
+        jsondict = get_custom_object(GROUP_VM, VERSION_VM, PLURAL_VM, metadata_name)
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**Object %s already deleted.' % metadata_name)

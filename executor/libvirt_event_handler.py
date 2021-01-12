@@ -37,7 +37,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_target_devices, get_xml, vm_state, get_macs, get_nics, start
-from utils.utils import UserDefinedEvent, randomUUID, now_to_datetime, get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.utils import get_custom_object, update_custom_object, UserDefinedEvent, randomUUID, now_to_datetime, get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token, get_ha_from_kubernetes
 from utils import logger
 
@@ -142,8 +142,7 @@ class MyDomainEventHandler(threading.Thread):
                 ignore_pushing = False
                 step1_done = False
                 try:
-                    config.load_kube_config(config_file=TOKEN)
-                    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=vm_name)
+                    jsondict = get_custom_object(GROUP, VERSION, PLURAL, vm_name)
                 except ApiException, e:
                     if e.reason == 'Not Found':
                         logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
@@ -163,7 +162,7 @@ class MyDomainEventHandler(threading.Thread):
                         jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
                         body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
                         try:
-                            modifyVM(vm_name, body)
+                            update_custom_object(GROUP, VERSION, PLURAL, vm_name, body)
                         except ApiException, e:
                             if e.reason == 'Not Found':
                                 logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
@@ -319,19 +318,19 @@ def _getEventId(jsondict):
     logger.debug(labels)
     return labels.get('eventId') if labels.get('eventId') else '-1'
 
-def modifyVM(name, body):
-    config.load_kube_config(config_file=TOKEN)
-    body = updateDescription(body)
-    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)
-    return retv
+# def modifyVM(name, body):
+#     config.load_kube_config(config_file=TOKEN)
+#     body = updateDescription(body)
+#     retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+#         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=body)
+#     return retv
 
-def deleteVM(name):
-    config.load_kube_config(config_file=TOKEN)
-    logger.debug('deleteVMBackupdebug %s' % name)
-    retv = client.CustomObjectsApi().delete_namespaced_custom_object(
-        group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=V1DeleteOptions())
-    return retv
+# def deleteVM(name):
+#     config.load_kube_config(config_file=TOKEN)
+#     logger.debug('deleteVMBackupdebug %s' % name)
+#     retv = client.CustomObjectsApi().delete_namespaced_custom_object(
+#         group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=name, body=V1DeleteOptions())
+#     return retv
 
 def xmlToJson(xmlStr):
     return dumps(bf.data(fromstring(xmlStr)), sort_keys=True, indent=4)

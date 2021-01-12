@@ -35,7 +35,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils/libvirt_util.py' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import is_vm_exists, __get_conn, get_xml, vm_state, freecpu, freemem, node_info, list_active_vms, list_vms, destroy, undefine, is_vm_active, start
-from utils.utils import change_master_and_reload_config, updateDescription, addPowerStatusMessage, updateDomain, CDaemon, runCmd, get_field_in_kubernetes_by_index, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
+from utils.utils import get_custom_object, update_custom_object, delete_custom_object, change_master_and_reload_config, updateDescription, addPowerStatusMessage, updateDomain, CDaemon, runCmd, get_field_in_kubernetes_by_index, get_hostname_in_lower_case, get_node_name_from_kubernetes, get_ha_from_kubernetes
 from utils import logger
 
 class parser(ConfigParser.ConfigParser):  
@@ -149,7 +149,7 @@ def _check_and_enable_HA():
 def _check_vm_power_state(group, version, plural, metadata_name):
     try:
         logger.debug('3.Check the power state of VM: %s' % metadata_name)
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=GROUP, version=VERSION, namespace='default', plural=PLURAL, name=metadata_name)
+        jsondict = get_custom_object(group, version, plural, metadata_name)
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**VM %s already deleted, ignore this 404 error.' % metadata_name)
@@ -163,7 +163,7 @@ def _check_vm_power_state(group, version, plural, metadata_name):
         jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
         body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
         try:
-            modifyVM(group, version, plural, metadata_name, body)
+            update_custom_object(group, version, plural, metadata_name, body)
         except ApiException, e:
             if e.reason == 'Not Found':
                 logger.debug('**VM %s already deleted, ignore this 404.' % metadata_name)
@@ -177,8 +177,7 @@ def _check_vm_power_state(group, version, plural, metadata_name):
 
 def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     try:
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+        jsonStr = get_custom_object(group, version, plural, metadata_name)
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**VM %s already deleted.' % metadata_name)
@@ -191,11 +190,22 @@ def _backup_json_to_file(group, version, namespace, plural, metadata_name):
     with open(backup_file, "w") as f1:
         f1.write(dumps(jsonStr))
 
-def modifyVM(group, version, plural, name, body):
-    body = updateDescription(body)
-    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
-    return retv
+# def modifyVM(group, version, plural, name, body):
+#     for i in range(1,5):
+#         try:
+#             body = updateDescription(body)
+#             retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+#                 group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+#             return retv
+#         except Exception, e:
+#             if e.reason == 'Not Found':
+#                 raise e
+#             elif i == 5:
+#                 raise e
+#             else:
+#                 time.sleep(3)
+#                 continue
+        
         
 def xmlToJson(xmlStr):
     return dumps(bf.data(fromstring(xmlStr)), sort_keys=True, indent=4)

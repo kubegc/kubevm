@@ -32,6 +32,7 @@ from pprint import pformat
 from six import iteritems
 from xml.etree import ElementTree
 from collections import namedtuple
+from kubernetes.client import V1DeleteOptions
 
 '''
 Import third party libs
@@ -48,6 +49,85 @@ class parser(ConfigParser.ConfigParser):
 DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
 RESOURCE_FILE_PATH = '/etc/kubevmm/resource'
 OVN_CONFIG_FILE = '/etc/ovn.conf'
+
+def create_custom_object(group, version, plural, body):
+    for i in range(1,5):
+        try:
+            config.load_kube_config(config_file=TOKEN)
+            retv = client.CustomObjectsApi().create_namespaced_custom_object(group=group, 
+                version=version, namespace='default', plural=plural,  body=body)
+            return retv
+        except Exception, e:   
+            if i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
+
+def get_custom_object(group, version, plural, metadata_name):
+    for i in range(1,5):
+        try:
+            config.load_kube_config(config_file=TOKEN)
+            jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
+                group=group, version=version, namespace='default', plural=plural, name=metadata_name)
+            return jsonStr
+        except Exception, e:   
+            if e.reason == 'Not Found':
+                raise e
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
+
+def list_custom_object(group, version, plural):
+    for i in range(1,5):
+        try:
+            config.load_kube_config(config_file=TOKEN)
+            jsonStr = client.CustomObjectsApi().list_cluster_custom_object(
+                group=group, version=version, plural=plural).get('items')
+            return jsonStr
+        except Exception, e:   
+            if e.reason == 'Not Found':
+                raise e
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
+            
+def update_custom_object(group, version, plural, metadata_name, body):
+    for i in range(1,5):
+        try:
+            config.load_kube_config(config_file=TOKEN)
+            body = updateDescription(body)
+            retv = client.CustomObjectsApi().replace_namespaced_custom_object(
+                group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=body)
+            return retv
+        except Exception, e:   
+            if e.reason == 'Not Found':
+                raise e
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
+            
+def delete_custom_object(group, version, plural, metadata_name):
+    for i in range(1,5):
+        try:
+            config.load_kube_config(config_file=TOKEN)
+            retv = client.CustomObjectsApi().delete_namespaced_custom_object(
+                group=group, version=version, namespace='default', plural=plural, name=metadata_name, body=V1DeleteOptions())
+            return retv
+        except Exception, e:   
+            if e.reason == 'Not Found':
+                return
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
 
 def get_IP():
     myname = socket.getfqdn(socket.gethostname())
@@ -342,23 +422,20 @@ def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     try:
         if not index or not list(index):
             return None
-        jsondict = client.CustomObjectsApi().get_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name)
+        jsondict = get_custom_object(group, version, plural, name)
         return get_field(jsondict, index)
     except:
         return None
 
 def list_objects_in_kubernetes(group, version, plural):
     try:
-        return client.CustomObjectsApi().list_cluster_custom_object(
-        group=group, version=version, plural=plural).get('items')
+        return list_custom_object(group, version, plural)
     except:
         return None
     
 def get_node_name_from_kubernetes(group, version, namespace, plural, metadata_name):
     try:
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+        jsonStr = get_custom_object(group, version, plural, metadata_name)
     except ApiException, e:
         if e.reason == 'Not Found':
             return None
@@ -368,8 +445,7 @@ def get_node_name_from_kubernetes(group, version, namespace, plural, metadata_na
 
 def get_ha_from_kubernetes(group, version, namespace, plural, metadata_name):
     try:
-        jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-            group=group, version=version, namespace=namespace, plural=plural, name=metadata_name)
+        jsonStr = get_custom_object(group, version, plural, metadata_name)
     except ApiException, e:
         if e.reason == 'Not Found':
             return False
@@ -624,29 +700,19 @@ class TimeoutError(Exception):
     pass 
 
 def report_failure(name, jsondict, error_reason, error_message, group, version, plural):
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group, 
-                                                                      version=version, 
-                                                                      namespace='default', 
-                                                                      plural=plural, 
-                                                                      name=name)
+    jsondict = get_custom_object(group, version, plural, name)
     jsondict = deleteLifecycleInJson(jsondict)
     jsondict = updateDescription(jsondict)
     body = addExceptionMessage(jsondict, error_reason, error_message)
-    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    retv = update_custom_object(group, version, plural, name, body)
     return retv
 
 def report_success(name, jsondict, success_reason, success_message, group, version, plural):
-    jsondict = client.CustomObjectsApi().get_namespaced_custom_object(group=group,
-                                                                      version=version,
-                                                                      namespace='default',
-                                                                      plural=plural,
-                                                                      name=name)
+    jsondict = get_custom_object(group, version, plural, name)
     jsondict = deleteLifecycleInJson(jsondict)
     jsondict = updateDescription(jsondict)
     body = addPowerStatusMessage(jsondict, success_reason, success_message)
-    retv = client.CustomObjectsApi().replace_namespaced_custom_object(
-        group=group, version=version, namespace='default', plural=plural, name=name, body=body)
+    retv = update_custom_object(group, version, plural, name, body)
     return retv
 
 def get_spec(jsondict):

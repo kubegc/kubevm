@@ -47,6 +47,13 @@ class parser(ConfigParser.ConfigParser):
     def optionxform(self, optionstr):  
         return optionstr
 
+cfg = "/etc/kubevmm/config"
+if not os.path.exists(cfg):
+    cfg = "/home/kubevmm/bin/config"
+config_raw = parser()
+config_raw.read(cfg)
+TOKEN = config_raw.get('Kubernetes', 'token_file')
+
 DEFAULT_TT_FILE_PATH = '/root/noVNC/websockify/token/token.conf'
 RESOURCE_FILE_PATH = '/etc/kubevmm/resource'
 OVN_CONFIG_FILE = '/etc/ovn.conf'

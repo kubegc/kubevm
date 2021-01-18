@@ -153,8 +153,10 @@ def _check_vm_power_state(group, version, plural, metadata_name):
     except ApiException, e:
         if e.reason == 'Not Found':
             logger.debug('**VM %s already deleted, ignore this 404 error.' % metadata_name)
+            return
     except Exception, e:
         logger.error('Oops! ', exc_info=1)
+        return
     if is_vm_exists(metadata_name):
         vm_xml = get_xml(metadata_name)
         vm_power_state = vm_state(metadata_name).get(metadata_name)

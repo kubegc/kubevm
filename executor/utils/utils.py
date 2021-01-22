@@ -72,7 +72,14 @@ def create_custom_object(group, version, plural, body):
                 time.sleep(3)
                 continue
         except Exception, e:
-            raise e
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+                time.sleep(3)
+                continue
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
 
 def get_custom_object(group, version, plural, metadata_name):
     for i in range(1,5):
@@ -90,7 +97,14 @@ def get_custom_object(group, version, plural, metadata_name):
                 time.sleep(3)
                 continue
         except Exception, e:
-            raise e
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+                time.sleep(3)
+                continue
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
 
 def list_custom_object(group, version, plural):
     for i in range(1,5):
@@ -108,7 +122,14 @@ def list_custom_object(group, version, plural):
                 time.sleep(3)
                 continue
         except Exception, e:
-            raise e
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+                time.sleep(3)
+                continue
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
             
 def update_custom_object(group, version, plural, metadata_name, body):
     for i in range(1,5):
@@ -127,7 +148,14 @@ def update_custom_object(group, version, plural, metadata_name, body):
                 time.sleep(3)
                 continue
         except Exception, e:
-            raise e
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+                time.sleep(3)
+                continue
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
             
 def delete_custom_object(group, version, plural, metadata_name):
     for i in range(1,5):
@@ -145,7 +173,14 @@ def delete_custom_object(group, version, plural, metadata_name):
                 time.sleep(3)
                 continue
         except Exception, e:
-            raise e
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+                time.sleep(3)
+                continue
+            elif i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
 
 def get_IP():
     myname = socket.getfqdn(socket.gethostname())

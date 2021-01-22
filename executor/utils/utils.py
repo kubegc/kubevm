@@ -59,7 +59,7 @@ RESOURCE_FILE_PATH = '/etc/kubevmm/resource'
 OVN_CONFIG_FILE = '/etc/ovn.conf'
 
 def create_custom_object(group, version, plural, body):
-    for i in range(1,5):
+    for i in range(1,6):
         try:
             config.load_kube_config(config_file=TOKEN)
             retv = client.CustomObjectsApi().create_namespaced_custom_object(group=group, 
@@ -82,7 +82,7 @@ def create_custom_object(group, version, plural, body):
                 continue
 
 def get_custom_object(group, version, plural, metadata_name):
-    for i in range(1,5):
+    for i in range(1,6):
         try:
             config.load_kube_config(config_file=TOKEN)
             jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -107,7 +107,7 @@ def get_custom_object(group, version, plural, metadata_name):
                 continue
 
 def list_custom_object(group, version, plural):
-    for i in range(1,5):
+    for i in range(1,6):
         try:
             config.load_kube_config(config_file=TOKEN)
             jsonStr = client.CustomObjectsApi().list_cluster_custom_object(
@@ -132,7 +132,7 @@ def list_custom_object(group, version, plural):
                 continue
             
 def update_custom_object(group, version, plural, metadata_name, body):
-    for i in range(1,5):
+    for i in range(1,6):
         try:
             config.load_kube_config(config_file=TOKEN)
             body = updateDescription(body)
@@ -158,7 +158,7 @@ def update_custom_object(group, version, plural, metadata_name, body):
                 continue
             
 def delete_custom_object(group, version, plural, metadata_name):
-    for i in range(1,5):
+    for i in range(1,6):
         try:
             config.load_kube_config(config_file=TOKEN)
             retv = client.CustomObjectsApi().delete_namespaced_custom_object(

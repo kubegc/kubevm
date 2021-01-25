@@ -5,7 +5,6 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
-from executor.utils.utils import delete_custom_object
 
 '''
 Import python libs
@@ -38,7 +37,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_target_devices, get_xml, vm_state, get_macs, get_nics, start
-from utils.utils import get_custom_object, update_custom_object, UserDefinedEvent, randomUUID, now_to_datetime, get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.utils import delete_custom_object, get_custom_object, update_custom_object, UserDefinedEvent, randomUUID, now_to_datetime, get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token, get_ha_from_kubernetes
 from utils import logger
 

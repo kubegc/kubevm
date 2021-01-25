@@ -138,6 +138,14 @@ class MyDomainEventHandler(threading.Thread):
                 except:
                     logger.error('Oops! ', exc_info=1)
                 try:
+                    jsondict = get_custom_object(GROUP, VERSION, PLURAL, vm_name)
+                    #             block_json = get_block_dev_json(name)
+                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, {})
+                    update_custom_object(GROUP, VERSION, PLURAL, vm_name, jsondict)
+                except ApiException, e:
+                    if e.reason == 'Not Found':
+                        logger.debug('**VM %s already deleted, ignore this 404 message.' % vm_name)
+                try:
                     jsondict = delete_custom_object(GROUP, VERSION, PLURAL, vm_name)
                 except ApiException, e:
                     if e.reason == 'Not Found':

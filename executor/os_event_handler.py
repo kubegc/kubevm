@@ -764,6 +764,21 @@ class VmBlockDevEventHandler(FileSystemEventHandler):
             #             logger.debug("file modified:{0}".format(event.src_path))
             pass
 
+def _solve_conflict_in_VM(name, group, version, plural):
+    for i in range(1, 6):
+        try:
+            jsondict = get_custom_object(group, version, plural, name)
+            jsondict['metadata']['labels']['host'] = HOSTNAME
+            vm_xml = get_xml(name)
+            vm_json = toKubeJson(xmlToJson(vm_xml))
+            vm_json = updateDomain(loads(vm_json))
+            body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+            body = addNodeName(jsondict)
+            update_custom_object(group, version, plural, name, body)
+            return
+        except Exception, e:
+            if i == 5:
+                raise e
 
 def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
     #     print(jsondict)
@@ -784,14 +799,7 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                 create_custom_object(group, version, plural, body)
             except ApiException, e:
                 if e.reason == 'Conflict':
-                    jsondict = get_custom_object(group, version, plural, name)
-                    jsondict['metadata']['labels']['host'] = HOSTNAME
-                    vm_xml = get_xml(name)
-                    vm_json = toKubeJson(xmlToJson(vm_xml))
-                    vm_json = updateDomain(loads(vm_json))
-                    body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
-                    body = addNodeName(jsondict)
-                    update_custom_object(group, version, plural, name, body)
+                    _solve_conflict_in_VM(name, group, version, plural)
                 logger.error(e)
 
         except:

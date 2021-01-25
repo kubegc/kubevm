@@ -144,6 +144,8 @@ def update_custom_object(group, version, plural, metadata_name, body):
         except ApiException, e:   
             if e.reason == 'Not Found':
                 raise e
+            elif e.reason == 'conflict':
+                raise e
             elif i == 5:
                 raise e
             else:

@@ -5,6 +5,7 @@ Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
 '''
+from executor.utils.utils import delete_custom_object
 
 '''
 Import python libs
@@ -136,7 +137,13 @@ class MyDomainEventHandler(threading.Thread):
                     runCmd(cmd)
                 except:
                     logger.error('Oops! ', exc_info=1)
-                
+                try:
+                    jsondict = delete_custom_object(GROUP, VERSION, PLURAL, vm_name)
+                except ApiException, e:
+                    if e.reason == 'Not Found':
+                        logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+                except Exception, e:
+                    logger.error('Oops! ', exc_info=1)
             else:
             #             deleteVM(vm_name, V1DeleteOptions())
                 ignore_pushing = False

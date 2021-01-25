@@ -784,6 +784,13 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
                 create_custom_object(group, version, plural, body)
             except ApiException, e:
                 if e.reason == 'Conflict':
+                    jsondict = get_custom_object(group, version, plural, name)
+                    jsondict['metadata']['labels']['host'] = HOSTNAME
+                    vm_xml = get_xml(name)
+                    vm_json = toKubeJson(xmlToJson(vm_xml))
+                    vm_json = updateDomain(loads(vm_json))
+                    body = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
+                    body = addNodeName(jsondict)
                     update_custom_object(group, version, plural, name, body)
                 logger.error(e)
 

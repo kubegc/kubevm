@@ -65,8 +65,10 @@ def create_custom_object(group, version, plural, body):
             retv = client.CustomObjectsApi().create_namespaced_custom_object(group=group, 
                 version=version, namespace='default', plural=plural,  body=body)
             return retv
-        except ApiException, e:   
-            if i == 5:
+        except ApiException, e: 
+            if e.reason == 'Conflict':  
+                raise
+            elif i == 5:
                 raise e
             else:
                 time.sleep(3)

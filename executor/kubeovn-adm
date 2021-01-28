@@ -426,7 +426,7 @@ function delbridge-vlan()
 
   ovs-vsctl set port $name"-"$vlan fake_bridge=false
 
-  ovs-vsctl --if-exist del-br $name"-"$vlan
+  ovs-vsctl --if-exist del-port $name"-"$vlan
 }
 
 

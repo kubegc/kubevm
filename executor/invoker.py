@@ -254,30 +254,31 @@ def main():
         logger.error('Oops! ', exc_info=1)
         
 def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-#     fail_times = 0
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                    group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_executor'
-            thread.start()
-#             fail_times = 0
-#             thread.join()
-    except Exception, e:
-#             master_ip = change_master_and_reload_config(fail_times)
-        config.load_kube_config(config_file=TOKEN)
-#             fail_times += 1
-#             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
-        vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
-        time.sleep(3)
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+    #     fail_times = 0
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                        group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_executor'
+                thread.start()
+    #             fail_times = 0
+    #             thread.join()
+        except Exception, e:
+    #             master_ip = change_master_and_reload_config(fail_times)
+            config.load_kube_config(config_file=TOKEN)
+    #             fail_times += 1
+    #             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+            info=sys.exc_info()
+            logger.warning('Oops! ', exc_info=1)
+#             vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
+            time.sleep(3)
         
 def vMExecutor(group, version, plural, jsondict):
     try:
@@ -338,7 +339,7 @@ def vMExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, operation_name, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, operation_name, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
 #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -459,7 +460,7 @@ def vMExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -481,25 +482,26 @@ def vMExecutor(group, version, plural, jsondict):
             _release_mutex_lock(the_cmd_key)
                 
 def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                       group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMDiskExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_disk_executor'
-            thread.start()
-#             thread.join() 
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        logger.warning('Oops! ', exc_info=1)
-        vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
-        time.sleep(3)
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                           group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMDiskExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_disk_executor'
+                thread.start()
+    #             thread.join() 
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+            logger.warning('Oops! ', exc_info=1)
+#             vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
+            time.sleep(3)
 
 def vMDiskExecutor(group, version, plural, jsondict):
     try:
@@ -526,7 +528,7 @@ def vMDiskExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
             pool_name = _get_field(jsondict, the_cmd_key, 'pool')
@@ -633,7 +635,7 @@ def vMDiskExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -652,24 +654,25 @@ def vMDiskExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
                 
 def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                       group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMDiskImageExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_disk_image_executor'
-            thread.start()
-#             thread.join()
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
-        time.sleep(3)
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                           group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMDiskImageExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_disk_image_executor'
+                thread.start()
+    #             thread.join()
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+#             vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
+            time.sleep(3)
 
 def vMDiskImageExecutor(group, version, plural, jsondict):
     try:
@@ -696,7 +699,7 @@ def vMDiskImageExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
             sourcePool = _get_field(jsondict, the_cmd_key, 'sourcePool')
@@ -795,7 +798,7 @@ def vMDiskImageExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -814,24 +817,25 @@ def vMDiskImageExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
                 
 def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                       group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMDiskSnapshotExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_disk_snapshot_executor'
-            thread.start()
-#             thread.join()
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
-        time.sleep(3)
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                           group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMDiskSnapshotExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_disk_snapshot_executor'
+                thread.start()
+    #             thread.join()
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+#             vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
+            time.sleep(3)
 
 def vMDiskSnapshotExecutor(group, version, plural, jsondict):        
     try:
@@ -858,7 +862,7 @@ def vMDiskSnapshotExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
             pool_name = _get_field(jsondict, the_cmd_key, 'pool')
@@ -924,7 +928,7 @@ def vMDiskSnapshotExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -943,24 +947,25 @@ def vMDiskSnapshotExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
                 
 def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                    group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMImageExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_image_executor'
-            thread.start()
-#             thread.join()         
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
-        time.sleep(3)  
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                        group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMImageExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_image_executor'
+                thread.start()
+    #             thread.join()         
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+#             vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
+            time.sleep(3)  
 
 def vMImageExecutor(group, version, plural, jsondict):   
     try:
@@ -991,7 +996,7 @@ def vMImageExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
 #             jsondict = _injectEventIntoLifecycle(jsondict, event.to_dict())
@@ -1069,7 +1074,7 @@ def vMImageExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -1088,24 +1093,25 @@ def vMImageExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
         
 def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                    group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMSnapshotExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_snapshot_executor'
-            thread.start()
-#             thread.join()   
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
-        time.sleep(3)  
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                        group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMSnapshotExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_snapshot_executor'
+                thread.start()
+    #             thread.join()   
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+#             vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
+            time.sleep(3)  
 
 def vMSnapshotExecutor(group, version, plural, jsondict): 
     try:
@@ -1132,7 +1138,7 @@ def vMSnapshotExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
             vm_name = _get_field(jsondict, the_cmd_key, 'domain')
@@ -1232,7 +1238,7 @@ def vMSnapshotExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -1251,24 +1257,25 @@ def vMSnapshotExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
 
 def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                       group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMNetworkExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_network_executor'
-            thread.start()
-#             thread.join()     
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
-        time.sleep(3)
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                           group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMNetworkExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_network_executor'
+                thread.start()
+    #             thread.join()     
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+#             vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
+            time.sleep(3)
 
 def vMNetworkExecutor(group, version, plural, jsondict): 
     try:
@@ -1295,7 +1302,7 @@ def vMNetworkExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
             if not _isDeleteSwPort(the_cmd_key):
@@ -1372,7 +1379,7 @@ def vMNetworkExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -1391,24 +1398,25 @@ def vMNetworkExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
 
 def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                       group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMPoolExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_pool_executor'
-            thread.start()
-#             thread.join()     
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
-        time.sleep(3)
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                           group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMPoolExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_pool_executor'
+                thread.start()
+    #             thread.join()     
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+#             vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
+            time.sleep(3)
 
 def vMPoolExecutor(group, version, plural, jsondict):
     try:
@@ -1435,7 +1443,7 @@ def vMPoolExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
             jsondict = forceUsingMetadataName(metadata_name, the_cmd_key, jsondict)
@@ -1504,7 +1512,7 @@ def vMPoolExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -1523,24 +1531,25 @@ def vMPoolExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
 
 def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP):
-    watcher = watch.Watch()
-    kwargs = {}
-    kwargs['label_selector'] = LABEL
-    kwargs['watch'] = True
-    kwargs['timeout_seconds'] = int(TIMEOUT)
-    try:
-        for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                       group=group, version=version, plural=plural, **kwargs):
-            thread = Thread(target=vMBackupExecutor,args=(group, version, plural, jsondict))
-            thread.daemon = True
-            thread.name = 'vm_backup_executor'
-            thread.start()
-#             thread.join()
-    except Exception, e:
-        config.load_kube_config(config_file=TOKEN)
-        info=sys.exc_info()
-        vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
-        time.sleep(3)  
+    while True:
+        watcher = watch.Watch()
+        kwargs = {}
+        kwargs['label_selector'] = LABEL
+        kwargs['watch'] = True
+        kwargs['timeout_seconds'] = int(TIMEOUT)
+        try:
+            for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
+                                           group=group, version=version, plural=plural, **kwargs):
+                thread = Thread(target=vMBackupExecutor,args=(group, version, plural, jsondict))
+                thread.daemon = True
+                thread.name = 'vm_backup_executor'
+                thread.start()
+    #             thread.join()
+        except Exception, e:
+            config.load_kube_config(config_file=TOKEN)
+            info=sys.exc_info()
+#             vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
+            time.sleep(3)  
 
 def vMBackupExecutor(group, version, plural, jsondict):
     try:
@@ -1567,7 +1576,7 @@ def vMBackupExecutor(group, version, plural, jsondict):
             message = 'type:%s, name:%s, operation:%s, status:%s, reporter:%s, eventId:%s, duration:%f' % (involved_object_kind, involved_object_name, the_cmd_key, status, reporter, event_id, (time_end - time_start).total_seconds())
             event = UserDefinedEvent(event_metadata_name, time_start, time_end, involved_object_name, involved_object_kind, message, the_cmd_key, event_type)
             try:
-                event.registerKubernetesEvent()
+                _registerEventLoop(event)
             except:
                 logger.error('Oops! ', exc_info=1)
             logger.debug(dumps(jsondict))
@@ -1624,7 +1633,7 @@ def vMBackupExecutor(group, version, plural, jsondict):
                     event.set_message(message)
                     event.set_time_end(time_end)
                     try:
-                        event.updateKubernetesEvent()
+                        _updateEventLoop(event)
                     except:
                         logger.warning('Oops! ', exc_info=1)
     except ExecuteException, e:
@@ -1641,6 +1650,28 @@ def vMBackupExecutor(group, version, plural, jsondict):
             report_failure(metadata_name, jsondict, 'Exception', str(info[1]), group, version, plural)
         except:
             logger.warning('Oops! ', exc_info=1)
+
+def _registerEventLoop(event):
+    for i in range(1,6):
+        try:
+            event.registerKubernetesEvent()
+            return
+        except Exception, e:
+            if i == 5:
+                raise e
+            else:
+                time.sleep(3)
+            
+def _updateEventLoop(event):
+    for i in range(1,6):
+        try:
+            event.updateKubernetesEvent()
+            return
+        except Exception, e:
+            if i == 5:
+                raise e
+            else:
+                time.sleep(3)
 
 def get_disk_path_from_server(metadata_name):
     logger.debug("try get disk path from server")

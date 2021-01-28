@@ -800,7 +800,8 @@ def myVmLibvirtXmlEventHandler(event, name, xml_path, group, version, plural):
             except ApiException, e:
                 if e.reason == 'Conflict':
                     _solve_conflict_in_VM(name, group, version, plural)
-                logger.error(e)
+                else:
+                    logger.error(e)
 
         except:
             logger.error('Oops! ', exc_info=1)

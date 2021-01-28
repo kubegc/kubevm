@@ -1672,6 +1672,7 @@ def vMBackupExecutor(group, version, plural, jsondict):
 def _registerEventLoop(event):
     for i in range(1,10):
         try:
+            config.load_kube_config(config_file=TOKEN)
             event.registerKubernetesEvent()
             return
         except Exception, e:
@@ -1683,6 +1684,7 @@ def _registerEventLoop(event):
 def _updateEventLoop(event):
     for i in range(1,10):
         try:
+            config.load_kube_config(config_file=TOKEN)
             event.updateKubernetesEvent()
             return
         except Exception, e:

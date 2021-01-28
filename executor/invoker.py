@@ -1670,23 +1670,23 @@ def vMBackupExecutor(group, version, plural, jsondict):
             logger.warning('Oops! ', exc_info=1)
 
 def _registerEventLoop(event):
-    for i in range(1,6):
+    for i in range(1,10):
         try:
             event.registerKubernetesEvent()
             return
         except Exception, e:
-            if i == 5:
+            if i == 9:
                 raise e
             else:
                 time.sleep(3)
             
 def _updateEventLoop(event):
-    for i in range(1,6):
+    for i in range(1,10):
         try:
             event.updateKubernetesEvent()
             return
         except Exception, e:
-            if i == 5:
+            if i == 9:
                 raise e
             else:
                 time.sleep(3)

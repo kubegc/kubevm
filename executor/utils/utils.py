@@ -59,7 +59,7 @@ RESOURCE_FILE_PATH = '/etc/kubevmm/resource'
 OVN_CONFIG_FILE = '/etc/ovn.conf'
 
 def create_custom_object(group, version, plural, body):
-    for i in range(1,6):
+    for i in range(1,10):
         try:
             config.load_kube_config(config_file=TOKEN)
             retv = client.CustomObjectsApi().create_namespaced_custom_object(group=group, 
@@ -68,23 +68,23 @@ def create_custom_object(group, version, plural, body):
         except ApiException, e: 
             if e.reason == 'Conflict':  
                 raise
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
         except Exception, e:
-            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 9:
                 time.sleep(3)
                 continue
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
 
 def get_custom_object(group, version, plural, metadata_name):
-    for i in range(1,6):
+    for i in range(1,10):
         try:
             config.load_kube_config(config_file=TOKEN)
             jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
@@ -93,23 +93,23 @@ def get_custom_object(group, version, plural, metadata_name):
         except ApiException, e:   
             if e.reason == 'Not Found':
                 raise e
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
         except Exception, e:
-            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 9:
                 time.sleep(3)
                 continue
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
 
 def list_custom_object(group, version, plural):
-    for i in range(1,6):
+    for i in range(1,10):
         try:
             config.load_kube_config(config_file=TOKEN)
             jsonStr = client.CustomObjectsApi().list_cluster_custom_object(
@@ -118,23 +118,23 @@ def list_custom_object(group, version, plural):
         except ApiException, e:   
             if e.reason == 'Not Found':
                 raise e
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
         except Exception, e:
-            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 9:
                 time.sleep(3)
                 continue
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
             
 def update_custom_object(group, version, plural, metadata_name, body):
-    for i in range(1,6):
+    for i in range(1,10):
         try:
             config.load_kube_config(config_file=TOKEN)
             body = updateDescription(body)
@@ -146,23 +146,23 @@ def update_custom_object(group, version, plural, metadata_name, body):
                 raise e
             elif e.reason == 'conflict':
                 raise e
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
         except Exception, e:
-            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 9:
                 time.sleep(3)
                 continue
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
             
 def delete_custom_object(group, version, plural, metadata_name):
-    for i in range(1,6):
+    for i in range(1,10):
         try:
             config.load_kube_config(config_file=TOKEN)
             retv = client.CustomObjectsApi().delete_namespaced_custom_object(
@@ -171,16 +171,16 @@ def delete_custom_object(group, version, plural, metadata_name):
         except ApiException, e:   
             if e.reason == 'Not Found':
                 return
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)
                 continue
         except Exception, e:
-            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 5:
+            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1 and i != 9:
                 time.sleep(3)
                 continue
-            elif i == 5:
+            elif i == 9:
                 raise e
             else:
                 time.sleep(3)

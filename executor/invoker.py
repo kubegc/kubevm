@@ -262,6 +262,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
         kwargs['timeout_seconds'] = int(TIMEOUT)
     #     fail_times = 0
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                         group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMExecutor,args=(group, version, plural, jsondict))
@@ -279,6 +280,7 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
             logger.warning('Oops! ', exc_info=1)
 #             vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
             time.sleep(3)
+            continue
         
 def vMExecutor(group, version, plural, jsondict):
     try:
@@ -489,6 +491,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                            group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMDiskExecutor,args=(group, version, plural, jsondict))
@@ -502,6 +505,7 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
             logger.warning('Oops! ', exc_info=1)
 #             vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
             time.sleep(3)
+            continue
 
 def vMDiskExecutor(group, version, plural, jsondict):
     try:
@@ -661,6 +665,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                            group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMDiskImageExecutor,args=(group, version, plural, jsondict))
@@ -673,6 +678,7 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
             info=sys.exc_info()
 #             vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
             time.sleep(3)
+            continue
 
 def vMDiskImageExecutor(group, version, plural, jsondict):
     try:
@@ -824,6 +830,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                            group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMDiskSnapshotExecutor,args=(group, version, plural, jsondict))
@@ -836,6 +843,7 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
             info=sys.exc_info()
 #             vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
             time.sleep(3)
+            continue
 
 def vMDiskSnapshotExecutor(group, version, plural, jsondict):        
     try:
@@ -954,6 +962,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                         group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMImageExecutor,args=(group, version, plural, jsondict))
@@ -966,6 +975,7 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
             info=sys.exc_info()
 #             vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
             time.sleep(3)  
+            continue
 
 def vMImageExecutor(group, version, plural, jsondict):   
     try:
@@ -1100,6 +1110,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                         group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMSnapshotExecutor,args=(group, version, plural, jsondict))
@@ -1112,6 +1123,7 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
             info=sys.exc_info()
 #             vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
             time.sleep(3)  
+            continue
 
 def vMSnapshotExecutor(group, version, plural, jsondict): 
     try:
@@ -1264,6 +1276,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                            group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMNetworkExecutor,args=(group, version, plural, jsondict))
@@ -1276,6 +1289,7 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
             info=sys.exc_info()
 #             vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
             time.sleep(3)
+            continue
 
 def vMNetworkExecutor(group, version, plural, jsondict): 
     try:
@@ -1405,6 +1419,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                            group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMPoolExecutor,args=(group, version, plural, jsondict))
@@ -1417,6 +1432,7 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
             info=sys.exc_info()
 #             vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
             time.sleep(3)
+            continue
 
 def vMPoolExecutor(group, version, plural, jsondict):
     try:
@@ -1538,6 +1554,7 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
         kwargs['watch'] = True
         kwargs['timeout_seconds'] = int(TIMEOUT)
         try:
+            config.load_kube_config(config_file=TOKEN)
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                            group=group, version=version, plural=plural, **kwargs):
                 thread = Thread(target=vMBackupExecutor,args=(group, version, plural, jsondict))
@@ -1550,6 +1567,7 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
             info=sys.exc_info()
 #             vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
             time.sleep(3)  
+            continue
 
 def vMBackupExecutor(group, version, plural, jsondict):
     try:

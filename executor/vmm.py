@@ -1120,6 +1120,23 @@ def toKubeJson(json):
     return json.replace('@', '_').replace('$', 'text').replace(
             'interface', '_interface').replace('transient', '_transient').replace(
                     'nested-hv', 'nested_hv').replace('suspend-to-mem', 'suspend_to_mem').replace('suspend-to-disk', 'suspend_to_disk')
+
+def _solve_conflict_in_create_vmdi(name, group, version, plural, params):
+    for i in range(1, 6):
+        try:
+            jsondict = get_custom_object(group, version, plural, name)
+            vol_json = {'volume': get_vol_info_by_qemu(params.get('current'))}
+            vol_json = add_spec_in_volume(vol_json, 'current', params.get('current'))
+            vol_json = add_spec_in_volume(vol_json, 'disk', name)
+            vol_json = add_spec_in_volume(vol_json, 'pool', params.get('pool'))
+            vol_json = add_spec_in_volume(vol_json, 'poolname', params.get('poolname'))
+            jsondict = updateJsonRemoveLifecycle(jsondict, vol_json)
+            body = addPowerStatusMessage(jsondict, 'Ready', 'The resource is ready.')  
+            update_custom_object(group, version, plural, name, body)
+            return
+        except Exception, e:
+            if i == 5:
+                raise e
                     
 def write_result_to_server(name, op, kind, plural, params):
     if op == 'create':
@@ -1140,8 +1157,11 @@ def write_result_to_server(name, op, kind, plural, params):
         try:
             create_custom_object(GROUP, VERSION, plural, body)
         except ApiException, e:
-            logger.error(e)
-            raise e  
+            if e.reason == 'Conflict':
+                _solve_conflict_in_create_vmdi(name, GROUP, VERSION, plural, params)
+            else:
+                logger.error(e)
+                raise e  
     elif op == 'delete':
         try:
             refresh_pool(params.get('pool'))

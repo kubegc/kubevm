@@ -37,7 +37,7 @@ Import local libs
 '''
 # sys.path.append('%s/utils' % (os.path.dirname(os.path.realpath(__file__))))
 from utils.libvirt_util import get_target_devices, get_xml, vm_state, get_macs, get_nics, start
-from utils.utils import delete_custom_object, get_custom_object, update_custom_object, UserDefinedEvent, randomUUID, now_to_datetime, get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
+from utils.utils import get_hostname_in_lower_case, delete_custom_object, get_custom_object, update_custom_object, UserDefinedEvent, randomUUID, now_to_datetime, get_switch_and_ip_info, getCmdKey, updateDescription, singleton, CDaemon, addExceptionMessage, addPowerStatusMessage, updateDomain, report_failure, \
     runCmdRaiseException, runCmd, modify_token, get_ha_from_kubernetes
 from utils import logger
 
@@ -59,6 +59,8 @@ VERSION = config_raw.get('VirtualMachine', 'version')
 GROUP = config_raw.get('VirtualMachine', 'group')
 
 DEFAULT_DEVICE_DIR = config_raw.get('DefaultDeviceDir', 'default')
+
+HOSTNAME = get_hostname_in_lower_case()
 
 logger = logger.set_logger(os.path.basename(__file__), '/var/log/virtlet.log')
 
@@ -166,7 +168,7 @@ class MyDomainEventHandler(threading.Thread):
                 if not ignore_pushing:
                     try:
                         logger.debug('Callback domain changes to virtlet')
-                        if getCmdKey(jsondict) == 'migrateVM' or str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == 'Migrated':
+                        if getCmdKey(jsondict) == 'migrateVM' or str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == 'Migrated' or jsondict['metadata']['labels']['host'] != HOSTNAME:
                             logger.debug('VM %s is migrating, ignore changes.' % vm_name)
                             return
                         vm_xml = get_xml(vm_name)

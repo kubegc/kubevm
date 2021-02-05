@@ -26,7 +26,7 @@ from utils import logger
 from utils.utils import get_hostname_in_lower_case, list_objects_in_kubernetes, get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
 
 LOG = '/var/log/virtmonitor.log'
-logger = logger.set_logger(os.path.basename(__file__), LOG)
+# logger = logger.set_logger(os.path.basename(__file__), LOG)
 
 class parser(ConfigParser.ConfigParser):
     def __init__(self,defaults=None):  
@@ -202,7 +202,7 @@ def collect_storage_metrics(zone):
                 t.join(2)
                 t.kill()
         except:
-            logger.warning('Oops! ', exc_info=1)
+#             logger.warning('Oops! ', exc_info=1)
             return
 #             get_pool_metrics(pool_storage, pool_type, zone)
 
@@ -211,7 +211,7 @@ def _get_pool_details(vm_pool):
         return (vm_pool['metadata'].get('name'), vm_pool['spec']['pool'].get('pooltype'), 
                 vm_pool['spec']['pool'].get('poolname'), vm_pool['spec'].get('nodeName'))
     except:
-        logger.warning('Oops! ', exc_info=1)
+#         logger.warning('Oops! ', exc_info=1)
         return (None, None, None, None)
 
 def get_pool_metrics(pool_total, pool_used, pool_mount_point, pool_type, zone):
@@ -355,7 +355,7 @@ def collect_vm_metrics(zone):
             t.join(2)
             t.kill()            
     except:
-        logger.warning('Oops! ', exc_info=1)
+#         logger.warning('Oops! ', exc_info=1)
         return        
 #         get_vm_metrics(vm, zone)
         
@@ -702,12 +702,12 @@ class ClientDaemon(CDaemon):
         self.name = name
         
     def run(self, output_fn, **kwargs):
-        logger.debug("---------------------------------------------------------------------------------")
-        logger.debug("------------------------Welcome to Monitor Daemon.-------------------------------")
-        logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
-        logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
-        logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
-        logger.debug("---------------------------------------------------------------------------------")
+#         logger.debug("---------------------------------------------------------------------------------")
+#         logger.debug("------------------------Welcome to Monitor Daemon.-------------------------------")
+#         logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
+#         logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
+#         logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
+#         logger.debug("---------------------------------------------------------------------------------")
         start_http_server(19998)
 #         registry = CollectorRegistry(auto_describe=False)
         config.load_kube_config(config_file=TOKEN)

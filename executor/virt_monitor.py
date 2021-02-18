@@ -726,8 +726,8 @@ def daemonize():
     p_name = 'virtmonitor'
     pid_fn = '/var/run/virtmonitor_daemon.pid'
     log_fn = '/var/log/virtmonitor.log'
-    err_fn = '/var/log/virtmonitor.log'
-    cD = ClientDaemon(p_name, pid_fn, stderr=err_fn, verbose=1)
+#     err_fn = '/var/log/virtmonitor.log'
+    cD = ClientDaemon(p_name, pid_fn, verbose=1)
  
     if sys.argv[1] == 'start':
         cD.start(log_fn)

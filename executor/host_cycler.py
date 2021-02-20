@@ -102,7 +102,8 @@ def main():
                 master_ip = change_master_and_reload_config(fail_times)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
-                restart_virtctl = True
+                if fail_times >= 100:
+                    restart_virtctl = True
 #                 virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
 #                 if virtctl_id:
 #                     logger.debug('kubernetes error occurred, restart container %s' % virtctl_id)

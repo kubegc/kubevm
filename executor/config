@@ -3,7 +3,7 @@ token_file = /root/.kube/config
 hostname_prefix = vm
 
 [WatcherTimeout]
-timeout = 31536000
+timeout = 300
 
 [Storage]
 share_fs_mount_point = /var/lib/libvirt/cstor

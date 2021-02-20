@@ -98,11 +98,10 @@ def main():
         except Exception, e:
             logger.debug(repr(e))
             if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1:
-                logger.debug('in here!')
                 master_ip = change_master_and_reload_config(fail_times)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
-                if fail_times >= 100:
+                if fail_times >= 30:
                     restart_virtctl = True
 #                 virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
 #                 if virtctl_id:

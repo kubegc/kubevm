@@ -239,6 +239,10 @@ def main():
                 time.sleep(1)
         except KeyboardInterrupt:
             return
+        except Exception:
+            info=sys.exc_info()
+            logger.warning('Oops! ', exc_info=1)
+            return
         thread_1.join()
         thread_2.join()
         thread_3.join()

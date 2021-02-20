@@ -65,6 +65,7 @@ def main():
     ha_check = True
     ha_enable = True
     fail_times = 0
+    restart_virtctl = False
     while True:
         try:
             if ha_check:
@@ -83,6 +84,12 @@ def main():
             check_libvirt_conn = __get_conn()
             if check_libvirt_conn:
                 check_libvirt_conn.close()
+            if restart_virtctl:
+                virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
+                if virtctl_id:
+                    logger.debug('Kubernetes has been recovered, restarting virtctl container %s' % virtctl_id)
+                    runCmd('docker stop %s' % virtctl_id)
+                restart_virtctl = False
 #             if restart_service:
 #                 runCmd('kubevmm-adm service restart')
 #                 restart_service = False
@@ -95,6 +102,7 @@ def main():
                 master_ip = change_master_and_reload_config(fail_times)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+                restart_virtctl = True
 #                 virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
 #                 if virtctl_id:
 #                     logger.debug('kubernetes error occurred, restart container %s' % virtctl_id)

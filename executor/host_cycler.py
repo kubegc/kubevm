@@ -264,10 +264,18 @@ class HostCycler:
         return V1ObjectMeta(annotations=[], name=HOSTNAME, uid='', labels=[], resource_version='', self_link='')
     
     def get_status_address(self):
-        ip = socket.gethostbyname(socket.gethostname())
+        ip = self._get_node_ip_from_k8s()
         node_status_address1 = V1NodeAddress(address=ip, type='InternalIP')
         node_status_address2 = V1NodeAddress(address=HOSTNAME, type='Hostname')
         return [node_status_address1, node_status_address2]
+    
+    def _get_node_ip_from_k8s(self):
+        try:
+            node = client.CoreV1Api().read_node(name=HOSTNAME)
+            node_dict = node.to_dict()
+            return node_dict['metadata']['annotations']['THISIP']
+        except:
+            return socket.gethostbyname(socket.gethostname())
     
     def get_status_allocatable(self):
         try:

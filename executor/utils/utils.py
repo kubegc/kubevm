@@ -23,7 +23,6 @@ from functools import wraps
 import os, sys, time, signal, atexit, subprocess
 import threading
 import random
-import socket
 import pprint
 import datetime
 import ConfigParser

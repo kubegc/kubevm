@@ -234,11 +234,11 @@ def main():
         thread_11.daemon = True
         thread_11.name = 'vm_backup_watcher'
         thread_11.start()
-#         try:
-#             while True:
-#                 time.sleep(1)
-#         except KeyboardInterrupt:
-#             return
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            return
         thread_1.join()
         thread_2.join()
         thread_3.join()
@@ -291,9 +291,9 @@ def vMExecutor(group, version, plural, jsondict):
 #         logger.debug(operation_type)
         metadata_name = getMetadataName(jsondict)
 #         logger.debug('------- Start time(%s): %s' % (metadata_name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
-#         logger.debug('metadata name: %s' % metadata_name)
+        logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
-#         logger.debug('cmd key is: %s' % the_cmd_key)
+        logger.debug('cmd key is: %s' % the_cmd_key)
         if the_cmd_key:
             _acquire_mutex_lock(the_cmd_key)
     except:
@@ -519,9 +519,9 @@ def vMDiskExecutor(group, version, plural, jsondict):
     except:
         logger.warning('Oops! ', exc_info=1)
     try:
-        logger.debug('metadata name: %s' % metadata_name)
+#         logger.debug('metadata name: %s' % metadata_name)
         the_cmd_key = _getCmdKey(jsondict)
-        logger.debug('cmd key is: %s' % the_cmd_key)
+#         logger.debug('cmd key is: %s' % the_cmd_key)
         if the_cmd_key and operation_type != 'DELETED':
             involved_object_name = metadata_name
             involved_object_kind = 'VirtualMachineDisk'

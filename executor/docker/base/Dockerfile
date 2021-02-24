@@ -10,7 +10,7 @@ RUN yum install cloud-utils usbutils libguestfs-tools-c virt-manager python2-dev
 
 RUN yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec -y
 
-RUN pip install --upgrade pip
+RUN pip install --upgrade "pip < 21.0"
 
 RUN pip install --ignore-installed prometheus_client kubernetes libvirt-python==5.9.0 xmljson xmltodict watchdog pyyaml grpcio grpcio-tools protobuf psutil
 

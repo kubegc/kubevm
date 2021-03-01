@@ -107,6 +107,8 @@ def main():
 #                 if virtctl_id:
 #                     logger.debug('kubernetes error occurred, restart container %s' % virtctl_id)
 #                     runCmd('docker stop %s' % virtctl_id)
+                elif fail_times >= 8:
+                    ha_check = True
             elif repr(e).find('failed to open a connection to the hypervisor software') != -1:
                 libvirt_watcher_id = runCmd("docker ps | grep libvirtwatcher | awk -F ' ' '{print $1}'")
                 if libvirt_watcher_id:

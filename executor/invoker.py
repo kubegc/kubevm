@@ -281,8 +281,6 @@ def vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM):
 #             vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
             time.sleep(3)
             continue
-        finally:
-            watcher.stop()
         
 def vMExecutor(group, version, plural, jsondict):
     try:
@@ -508,8 +506,6 @@ def vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM
 #             vMDiskWatcher(group=GROUP_VM_DISK, version=VERSION_VM_DISK, plural=PLURAL_VM_DISK)
             time.sleep(3)
             continue
-        finally:
-            watcher.stop()
 
 def vMDiskExecutor(group, version, plural, jsondict):
     try:
@@ -683,8 +679,6 @@ def vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE,
 #             vMDiskImageWatcher(group=GROUP_VM_DISK_IMAGE, version=VERSION_VM_DISK_IMAGE, plural=PLURAL_VM_DISK_IMAGE)
             time.sleep(3)
             continue
-        finally:
-            watcher.stop()
 
 def vMDiskImageExecutor(group, version, plural, jsondict):
     try:
@@ -850,8 +844,6 @@ def vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_
 #             vMDiskSnapshotWatcher(group=GROUP_VM_DISK_SNAPSHOT, version=VERSION_VM_DISK_SNAPSHOT, plural=PLURAL_VM_DISK_SNAPSHOT)
             time.sleep(3)
             continue
-        finally:
-            watcher.stop()
 
 def vMDiskSnapshotExecutor(group, version, plural, jsondict):        
     try:
@@ -984,8 +976,6 @@ def vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI):
 #             vMImageWatcher(group=GROUP_VMI, version=VERSION_VMI, plural=PLURAL_VMI)
             time.sleep(3)  
             continue
-        finally:
-            watcher.stop()
 
 def vMImageExecutor(group, version, plural, jsondict):   
     try:
@@ -1134,8 +1124,6 @@ def vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plur
 #             vMSnapshotWatcher(group=GROUP_VM_SNAPSHOT, version=VERSION_VM_SNAPSHOT, plural=PLURAL_VM_SNAPSHOT)
             time.sleep(3)  
             continue
-        finally:
-            watcher.stop()
 
 def vMSnapshotExecutor(group, version, plural, jsondict): 
     try:
@@ -1302,8 +1290,6 @@ def vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=
 #             vMNetworkWatcher(group=GROUP_VM_NETWORK, version=VERSION_VM_NETWORK, plural=PLURAL_VM_NETWORK)
             time.sleep(3)
             continue
-        finally:
-            watcher.stop()
 
 def vMNetworkExecutor(group, version, plural, jsondict): 
     try:
@@ -1447,8 +1433,6 @@ def vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM
 #             vMPoolWatcher(group=GROUP_VM_POOL, version=VERSION_VM_POOL, plural=PLURAL_VM_POOL)
             time.sleep(3)
             continue
-        finally:
-            watcher.stop()
 
 def vMPoolExecutor(group, version, plural, jsondict):
     try:
@@ -1584,8 +1568,6 @@ def vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLU
 #             vMBackupWatcher(group=GROUP_VM_BACKUP, version=VERSION_VM_BACKUP, plural=PLURAL_VM_BACKUP)
             time.sleep(3)  
             continue
-        finally:
-            watcher.stop()
 
 def vMBackupExecutor(group, version, plural, jsondict):
     try:

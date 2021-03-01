@@ -68,15 +68,15 @@ def main():
     restart_virtctl = False
     while True:
         try:
+            host = client.CoreV1Api().read_node_status(name=HOSTNAME)
+            node_watcher = HostCycler()
+            host.status = node_watcher.get_node_status()
             if ha_check:
                 for vm in list_vms():
                     _check_vm_by_hosting_node(GROUP, VERSION, PLURAL, vm)
                     _check_ha_and_autostart_vm(GROUP, VERSION, PLURAL, vm)
                     _check_vm_power_state(GROUP, VERSION, PLURAL, vm)
                 ha_check = False
-            host = client.CoreV1Api().read_node_status(name=HOSTNAME)
-            node_watcher = HostCycler()
-            host.status = node_watcher.get_node_status()
             client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
             if ha_enable:
                 _check_and_enable_HA()
@@ -124,7 +124,10 @@ def _check_vm_by_hosting_node(group, version, plural, metadata_name):
     try:
         logger.debug('1.Doing hosting node verification for VM: %s' % metadata_name)
         node_name = get_node_name_from_kubernetes(group, version, 'default', plural, metadata_name)
-        if not node_name:
+        if node_name == 'UNKNOWN':
+            logger.debug('Unknown host name.')
+            return
+        elif not node_name:
             logger.debug('Delete VM %s because it is not hosting by the Kubernetes cluster.' % (metadata_name))
             if is_vm_exists(metadata_name):
                 if is_vm_active(metadata_name):
@@ -147,8 +150,8 @@ def _check_ha_and_autostart_vm(group, version, plural, metadata_name):
         logger.debug('2.Doing HA verification for VM: %s' % metadata_name)
         ha = get_ha_from_kubernetes(group, version, 'default', plural, metadata_name)
         if ha:
-            logger.debug('Autostart HA VM: %s.' % (metadata_name))
             if is_vm_exists(metadata_name) and not is_vm_active(metadata_name):
+                logger.debug('Autostart HA VM: %s.' % (metadata_name))
                 start(metadata_name)
     except:
         logger.error('Oops! ', exc_info=1)

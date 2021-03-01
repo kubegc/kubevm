@@ -497,7 +497,7 @@ def get_node_name_from_kubernetes(group, version, namespace, plural, metadata_na
             return None
         else:
             raise e
-    return jsonStr['metadata']['labels']['host']
+    return jsonStr['metadata']['labels']['host'] if jsonStr else 'UNKNOWN'
 
 def get_ha_from_kubernetes(group, version, namespace, plural, metadata_name):
     try:
@@ -507,7 +507,7 @@ def get_ha_from_kubernetes(group, version, namespace, plural, metadata_name):
             return False
         else:
             raise e
-    if 'ha' in jsonStr['metadata']['labels'].keys():
+    if jsonStr and 'ha' in jsonStr['metadata']['labels'].keys():
         return True
     else:
         return False

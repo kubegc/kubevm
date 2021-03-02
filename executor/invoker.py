@@ -380,11 +380,11 @@ def vMExecutor(group, version, plural, jsondict):
                         else:
                             runCmd(cmd)
                     except Exception, e:
+                        raise e
+                    finally:
                         if _isDeleteVM(the_cmd_key) and not is_vm_exists(metadata_name):
                             logger.warning("***VM %s not exists, delete it from virtlet" % metadata_name)
                             deleteStructure(metadata_name, group, version, plural)
-                        else:
-                            raise e
                                     
 #                                 file_path = '%s/%s-*' % (DEFAULT_DEVICE_DIR, metadata_name)
 #                                 mvNICXmlToTmpDir(file_path)
@@ -1735,7 +1735,6 @@ def get_kubesds_disk_snapshot_info(type, pool, vol, name):
     return rpcCallWithResult('kubesds-adm showDiskSnapshot --type %s --pool %s --vol %s --name %s' % (type, pool, vol, name), raise_it=False)
 
 def deleteStructure(name, group, version, plural):
-    logger.debug('deleteVMBackupdebug %s' % name)
     retv = delete_custom_object(group, version, plural, name)
     return retv
 

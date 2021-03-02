@@ -323,7 +323,7 @@ def update_online(version='latest'):
                 allLine.append(line)
         with open("/etc/kubevmm/yamls/cloudplus/virt-tool.yaml", "w") as fw:
             fw.writelines(allLine)
-    nodes = runCmd("kubectl get pods -n cloudplus -o wide | grep Running | grep virt-tool | awk -F \" \" '{print $7}'")
+    nodes = runCmd("kubectl get pods -n cloudplus -o wide | grep virt-tool | awk -F \" \" '{print $7}' | grep -v \"vm.\" | sort | uniq")
     for node in nodes:
         if node:
             node_name = "vm.%s" % (node)

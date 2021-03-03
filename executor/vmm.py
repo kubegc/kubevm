@@ -1331,7 +1331,18 @@ def runCmdWithResult(cmd):
         p.stderr.close()
 
 def get_pool_info_from_k8s(pool):
-    result = runCmdWithResult('kubectl get vmp -o json %s' % pool)
+    result = None
+    for i in range(30):
+        try:
+            result = runCmdWithResult('kubectl get vmp --kubeconfig=/root/.kube/config -o json %s' % pool)
+            break
+        except Exception:
+            logger.debug(traceback.format_exc())
+            if i == 29:
+                raise ExecuteException('', 'can not get pool info from k8s')
+
+    if result == None:
+        raise ExecuteException('', 'can not get pool info from k8s')
     if 'spec'in result.keys() and isinstance(result['spec'], dict) and 'pool' in result['spec'].keys():
         return result['spec']['pool']
     raise ExecuteException('', 'can not get pool info from k8s')
@@ -1339,7 +1350,17 @@ def get_pool_info_from_k8s(pool):
 def get_vol_info_from_k8s(vol):
     if not vol:
         raise ExecuteException('', 'missing parameter: no disk name.')
-    result = runCmdWithResult('kubectl get vmd -o json %s' % vol)
+    result = None
+    for i in range(30):
+        try:
+            result = runCmdWithResult('kubectl get vmd --kubeconfig=/root/.kube/config -o json %s' % vol)
+            break
+        except Exception:
+            logger.debug(traceback.format_exc())
+            if i == 29:
+                raise ExecuteException('', 'can not get pool info from k8s')
+    if result == None:
+        raise ExecuteException('', 'can not get pool info from k8s')
     if 'spec'in result.keys() and isinstance(result['spec'], dict) and 'volume' in result['spec'].keys():
         return result['spec']['volume']
     raise ExecuteException('', 'can not get vol info from k8s')

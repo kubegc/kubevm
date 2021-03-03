@@ -241,8 +241,8 @@ def get_l2_network_info(name):
     data['bridgeInfo']['ports'] = list_ports
     return data
 
-def qeury_and_prepare_by_path(path):
-    runCmd('kubectl get vmd -o=jsonpath="{range .items[?(@.spec.volume.current==\"/mnt/localfs/pooldir/pooldir/diskdirclone/diskdirclone\")]}{.metadata.name}{\"\t\"}{.spec.nodeName}{\"\n\"}{end}"')
+# def qeury_and_prepare_by_path(path):
+#     runCmd('kubectl get vmd --kubeconfig=/root/.kube/config -o=jsonpath="{range .items[?(@.spec.volume.current==\"/mnt/localfs/pooldir/pooldir/diskdirclone/diskdirclone\")]}{.metadata.name}{\"\t\"}{.spec.nodeName}{\"\n\"}{end}"')
 
 def get_l3_network_info(name):
     cfg = "/etc/kubevmm/config"

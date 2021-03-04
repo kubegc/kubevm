@@ -157,7 +157,7 @@ def _check_ha_and_autostart_vm(group, version, plural, metadata_name):
         logger.error('Oops! ', exc_info=1)
         
 def _check_and_enable_HA():
-    runCmd("kubectl label node %s nodeHA-" % (HOSTNAME))
+    runCmd("kubectl label node --kubeconfig=/root/.kube/config %s nodeHA-" % (HOSTNAME))
         
 def _check_vm_power_state(group, version, plural, metadata_name):
     try:

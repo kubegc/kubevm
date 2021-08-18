@@ -13,6 +13,7 @@ Import python libs
 import os
 import sys
 import time
+import threading
 from threading import Thread
 from json import loads
 
@@ -40,6 +41,16 @@ from utils.misc import get_label_selector, report_failure
 
 TOKEN = constants.KUBERNETES_TOKEN_FILE    
 logger = logger.set_logger(os.path.basename(__file__), constants.KUBEVMM_VIRTCTL_LOG)
+
+create_vm_mutex = threading.Lock()            
+start_vm_mutex = threading.Lock()
+stop_vm_mutex = threading.Lock()
+reboot_vm_mutex = threading.Lock()
+destroy_vm_mutex = threading.Lock()
+delete_vm_mutex = threading.Lock()
+reset_vm_mutex = threading.Lock()
+suspend_vm_mutex = threading.Lock()
+migrate_vm_mutex = threading.Lock()
 
 def main():
     '''将Kubernetes资源监听器运行在python子进程里.
@@ -133,8 +144,8 @@ def doExecutor(plural, k8s_object_kind, jsondict):
     logger.debug('metadata name: %s' % metadata_name)
     '''convertor'''
     (policy, the_cmd_key, prepare_cmd, invoke_cmd, query_cmd) = toCmds(jsondict)
-#     if the_cmd_key:
-#         _acquire_mutex_lock(the_cmd_key)
+    if the_cmd_key:
+        _acquire_mutex_lock(the_cmd_key)
     try:
         if the_cmd_key and operation_type != 'DELETED':
             logger.debug("cmd key: %s, prepare cmd: %s, invoke cmd: %s, query cmd: %s" % (the_cmd_key, prepare_cmd, invoke_cmd, query_cmd))
@@ -172,6 +183,9 @@ def doExecutor(plural, k8s_object_kind, jsondict):
                 except:
                     logger.warning('Oops! ', exc_info=1)
                 event.update_evet(constants.KUBEVMM_EVENT_LIFECYCLE_DONE, constants.KUBEVMM_EVENT_TYPE_ERROR)
+            finally:
+                if the_cmd_key:
+                    _release_mutex_lock(the_cmd_key)
     except Exception as e:
         logger.error('Oops! ', exc_info=1)
         info=sys.exc_info()
@@ -206,45 +220,45 @@ def _getEventId(jsondict):
     logger.debug(labels)
     return labels.get('eventId') if labels.get('eventId') else '-1'
 
-# def _acquire_mutex_lock(the_cmd_key):
-#     if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
-#         create_vm_mutex.acquire()
-#     elif _isStartVM(the_cmd_key):
-#         start_vm_mutex.acquire()
-#     elif _isStopVM(the_cmd_key):
-#         stop_vm_mutex.acquire()
-#     elif _isRebootVM(the_cmd_key):
-#         reboot_vm_mutex.acquire()
-#     elif _isForceStopVM(the_cmd_key):
-#         destroy_vm_mutex.acquire()
-#     elif _isDeleteVM(the_cmd_key):
-#         delete_vm_mutex.acquire()
-#     elif _isResetVM(the_cmd_key):
-#         reset_vm_mutex.acquire()
-#     elif _isSuspendVM(the_cmd_key):
-#         suspend_vm_mutex.acquire()
-#     elif _isMigrateVM(the_cmd_key):
-#         migrate_vm_mutex.acquire()
-#     
-# def _release_mutex_lock(the_cmd_key):
-#     if _isInstallVMFromISO(the_cmd_key) or _isInstallVMFromImage(the_cmd_key):
-#         create_vm_mutex.release()
-#     elif _isStartVM(the_cmd_key):
-#         start_vm_mutex.release()
-#     elif _isStopVM(the_cmd_key):
-#         stop_vm_mutex.release()
-#     elif _isRebootVM(the_cmd_key):
-#         reboot_vm_mutex.release()
-#     elif _isForceStopVM(the_cmd_key):
-#         destroy_vm_mutex.release()
-#     elif _isDeleteVM(the_cmd_key):
-#         delete_vm_mutex.release()
-#     elif _isResetVM(the_cmd_key):
-#         reset_vm_mutex.release()
-#     elif _isSuspendVM(the_cmd_key):
-#         suspend_vm_mutex.release()
-#     elif _isMigrateVM(the_cmd_key):
-#         migrate_vm_mutex.release()
+def _acquire_mutex_lock(the_cmd_key):
+    if the_cmd_key == constants.CREATE_AND_START_VM_FROM_ISO_CMD or the_cmd_key == constants.CREATE_VM_CMD:
+        create_vm_mutex.acquire()
+    elif the_cmd_key == constants.START_VM_CMD:
+        start_vm_mutex.acquire()
+    elif the_cmd_key == constants.STOP_VM_CMD:
+        stop_vm_mutex.acquire()
+    elif the_cmd_key == constants.REBOOT_VM_CMD:
+        reboot_vm_mutex.acquire()
+    elif the_cmd_key == constants.STOP_VM_FORCE_CMD:
+        destroy_vm_mutex.acquire()
+    elif the_cmd_key == constants.DELETE_VM_CMD:
+        delete_vm_mutex.acquire()
+    elif the_cmd_key == constants.RESET_VM_CMD:
+        reset_vm_mutex.acquire()
+    elif the_cmd_key == constants.SUSPEND_VM_CMD:
+        suspend_vm_mutex.acquire()
+    elif the_cmd_key == constants.MIGRATE_VM_CMD:
+        migrate_vm_mutex.acquire()
+     
+def _release_mutex_lock(the_cmd_key):
+    if the_cmd_key == constants.CREATE_AND_START_VM_FROM_ISO_CMD or the_cmd_key == constants.CREATE_VM_CMD:
+        create_vm_mutex.release()
+    elif the_cmd_key == constants.START_VM_CMD:
+        start_vm_mutex.release()
+    elif the_cmd_key == constants.STOP_VM_CMD:
+        stop_vm_mutex.release()
+    elif the_cmd_key == constants.REBOOT_VM_CMD:
+        reboot_vm_mutex.release()
+    elif the_cmd_key == constants.STOP_VM_FORCE_CMD:
+        destroy_vm_mutex.release()
+    elif the_cmd_key == constants.DELETE_VM_CMD:
+        delete_vm_mutex.release()
+    elif the_cmd_key == constants.RESET_VM_CMD:
+        reset_vm_mutex.release()
+    elif the_cmd_key == constants.SUSPEND_VM_CMD:
+        suspend_vm_mutex.release()
+    elif the_cmd_key == constants.MIGRATE_VM_CMD:
+        migrate_vm_mutex.release()
 
 def write_result_to_kubernetes(plural, name, data):
     '''将executor的处理结果写回到Kubernetes里，处理结果必须是json格式，\

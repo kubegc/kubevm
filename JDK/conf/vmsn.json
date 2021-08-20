@@ -1,0 +1,29 @@
+{
+	"createSnapshot":{
+		"atomic":true,
+		"description":"String",
+		"disk_only":true,
+		"diskspec":"String",
+		"domain":"String",
+		"halt":true,
+		"live":true,
+		"memspec":"String",
+		"no_metadata":true,
+		"quiesce":true,
+		"reuse_external":true
+	},
+	"deleteSnapshot":{
+		"children":true,
+		"children_only":true,
+		"current":true,
+		"domain":"String",
+		"metadata":true
+	},
+	"revertVirtualMachine":{
+		"current":true,
+		"force":true,
+		"paused":true,
+		"running":true,
+		"snapshotname":"String"
+	}
+}

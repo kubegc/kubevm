@@ -1,0 +1,29 @@
+# See ovn-controller(8) for details about ovn-controller.
+#
+# To customize the ovn-controller service, you may create a configuration file
+# in the /etc/systemd/system/ovn-controller.d/ directory.  For example, to specify
+# additional options to be passed to the "ovn-ctl start_controller" command, you
+# could place the following contents in
+# /etc/systemd/system/ovn-controller.d/local.conf:
+#
+#   [System]
+#   Environment="OVN_CONTROLLER_OPTS=--ovn-controller-log=-vconsole:emer -vsyslog:err -vfile:info"
+#
+# Alternatively, you may specify environment variables in the file /etc/sysconfig/ovn-controller:
+#
+#   OVN_CONTROLLER_OPTS="--ovn-controller-log=-vconsole:emer -vsyslog:err -vfile:info"
+
+[Unit]
+Description=kubesds rpc
+Before=libvirtd.service
+After=docker.service
+
+
+[Service]
+Type=simple
+Restart=always
+Environment=KUBECONFIG=/root/.kube/config
+ExecStart=/usr/bin/kubesds-ctl.sh start
+ExecStop=/usr/bin/kubesds-ctl.sh stop
+[Install]
+WantedBy=multi-user.target

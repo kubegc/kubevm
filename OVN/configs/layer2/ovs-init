@@ -1,0 +1,105 @@
+###############################################
+##
+##  Copyright (2019, ) Institute of Software
+##      Chinese Academy of Sciences
+##          wuheng@iscas.ac.cn
+##
+###############################################
+
+
+## disable NetworkManager
+systemctl stop NetworkManager
+systemctl disable NetworkManager
+
+## customized NIC
+
+if [[ -z $1 ]]
+then
+  echo "missing NIC name."
+  exit 1
+fi
+
+if [[ ! -f /etc/sysconfig/network-scripts/ifcfg-$1 ]]
+then
+  echo "wrong NIC name"
+  exit 1
+fi
+
+ORG=$1
+
+## bak existing NIC config 
+
+if [[ ! -f ifcfg-$ORG.bak ]]
+then
+  cp /etc/sysconfig/network-scripts/ifcfg-$ORG ifcfg-$ORG.bak
+fi
+
+dhcp=$(cat ifcfg-$ORG.bak | grep BOOTPROTO | grep dhcp)
+
+if [[ -n $dhcp ]]
+then
+  echo "Unsupport DHCP"
+  exit 0
+fi
+
+
+## check ovs service
+
+res=$(systemctl status openvswitch | grep Active | awk -F":" '{print $2}' | awk '{print$1}')
+
+if [[ $res != "active" ]]
+then
+  echo "please start openvswitch first"
+  exit 1
+fi
+
+## config ORG and br-native
+rm -rf /etc/sysconfig/network-scripts/ifcfg-$ORG
+rm -rf /etc/sysconfig/network-scripts/ifcfg-br-native
+
+cp ifcfg-ORG /etc/sysconfig/network-scripts/ifcfg-$ORG 
+cp ifcfg-br-native /etc/sysconfig/network-scripts/ifcfg-br-native
+
+ovs-vsctl del-br br-native --if-exist
+ovs-vsctl add-br br-native 
+
+## new ifcfg-$ORG
+
+sed -i "s/ORG/$ORG/g" /etc/sysconfig/network-scripts/ifcfg-$ORG
+
+## new ifcfg-br-native
+
+static=$(cat ifcfg-$ORG.bak | grep BOOTPROTO | grep static)
+
+if [[ -n $static ]]
+then
+  echo "BOOTPROTO=dhcp" >> /etc/sysconfig/network-scripts/ifcfg-br-native
+fi
+
+#IPADDR=192.168.1.1
+#NETMASK=255.255.255.0
+#GATEWAY=192.168.1.254
+
+ip=$(cat ifcfg-$ORG.bak | grep BOOTPROTO | grep IPADDR)
+
+if [[ -n $ip ]]
+then
+  echo $ip >> /etc/sysconfig/network-scripts/ifcfg-br-native
+fi
+
+mask=$(cat ifcfg-$ORG.bak | grep BOOTPROTO | grep NETMASK)
+
+if [[ -n $mask ]]
+then
+  echo $mask >> /etc/sysconfig/network-scripts/ifcfg-br-native
+fi
+
+gw=$(cat ifcfg-$ORG.bak | grep BOOTPROTO | grep GATEWAY)
+
+if [[ -n $gw ]]
+then
+  echo $gw >> /etc/sysconfig/network-scripts/ifcfg-br-native
+fi
+
+
+ovs-vsctl add-port br-native $1; systemctl restart network

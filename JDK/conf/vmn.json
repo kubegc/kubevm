@@ -1,0 +1,6 @@
+{
+	"createSwitch":{
+		"subnet":"String"
+	},
+	"deleteSwitch":{}
+}

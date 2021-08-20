@@ -1,0 +1,9 @@
+{
+	"convertDiskImageToDisk":{
+		"pool":"String"
+	},
+	"createDiskImage":{
+		"source":"String"
+	},
+	"deleteDiskImage":{}
+}

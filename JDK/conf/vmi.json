@@ -1,0 +1,7 @@
+{
+	"convertImageToVM":{},
+	"createImage":{
+		"disk":"String"
+	},
+	"deleteImage":{}
+}

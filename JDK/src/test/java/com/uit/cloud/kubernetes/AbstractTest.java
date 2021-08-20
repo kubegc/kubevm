@@ -1,0 +1,75 @@
+package com.uit.cloud.kubernetes;
+
+/*
+ * Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
+ */
+
+import com.github.kubesys.kubernetes.ExtendedKubernetesClient;
+import com.github.kubesys.kubernetes.api.model.*;
+
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.ConfigBuilder;
+
+import java.util.*;
+
+/**
+ * @author wuheng@otcaix.iscas.ac.cn
+ * @author wuyuewen@otcaix.iscas.ac.cn
+ * @author liuhe@otcaix.iscas.ac.cn
+ *
+ * @version 1.3.0
+ * @since   2019/9/3
+ *
+ */
+public class AbstractTest {
+
+    public static Config config = new ConfigBuilder()
+            .withApiVersion("v1")
+            .withCaCertData("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM1ekNDQWMrZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeE1EUXhOREE0TXpJek9Gb1hEVE14TURReE1qQTRNekl6T0Zvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTVZWCi9lTG1FOEJtc2QvVlZUems1a0hZTDNSWXhsNEZOVE05N2hCUkxXMVNzR0Z6YU1CTjBCZ1VjSUtTOStkMUFhVE8KSWplWE9lRWMvcUhZT2xOSzladC8zR3RXUG43bVhYa1p6MExmOXpvWnBvTlAxV0NrZ1E5cUEzVjZ1elpTNDFMMwo2MGR2dUc2REErSkpQaUxJMDJhcVU2RW9NOVlqMkQwU0M1aksvcFZIaVZ2Ryt4V0g1UGk4MThzNXdvRkdiSlFSClcvMjdEOFBISjVHSjNpR29CeUtiUGZ4aUhEUEtWa3kwNkZyWGRTaUhGLzg4cEltZHQwYUJDM3l2QXIyNW9lMzYKd0hKSEpGUWNOd2xnSEI2TWtWTXc2WTIyRDl0b3NvYndZSGluMVJJWHdNUThYYXRLYU1oYVc2MStyNzIyZ1hBcwp6SXJLckg2eXFFeHVzZmdVSXgwQ0F3RUFBYU5DTUVBd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZFamNCajlKNGZBYmtYc3BwZjU5U09uc0RRVGtNQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFDS2lZQmVEenFENVhJOEp3d2k0WU9ZZEZMVEtoQnY3anFZeTF6UllXVEZpWWNLOHpRcgo5Zm5meXk1MEQzU2VKRHRXOTJYcTNpeXdJR0VsSlJrWnI2NFJ3RHRJNnpOeGRiZG9wYXlmK3JuTytZd0ZHZlFiCklSelVWb3FKQ2xLMnVmdHZlWlZ4U283MkxQQWNlMVdwcDlqOFRNaENzMmpGdmZiWVl1MTErTGlrZWFYTlJLT3IKYVNZZUVvUkFZVXFUTGM2TFFsczlvVXBmRUp1TWd5eURQall6eDE5eklPTEZKTThtd0hTVDZKREpGbkNFZFVnTApXRFhOejM4VkdLMmVYdW5BQ3Y5V0tWQWgyTnYrR0NCckNlSFNPaEhmdGRaZ3FzSnhtcWNoeisrQ05aelJYZlk4CkRMNzN2MWtYdFFNT3l1eGlYN2pxM3kxd3MxZkdwVUNXbzB5ZgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==")
+            .withClientCertData("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFekNDQWZ1Z0F3SUJBZ0lJRlE2TlJYNGhidHN3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TVRBME1UUXdPRE15TXpoYUZ3MHlNakEwTVRRd09ETXlOREphTURReApGekFWQmdOVkJBb1REbk41YzNSbGJUcHRZWE4wWlhKek1Sa3dGd1lEVlFRREV4QnJkV0psY201bGRHVnpMV0ZrCmJXbHVNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQXp2YkE2YmFqTy9PWUlLc0EKRnRpaVJGY2lKRmJtMTZnRUIzMkN2d0QzaEpHRVRNT2NHRGh0UmlyeHczR3hSR3RFWXIvZFNxSHdMVWRyNlQ5VQpVQkdHOGY5L3lKNi9FQ2ZEWm1sL3dWWlBhRDh1d0VXNHZMNDhWTmMvV0VWNHREWjFSOG15ZXRWSTNlU0xvcW9vCldKMDNYNE4vRFFodk96S0Roczg4M0NUYWp0S3BvNGFORzJuRnpMOHpIMC9jdW1DY0psdzN6bkxlV2cyMDY0ZE0KNTR4NFVLdTljd04wTFM4TnV3TGk0Y2ErN2JBdXAvYmliL2ZteStNcFdMaCtyVW9rRys2TTkzeFVTc3lWMmkyeQpycjNKTEwrc1h0L3JCSXF1aVZkWXRBQTRhQklLRUN0cXZ5NUMxa1RuOXdQRzdJRXRyL2luZjhsTHlnN01LM0dMClVKVmtyUUlEQVFBQm8wZ3dSakFPQmdOVkhROEJBZjhFQkFNQ0JhQXdFd1lEVlIwbEJBd3dDZ1lJS3dZQkJRVUgKQXdJd0h3WURWUjBqQkJnd0ZvQVVTTndHUDBuaDhCdVJleW1sL24xSTZld05CT1F3RFFZSktvWklodmNOQVFFTApCUUFEZ2dFQkFEbmM1WXRPTUZBVktPODJDNmUrSWFiYmJQWUVhM0xGaHhqd1JEZy9WOElSTTJYNVduMVlDYjZzCndiWk0yY21BWC9YYlpxdWRZYStRb3BJaVBvSzFKa20yNVhYZGdrUDdvZlZ3aCtqb1NVODRKc295VW5HZEhieUgKT2hCWThsWHFHU3IzTnpkWlVGOG5GTTQrRllMK1RCUGd6Ky9Zc293Sk5nY1VSaHJ6TGZKZVdrLzYzRWRkN3VEQQpqUHF2QUVVdnNLcnZsTW5TYmdkVzc5Ym5wZWI2VExLY1BHRk45c2xJNDlXWmpHZlpXZU9OK1ZJblZmZmRBVVgxCklpQm1aZ3JQTFliaExaczFtNHFwUGxZZXRQSmIzMUhtYldDRnVESmVGUSs1ckF0Q05ZVEFVQW4xNnlGTGhqYWsKajNwYzdSb050U1dUQTNEa1R2dGJWbFEyRmlrZ053UT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=")
+            .withClientKeyData("LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcFFJQkFBS0NBUUVBenZiQTZiYWpPL09ZSUtzQUZ0aWlSRmNpSkZibTE2Z0VCMzJDdndEM2hKR0VUTU9jCkdEaHRSaXJ4dzNHeFJHdEVZci9kU3FId0xVZHI2VDlVVUJHRzhmOS95SjYvRUNmRFptbC93VlpQYUQ4dXdFVzQKdkw0OFZOYy9XRVY0dERaMVI4bXlldFZJM2VTTG9xb29XSjAzWDROL0RRaHZPektEaHM4ODNDVGFqdEtwbzRhTgpHMm5Gekw4ekgwL2N1bUNjSmx3M3puTGVXZzIwNjRkTTU0eDRVS3U5Y3dOMExTOE51d0xpNGNhKzdiQXVwL2JpCmIvZm15K01wV0xoK3JVb2tHKzZNOTN4VVNzeVYyaTJ5cnIzSkxMK3NYdC9yQklxdWlWZFl0QUE0YUJJS0VDdHEKdnk1QzFrVG45d1BHN0lFdHIvaW5mOGxMeWc3TUszR0xVSlZrclFJREFRQUJBb0lCQVFDUXlKQkdMMjFjS0ZvWgpLR2RFbEVKWUdyaVl3VzUyR1dUUU5KNTlybGg1bGk3K1lLMVhTRW94bHlOUVBiM3NCanB0OXBrQmQrNEVUdjJQCnk2elk0cG9MdTFpU2FYTnlBczh3V3NkejRrUmt3aWFiZldyeUp3Y2Z0d0RxYUpjN1F3bWlzZGc1RS9JSXdMUnEKbEN6cmFQaHV5aGZjYnpVWkxZcFRpYkNpdE9sc2xYSkg1UkYvempDUVlVTVZpQnpjVWdnTjBxd2xUSVRiNThzTQp3dU1hYzNrZWxkSTBXSHFCbjcyMWtlWitydjduL0VJYnhORmo3YStBbkNZaG8veXNHRURCa09kSkVvdThWZmhBCm5UYXdaSFdkdHYwQThraXNjQkVFU0E5WkRyV3F3ai80Z09oTzJ6VDdBR0lrb1N4ME5uVmtDUGpGazdiZ21XWFgKTEJoSVdFekZBb0dCQU5oTTROK1Z1NEZlSTF6MDNSS1VFclBpKzcxQ2xDeEZMWWZPZkU1elB5MnY3ZFNmYzllZApPK0tHallGY3dyYmE2NGxTWmNxMXhzOTJkYUE5b09IUlltVEdONXNiNkRodDJFaFZSRnIrcGNxTnZYbFhCWk5vCjREYndzSlRNd0FTN0VQUDhXSEdSRE1sRWpSRS9YRCtHSWFGbWFwMk1ZZzliNzF5ZnJwTnQwclB6QW9HQkFQVHoKTVQ0UW0yNWVaUFpMekowbkxRNUYyaDI3bDBGNGpGdXpsUTg3VU8zUVZxQ1docjdPbnZhZTRkUTFGaTVmWk1GQQp4MXJsYU8wNEY3UDMyaThIN3hHT29HTVhicUE5R1A4R1MrVU1uY1ZnQ1cwa085TjkyQ1ZITTBSQjJtQ2QrbzRCCjZBckR6cFF2bStGQkFoNnQ2Y25BUEh1dHFMV0RUUEpkaUtTaEI4emZBb0dCQUpJZmphTStVa2ZaUXVhZmZXSDUKcXBEZi9OVWt6MWtBK3Z0T0lXZ1dMMDQ4RmQyWVF2Z2Nmc0pQeC9UbXA1eEVWTzZXUGJJdUR6dEVlYjVoSS9pcQpMV0NMRURHM0xyQkFkT2FZdys3OUxSK2psYWNOaFBUSzJ2NENxQ2crRWxLZjFab2VsZGxTOW1KWjd6c0JwTjQ5ClRTYnVPNFJudkM5SUduSm1aZGV2VDdMRkFvR0FSNWZwRlozZkFDUkEyQ2dSZHdGalR0K2x2N2o3blp3eFVnQXMKR2hhWk1ka0o2TWYyUEVEQi80MHlya2FSNUIzbm9nQmdCRFkzTTlhSVB3YTdVN0c2ODJPL2h4YnJNNVNJQU1vRApWc0FZUVA4djRpR01CdVdxVGtNQVBmd05hdDNoeEszVDk0bUJrSmhWdEVHKzc5NmZEV1BOaWN5WkdleDFpZ1ZDCmtmT3JCdnNDZ1lFQXd6OVNwSUNUNjFzSEJmQS9HQ2Y5QStvV0srRUJybjRTaWgveWxpVTkzVjlYU3FyL1RXenIKNFQzMmFvaXpZZGI3RU5acDlhTExlR0V5bzZ5aXZ1OWp5NjBSSGsrSEMwWE85K2xKaU9pbjhsU0tQQjcySHlSTgpkblVVdWlEMjN3b2wzSFFhc1lpL1B2KytPR0ppL05Bc3N2b0JiMWlLM2NSazV2cjNzd3ZaWmxVPQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=")
+            .withMasterUrl("https://133.133.135.30:6443")
+            .build();
+
+    public static ExtendedKubernetesClient getClient() throws Exception {
+        return new ExtendedKubernetesClient(config);
+    }
+
+    public static VirtualMachine getVMByName(String name) throws Exception {
+        return getClient().virtualMachines().get(name);
+    }
+
+    public static VirtualMachineBackup getVMBByName(String name) throws Exception {
+        return getClient().virtualMachineBackups().get(name);
+    }
+
+    public static List<VirtualMachineBackup> getVMBList() throws Exception {
+        return getClient().virtualMachineBackups().list().getItems();
+    }
+
+    public static List<VirtualMachineBackup> getVMBList(String domain) throws Exception {
+        Map<String, String> map = new HashMap<>();
+        map.put("domain", domain);
+        return getClient().virtualMachineBackups().list(map).getItems();
+    }
+
+    public static VirtualMachineImage getVMImageByName(String name) throws Exception {
+        return getClient().virtualMachineImages().get(name);
+    }
+
+    public static VirtualMachineDisk getVMDiskByName(String name) throws Exception {
+        return getClient().virtualMachineDisks().get(name);
+    }
+
+    public static VirtualMachinePool getVMPoolByName(String name) throws Exception {
+        return getClient().virtualMachinePools().get(name);
+    }
+
+    public static VirtualMachineDiskImage getVMDiskImageByName(String name) throws Exception {
+        return getClient().virtualMachineDiskImages().get(name);
+    }
+
+    public static VirtualMachineNetwork getVMNetworkByName(String name) throws Exception {
+        return getClient().virtualMachineNetworks().get(name);
+    }
+}

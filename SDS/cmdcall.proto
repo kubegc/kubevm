@@ -1,0 +1,22 @@
+    // protobuf 3.11.4
+    //
+    // pip3 install protobuf3
+    // protoc --python3_out=. cmdcall.proto
+    syntax = "proto3";
+
+    package cmdcall;
+    service CmdCall {
+        rpc Call (CallRequest) returns (CallResponse) {}
+        rpc CallWithResult (CallRequest) returns (CallResponse) {}
+        rpc CallAndTransferXmlToJson (CallRequest) returns (CallResponse) {}
+        rpc CallAndSplitKVToJson (CallRequest) returns (CallResponse) {}
+        rpc CallAndGetOutput (CallRequest) returns (CallResponse) {}
+    }
+
+    message CallRequest {
+        string cmd = 1;
+    }
+
+    message CallResponse {
+        string json = 1;
+    }

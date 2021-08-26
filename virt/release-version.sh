@@ -34,12 +34,12 @@ cd ${SHELL_FOLDER}
 if [ ! -d "./dist" ]; then
 	mkdir ./dist
 fi
-cp -f ../OVN/src/kubeovn-adm ./
-chmod +x kubeovn-adm
-gzexe ./kubeovn-adm
-cp -f kubeovn-adm ./dist
-gzexe -d ./kubeovn-adm
-rm -f ./kubeovn-adm~ ./kubeovn-adm
+#cp -f ../OVN/src/kubeovn-adm ./
+#chmod +x kubeovn-adm
+#gzexe ./kubeovn-adm
+#cp -f kubeovn-adm ./dist
+#gzexe -d ./kubeovn-adm
+#rm -f ./kubeovn-adm~ ./kubeovn-adm
 gzexe ./core/plugins/device-passthrough
 cp -f ./core/plugins/device-passthrough ./dist
 gzexe -d ./core/plugins/device-passthrough
@@ -50,7 +50,7 @@ rm -f ./core/plugins/device-passthrough~
 # rm -f ../scripts/kubevirt-ctl~
 cp -f ./core/plugins/virt-monitor-ctl ./dist
 cp -f ./core/plugins/kubevmm-monitor.service ./dist
-cp -f ./core/plugins/ovn-ovsdb.service ./dist
+#cp -f ./core/plugins/ovn-ovsdb.service ./dist
 cp -f ./core/utils/arraylist.cfg ./dist
 cp -rf ./yamls ./dist
 cp -rf ./monitor ./dist
@@ -86,37 +86,38 @@ cp -f ./dist/virshplus ../dist
 rm -f virshplus.py
 rm -rf ./dist
 cd ..
-cp -rf ../SDS ./
-cd ./SDS
+#cp -rf ../SDS ./
+#cd ./SDS
 
-pyinstaller -F kubesds-adm.py
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <kubesds-adm>!"
-    exit 1
-else
-    echo "    Success compile <kubesds-adm>."
-fi
-pyinstaller -F kubesds-rpc-service.py
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <kubesds-rpc>!"
-    exit 1
-else
-    echo "    Success compile <kubesds-rpc>."
-fi
-cp -f ./kubesds-ctl.sh ../docker/virtctl
-cp -f ./kubesds-ctl.sh ../dist
-cp -f ./kubesds.service ../dist
-cp -f ./dist/kubesds-adm ../docker/virtctl
-cp -f ./dist/kubesds-adm ../dist
-cp -f ./dist/kubesds-rpc-service ../docker/virtctl
-cp -f ./dist/kubesds-rpc-service ../dist
-cd ..
-rm -rf ./SDS
+#pyinstaller -F kubesds-adm.py
+#if [ $? -ne 0 ]; then
+    #    echo "    Failed to compile <kubesds-adm>!"
+    #exit 1
+#else
+    #    echo "    Success compile <kubesds-adm>."
+#fi
+#pyinstaller -F kubesds-rpc-service.py
+#if [ $? -ne 0 ]; then
+    #    echo "    Failed to compile <kubesds-rpc>!"
+    #exit 1
+#else
+    #    echo "    Success compile <kubesds-rpc>."
+#fi
+#cp -f ./kubesds-ctl.sh ../docker/virtctl
+#cp -f ./kubesds-ctl.sh ../dist
+#cp -f ./kubesds.service ../dist
+#cp -f ./dist/kubesds-adm ../docker/virtctl
+#cp -f ./dist/kubesds-adm ../dist
+#cp -f ./dist/kubesds-rpc-service ../docker/virtctl
+#cp -f ./dist/kubesds-rpc-service ../dist
+#cd ..
+#rm -rf ./SDS
 
 find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
-cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/kubeovn-adm ./dist/device-passthrough ./dist/virt-monitor ./dist/monitor docker/virtctl
+#cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/kubeovn-adm ./dist/device-passthrough ./dist/virt-monitor ./dist/monitor docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/device-passthrough ./dist/virt-monitor ./dist/monitor docker/virtctl
 cp -rf ./dist/arraylist.cfg docker/virtlet
 cp -rf ./dist/arraylist.cfg docker/libvirtwatcher
 if [ $? -ne 0 ]; then

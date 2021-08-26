@@ -1,5 +1,0 @@
-TYPE=OVSPort
-DEVICE=ORG
-ONBOOT=yes
-DEVICETYPE=ovs
-OVS_BRIDGE=br-native

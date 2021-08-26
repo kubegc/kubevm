@@ -16,15 +16,15 @@ ADD *.cfg /home/kubevmm/core/utils
 
 ADD virtctl /home/kubevmm/core/virtctl
 
-ADD kubeovn-adm /home/kubevmm/bin/
+#ADD kubeovn-adm /home/kubevmm/bin/
 
 ADD kubevmm-adm /home/kubevmm/bin/
 
 ADD virshplus /home/kubevmm/bin/
 
-ADD kubesds-adm /home/kubevmm/bin/
+#ADD kubesds-adm /home/kubevmm/bin/
 
-ADD kubesds-rpc-service /home/kubevmm/bin/
+#ADD kubesds-rpc-service /home/kubevmm/bin/
 
 ADD device-passthrough /home/kubevmm/bin/
 

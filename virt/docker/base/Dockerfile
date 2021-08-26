@@ -18,7 +18,7 @@ RUN pip2 install --ignore-installed prometheus_client kubernetes libvirt-python=
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install --ignore-installed prometheus_client kubernetes libvirt-python==5.7.0 xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil
+RUN pip3 install --ignore-installed prometheus_client kubernetes libvirt-python==5.7.0 xmljson xmltodict watchdog pyyaml pyinstaller grpcio grpcio-tools protobuf psutil python-dateutil
 
 # RUN export PYCURL_SSL_LIBRARY=openssl
 

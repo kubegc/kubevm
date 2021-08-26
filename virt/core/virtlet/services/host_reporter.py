@@ -51,11 +51,10 @@ PLURAL = constants.KUBERNETES_PLURAL_VM
 logger = logger.set_logger(os.path.basename(__file__), constants.KUBEVMM_VIRTLET_LOG)
 
 def main():
-#     restart_service = False
     ha_check = True
     ha_enable = True
     fail_times = 0
-    restart_virtctl = False
+#     restart_virtctl = False
     while True:
         try:
             host = client.CoreV1Api().read_node_status(name=HOSTNAME)
@@ -74,29 +73,22 @@ def main():
             check_libvirt_conn = __get_conn()
             if check_libvirt_conn:
                 check_libvirt_conn.close()
-            if restart_virtctl:
-                virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
-                if virtctl_id:
-                    logger.debug('Kubernetes has been recovered, restarting virtctl container %s' % virtctl_id)
-                    runCmd('docker stop %s' % virtctl_id)
-                restart_virtctl = False
-#             if restart_service:
-#                 runCmd('kubevmm-adm service restart')
-#                 restart_service = False
+#             if restart_virtctl:
+#                 virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
+#                 if virtctl_id:
+#                     logger.debug('Kubernetes has been recovered, restarting virtctl container %s' % virtctl_id)
+#                     runCmd('docker stop %s' % virtctl_id)
+#                 restart_virtctl = False
             fail_times = 0
             time.sleep(8)
         except Exception as e:
             logger.debug(repr(e))
-            if repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1:
+            if repr(e).find('Network is unreachable') != -1 or repr(e).find('Connection timed out') != -1 or repr(e).find('Connection refused') != -1 or repr(e).find('No route to host') != -1 or repr(e).find('ApiException') != -1:
                 master_ip = change_master_and_reload_config(fail_times)
                 fail_times += 1
                 logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
-                if fail_times >= 8:
-                    restart_virtctl = True
-#                 virtctl_id = runCmd("docker ps | grep virtctl | awk -F ' ' '{print $1}'")
-#                 if virtctl_id:
-#                     logger.debug('kubernetes error occurred, restart container %s' % virtctl_id)
-#                     runCmd('docker stop %s' % virtctl_id)
+#                 if fail_times >= 8:
+#                     restart_virtctl = True
                 if fail_times >= 3:
                     ha_check = True
             elif repr(e).find('failed to open a connection to the hypervisor software') != -1:
@@ -121,7 +113,7 @@ def _check_vm_by_hosting_node(group, version, plural, metadata_name):
             logger.debug('Delete VM %s because it is not hosting by the Kubernetes cluster.' % (metadata_name))
             if is_vm_exists(metadata_name):
                 if is_vm_active(metadata_name):
-                    destroy(metadata_name)
+                    _destroy_vm_retries(metadata_name)
                     time.sleep(1)
                 undefine(metadata_name)    
         elif node_name != get_hostname_in_lower_case():
@@ -129,11 +121,23 @@ def _check_vm_by_hosting_node(group, version, plural, metadata_name):
             _backup_json_to_file(group, version, 'default', plural, metadata_name)
             if is_vm_exists(metadata_name):
                 if is_vm_active(metadata_name):
-                    destroy(metadata_name)
+                    _destroy_vm_retries(metadata_name)
                     time.sleep(1)
                 undefine(metadata_name)    
     except:
         logger.error('Oops! ', exc_info=1)
+        
+def _destroy_vm_retries(metadata_name):
+    for i in range(1,6):
+        try:
+            destroy(metadata_name)
+            return
+        except Exception as e:
+            if i == 5:
+                raise e
+            else:
+                time.sleep(3)
+                continue
         
 def _check_ha_and_autostart_vm(group, version, plural, metadata_name):
     try:
@@ -202,7 +206,7 @@ def _backup_json_to_file(group, version, namespace, plural, metadata_name):
 #             retv = client.CustomObjectsApi().replace_namespaced_custom_object(
 #                 group=group, version=version, namespace='default', plural=plural, name=name, body=body)
 #             return retv
-#         except Exception as e:
+#         except Exception, e:
 #             if e.reason == 'Not Found':
 #                 raise e
 #             elif i == 5:
@@ -235,19 +239,26 @@ def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
 
 class HostCycler:
     
-    def __init__(self):
-        self.node_status = V1NodeStatus(addresses=self.get_status_address(), allocatable=self.get_status_allocatable(), 
-                            capacity=self.get_status_capacity(), conditions=self.get_status_condition(),
-                            daemon_endpoints=self.get_status_daemon_endpoints(), node_info=self.get_status_node_info())
-        self.node = V1Node(api_version='v1', kind='Node', metadata=self.get_object_metadata(), spec=self.get_node_spec(), status=self.node_status)
-        self.__node = self.node
-        self.__node_status = self.node_status
+#     def __init__(self):
+#         self.node_status = V1NodeStatus()
+#         addresses=self.get_status_address() 
+#         allocatable=self.get_status_allocatable()
+#         capacity=self.get_status_capacity()
+#         conditions=self.get_status_condition()
+#         daemon_endpoints=self.get_status_daemon_endpoints()
+#         node_info=self.get_status_node_info()
+# #         self.node_status = 
+#         self.node = 
+#         self.__node = self.node
+#         self.__node_status = self.node_status
 
     def get_node(self):
-        return self.__node
+        return V1Node(api_version='v1', kind='Node', metadata=self.get_object_metadata(), spec=self.get_node_spec(), status=self.node_status)
 
     def get_node_status(self):
-        return self.__node_status
+        return V1NodeStatus(addresses=self.get_status_address(), allocatable=self.get_status_allocatable(), 
+                            capacity=self.get_status_capacity(), conditions=self.get_status_condition(),
+                            daemon_endpoints=self.get_status_daemon_endpoints(), node_info=self.get_status_node_info())
 
     def _format_mem_to_Mi(self, mem):
         return int(round(int(mem))) if int(round(int(mem))) > 0 else 0
@@ -329,7 +340,7 @@ class HostCycler:
         RUNTIME_VERSION = 'QEMU-KVM://%s' % (runCmd('/usr/bin/qemu-img --version | awk \'NR==1 {print $3}\''))
         KERNEL_VERSION = runCmd('cat /proc/sys/kernel/osrelease')
 #         KUBE_PROXY_VERSION = runCmd('kubelet --version | awk \'{print $2}\'')
-        KUBE_PROXY_VERSION = 'v1.16.2'
+        KUBE_PROXY_VERSION = 'v1.20.10'
         KUBELET_VERSION = KUBE_PROXY_VERSION
         MACHINE_ID = BOOT_ID
         OPERATING_SYSTEM = runCmd('cat /proc/sys/kernel/ostype')
@@ -339,9 +350,10 @@ class HostCycler:
                      kernel_version=KERNEL_VERSION, kube_proxy_version=KUBE_PROXY_VERSION, kubelet_version=KUBELET_VERSION, \
                      machine_id=MACHINE_ID, operating_system=OPERATING_SYSTEM, os_image=OS_IMAGE, system_uuid=SYSTEM_UUID)
         
-    node = property(get_node, "node's docstring")
-    node_status = property(get_node_status, "node_status's docstring")
+#     node = property(get_node, "node's docstring")
+#     node_status = property(get_node_status, "node_status's docstring")
 
 if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
+#     node_watcher = HostCycler()
     main()

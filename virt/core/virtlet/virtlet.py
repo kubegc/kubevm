@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
+Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
 
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
@@ -42,9 +42,8 @@ class ClientDaemon(CDaemon):
         '''
         logger.debug("---------------------------------------------------------------------------------")
         logger.debug("------------------------Welcome to Virtlet Daemon.-------------------------------")
-        logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
-        logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
-        logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
+        logger.debug("------Copyright (2021, ) Institute of Software, Chinese Academy of Sciences------")
+        logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,wuheng@otcaix.iscas.ac.cn-----------")
         logger.debug("---------------------------------------------------------------------------------")
         
         config.load_kube_config(config_file=constants.KUBERNETES_TOKEN_FILE)

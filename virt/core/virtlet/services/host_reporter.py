@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
+Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
 
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
-@author: liuhe18@otcaix.iscas.ac.cn
 '''
 
 '''
@@ -66,7 +65,7 @@ def main():
                     _check_ha_and_autostart_vm(GROUP, VERSION, PLURAL, vm)
                     _check_vm_power_state(GROUP, VERSION, PLURAL, vm)
                 ha_check = False
-            client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
+            _replace_node_status()
             if ha_enable:
                 _check_and_enable_HA()
                 ha_enable = False
@@ -100,6 +99,19 @@ def main():
             logger.error('Oops! ', exc_info=1)
             time.sleep(3)
 #             restart_service = True
+            continue
+                
+def _replace_node_status():
+    for i in range(3):
+        try:
+            host = client.CoreV1Api().read_node_status(name=HOSTNAME)
+            node_watcher = HostCycler()
+            host.status = node_watcher.get_node_status()
+            client.CoreV1Api().replace_node_status(name=HOSTNAME, body=host)
+            return
+        except Exception as e:
+            logger.warning(e)
+            time.sleep(2)
             continue
         
 def _check_vm_by_hosting_node(group, version, plural, metadata_name):
@@ -206,7 +218,7 @@ def _backup_json_to_file(group, version, namespace, plural, metadata_name):
 #             retv = client.CustomObjectsApi().replace_namespaced_custom_object(
 #                 group=group, version=version, namespace='default', plural=plural, name=name, body=body)
 #             return retv
-#         except Exception, e:
+#         except Exception as e:
 #             if e.reason == 'Not Found':
 #                 raise e
 #             elif i == 5:
@@ -240,15 +252,10 @@ def updateDomainStructureAndDeleteLifecycleInJson(jsondict, body):
 class HostCycler:
     
 #     def __init__(self):
-#         self.node_status = V1NodeStatus()
-#         addresses=self.get_status_address() 
-#         allocatable=self.get_status_allocatable()
-#         capacity=self.get_status_capacity()
-#         conditions=self.get_status_condition()
-#         daemon_endpoints=self.get_status_daemon_endpoints()
-#         node_info=self.get_status_node_info()
-# #         self.node_status = 
-#         self.node = 
+#         self.node_status = V1NodeStatus(addresses=self.get_status_address(), allocatable=self.get_status_allocatable(), 
+#                             capacity=self.get_status_capacity(), conditions=self.get_status_condition(),
+#                             daemon_endpoints=self.get_status_daemon_endpoints(), node_info=self.get_status_node_info())
+#         self.node = V1Node(api_version='v1', kind='Node', metadata=self.get_object_metadata(), spec=self.get_node_spec(), status=self.node_status)
 #         self.__node = self.node
 #         self.__node_status = self.node_status
 
@@ -349,11 +356,7 @@ class HostCycler:
         return V1NodeSystemInfo(architecture=ARCHITECTURE, boot_id=BOOT_ID, container_runtime_version=RUNTIME_VERSION, \
                      kernel_version=KERNEL_VERSION, kube_proxy_version=KUBE_PROXY_VERSION, kubelet_version=KUBELET_VERSION, \
                      machine_id=MACHINE_ID, operating_system=OPERATING_SYSTEM, os_image=OS_IMAGE, system_uuid=SYSTEM_UUID)
-        
-#     node = property(get_node, "node's docstring")
-#     node_status = property(get_node_status, "node_status's docstring")
 
 if __name__ == "__main__":
     config.load_kube_config(config_file=TOKEN)
-#     node_watcher = HostCycler()
     main()

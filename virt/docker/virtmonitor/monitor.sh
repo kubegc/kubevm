@@ -7,8 +7,5 @@
 ##
 ################################################################
 
-echo "Now starting virtctl service..."
-SHELL_FOLDER=$(dirname $(readlink -f "$0"))
-cd ${SHELL_FOLDER}
-cd ./virtctl
-python3 virtctl_in_docker.py
+echo "Now starting virt monitor service..."
+python virt_monitor_in_docker.py

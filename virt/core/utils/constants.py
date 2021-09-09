@@ -1,7 +1,6 @@
 '''
-Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
+Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
     @author: wuyuewen@otcaix.iscas.ac.cn
-    @author: liuhe18@otcaix.iscas.ac.cn
     @author: wuheng@otcaix.iscas.ac.cn
     
     @since:  2019/09/26  
@@ -29,6 +28,9 @@ KUBEVMM_LIBVIRT_VM_XML_DIR         = "/etc/libvirt/qemu"
 KUBEVMM_NOVNC_TOKEN                = "/root/noVNC/websockify/token/token.conf"
 KUBEVMM_RESOURCE_FILE_PATH         = "/etc/kubevmm/resource"
 KUBEVMM_SHARE_FS_MOUNT_POINT       = "/var/lib/libvirt/cstor"
+KUBEVMM_VDISK_FS_MOUNT_POINT       = "/mnt/usb"
+KUBEVMM_LOCAL_FS_MOUNT_POINT       = "/mnt/localfs"
+KUBEVMM_BLOCK_FS_MOUNT_POINT       = "/var/lib/libvirt/cstor"
 KUBEVMM_OVN_FILE                   = "/etc/ovn.conf"
 KUBEVMM_DEFAULT_JSON_BACKUP_DIR    = "/etc/kubevmm/backup"
 KUBEVMM_DEFAULT_VMDI_DIR           = "/var/lib/libvirt/vmdi"

@@ -10,7 +10,7 @@ else
         echo -e "\033[3;30;47m*** Build a new release version: \033[5;36;47m($1)\033[0m)"
         echo -e "Institute of Software, Chinese Academy of Sciences"
         echo -e "        wuyuewen@otcaix.iscas.ac.cn"
-        echo -e "              Copyright (2019)\n"
+        echo -e "              Copyright (2021)\n"
     else
         echo "error: wrong syntax in release version number, support chars=[A-Za-z0-9.]"
         exit 1
@@ -48,8 +48,6 @@ rm -f ./core/plugins/device-passthrough~
 # cp -f ../scripts/kubevirt-ctl ./dist
 # gzexe -d ../scripts/kubevirt-ctl
 # rm -f ../scripts/kubevirt-ctl~
-cp -f ./core/plugins/virt-monitor-ctl ./dist
-cp -f ./core/plugins/kubevmm-monitor.service ./dist
 #cp -f ./core/plugins/ovn-ovsdb.service ./dist
 cp -f ./core/utils/arraylist.cfg ./dist
 cp -rf ./yamls ./dist
@@ -64,15 +62,6 @@ else
     echo "    Success compile <kubevmm-adm>."
 fi
 cp -f ./dist/kubevmm-adm ../../dist
-pyinstaller -F virt_monitor.py -n virt-monitor
-if [ $? -ne 0 ]; then
-    echo "    Failed to compile <virt-monitor>!"
-    exit 1
-else
-    echo "    Success compile <virt-monitor>."
-fi
-cp -f ./dist/virt-monitor ../../dist
-rm -rf ./dist
 cp -f virshplus.py ../
 cd ..
 pyinstaller -F virshplus.py
@@ -117,7 +106,7 @@ find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOUR
 find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
 #cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/kubeovn-adm ./dist/device-passthrough ./dist/virt-monitor ./dist/monitor docker/virtctl
-cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/device-passthrough ./dist/virt-monitor ./dist/monitor docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/device-passthrough ./dist/monitor docker/virtctl
 cp -rf ./dist/arraylist.cfg docker/virtlet
 cp -rf ./dist/arraylist.cfg docker/libvirtwatcher
 if [ $? -ne 0 ]; then
@@ -140,12 +129,17 @@ fi
 if [ ! -d "../docker/libvirtwatcher/utils" ]; then
 	mkdir ../docker/libvirtwatcher/utils
 fi
+if [ ! -d "./docker/virtmonitor/utils" ]; then
+	mkdir ./docker/virtmonitor/utils
+fi
 cp -rf utils/*.py ../docker/virtctl/utils/
 cp -rf utils/*.py ../docker/virtlet/utils/
+cp -rf utils/*.py ../docker/libvirtwatcher/utils/
 cp -rf utils/*.py ../docker/libvirtwatcher/utils/
 cp -rf virtctl/ ../docker/virtctl
 cp -rf virtlet/ ../docker/virtlet
 cp -rf libvirtwatcher/ ../docker/libvirtwatcher
+cp -rf virtmonitor/ ../docker/virtmonitor
 cd ..
 #cd ./core
 #if [ ! -d "./compile" ]; then
@@ -171,6 +165,7 @@ docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-
 docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:${VERSION}
 docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtctl:${VERSION}
 docker build libvirtwatcher -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:${VERSION}
+docker build virtmonitor -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:${VERSION}
 
 #step 3 docker push
 echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
@@ -186,6 +181,7 @@ docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-base:
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtctl:${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:${VERSION}
 docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:${VERSION}
+docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:${VERSION}
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"

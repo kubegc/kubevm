@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
+Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
 
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
@@ -321,7 +321,6 @@ class MyDomainEventHandler(threading.Thread):
 # def ttDomainEventHandler(conn, dom, *args, **kwargs):
 #     try:
 #         vm_name = dom.name()
-#         logger.debug("liuhe")
 #         logger.debug(type(dom))
 #         logger.debug(dom)
 #     except:

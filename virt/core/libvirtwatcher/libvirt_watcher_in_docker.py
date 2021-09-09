@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
+Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
 
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
@@ -37,9 +37,8 @@ logger = logger.set_logger(os.path.basename(__file__), constants.KUBEVMM_VIRTLET
 def main():
     logger.debug("---------------------------------------------------------------------------------")
     logger.debug("--------------------Welcome to Libvirt Watcher Daemon.---------------------------")
-    logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
+    logger.debug("------Copyright (2021, ) Institute of Software, Chinese Academy of Sciences------")
     logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn, wuheng@otcaix.iscas.ac.cn----------")
-    logger.debug("------------------------------liuhe18@otcaix.iscas.ac.cn-------------------------")
     logger.debug("---------------------------------------------------------------------------------")
     
     if os.path.exists(TOKEN):

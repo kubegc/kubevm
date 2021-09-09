@@ -25,9 +25,9 @@ Source8:        ovn-ovsdb.service
 #Source10:       kubevirt-ctl
 Source11:       device-passthrough
 Source12:       kubesds.service
-Source13:       virt-monitor
-Source14:       virt-monitor-ctl
-Source15:       kubevmm-monitor.service
+#Source13:       virt-monitor
+#Source14:       virt-monitor-ctl
+#Source15:       kubevmm-monitor.service
 Source16:       kubesds-ctl.sh
 Source17:       monitor
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
@@ -48,11 +48,11 @@ install %{SOURCE7} %{buildroot}/%{_usr}/bin/kubesds-rpc-service
 #install %{SOURCE10} %{buildroot}/%{_usr}/bin/kubevirt-ctl
 install %{SOURCE11} %{buildroot}/%{_usr}/bin/device-passthrough
 install %{SOURCE16} %{buildroot}/%{_usr}/bin/kubesds-ctl.sh
-install %{SOURCE13} %{buildroot}/%{_usr}/bin/virt-monitor
-install %{SOURCE14} %{buildroot}/%{_usr}/bin/virt-monitor-ctl
+#install %{SOURCE13} %{buildroot}/%{_usr}/bin/virt-monitor
+#install %{SOURCE14} %{buildroot}/%{_usr}/bin/virt-monitor-ctl
 install %{SOURCE8} %{buildroot}/%{_usr}/lib/systemd/system/ovn-ovsdb.service
 install %{SOURCE12} %{buildroot}/%{_usr}/lib/systemd/system/kubesds.service
-install %{SOURCE15} %{buildroot}/%{_usr}/lib/systemd/system/kubevmm-monitor.service
+#install %{SOURCE15} %{buildroot}/%{_usr}/lib/systemd/system/kubevmm-monitor.service
 mkdir -p %{buildroot}/etc/kubevmm
 echo %{version} > %{SOURCE2}
 install %{SOURCE2} %{buildroot}/etc/kubevmm
@@ -81,13 +81,13 @@ rm -rf %{buildroot}
 #/%{_usr}/bin/kubevirt-ctl
 /%{_usr}/bin/device-passthrough
 /%{_usr}/bin/kubesds-ctl.sh
-/%{_usr}/bin/virt-monitor
-/%{_usr}/bin/virt-monitor-ctl
+#/%{_usr}/bin/virt-monitor
+#/%{_usr}/bin/virt-monitor-ctl
 %defattr(644, -, -)
 /etc/kubevmm/VERSION
 #/etc/kubevmm/config
 /%{_usr}/lib/systemd/system/ovn-ovsdb.service
-/%{_usr}/lib/systemd/system/kubevmm-monitor.service
+#/%{_usr}/lib/systemd/system/kubevmm-monitor.service
 /%{_usr}/lib/systemd/system/kubesds.service
 %defattr(644, -, -, 755)
 /etc/kubevmm/yamls/

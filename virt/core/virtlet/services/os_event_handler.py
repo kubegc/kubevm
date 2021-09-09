@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 '''
-Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
+Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
 
 @author: wuyuewen@otcaix.iscas.ac.cn
 @author: wuheng@otcaix.iscas.ac.cn
-@author: liuhe18@otcaix.iscas.ac.cn
 '''
 import json
 
 '''
 Import python libs
 '''
+import os
 import time
 import traceback
 import sys
@@ -55,6 +55,7 @@ PLURAL_VM_DISK = constants.KUBERNETES_PLURAL_VMD
 PLURAL_VM_DISK_SS = constants.KUBERNETES_PLURAL_VMDSN
 PLURAL_VM_DISK_IMAGE = constants.KUBERNETES_PLURAL_VMDI
 LIBVIRT_XML_DIR = constants.KUBEVMM_LIBVIRT_VM_XML_DIR
+VMD_TEMPLATE_DIR = constants.KUBEVMM_DEFAULT_VMDI_DIR
 
 HOSTNAME = get_hostname_in_lower_case()
 logger = logger.set_logger(os.path.basename(__file__), constants.KUBEVMM_VIRTLET_LOG)
@@ -1254,7 +1255,7 @@ def main():
         #                 os.makedirs(ob[1], 0x0711)
         #             event_handler = VmBlockDevEventHandler(ob[0], ob[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
         #             observer.schedule(event_handler,ob[1],True)
-        for ob in constants.KUBEVMM_LIBVIRT_VM_XML_DIR:
+        for ob in LIBVIRT_XML_DIR:
             if not os.path.exists(ob[1]):
                 os.makedirs(ob[1], 0x0711)
             event_handler = VmLibvirtXmlEventHandler(ob[0], ob[1], GROUP, VERSION, PLURAL_VM)
@@ -1264,7 +1265,7 @@ def main():
 #                 os.makedirs(ob[1], 0x0711)
 #             event_handler = ImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
 #             observer.schedule(event_handler, ob[1], True)
-        for ob in constants.KUBEVMM_DEFAULT_VMDI_DIR:
+        for ob in VMD_TEMPLATE_DIR:
             if not os.path.exists(ob[1]):
                 os.makedirs(ob[1], 0x0711)
                 try:

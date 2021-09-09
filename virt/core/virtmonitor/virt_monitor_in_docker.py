@@ -3,10 +3,12 @@ import subprocess
 import prometheus_client
 import os
 import sys
+import operator
 from prometheus_client.core import CollectorRegistry
 from prometheus_client import Gauge,start_http_server,Counter
 import time
 import threading
+import threadpool
 from kubernetes import config
 from json import loads, dumps
 from utils import constants
@@ -19,34 +21,22 @@ from utils import logger
 #     import xml.etree.ElementTree as ET
 
 # from utils.libvirt_util import list_active_vms, get_macs
-from utils.misc import get_hostname_in_lower_case, list_objects_in_kubernetes, get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
+from utils.misc import singleton, get_hostname_in_lower_case, list_objects_in_kubernetes, get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
 
 LOG = '/var/log/virtmonitor.log'
 logger = logger.set_logger(os.path.basename(__file__), LOG)
 
-class parser(ConfigParser.ConfigParser):
-    def __init__(self,defaults=None):  
-        ConfigParser.ConfigParser.__init__(self,defaults=None)  
-    def optionxform(self, optionstr):  
-        return optionstr 
-
-cfg = "/etc/kubevmm/config"
-if not os.path.exists(cfg):
-    cfg = "/home/kubevmm/bin/config"
-config_raw = parser()
-config_raw.read(cfg)
-
-TOKEN = config_raw.get('Kubernetes', 'token_file')
-PLURAL = config_raw.get('VirtualMachine', 'plural')
-VERSION = config_raw.get('VirtualMachine', 'version')
-GROUP = config_raw.get('VirtualMachine', 'group')
-PLURAL_VMP = config_raw.get('VirtualMachinePool', 'plural')
-VERSION_VMP = config_raw.get('VirtualMachinePool', 'version')
-GROUP_VMP = config_raw.get('VirtualMachinePool', 'group')
-SHARE_FS_MOUNT_POINT = config_raw.get('Storage', 'share_fs_mount_point')
-VDISK_FS_MOUNT_POINT = config_raw.get('Storage', 'vdisk_fs_mount_point')
-LOCAL_FS_MOUNT_POINT = config_raw.get('Storage', 'local_fs_mount_point')
-BLOCK_FS_MOUNT_POINT = config_raw.get('Storage', 'block_fs_mount_point')
+TOKEN = constants.KUBERNETES_TOKEN_FILE
+PLURAL = constants.KUBERNETES_PLURAL_VM
+VERSION = constants.KUBERNETES_API_VERSION
+GROUP = constants.KUBERNETES_GROUP
+PLURAL_VMP = constants.KUBERNETES_PLURAL_VMP
+VERSION_VMP = constants.KUBERNETES_API_VERSION
+GROUP_VMP = constants.KUBERNETES_GROUP
+SHARE_FS_MOUNT_POINT = constants.KUBEVMM_SHARE_FS_MOUNT_POINT
+VDISK_FS_MOUNT_POINT = constants.KUBEVMM_VDISK_FS_MOUNT_POINT
+LOCAL_FS_MOUNT_POINT = constants.KUBEVMM_LOCAL_FS_MOUNT_POINT
+BLOCK_FS_MOUNT_POINT = constants.KUBEVMM_BLOCK_FS_MOUNT_POINT
 
 HOSTNAME = get_hostname_in_lower_case()
 
@@ -55,6 +45,8 @@ LAST_TAGS = {}
 LAST_RESOURCE_UTILIZATION = {}
 
 ALL_VMS_IN_PROMETHEUS = []
+
+thread_pool = threadpool.ThreadPool(10)
 
 # vm_cpu_system_proc_rate = Gauge('vm_cpu_system_proc_rate', 'The CPU rate of running system processes in virtual machine', \
 #                                 ['zone', 'host', 'vm', "labels"])
@@ -200,9 +192,9 @@ def collect_storage_metrics(zone):
                 t.start()
                 t.join(2)
                 t.kill()
-        except:
+        except Exception as e:
             logger.warning('Oops! ', exc_info=1)
-            return
+            raise e
 #             get_pool_metrics(pool_storage, pool_type, zone)
 
 def _get_pool_details(vm_pool):
@@ -336,274 +328,261 @@ def collect_vm_metrics(zone):
         if ALL_VMS_IN_PROMETHEUS:
             vm_not_exists = list(set(ALL_VMS_IN_PROMETHEUS).difference(set(all_vm)))
         ALL_VMS_IN_PROMETHEUS = all_vm
-        print(vm_list)
 #         global VMS_CACHE
         vm_stopped = []
 #         if VMS_CACHE:
-        print(all_vm)
-        print(vm_list)
+#         print(all_vm)
+#         print(vm_list)
 #         print(vm_not_exists)
+        threads = []
         if all_vm:
             vm_stopped = list(set(all_vm).difference(set(vm_list)))
-            print(vm_stopped)
-#         VMS_CACHE = vm_list
-# #         print(VMS_CACHE)
         for vm in vm_list:
-            t = KillableThread(target=get_vm_metrics,args=(vm, zone,))
-            t.start()
-            t.join(2)
-            t.kill()
+#             t = threading.Thread(target=get_vm_metrics,args=(vm, zone,))
+            t = threadpool.makeRequests(get_vm_metrics, [((vm, zone),{})])
+            threads.extend(t)
         for vm in vm_stopped:
-            t = KillableThread(target=zero_vm_metrics,args=(vm, zone,))
-            t.start()
-            t.join(2)
-            t.kill()  
+#             t = threading.Thread(target=zero_vm_metrics,args=(vm, zone,))
+            t = threadpool.makeRequests(zero_vm_metrics, [((vm, zone),{})])
+            threads.extend(t)
         for vm in vm_not_exists:
-            t = KillableThread(target=delete_vm_metrics,args=(vm, zone,))
-            t.start()
-            t.join(2)
-            t.kill()  
+#             t = threading.Thread(target=delete_vm_metrics,args=(vm, zone,))
+            t = threadpool.makeRequests(delete_vm_metrics, [((vm, zone),{})])
+            threads.extend(t)
+#         for thread in threads:
+#             thread.setDaemon(True)
+#             thread.start()
+        map(thread_pool.putRequest,threads)
+        thread_pool.wait()
     except:
         logger.warning('Oops! ', exc_info=1)
         return        
 #         get_vm_metrics(vm, zone)
         
 def get_vm_metrics(vm, zone):
-    
-#     global vm_cpu_system_proc_rate
-#     global vm_cpu_usr_proc_rate 
-#     global vm_cpu_idle_rate 
-#     global vm_mem_total_bytes 
-#     global vm_mem_available_bytes 
-#     global vm_mem_buffers_bytes 
-#     global vm_mem_rate 
-#     global vm_disk_read_requests_per_secend 
-#     global vm_disk_write_requests_per_secend 
-#     global vm_disk_read_bytes_per_secend 
-#     global vm_disk_write_bytes_per_secend 
-#     global vm_network_receive_packages_per_secend 
-#     global vm_network_receive_bytes_per_secend 
-#     global vm_network_receive_errors_per_secend 
-#     global vm_network_receive_drops_per_secend 
-#     global vm_network_send_packages_per_secend 
-#     global vm_network_send_bytes_per_secend 
-#     global vm_network_send_errors_per_secend 
-#     global vm_network_send_drops_per_secend 
-    global LAST_TAGS
-    global LAST_RESOURCE_UTILIZATION
-#     delete_duplicated_data = False
-#     tags = {}
-    config.load_kube_config(config_file=TOKEN)
-    labels = get_field_in_kubernetes_by_index(vm, GROUP, VERSION, PLURAL, ['metadata', 'labels'])
-    this_tags = {'zone': zone, 'host': HOSTNAME, 'owner': labels.get('owner'), 
-                     "router": labels.get('router'), "autoscalinggroup": labels.get('autoscalinggroup'), 
-                     "cluster": labels.get('cluster')}
-#     if vm in LAST_TAGS.keys() and cmp(LAST_TAGS[vm], this_tags) != 0:
-#         print("need delete")
-# #         delete_duplicated_data = True
-#         tags = {'zone': LAST_TAGS[vm].get('zone'), 'host': LAST_TAGS[vm].get('host'), 'owner': LAST_TAGS[vm].get('owner'), 
-#                      "router": LAST_TAGS[vm].get('router'), "autoscalinggroup": LAST_TAGS[vm].get('autoscalinggroup'), 
-#                      "cluster": LAST_TAGS[vm].get('cluster'), 'vm': vm}
-    LAST_TAGS[vm] = this_tags
-#     labels_str = dumps(labels)
-#     if delete_duplicated_data and LAST_RESOURCE_UTILIZATION[vm]:
-#         print('delete data')
-#         print(tags)
-#         print(LAST_RESOURCE_UTILIZATION[vm]['disks_metrics'])
-#         print(LAST_RESOURCE_UTILIZATION[vm]['networks_metrics'])
-#         delete_vm_metrics(tags, LAST_RESOURCE_UTILIZATION[vm]['disks_metrics'], LAST_RESOURCE_UTILIZATION[vm]['networks_metrics'])
-#         del LAST_RESOURCE_UTILIZATION[vm]
-#         return
-#     else:
-    resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
-                            'disks_metrics': [], 'networks_metrics': [], 'cluster': labels.get('cluster'), 'router': labels.get('router'),
-                            'owner': labels.get('owner'), 'autoscalinggroup': labels.get('autoscalinggroup')}
-#     cpus = len(get_vcpus(vm)[0])
-#     print(cpus)
-    cpu_stats = runCmdRaiseException('timeout 2 virsh domstats --vcpu %s | grep time | awk \'{split($0,a,\"=\");print a[2]}\'' % vm)
-    cpu_time = 0.00
-    cpu_number = 0
-    for line in cpu_stats:
-        one_cpu_time_seconds = int(line) / 1000000000
-        cpu_time += one_cpu_time_seconds
-        cpu_number += 1
-#     cpu_system_time = 0.00
-#     cpu_user_time = 0.00
-#     for line in cpu_stats:
-#         if line.find('cpu_time') != -1:
-#             p1 = r'^(\s*cpu_time\s*)([\S*]+)\s*(\S*)'
-#             m1 = re.match(p1, line)
-#             if m1:
-#                 cpu_time = float(m1.group(2))
-#         elif line.find('system_time') != -1:
-#             p1 = r'^(\s*system_time\s*)([\S*]+)\s*(\S*)'
-#             m1 = re.match(p1, line)
-#             if m1:
-#                 cpu_system_time = float(m1.group(2))
-#         elif line.find('user_time') != -1:
-#             p1 = r'^(\s*user_time\s*)([\S*]+)\s*(\S*)'
-#             m1 = re.match(p1, line)
-#             if m1:
-#                 cpu_user_time = float(m1.group(2))
-    first_time = False
-    cpu_util = 0.00
-    global CPU_UTILIZATION
-#     logger.debug(vm)
-    if vm in CPU_UTILIZATION.keys() and cpu_number == CPU_UTILIZATION[vm].get('cpu_number'):
-        interval = time.time() - CPU_UTILIZATION[vm].get('time')
-        cpu_util = (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time')))/ cpu_number / interval
-#         logger.debug('%.2f %.2f %.2f %.2f' % (interval, cpu_util, cpu_system_util, cpu_user_util))
-        CPU_UTILIZATION[vm] = {'cpu_time': cpu_time,
-                                'time': time.time(), 'cpu_number': cpu_number}
-    else:
-        CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'time': time.time(), 'cpu_number': cpu_number}
-        first_time = True
-    if not first_time:
-        resource_utilization['cpu_metrics']['cpu_idle_rate'] = \
-        '%.2f' % abs(1 - cpu_util) if abs(1 - cpu_util) <= 1.00 and abs(1 - cpu_util) >= 0.00 else 0.00
-    else:
-        resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (1.00)
-    mem_stats = runCmdRaiseException('timeout 2 virsh dommemstat %s' % vm)
-    mem_actual = 0.00
-    mem_unused = 0.00
-    mem_available = 0.00
-    for line in mem_stats:
-        if line.find('unused') != -1:
-            mem_unused = float(line.split(' ')[1].strip()) * 1024
-        elif line.find('available') != -1:
-            mem_available = float(line.split(' ')[1].strip()) * 1024
-        elif line.find('actual') != -1:
-            mem_actual = float(line.split(' ')[1].strip()) * 1024
-    resource_utilization['mem_metrics']['mem_unused'] = '%.2f' % (mem_unused)
-    resource_utilization['mem_metrics']['mem_available'] = '%.2f' % (mem_available)
-    if mem_unused and mem_available and mem_actual:
-        mem_buffers = abs(mem_actual - mem_available)
-        resource_utilization['mem_metrics']['mem_buffers'] = '%.2f' % (mem_buffers)
-        resource_utilization['mem_metrics']['mem_rate'] = \
-        '%.2f' % (abs(mem_available - mem_unused - mem_buffers) / mem_available * 100)
-    else:
-        resource_utilization['mem_metrics']['mem_buffers'] = '%.2f' % (0.00)
-        resource_utilization['mem_metrics']['mem_rate'] = '%.2f' % (0.00)
-    disks_spec = get_disks_spec(vm)
-    for disk_spec in disks_spec:
-        disk_metrics = {}
-        disk_device = disk_spec[0]
-        disk_metrics['device'] = disk_device
-        stats1 = {}
-        stats2 = {}
-        # logger.debug('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
-        blk_dev_stats1 = runCmdRaiseException('timeout 2 virsh domblkstat --device %s --domain %s' % (disk_device, vm))
-        for line in blk_dev_stats1:
-            if line.find('rd_req') != -1:
-                stats1['rd_req'] = float(line.split(' ')[2].strip())
-            elif line.find('rd_bytes') != -1:
-                stats1['rd_bytes'] = float(line.split(' ')[2].strip())
-            elif line.find('wr_req') != -1:
-                stats1['wr_req'] = float(line.split(' ')[2].strip())
-            elif line.find('wr_bytes') != -1:
-                stats1['wr_bytes'] = float(line.split(' ')[2].strip())
-        time.sleep(0.1)
-        blk_dev_stats2 = runCmdRaiseException('timeout 2 virsh domblkstat --device %s --domain %s' % (disk_device, vm))
-        for line in blk_dev_stats2:
-            if line.find('rd_req') != -1:
-                stats2['rd_req'] = float(line.split(' ')[2].strip())
-            elif line.find('rd_bytes') != -1:
-                stats2['rd_bytes'] = float(line.split(' ')[2].strip())
-            elif line.find('wr_req') != -1:
-                stats2['wr_req'] = float(line.split(' ')[2].strip())
-            elif line.find('wr_bytes') != -1:
-                stats2['wr_bytes'] = float(line.split(' ')[2].strip())
-        disk_metrics['disk_read_requests_per_secend'] = '%.2f' % ((stats2['rd_req'] - stats1['rd_req']) / 0.1) \
-        if (stats2['rd_req'] - stats1['rd_req']) > 0 else '%.2f' % (0.00)
-        disk_metrics['disk_read_bytes_per_secend'] = '%.2f' % ((stats2['rd_bytes'] - stats1['rd_bytes']) / 0.1) \
-        if (stats2['rd_bytes'] - stats1['rd_bytes']) > 0 else '%.2f' % (0.00)
-        disk_metrics['disk_write_requests_per_secend'] = '%.2f' % ((stats2['wr_req'] - stats1['wr_req']) / 0.1) \
-        if (stats2['wr_req'] - stats1['wr_req']) > 0 else '%.2f' % (0.00)
-        disk_metrics['disk_write_bytes_per_secend'] = '%.2f' % ((stats2['wr_bytes'] - stats1['wr_bytes']) / 0.1) \
-        if (stats2['wr_bytes'] - stats1['wr_bytes']) > 0 else '%.2f' % (0.00)
-        resource_utilization['disks_metrics'].append(disk_metrics)
-    macs = get_macs(vm)
-    for mac in macs:
-        net_metrics = {}
-        net_metrics['device'] = mac.encode('utf-8')
-        stats1 = {}
-        stats2 = {}
-        net_dev_stats1 = runCmdRaiseException('timeout 2 virsh domifstat --interface %s --domain %s' % (mac, vm))
-        for line in net_dev_stats1:
-            if line.find('rx_bytes') != -1:
-                stats1['rx_bytes'] = float(line.split(' ')[2].strip())
-            elif line.find('rx_packets') != -1:
-                stats1['rx_packets'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_packets') != -1:
-                stats1['tx_packets'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_bytes') != -1:
-                stats1['tx_bytes'] = float(line.split(' ')[2].strip())
-            elif line.find('rx_drop') != -1:
-                stats1['rx_drop'] = float(line.split(' ')[2].strip())
-            elif line.find('rx_errs') != -1:
-                stats1['rx_errs'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_errs') != -1:
-                stats1['tx_errs'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_drop') != -1:
-                stats1['tx_drop'] = float(line.split(' ')[2].strip())
-        time.sleep(0.1)
-        net_dev_stats2 = runCmdRaiseException('timeout 2 virsh domifstat --interface %s --domain %s' % (mac, vm))
-        for line in net_dev_stats2:
-            if line.find('rx_bytes') != -1:
-                stats2['rx_bytes'] = float(line.split(' ')[2].strip())
-            elif line.find('rx_packets') != -1:
-                stats2['rx_packets'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_packets') != -1:
-                stats2['tx_packets'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_bytes') != -1:
-                stats2['tx_bytes'] = float(line.split(' ')[2].strip())
-            elif line.find('rx_drop') != -1:
-                stats2['rx_drop'] = float(line.split(' ')[2].strip())
-            elif line.find('rx_errs') != -1:
-                stats2['rx_errs'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_errs') != -1:
-                stats2['tx_errs'] = float(line.split(' ')[2].strip())
-            elif line.find('tx_drop') != -1:
-                stats2['tx_drop'] = float(line.split(' ')[2].strip())
-        net_metrics['network_read_packages_per_secend'] = '%.2f' % ((stats2['rx_packets'] - stats1['rx_packets']) / 0.1) \
-        if (stats2['rx_packets'] - stats1['rx_packets']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_read_bytes_per_secend'] = '%.2f' % ((stats2['rx_bytes'] - stats1['rx_bytes']) / 0.1) \
-        if (stats2['rx_bytes'] - stats1['rx_bytes']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_packages_per_secend'] = '%.2f' % ((stats2['tx_packets'] - stats1['tx_packets']) / 0.1) \
-        if (stats2['tx_packets'] - stats1['tx_packets']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_bytes_per_secend'] = '%.2f' % ((stats2['tx_bytes'] - stats1['tx_bytes']) / 0.1) \
-        if (stats2['tx_bytes'] - stats1['tx_bytes']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_read_errors_per_secend'] = '%.2f' % ((stats2['rx_errs'] - stats1['rx_errs']) / 0.1) \
-        if (stats2['rx_errs'] - stats1['rx_errs']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_read_drops_per_secend'] = '%.2f' % ((stats2['rx_drop'] - stats1['rx_drop']) / 0.1) \
-        if (stats2['rx_drop'] - stats1['rx_drop']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_errors_per_secend'] = '%.2f' % ((stats2['tx_errs'] - stats1['tx_errs']) / 0.1) \
-        if (stats2['tx_errs'] - stats1['tx_errs']) > 0 else '%.2f' % (0.00)
-        net_metrics['network_write_drops_per_secend'] = '%.2f' % ((stats2['tx_drop'] - stats1['tx_drop']) / 0.1) \
-        if (stats2['tx_drop'] - stats1['tx_drop']) > 0 else '%.2f' % (0.00)
-        resource_utilization['networks_metrics'].append(net_metrics) 
-    LAST_RESOURCE_UTILIZATION[vm] = resource_utilization
-    if cpu_number == CPU_UTILIZATION[vm].get('cpu_number'): 
-        vm_cpu_idle_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
-    vm_mem_total_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_available'])
-    vm_mem_available_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_unused'])
-    vm_mem_buffers_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_buffers'])
-    vm_mem_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_rate'])
-    for disk_metrics in resource_utilization['disks_metrics']:
-        vm_disk_read_requests_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_read_requests_per_secend'])
-        vm_disk_read_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_read_bytes_per_secend'])
-        vm_disk_write_requests_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_write_requests_per_secend'])
-        vm_disk_write_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_write_bytes_per_secend'])
-    for net_metrics in resource_utilization['networks_metrics']:
-        vm_network_receive_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_bytes_per_secend'])
-        vm_network_receive_drops_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_drops_per_secend'])
-        vm_network_receive_errors_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_errors_per_secend'])
-        vm_network_receive_packages_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_packages_per_secend'])
-        vm_network_send_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_bytes_per_secend'])
-        vm_network_send_drops_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_drops_per_secend'])
-        vm_network_send_errors_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_errors_per_secend'])
-        vm_network_send_packages_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_packages_per_secend'])
-    return resource_utilization
+    try:
+        global LAST_TAGS
+        global LAST_RESOURCE_UTILIZATION
+    #     delete_duplicated_data = False
+    #     tags = {}
+        config.load_kube_config(config_file=TOKEN)
+        labels = get_field_in_kubernetes_by_index(vm, GROUP, VERSION, PLURAL, ['metadata', 'labels'])
+        this_tags = {'zone': zone, 'host': HOSTNAME, 'owner': labels.get('owner'), 
+                         "router": labels.get('router'), "autoscalinggroup": labels.get('autoscalinggroup'), 
+                         "cluster": labels.get('cluster')}
+        if vm in LAST_TAGS.keys() and operator.ne(LAST_TAGS[vm], this_tags):
+    #         print("need delete")
+            delete_vm_metrics(vm, LAST_TAGS[vm].get('zone'))
+    #         delete_duplicated_data = True
+    #         tags = {'zone': LAST_TAGS[vm].get('zone'), 'host': LAST_TAGS[vm].get('host'), 'owner': LAST_TAGS[vm].get('owner'), 
+    #                      "router": LAST_TAGS[vm].get('router'), "autoscalinggroup": LAST_TAGS[vm].get('autoscalinggroup'), 
+    #                      "cluster": LAST_TAGS[vm].get('cluster'), 'vm': vm}
+    #     labels_str = dumps(labels)
+    #     if delete_duplicated_data:
+        LAST_TAGS[vm] = this_tags
+        resource_utilization = {'vm': vm, 'cpu_metrics': {}, 'mem_metrics': {},
+                                'disks_metrics': [], 'networks_metrics': [], 'cluster': labels.get('cluster'), 'router': labels.get('router'),
+                                'owner': labels.get('owner'), 'autoscalinggroup': labels.get('autoscalinggroup')}
+    #     cpus = len(get_vcpus(vm)[0])
+    #     print(cpus)
+        cpu_stats = runCmdRaiseException('timeout 2 virsh domstats --vcpu %s | grep time | awk \'{split($0,a,\"=\");print a[2]}\'' % vm)
+        cpu_time = 0.00
+        cpu_number = 0
+        for line in cpu_stats:
+            one_cpu_time_seconds = int(line) / 1000000000
+            cpu_time += one_cpu_time_seconds
+            cpu_number += 1
+    #     cpu_system_time = 0.00
+    #     cpu_user_time = 0.00
+    #     for line in cpu_stats:
+    #         if line.find('cpu_time') != -1:
+    #             p1 = r'^(\s*cpu_time\s*)([\S*]+)\s*(\S*)'
+    #             m1 = re.match(p1, line)
+    #             if m1:
+    #                 cpu_time = float(m1.group(2))
+    #         elif line.find('system_time') != -1:
+    #             p1 = r'^(\s*system_time\s*)([\S*]+)\s*(\S*)'
+    #             m1 = re.match(p1, line)
+    #             if m1:
+    #                 cpu_system_time = float(m1.group(2))
+    #         elif line.find('user_time') != -1:
+    #             p1 = r'^(\s*user_time\s*)([\S*]+)\s*(\S*)'
+    #             m1 = re.match(p1, line)
+    #             if m1:
+    #                 cpu_user_time = float(m1.group(2))
+        first_time = False
+        cpu_util = 0.00
+        global CPU_UTILIZATION
+    #     logger.debug(vm)
+        if vm in CPU_UTILIZATION.keys() and cpu_number == CPU_UTILIZATION[vm].get('cpu_number'):
+            interval = time.time() - CPU_UTILIZATION[vm].get('time')
+            cpu_util = (cpu_time - float(CPU_UTILIZATION[vm].get('cpu_time')))/ cpu_number / interval
+    #         logger.debug('%.2f %.2f %.2f %.2f' % (interval, cpu_util, cpu_system_util, cpu_user_util))
+    #         logger.debug(CPU_UTILIZATION[vm], cpu_number, cpu_time, interval)
+            CPU_UTILIZATION[vm] = {'cpu_time': cpu_time,
+                                    'time': time.time(), 'cpu_number': cpu_number}
+        else:
+            CPU_UTILIZATION[vm] = {'cpu_time': cpu_time, 'time': time.time(), 'cpu_number': cpu_number}
+            first_time = True
+        if not first_time:
+            resource_utilization['cpu_metrics']['cpu_idle_rate'] = \
+            '%.2f' % abs(1 - cpu_util) if abs(1 - cpu_util) <= 1.00 and abs(1 - cpu_util) >= 0.00 else 0.00
+        else:
+            resource_utilization['cpu_metrics']['cpu_idle_rate'] = '%.2f' % (1.00)
+    #     logger.debug(resource_utilization['cpu_metrics'])
+        mem_stats = runCmdRaiseException('timeout 2 virsh dommemstat %s' % vm)
+        mem_actual = 0.00
+        mem_unused = 0.00
+        mem_available = 0.00
+        for line in mem_stats:
+            if line.find('unused') != -1:
+                mem_unused = float(line.split(' ')[1].strip()) * 1024
+            elif line.find('available') != -1:
+                mem_available = float(line.split(' ')[1].strip()) * 1024
+            elif line.find('actual') != -1:
+                mem_actual = float(line.split(' ')[1].strip()) * 1024
+        resource_utilization['mem_metrics']['mem_unused'] = '%.2f' % (mem_unused)
+        resource_utilization['mem_metrics']['mem_available'] = '%.2f' % (mem_available)
+        if mem_unused and mem_available and mem_actual:
+            mem_buffers = abs(mem_actual - mem_available)
+            resource_utilization['mem_metrics']['mem_buffers'] = '%.2f' % (mem_buffers)
+            resource_utilization['mem_metrics']['mem_rate'] = \
+            '%.2f' % (abs(mem_available - mem_unused - mem_buffers) / mem_available * 100)
+        else:
+            resource_utilization['mem_metrics']['mem_buffers'] = '%.2f' % (0.00)
+            resource_utilization['mem_metrics']['mem_rate'] = '%.2f' % (0.00)
+        disks_spec = get_disks_spec(vm)
+        for disk_spec in disks_spec:
+            disk_metrics = {}
+            disk_device = disk_spec[0]
+            disk_metrics['device'] = disk_device
+            stats1 = {}
+            stats2 = {}
+            # logger.debug('virsh domblkstat --device %s --domain %s' % (disk_device, vm))
+            blk_dev_stats1 = runCmdRaiseException('timeout 2 virsh domblkstat --device %s --domain %s' % (disk_device, vm))
+            t1 = time.time()
+            for line in blk_dev_stats1:
+                if line.find('rd_req') != -1:
+                    stats1['rd_req'] = float(line.split(' ')[2].strip())
+                elif line.find('rd_bytes') != -1:
+                    stats1['rd_bytes'] = float(line.split(' ')[2].strip())
+                elif line.find('wr_req') != -1:
+                    stats1['wr_req'] = float(line.split(' ')[2].strip())
+                elif line.find('wr_bytes') != -1:
+                    stats1['wr_bytes'] = float(line.split(' ')[2].strip())
+            time.sleep(0.1)
+            blk_dev_stats2 = runCmdRaiseException('timeout 2 virsh domblkstat --device %s --domain %s' % (disk_device, vm))
+            t2 = time.time()
+            interval = t2 - t1
+            for line in blk_dev_stats2:
+                if line.find('rd_req') != -1:
+                    stats2['rd_req'] = float(line.split(' ')[2].strip())
+                elif line.find('rd_bytes') != -1:
+                    stats2['rd_bytes'] = float(line.split(' ')[2].strip())
+                elif line.find('wr_req') != -1:
+                    stats2['wr_req'] = float(line.split(' ')[2].strip())
+                elif line.find('wr_bytes') != -1:
+                    stats2['wr_bytes'] = float(line.split(' ')[2].strip())
+            disk_metrics['disk_read_requests_per_secend'] = '%.2f' % ((stats2['rd_req'] - stats1['rd_req']) / interval) \
+            if (stats2['rd_req'] - stats1['rd_req']) > 0 else '%.2f' % (0.00)
+            disk_metrics['disk_read_bytes_per_secend'] = '%.2f' % ((stats2['rd_bytes'] - stats1['rd_bytes']) / interval) \
+            if (stats2['rd_bytes'] - stats1['rd_bytes']) > 0 else '%.2f' % (0.00)
+            disk_metrics['disk_write_requests_per_secend'] = '%.2f' % ((stats2['wr_req'] - stats1['wr_req']) / interval) \
+            if (stats2['wr_req'] - stats1['wr_req']) > 0 else '%.2f' % (0.00)
+            disk_metrics['disk_write_bytes_per_secend'] = '%.2f' % ((stats2['wr_bytes'] - stats1['wr_bytes']) / interval) \
+            if (stats2['wr_bytes'] - stats1['wr_bytes']) > 0 else '%.2f' % (0.00)
+            resource_utilization['disks_metrics'].append(disk_metrics)
+        macs = get_macs(vm)
+        for mac in macs:
+    #         logger.debug(mac)
+            net_metrics = {}
+            net_metrics['device'] = mac.encode('utf-8')
+            stats1 = {}
+            stats2 = {}
+            net_dev_stats1 = runCmdRaiseException('timeout 2 virsh domifstat --interface %s --domain %s' % (mac, vm))
+            t1 = time.time()
+            for line in net_dev_stats1:
+                if line.find('rx_bytes') != -1:
+                    stats1['rx_bytes'] = float(line.split(' ')[2].strip())
+                elif line.find('rx_packets') != -1:
+                    stats1['rx_packets'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_packets') != -1:
+                    stats1['tx_packets'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_bytes') != -1:
+                    stats1['tx_bytes'] = float(line.split(' ')[2].strip())
+                elif line.find('rx_drop') != -1:
+                    stats1['rx_drop'] = float(line.split(' ')[2].strip())
+                elif line.find('rx_errs') != -1:
+                    stats1['rx_errs'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_errs') != -1:
+                    stats1['tx_errs'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_drop') != -1:
+                    stats1['tx_drop'] = float(line.split(' ')[2].strip())
+    #         logger.debug(stats1)
+            time.sleep(0.1)
+            net_dev_stats2 = runCmdRaiseException('timeout 2 virsh domifstat --interface %s --domain %s' % (mac, vm))
+            t2 = time.time()
+            interval = t2 - t1
+            for line in net_dev_stats2:
+                if line.find('rx_bytes') != -1:
+                    stats2['rx_bytes'] = float(line.split(' ')[2].strip())
+                elif line.find('rx_packets') != -1:
+                    stats2['rx_packets'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_packets') != -1:
+                    stats2['tx_packets'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_bytes') != -1:
+                    stats2['tx_bytes'] = float(line.split(' ')[2].strip())
+                elif line.find('rx_drop') != -1:
+                    stats2['rx_drop'] = float(line.split(' ')[2].strip())
+                elif line.find('rx_errs') != -1:
+                    stats2['rx_errs'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_errs') != -1:
+                    stats2['tx_errs'] = float(line.split(' ')[2].strip())
+                elif line.find('tx_drop') != -1:
+                    stats2['tx_drop'] = float(line.split(' ')[2].strip())
+    #         logger.debug(stats2)
+            net_metrics['network_read_packages_per_secend'] = '%.2f' % ((stats2['rx_packets'] - stats1['rx_packets']) / interval) \
+            if (stats2['rx_packets'] - stats1['rx_packets']) > 0 else '%.2f' % (0.00)
+            net_metrics['network_read_bytes_per_secend'] = '%.2f' % ((stats2['rx_bytes'] - stats1['rx_bytes']) / interval) \
+            if (stats2['rx_bytes'] - stats1['rx_bytes']) > 0 else '%.2f' % (0.00)
+            net_metrics['network_write_packages_per_secend'] = '%.2f' % ((stats2['tx_packets'] - stats1['tx_packets']) / interval) \
+            if (stats2['tx_packets'] - stats1['tx_packets']) > 0 else '%.2f' % (0.00)
+            net_metrics['network_write_bytes_per_secend'] = '%.2f' % ((stats2['tx_bytes'] - stats1['tx_bytes']) / interval) \
+            if (stats2['tx_bytes'] - stats1['tx_bytes']) > 0 else '%.2f' % (0.00)
+            net_metrics['network_read_errors_per_secend'] = '%.2f' % ((stats2['rx_errs'] - stats1['rx_errs']) / interval) \
+            if (stats2['rx_errs'] - stats1['rx_errs']) > 0 else '%.2f' % (0.00)
+            net_metrics['network_read_drops_per_secend'] = '%.2f' % ((stats2['rx_drop'] - stats1['rx_drop']) / interval) \
+            if (stats2['rx_drop'] - stats1['rx_drop']) > 0 else '%.2f' % (0.00)
+            net_metrics['network_write_errors_per_secend'] = '%.2f' % ((stats2['tx_errs'] - stats1['tx_errs']) / interval) \
+            if (stats2['tx_errs'] - stats1['tx_errs']) > 0 else '%.2f' % (0.00)
+            net_metrics['network_write_drops_per_secend'] = '%.2f' % ((stats2['tx_drop'] - stats1['tx_drop']) / interval) \
+            if (stats2['tx_drop'] - stats1['tx_drop']) > 0 else '%.2f' % (0.00)
+            resource_utilization['networks_metrics'].append(net_metrics)
+    #         logger.debug(net_metrics) 
+        LAST_RESOURCE_UTILIZATION[vm] = resource_utilization
+        if cpu_number == CPU_UTILIZATION[vm].get('cpu_number'): 
+            vm_cpu_idle_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['cpu_metrics']['cpu_idle_rate'])
+        vm_mem_total_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_available'])
+        vm_mem_available_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_unused'])
+        vm_mem_buffers_bytes.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_buffers'])
+        vm_mem_rate.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster')).set(resource_utilization['mem_metrics']['mem_rate'])
+        for disk_metrics in resource_utilization['disks_metrics']:
+            vm_disk_read_requests_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_read_requests_per_secend'])
+            vm_disk_read_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_read_bytes_per_secend'])
+            vm_disk_write_requests_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_write_requests_per_secend'])
+            vm_disk_write_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), disk_metrics['device']).set(disk_metrics['disk_write_bytes_per_secend'])
+        for net_metrics in resource_utilization['networks_metrics']:
+            vm_network_receive_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_bytes_per_secend'])
+            vm_network_receive_drops_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_drops_per_secend'])
+            vm_network_receive_errors_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_errors_per_secend'])
+            vm_network_receive_packages_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_read_packages_per_secend'])
+            vm_network_send_bytes_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_bytes_per_secend'])
+            vm_network_send_drops_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_drops_per_secend'])
+            vm_network_send_errors_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_errors_per_secend'])
+            vm_network_send_packages_per_secend.labels(zone, HOSTNAME, vm, labels.get('owner'), labels.get('router'), labels.get('autoscalinggroup'), labels.get('cluster'), net_metrics['device']).set(net_metrics['network_write_packages_per_secend'])
+        return resource_utilization
+    except Exception as e:
+        raise e
 
 def delete_vm_metrics(vm, zone):
     global LAST_TAGS
@@ -641,8 +620,8 @@ def delete_vm_metrics(vm, zone):
         del LAST_TAGS[vm]
         del LAST_RESOURCE_UTILIZATION[vm]
     else:
-        logger.warning('failed to delete vm %s data from k8s' % vm)    
-        print('failed to delete vm %s data from k8s' % vm)
+        logger.warning('failed to delete vm %s data' % vm)    
+        print('failed to delete vm %s data' % vm)
 
 def zero_vm_metrics(vm, zone):
     
@@ -725,58 +704,28 @@ def zero_vm_metrics(vm, zone):
 # #             t2.setDaemon(True)
 # #             t2.start()
 #         time.sleep(5)
-        
-class ClientDaemon(CDaemon):
-    def __init__(self, name, save_path, stdin=os.devnull, stdout=os.devnull, stderr=os.devnull, home_dir='.', umask=0o22, verbose=1):
-        CDaemon.__init__(self, save_path, stdin, stdout, stderr, home_dir, umask, verbose)
-        self.name = name
-        
-    def run(self, output_fn, **kwargs):
+@singleton('/var/run/virt_monitor_in_docker.pid')        
+def main():
 #         logger.debug("---------------------------------------------------------------------------------")
 #         logger.debug("------------------------Welcome to Monitor Daemon.-------------------------------")
 #         logger.debug("------Copyright (2019, ) Institute of Software, Chinese Academy of Sciences------")
 #         logger.debug("---------author: wuyuewen@otcaix.iscas.ac.cn,liuhe18@otcaix.iscas.ac.cn----------")
 #         logger.debug("--------------------------------wuheng@otcaix.iscas.ac.cn------------------------")
 #         logger.debug("---------------------------------------------------------------------------------")
+    if os.path.exists(TOKEN):
         start_http_server(19998)
-#         registry = CollectorRegistry(auto_describe=False)
+    #         registry = CollectorRegistry(auto_describe=False)
         config.load_kube_config(config_file=TOKEN)
         zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])
         while True:
-#             init(registry)
+    #             init(registry)
+            config.load_kube_config(config_file=TOKEN)
             collect_vm_metrics(zone)
-#             collect_storage_metrics(zone)
+    #             collect_storage_metrics(zone)
             time.sleep(10)
         
-def daemonize():
-    help_msg = 'Usage: python %s <start|stop|restart|status>' % sys.argv[0]
-    if len(sys.argv) != 2:
-        print(help_msg)
-        sys.exit(1)
-    p_name = 'virtmonitor'
-    pid_fn = '/var/run/virtmonitor_daemon.pid'
-    log_fn = '/var/log/virtmonitor.log'
-#     err_fn = '/var/log/virtmonitor.log'
-    cD = ClientDaemon(p_name, pid_fn, verbose=1)
- 
-    if sys.argv[1] == 'start':
-        cD.start(log_fn)
-    elif sys.argv[1] == 'stop':
-        cD.stop()
-    elif sys.argv[1] == 'restart':
-        cD.restart(log_fn)
-    elif sys.argv[1] == 'status':
-        alive = cD.is_running()
-        if alive:
-            print('process [%s] is running ......' % cD.get_pid())
-        else:
-            print('daemon process [%s] stopped' %cD.name)
-    else:
-        print('invalid argument!')
-        print(help_msg)    
-        
 if __name__ == '__main__':
-    daemonize()
+    main()
 #     start_http_server(19998)
 #     config.load_kube_config(config_file=TOKEN)
 #     zone = get_field_in_kubernetes_node(HOSTNAME, ['metadata', 'labels', 'zone'])

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 ##############################################################
 ##
-##      Copyright (2019, ) Institute of Software
+##      Copyright (2021, ) Institute of Software
 ##          Chinese Academy of Sciences
-##             Author: wuheng@otcaix.iscas.ac.cn
+##             Author: wuyuewen@otcaix.iscas.ac.cn
 ##
 ################################################################
 

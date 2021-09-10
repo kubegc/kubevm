@@ -164,8 +164,8 @@ def restart_virtlet(ignore_warning=False, version=VERSION):
 # #         (_, virtlet_err) = runCmd('docker restart -itd --restart=always  --privileged=true --cap-add=sys_admin  -h %s --net=host -v /etc/sysconfig:/etc/sysconfig -v /etc/kubevmm:/etc/kubevmm -v /etc/libvirt:/etc/libvirt -v /dev:/dev -v /opt:/opt -v /var/log:/var/log -v /var/lib/libvirt:/var/lib/libvirt -v /var/run:/var/run -v /uit:/uit -v /etc/uraid:/etc/uraid -v /usr/lib64:/usr/lib64 -v /usr/bin:/usr/bin -v /usr/lib/uraid:/usr/lib/uraid -v /usr/share:/usr/share -v /root/.kube:/root/.kube registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-virtlet:%s bash virtlet.sh' % (HOSTNAME, version))
 #         if virtlet_err:
 #             print('warning: %s\n' % (virtlet_err))
-    _err1 = stop_kubesds_rpc(ignore_warning=ignore_warning)
-    _err2 = stop_virt_monitor(ignore_warning=ignore_warning)
+#     _err1 = stop_kubesds_rpc(ignore_warning=ignore_warning)
+#     _err2 = stop_virt_monitor(ignore_warning=ignore_warning)
 #     (_, _, virtlet_container_id, virtlet_running_version) = status(ignore_warning=ignore_warning)
 #     if not virtlet_container_id:
 #         (_, virtlet_err) = run_virtlet(update_stuff=update_stuff, version=version)
@@ -176,8 +176,8 @@ def restart_virtlet(ignore_warning=False, version=VERSION):
 #             print('error: a different version of service \'virtlet(%s)\' is running in container \'%s\'\n' % (virtlet_running_version, str(virtlet_container_id)))
 #         else:
 #             print('do noting: service \'virtlet\' is running in container \'%s\'\n' % str(virtlet_container_id))
-    _err1 = start_kubesds_rpc(ignore_warning=ignore_warning)
-    _err2 = start_virt_monitor(ignore_warning=ignore_warning)
+#     _err1 = start_kubesds_rpc(ignore_warning=ignore_warning)
+#     _err2 = start_virt_monitor(ignore_warning=ignore_warning)
     if virtlet_err or _err1 or _err2:
         sys.exit(1)
         
@@ -302,17 +302,21 @@ def update_online(version='latest'):
                     line = '%s: %s:%s\n' % (line.split(':')[0], line.split(':')[1], version)
                 elif line.find('registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher') != -1:
                     line = '%s: %s:%s\n' % (line.split(':')[0], line.split(':')[1], version)
+                elif line.find('registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor') != -1:
+                    line = '%s: %s:%s\n' % (line.split(':')[0], line.split(':')[1], version)
                 else:
                     line = '%s\n' % (line.rstrip())
                 allLine.append(line)
         with open("/etc/kubevmm/yamls/virt-tool.yaml", "w") as fw:
             fw.writelines(allLine)
     nodes = runCmd("kubectl get pods -n cloudplus -o wide | grep virt-tool | awk -F \" \" '{print $7}' | grep -v \"vm.\" | sort | uniq")
-    for node in nodes:
-        if node:
-            node_name = "vm.%s" % (node)
-            disable_HA = "kubectl label node %s nodeHA=disable --overwrite" % (node_name)
-            (_, _) = runCmd(disable_HA)
+    if nodes and nodes[0]:
+        for node in nodes[0]:
+            if node:
+                node_name = "vm.%s" % (node.strip())
+                disable_HA = "kubectl label node %s nodeHA=disable --overwrite" % (node_name)
+                print(disable_HA)
+                (_, _) = runCmd(disable_HA)
     (_, _err1) = runCmd("kubectl delete -f /etc/kubevmm/yamls/virt-tool.yaml")
     (_, _err2) = runCmd("kubectl apply -f /etc/kubevmm/yamls/virt-tool.yaml")
     restart()

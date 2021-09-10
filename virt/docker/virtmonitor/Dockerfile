@@ -1,19 +1,17 @@
-FROM registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubevirt-base:latest
+FROM registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-base:latest
 
-RUN mkdir -p /home/kubevmm/bin
+RUN mkdir -p /home/kubevmm/core
 
 RUN mkdir -p /etc/kubevmm
 
-ADD *.py /home/kubevmm/bin/
+ADD *.sh /home/kubevmm/core/
 
-ADD config /home/kubevmm/bin/
+ADD virtmonitor /home/kubevmm/core/virtmonitor
 
-ADD *.sh /home/kubevmm/bin/
-
-ADD utils /home/kubevmm/bin/utils
+ADD utils /home/kubevmm/core/utils
 
 RUN rm -fr /tmp/*
 
-WORKDIR /home/kubevmm/bin
+WORKDIR /home/kubevmm/core
 
 RUN bash monitor.sh

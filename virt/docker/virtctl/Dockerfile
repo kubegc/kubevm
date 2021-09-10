@@ -28,7 +28,7 @@ ADD virshplus /home/kubevmm/bin/
 
 ADD device-passthrough /home/kubevmm/bin/
 
-ADD virt-monitor /home/kubevmm/bin/
+#ADD virt-monitor /home/kubevmm/bin/
 
 ADD yamls /home/kubevmm/conf/yamls
 

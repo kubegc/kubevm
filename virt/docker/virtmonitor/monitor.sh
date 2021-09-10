@@ -8,4 +8,7 @@
 ################################################################
 
 echo "Now starting virt monitor service..."
-python virt_monitor_in_docker.py
+SHELL_FOLDER=$(dirname $(readlink -f "$0"))
+cd ${SHELL_FOLDER}
+cd ./virtmonitor
+python3 virt_monitor_in_docker.py

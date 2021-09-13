@@ -135,7 +135,7 @@ fi
 cp -rf utils/*.py ../docker/virtctl/utils/
 cp -rf utils/*.py ../docker/virtlet/utils/
 cp -rf utils/*.py ../docker/libvirtwatcher/utils/
-cp -rf utils/*.py ../docker/libvirtwatcher/utils/
+cp -rf utils/*.py ../docker/virtmonitor/utils/
 cp -rf virtctl/ ../docker/virtctl
 cp -rf virtlet/ ../docker/virtlet
 cp -rf libvirtwatcher/ ../docker/libvirtwatcher

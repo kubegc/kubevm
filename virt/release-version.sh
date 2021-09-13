@@ -129,8 +129,8 @@ fi
 if [ ! -d "../docker/libvirtwatcher/utils" ]; then
 	mkdir ../docker/libvirtwatcher/utils
 fi
-if [ ! -d "./docker/virtmonitor/utils" ]; then
-	mkdir ./docker/virtmonitor/utils
+if [ ! -d "../docker/virtmonitor/utils" ]; then
+	mkdir ../docker/virtmonitor/utils
 fi
 cp -rf utils/*.py ../docker/virtctl/utils/
 cp -rf utils/*.py ../docker/virtlet/utils/

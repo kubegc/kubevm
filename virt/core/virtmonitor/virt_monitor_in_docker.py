@@ -4,23 +4,17 @@ import prometheus_client
 import os
 import sys
 import operator
-from prometheus_client.core import CollectorRegistry
-from prometheus_client import Gauge,start_http_server,Counter
 import time
 import threading
 import threadpool
+from prometheus_client.core import CollectorRegistry
+from prometheus_client import Gauge,start_http_server,Counter
 from kubernetes import config
 from json import loads, dumps
+
+sys.path.append("..")
 from utils import constants
-
 from utils import logger
-
-# try:
-#     import xml.etree.CElementTree as ET
-# except:
-#     import xml.etree.ElementTree as ET
-
-# from utils.libvirt_util import list_active_vms, get_macs
 from utils.misc import singleton, get_hostname_in_lower_case, list_objects_in_kubernetes, get_field_in_kubernetes_by_index, CDaemon, list_all_disks, runCmdRaiseException, get_hostname_in_lower_case, get_field_in_kubernetes_node
 
 LOG = '/var/log/virtmonitor.log'

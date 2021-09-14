@@ -499,9 +499,9 @@ def runCmd(cmd, show_stdout=False):
                 r = p.stdout.readline().decode('utf-8')
                 sys.stdout.write(r)
             return
-        std_out = p.stdout.read()
+        std_out = p.stdout.readlines()
         std_err = p.stderr.read()
-        return (std_out.strip() if std_out else None, std_err.strip() if std_err else None)
+        return (std_out if std_out else None, std_err.strip() if std_err else None)
     finally:
         p.stdout.close()
         p.stderr.close()

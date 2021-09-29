@@ -1,0 +1,232 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: virt-tool
+  namespace: cloudplus
+  labels:
+    app: virt-tool
+spec:
+  selector:
+    matchLabels:
+      app: virt-tool
+  template:
+    metadata:
+      labels:
+        app: virt-tool
+    spec:
+      nodeSelector:
+        cloudplus/virt.tool: ""
+      hostNetwork: true
+      containers:
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtctl:v2.1.0
+        command: 
+        - bash
+        - 'virtctl-update-stuff.sh'
+        imagePullPolicy: Always
+        name: virtctl
+        securityContext:
+          runAsUser: 0
+          privileged: true
+          allowPrivilegeEscalation: true
+          capabilities:
+            add: 
+            - SYS_TIME
+        volumeMounts:
+          - name: etc
+            mountPath: /etc/
+          - name: dev
+            mountPath: /dev/
+          - name: opt
+            mountPath: /opt/
+          - name: varlog
+            mountPath: /var/log/
+          - name: libvirt
+            mountPath: /var/lib/libvirt/
+          - name: varrun
+            mountPath: /var/run/
+          - name: uit
+            mountPath: /uit/
+          - name: usrlib64
+            mountPath: /usr/lib64/
+          - name: usrbin
+            mountPath: /usr/bin/
+          - name: uraid
+            mountPath: /usr/lib/uraid
+          - name: usrshare
+            mountPath: /usr/share/
+          - name: kube
+            mountPath: /root/.kube/
+          - name: tmp
+            mountPath: /tmp/
+          - name: usrlib
+            mountPath: /usr/lib
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:v2.1.0
+        command: 
+        - bash
+        - 'virtlet-update-stuff.sh'
+        imagePullPolicy: Always
+        name: virtlet
+        securityContext:
+          runAsUser: 0
+          privileged: true
+          allowPrivilegeEscalation: true
+          capabilities:
+            add: 
+            - SYS_TIME
+        volumeMounts:
+          - name: etc
+            mountPath: /etc/
+          - name: dev
+            mountPath: /dev/
+          - name: opt
+            mountPath: /opt/
+          - name: varlog
+            mountPath: /var/log/
+          - name: libvirt
+            mountPath: /var/lib/libvirt/
+          - name: varrun
+            mountPath: /var/run/
+          - name: uit
+            mountPath: /uit/
+          - name: usrlib64
+            mountPath: /usr/lib64/
+          - name: usrbin
+            mountPath: /usr/bin/
+          - name: uraid
+            mountPath: /usr/lib/uraid
+          - name: usrshare
+            mountPath: /usr/share/
+          - name: kube
+            mountPath: /root/.kube/
+          - name: tmp
+            mountPath: /tmp/
+          - name: usrlib
+            mountPath: /usr/lib
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:v2.1.0
+        command: 
+        - bash
+        - 'watcher.sh'
+        imagePullPolicy: Always
+        name: libvirtwatcher
+        securityContext:
+          runAsUser: 0
+          privileged: true
+          allowPrivilegeEscalation: true
+          capabilities:
+            add: 
+            - SYS_TIME
+        volumeMounts:
+          - name: etc
+            mountPath: /etc/
+          - name: dev
+            mountPath: /dev/
+          - name: opt
+            mountPath: /opt/
+          - name: varlog
+            mountPath: /var/log/
+          - name: libvirt
+            mountPath: /var/lib/libvirt/
+          - name: varrun
+            mountPath: /var/run/
+          - name: uit
+            mountPath: /uit/
+          - name: usrlib64
+            mountPath: /usr/lib64/
+          - name: usrbin
+            mountPath: /usr/bin/
+          - name: uraid
+            mountPath: /usr/lib/uraid
+          - name: usrshare
+            mountPath: /usr/share/
+          - name: kube
+            mountPath: /root/.kube/
+          - name: tmp
+            mountPath: /tmp/
+          - name: usrlib
+            mountPath: /usr/lib
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:v2.1.0
+        command: 
+        - bash
+        - 'monitor.sh'
+        imagePullPolicy: Always
+        name: virtmonitor
+        securityContext:
+          runAsUser: 0
+          privileged: true
+          allowPrivilegeEscalation: true
+          capabilities:
+            add: 
+            - SYS_TIME
+        volumeMounts:
+          - name: etc
+            mountPath: /etc/
+          - name: dev
+            mountPath: /dev/
+          - name: opt
+            mountPath: /opt/
+          - name: varlog
+            mountPath: /var/log/
+          - name: libvirt
+            mountPath: /var/lib/libvirt/
+          - name: varrun
+            mountPath: /var/run/
+          - name: uit
+            mountPath: /uit/
+          - name: usrlib64
+            mountPath: /usr/lib64/
+          - name: usrbin
+            mountPath: /usr/bin/
+          - name: uraid
+            mountPath: /usr/lib/uraid
+          - name: usrshare
+            mountPath: /usr/share/
+          - name: kube
+            mountPath: /root/.kube/
+          - name: tmp
+            mountPath: /tmp/
+          - name: usrlib
+            mountPath: /usr/lib
+      volumes: 
+        - name: etc
+          hostPath: 
+            path: /etc/ 
+        - name: dev
+          hostPath: 
+            path: /dev/
+        - name: opt
+          hostPath: 
+            path: /opt/
+        - name: varlog
+          hostPath: 
+            path: /var/log/
+        - name: libvirt
+          hostPath: 
+            path: /var/lib/libvirt/
+        - name: varrun
+          hostPath: 
+            path: /var/run/
+        - name: uit
+          hostPath: 
+            path: /uit/
+        - name: usrlib64
+          hostPath: 
+            path: /usr/lib64/
+        - name: usrbin
+          hostPath: 
+            path: /usr/bin/
+        - name: uraid
+          hostPath: 
+            path: /usr/lib/uraid
+        - name: usrshare
+          hostPath: 
+            path: /usr/share/
+        - name: kube
+          hostPath: 
+            path: /root/.kube/
+        - name: tmp
+          hostPath: 
+            path: /tmp/
+        - name: usrlib
+          hostPath: 
+            path: /usr/lib

@@ -43,7 +43,7 @@ spec:
     - vms
     singular: virtualmachine
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -71,7 +71,7 @@ spec:
     - vmns
     singular: virtualmachinenetwork
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -105,7 +105,7 @@ spec:
     - vmis
     singular: virtualmachineimage
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -139,7 +139,7 @@ spec:
     - vmds
     singular: virtualmachinedisk
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -173,7 +173,7 @@ spec:
     - vmdis
     singular: virtualmachinediskimage
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -207,7 +207,7 @@ spec:
     - vmsns
     singular: virtualmachinesnapshot
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -250,7 +250,7 @@ spec:
     - vmps
     singular: virtualmachinepool
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -287,7 +287,7 @@ spec:
       - vmdsns
     singular: virtualmachinedisksnapshot
   scope: Namespaced
-  
+  versions: v1
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -327,4 +327,4 @@ spec:
       - vmbs
     singular: virtualmachinebackup
   scope: Namespaced
-  
+  versions: v1

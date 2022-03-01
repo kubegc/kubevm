@@ -4,6 +4,9 @@
 
 Some steps to do to release a new version of kubevmm.
 
+- wuyuewen@iscas.ac.cn
+- wuheng@iscas.ac.cn
+
 ## Step1: Prepare
 
 * (First time only) Install dependencies (rhel7):

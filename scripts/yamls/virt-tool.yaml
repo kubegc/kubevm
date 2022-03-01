@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: virt-tool
-  namespace: cloudplus
+  namespace: doslab
   labels:
     app: virt-tool
 spec:
@@ -16,10 +16,10 @@ spec:
         app: virt-tool
     spec:
       nodeSelector:
-        cloudplus/virt.tool: ""
+        doslab/virt.tool: ""
       hostNetwork: true
       containers:
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtctl:v2.1.0
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtctl:v1.0.2
         command: 
         - bash
         - 'virtctl-update-stuff.sh'
@@ -43,7 +43,7 @@ spec:
             mountPath: /var/run/
           - name: etc
             mountPath: /etc/
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:v2.1.0
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:v1.0.2
         command: 
         - bash
         - 'virtlet-update-stuff.sh'
@@ -67,7 +67,7 @@ spec:
             mountPath: /var/run/
           - name: etc
             mountPath: /etc/
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:v2.1.0
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:v1.0.2
         command: 
         - bash
         - 'watcher.sh'
@@ -91,7 +91,7 @@ spec:
             mountPath: /var/run/
           - name: etc
             mountPath: /etc/
-      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:v2.1.0
+      - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:v1.0.2
         command: 
         - bash
         - 'monitor.sh'

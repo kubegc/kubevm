@@ -39,10 +39,6 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
-          - name: varrun
-            mountPath: /var/run/
-          - name: etc
-            mountPath: /etc/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:v1.0.2
         command: 
         - bash
@@ -63,10 +59,6 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
-          - name: varrun
-            mountPath: /var/run/
-          - name: etc
-            mountPath: /etc/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:v1.0.2
         command: 
         - bash
@@ -87,10 +79,6 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
-          - name: varrun
-            mountPath: /var/run/
-          - name: etc
-            mountPath: /etc/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:v1.0.2
         command: 
         - bash
@@ -111,10 +99,6 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
-          - name: varrun
-            mountPath: /var/run/
-          - name: etc
-            mountPath: /etc/
       volumes: 
         - name: varlog
           hostPath: 

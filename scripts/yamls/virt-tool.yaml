@@ -39,6 +39,10 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
+          - name: etc
+            mountPath: /etc/
+          - name: cgroup
+            mountPath: /sys/fs/cgroup
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:v1.0.2
         command: 
         - bash
@@ -59,6 +63,10 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
+          - name: etc
+            mountPath: /etc/
+          - name: cgroup
+            mountPath: /sys/fs/cgroup
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:v1.0.2
         command: 
         - bash
@@ -79,6 +87,10 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
+          - name: etc
+            mountPath: /etc/
+          - name: cgroup
+            mountPath: /sys/fs/cgroup
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:v1.0.2
         command: 
         - bash
@@ -99,6 +111,10 @@ spec:
             mountPath: /root/.kube/
           - name: libvirt
             mountPath: /var/lib/libvirt/
+          - name: etc
+            mountPath: /etc/
+          - name: cgroup
+            mountPath: /sys/fs/cgroup
       volumes: 
         - name: varlog
           hostPath: 
@@ -115,3 +131,6 @@ spec:
         - name: etc
           hostPath: 
             path: /etc/
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup

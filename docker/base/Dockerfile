@@ -27,3 +27,5 @@ RUN pip3 install --ignore-installed threadpool prometheus_client kubernetes libv
 RUN yum clean all
 
 RUN rm -fr /tmp/*
+
+RUN systemctl enable libvirtd

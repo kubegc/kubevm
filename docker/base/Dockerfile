@@ -14,7 +14,7 @@ RUN yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test
 
 RUN pip2 install --upgrade "pip < 21.0.0"
 
-RUN pip2 install --ignore-installed threadpool setuptools==38.4.0 cachetools==4.1.0 prometheus_client kubernetes==11.0.0 libvirt-python==5.9.0 xmljson xmltodict watchdog==0.10.7 pyyaml grpcio==1.28.1 grpcio-tools==1.28.1 protobuf psutil
+RUN pip2 install --ignore-installed threadpool setuptools==38.4.0 cachetools prometheus_client kubernetes==11.0.0 libvirt-python==5.9.0 xmljson xmltodict watchdog==0.10.7 pyyaml grpcio==1.28.1 grpcio-tools==1.28.1 protobuf psutil
 
 RUN pip3 install --upgrade pip
 

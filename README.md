@@ -4,6 +4,9 @@
 
 Some steps to do to release a new version of kubevmm.
 
+- wuyuewen@iscas.ac.cn
+- wuheng@iscas.ac.cn
+
 ## Step1: Prepare
 
 * (First time only) Install dependencies (rhel7):
@@ -86,25 +89,7 @@ RPMs:
 
 Some steps to do to install and run kubevmm services.
 
-## Step1: Prepare
-
-
-* (First time only) Install dependencies (rhel7):
-    ```
-    sudo yum install epel-release -y
-    sudo yum install virt-manager libvirt virt-install qemu-kvm -y
-    ```
-* Start "libvirtd" service:
-    ```
-    systemctl start libvirtd; systemctl enable libvirtd
-    ```
-
-* Softwares needed for kubevmm commands:
-    ```
-    docker
-    ```
-
-## Step2: Install
+## Step1: Install
 
 * Install `kubevmm` rpm.
     ```
@@ -119,14 +104,14 @@ Some steps to do to install and run kubevmm services.
     vmm
     ```
     
-## Step3: Run
+## Step2: Run
 
 * Run services.
     ```
     kubevmm-adm service update --online
     ```
     
-## Step4: Result
+## Step3: Result
 
 * Check services status.
     ```

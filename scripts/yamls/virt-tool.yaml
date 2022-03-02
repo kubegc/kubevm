@@ -42,7 +42,9 @@ spec:
           - name: etc
             mountPath: /etc/
           - name: cgroup
-            mountPath: /sys/fs/cgroup
+            mountPath: /sys/fs/cgroup/
+          - name: varrun
+            mountPath: /var/run/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:v1.0.2
         command: 
         - bash
@@ -66,7 +68,9 @@ spec:
           - name: etc
             mountPath: /etc/
           - name: cgroup
-            mountPath: /sys/fs/cgroup
+            mountPath: /sys/fs/cgroup/
+          - name: varrun
+            mountPath: /var/run/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:v1.0.2
         command: 
         - bash
@@ -90,7 +94,9 @@ spec:
           - name: etc
             mountPath: /etc/
           - name: cgroup
-            mountPath: /sys/fs/cgroup
+            mountPath: /sys/fs/cgroup/
+          - name: varrun
+            mountPath: /var/run/
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:v1.0.2
         command: 
         - bash
@@ -114,7 +120,9 @@ spec:
           - name: etc
             mountPath: /etc/
           - name: cgroup
-            mountPath: /sys/fs/cgroup
+            mountPath: /sys/fs/cgroup/
+          - name: varrun
+            mountPath: /var/run/
       volumes: 
         - name: varlog
           hostPath: 
@@ -133,4 +141,4 @@ spec:
             path: /etc/
         - name: cgroup
           hostPath:
-            path: /sys/fs/cgroup
+            path: /sys/fs/cgroup/

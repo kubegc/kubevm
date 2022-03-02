@@ -50,8 +50,8 @@ rm -f ./core/plugins/device-passthrough~
 # rm -f ../scripts/kubevirt-ctl~
 #cp -f ./core/plugins/ovn-ovsdb.service ./dist
 cp -f ./core/utils/arraylist.cfg ./dist
-cp -rf ./yamls ./dist
-cp -rf ./monitor ./dist
+cp -rf ./scripts/yamls ./dist
+cp -rf ./scripts/plugins ./dist
 echo ${VERSION} > ./VERSION
 cd ./core/plugins
 pyinstaller -F kubevmm_adm.py -n kubevmm-adm
@@ -106,7 +106,7 @@ find ${SHELL_FOLDER}/dist -maxdepth 1 -type f -exec ln -s {} $HOME/rpmbuild/SOUR
 find ${SHELL_FOLDER}/dist -type d -exec ln -s {} $HOME/rpmbuild/SOURCES/ \;
 
 #cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/kubeovn-adm ./dist/device-passthrough ./dist/virt-monitor ./dist/monitor docker/virtctl
-cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/device-passthrough ./dist/monitor docker/virtctl
+cp -rf ./dist/yamls/ ./VERSION ./dist/arraylist.cfg ./dist/virshplus ./dist/kubevmm-adm ./dist/device-passthrough ./dist/plugins docker/virtctl
 cp -rf ./dist/arraylist.cfg docker/virtlet
 cp -rf ./dist/arraylist.cfg docker/libvirtwatcher
 if [ $? -ne 0 ]; then
@@ -186,8 +186,8 @@ docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtm
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"
 cd ..
-sed "4s/.*/%define         _verstr      ${VERSION}/" SPECS/kubevmm.spec > SPECS/kubevmm.spec.new
-mv SPECS/kubevmm.spec.new SPECS/kubevmm.spec
+sed "4s/.*/%define         _verstr      ${VERSION}/" ./scripts/specs/kubevmm.spec > ./scripts/specs/kubevmm.spec.new
+mv ./scripts/specs/kubevmm.spec.new ./scripts/specs/kubevmm.spec
 if [ $? -ne 0 ]; then
     echo "    Failed to patch version number to SPECS/kubevmm.spec!"
     exit 1
@@ -196,7 +196,7 @@ else
 fi
 
 echo -e "\033[3;30;47m*** Push new SPECS/kubevmm.spec to Github.\033[0m"
-git add ./SPECS/kubevmm.spec
+git add ./scripts/specs/kubevmm.spec
 # git add ./kubeovn-adm
 git commit -m "new release version ${VERSION}"
 git push

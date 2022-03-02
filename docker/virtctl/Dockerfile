@@ -32,7 +32,7 @@ ADD device-passthrough /home/kubevmm/bin/
 
 ADD yamls /home/kubevmm/conf/yamls
 
-ADD monitor /home/kubevmm/conf/yamls
+ADD plugins /home/kubevmm/conf/yamls
 
 ADD VERSION /home/kubevmm/conf
 

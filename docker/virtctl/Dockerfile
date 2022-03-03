@@ -42,6 +42,4 @@ RUN rm -fr /tmp/*
 
 WORKDIR /home/kubevmm/core
 
-RUN systemctl start libvirtd
-
 RUN bash virtctl.sh

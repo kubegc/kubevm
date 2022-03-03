@@ -1,4 +1,4 @@
-FROM centos:7.6.1810
+FROM hrishikesh/systemd-in-docker
 
 RUN yum install epel-release -y
 
@@ -8,7 +8,7 @@ RUN yum install python3 python3-devel python3-pip libcurl-devel -y
 
 RUN yum install cloud-utils usbutils libguestfs-tools-c virt-manager python2-devel python2-pip libvirt-devel gcc gcc-c++ glib-devel glibc-devel libvirt virt-install qemu-kvm -y
 
-RUN yum install glusterfs-client-xlators glusterfs-cli lusterfs-extra-xlators glusterfs-fuse iscsiadm -y
+RUN yum install openssh-server openssh-clients arpwatch glusterfs-client-xlators glusterfs-cli lusterfs-extra-xlators glusterfs-fuse iscsiadm -y
 
 RUN yum install openvswitch-ovn* openvswitch python-openvswitch openvswitch-test openvswitch-devel openvswitch-ipsec -y
 
@@ -28,4 +28,34 @@ RUN yum clean all
 
 RUN rm -fr /tmp/*
 
-RUN systemctl enable libvirtd
+RUN systemctl enable libvirtd; systemctl enable virtlockd 
+
+RUN echo "root:root" |chpasswd
+RUN systemctl enable sshd
+RUN sed -i 's|[#]*PermitRootLogin no|PermitRootLogin yes|g' /etc/ssh/sshd_config
+RUN sed -i 's|[#]*PasswordAuthentication no|PasswordAuthentication yes|g' /etc/ssh/sshd_config
+RUN sed -i 's|[#]*ChallengeResponseAuthentication no|ChallengeResponseAuthentication yes|g' /etc/ssh/sshd_config
+RUN sed -i 's|UsePAM no|UsePAM yes|g' /etc/ssh/sshd_config
+
+RUN echo "listen_tls = 0" >> /etc/libvirt/libvirtd.conf; \
+echo 'listen_tcp = 1' >> /etc/libvirt/libvirtd.conf; \
+echo 'tls_port = "16514"' >> /etc/libvirt/libvirtd.conf; \ 
+echo 'tcp_port = "16509"' >> /etc/libvirt/libvirtd.conf; \
+echo 'auth_tcp = "none"' >> /etc/libvirt/libvirtd.conf
+
+RUN echo 'vnc_listen = "0.0.0.0"' >> /etc/libvirt/qemu.conf
+
+RUN echo 'LIBVIRTD_ARGS="--listen"' >> /etc/sysconfig/libvirtd
+
+ADD customlibvirtpost.service /usr/lib/systemd/system/customlibvirtpost.service
+ADD customlibvirtpost.sh /customlibvirtpost.sh
+RUN chmod a+x /customlibvirtpost.sh
+Add network.xml /network.xml
+RUN systemctl enable customlibvirtpost
+
+EXPOSE 22
+EXPOSE 16509
+EXPOSE 5900
+
+VOLUME [ "/sys/fs/cgroup" ]
+CMD ["/usr/sbin/init"]

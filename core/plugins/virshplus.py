@@ -524,6 +524,10 @@ def updateOS(params):
         else:
             logger.error(e)
             raise e   
+        
+def create_disk(params):
+    
+    return
     
 def create_disk_snapshot(params):
     vol, pool, snapshot = _get_param('--name', params), _get_param('--pool', params),
@@ -1748,6 +1752,8 @@ def main():
         dump_l2_network_info(params)
     elif sys.argv[1] == 'delete_network':
         delete_network()
+    elif sys.argv[1] == 'create_disk':
+        create_disk()
     else:
         print ('invalid argument!')
         print (help_msg)

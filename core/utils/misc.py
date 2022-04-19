@@ -1380,7 +1380,7 @@ class UserDefinedEvent(object):
         '''
         involved_object = client.V1ObjectReference(name=self.involved_object_name, kind=self.involved_object_kind, namespace='default')
         metadata = client.V1ObjectMeta(name=self.event_metadata_name, namespace='default')
-        body = client.V1Event(first_timestamp=self.time_start, last_timestamp=self.time_end, metadata=metadata, involved_object=involved_object, message=self.message, reason=self.reason, type=self.event_type)
+        body = client.CoreV1Event(first_timestamp=self.time_start, last_timestamp=self.time_end, metadata=metadata, involved_object=involved_object, message=self.message, reason=self.reason, type=self.event_type)
         client.CoreV1Api().replace_namespaced_event(self.event_metadata_name, 'default', body, pretty='true')
         
     def updateKubernetesEvent(self):
@@ -1390,7 +1390,7 @@ class UserDefinedEvent(object):
         '''
         involved_object = client.V1ObjectReference(name=self.involved_object_name, kind=self.involved_object_kind, namespace='default')
         metadata = client.V1ObjectMeta(name=self.event_metadata_name, namespace='default')
-        body = client.V1Event(first_timestamp=self.time_start, last_timestamp=self.time_end, metadata=metadata, involved_object=involved_object, message=self.message, reason=self.reason, type=self.event_type)
+        body = client.CoreV1Event(first_timestamp=self.time_start, last_timestamp=self.time_end, metadata=metadata, involved_object=involved_object, message=self.message, reason=self.reason, type=self.event_type)
         client.CoreV1Api().replace_namespaced_event(self.event_metadata_name, 'default', body, pretty='true')
 
     def get_event_metadata_name(self):

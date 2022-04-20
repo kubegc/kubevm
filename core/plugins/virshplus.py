@@ -9,9 +9,9 @@ from kubernetes import config, client
 from kubernetes.client import V1DeleteOptions
 from json import loads
 from json import dumps, dump
-import sys
-sys.path.append("..")
-import os
+import sys,os
+current_dir = os.path.abspath('.')
+sys.path.append(os.path.join(current_dir, '..'))
 import time
 import json
 from pprint import pprint

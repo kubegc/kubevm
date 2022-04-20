@@ -62,8 +62,6 @@ else
     echo "    Success compile <kubevmm-adm>."
 fi
 cp -f ./dist/kubevmm-adm ../../dist
-cp -f virshplus.py ../
-cd ..
 pyinstaller -F virshplus.py
 if [ $? -ne 0 ]; then
     echo "    Failed to compile <virshplus>!"
@@ -71,10 +69,8 @@ if [ $? -ne 0 ]; then
 else
     echo "    Success compile <virshplus>."
 fi
-cp -f ./dist/virshplus ../dist
-rm -f virshplus.py
-rm -rf ./dist
-cd ..
+cp -f ./dist/virshplus ../../dist
+cd ../../
 #cp -rf ../SDS ./
 #cd ./SDS
 

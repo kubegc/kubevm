@@ -10,7 +10,7 @@ from kubernetes.client import V1DeleteOptions
 from json import loads
 from json import dumps, dump
 import sys,os
-sys.path.append(os.path.join('./core/'))
+sys.path.append(os.path.join('..'))
 import time
 import json
 from pprint import pprint

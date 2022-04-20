@@ -664,6 +664,7 @@ def runCmd(cmd, raise_it=True):
         p.stderr.close()
 
 def runCmdRaiseException(cmd, head='VirtctlError', use_read=False):
+    std_out = None
     std_err = None
     if not cmd:
         return
@@ -675,8 +676,16 @@ def runCmdRaiseException(cmd, head='VirtctlError', use_read=False):
             std_out = p.stdout.read().decode('utf-8')
             std_err = p.stderr.read().decode('utf-8')
         else:
-            std_out = p.stdout.readlines().decode('utf-8')
-            std_err = p.stderr.readlines().decode('utf-8')
+            std_out_list = p.stdout.readlines()
+            std_err_list = p.stderr.readlines()
+            if std_out_list:
+                std_out = []
+                for i in std_out_list:
+                    std_out.append(i.decode('utf-8'))
+            if std_err_list:
+                std_err = []
+                for i in std_err_list:
+                    std_err.append(i.decode('utf-8'))
         if std_err:
             raise ExecuteException(head, std_err)
         return std_out

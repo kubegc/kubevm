@@ -1255,27 +1255,25 @@ def main():
         #                 os.makedirs(ob[1], 0x0711)
         #             event_handler = VmBlockDevEventHandler(ob[0], ob[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
         #             observer.schedule(event_handler,ob[1],True)
-        for ob in LIBVIRT_XML_DIR:
-            if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0x0711)
-            event_handler = VmLibvirtXmlEventHandler(ob[0], ob[1], GROUP, VERSION, PLURAL_VM)
-            observer.schedule(event_handler, ob[1], True)
+        if not os.path.exists(LIBVIRT_XML_DIR):
+            os.makedirs(LIBVIRT_XML_DIR, 0x0711)
+        event_handler = VmLibvirtXmlEventHandler('kvm', LIBVIRT_XML_DIR, GROUP, VERSION, PLURAL_VM)
+        observer.schedule(event_handler, LIBVIRT_XML_DIR, True)
 #         for ob in TEMPLATE_DIRS:
 #             if not os.path.exists(ob[1]):
 #                 os.makedirs(ob[1], 0x0711)
 #             event_handler = ImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
 #             observer.schedule(event_handler, ob[1], True)
-        for ob in VMD_TEMPLATE_DIR:
-            if not os.path.exists(ob[1]):
-                os.makedirs(ob[1], 0x0711)
-                try:
-                    runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % (ob[0], ob[1]))
-                except:
-                    os.removedirs(ob[1])
-                    logger.error('Oops! ', exc_info=1)
-            event_handler = VmdImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP, VERSION,
-                                                           PLURAL_VM_DISK_IMAGE)
-            observer.schedule(event_handler, ob[1], True)
+        if not os.path.exists(VMD_TEMPLATE_DIR):
+            os.makedirs(VMD_TEMPLATE_DIR, 0x0711)
+            try:
+                runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % ('default', VMD_TEMPLATE_DIR))
+            except:
+                os.removedirs(VMD_TEMPLATE_DIR)
+                logger.error('Oops! ', exc_info=1)
+        event_handler = VmdImageLibvirtXmlEventHandler('default', VMD_TEMPLATE_DIR, GROUP, VERSION,
+                                                       PLURAL_VM_DISK_IMAGE)
+        observer.schedule(event_handler, VMD_TEMPLATE_DIR, True)
         observer.start()
 
         OLD_PATH_WATCHERS = {}

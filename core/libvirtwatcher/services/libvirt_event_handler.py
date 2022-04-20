@@ -81,7 +81,7 @@ class MyDomainEventHandler(threading.Thread):
             #     elif event == 'Stopped' and detail == 'Destroyed':
             #         modify_token(vm_name, 'Stopped')
     
-            if 'event' in self.kwargs.keys() and 'detail' in self.kwargs.keys() and \
+            if self.kwargs.has_key('event') and self.kwargs.has_key('detail') and \
             str(DOM_EVENTS[self.kwargs['event']]) == "Undefined" and \
             str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == "Removed":
     
@@ -124,33 +124,35 @@ class MyDomainEventHandler(threading.Thread):
                     runCmd(cmd)
                 except:
                     logger.error('Oops! ', exc_info=1)
-                try:
-                    jsondict = get_custom_object(GROUP, VERSION, PLURAL, vm_name)
-                    #             block_json = get_block_dev_json(name)
-                    jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, {})
-                    update_custom_object(GROUP, VERSION, PLURAL, vm_name, jsondict)
-                except ApiException as e:
-                    if e.reason == 'Not Found':
-                        logger.debug('**VM %s already deleted, ignore this 404 message.' % vm_name)
-                try:
-                    jsondict = delete_custom_object(GROUP, VERSION, PLURAL, vm_name)
-                except ApiException as e:
-                    if e.reason == 'Not Found':
-                        logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
-                except Exception as e:
-                    logger.error('Oops! ', exc_info=1)
+#                 try:
+#                     jsondict = get_custom_object(GROUP, VERSION, PLURAL, vm_name)
+#                     #             block_json = get_block_dev_json(name)
+#                     jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, {})
+#                     update_custom_object(GROUP, VERSION, PLURAL, vm_name, jsondict)
+#                 except ApiException, e:
+#                     if e.reason == 'Not Found':
+#                         logger.debug('**VM %s already deleted, ignore this 404 message.' % vm_name)
+#                 try:
+#                     jsondict = delete_custom_object(GROUP, VERSION, PLURAL, vm_name)
+#                 except ApiException, e:
+#                     if e.reason == 'Not Found':
+#                         logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
+#                 except Exception, e:
+#                     logger.error('Oops! ', exc_info=1)
             else:
             #             deleteVM(vm_name, V1DeleteOptions())
                 ignore_pushing = False
                 step1_done = False
-                jsondict_old = None
+#                 jsondict_old = None
                 try:
                     jsondict = get_custom_object(GROUP, VERSION, PLURAL, vm_name)
-                    jsondict_old = jsondict
+#                     jsondict_old = jsondict
                 except ApiException as e:
                     if e.reason == 'Not Found':
                         logger.debug('**VM %s already deleted, ignore this 404 error.' % vm_name)
                         ignore_pushing = True
+                    else:
+                        logger.error('Oops! ', exc_info=1)
                 except Exception as e:
                     logger.error('Oops! ', exc_info=1)
                 if not ignore_pushing:
@@ -178,12 +180,9 @@ class MyDomainEventHandler(threading.Thread):
                             vm_json = updateDomain(loads(vm_json))
                             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
                             body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
-                            logger.debug(vm_power_state)
-                        if jsondict_old == body:
-                            logger.debug(jsondict_old)
-                            logger.debug(body)
-                            logger.debug('No changes in k8s, ignore pushing.')
-                            return   
+#                         if jsondict_old == body:
+#                             logger.debug('No changes in k8s, ignore pushing.')
+#                             return
                         try:
                             update_custom_object(GROUP, VERSION, PLURAL, vm_name, body)
                         except ApiException as e:
@@ -204,13 +203,14 @@ class MyDomainEventHandler(threading.Thread):
                             report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                         except:
                             logger.warning('Oops! ', exc_info=1)
-                if 'event' in self.kwargs.keys() and str(DOM_EVENTS[self.kwargs['event']]) == "Stopped":
+                if self.kwargs.has_key('event') and str(DOM_EVENTS[self.kwargs['event']]) == "Stopped":
                     try:
                         logger.debug('Callback domain shutdown to virtlet')
                         if str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == 'Migrated':
                             logger.debug('VM %s has been migrated, ignore its stop signal.' % vm_name)
                         else:
-                            if get_ha_from_kubernetes(GROUP, VERSION, 'default', PLURAL, vm_name):
+                            if get_ha_from_kubernetes(GROUP, VERSION, 'default', PLURAL, vm_name) and \
+                            jsondict['metadata']['labels']['host'] == HOSTNAME:
         #                     autostart_vms = list_autostart_vms()
         #                     if vm_name in autostart_vms:
         #                         logger.debug('**Automatic start VM**')
@@ -269,7 +269,7 @@ class MyDomainEventHandler(threading.Thread):
                             report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                         except:
                             logger.warning('Oops! ', exc_info=1)
-                if step1_done and 'event' in self.kwargs.keys() and str(DOM_EVENTS[self.kwargs['event']]) == "Started":
+                if step1_done and self.kwargs.has_key('event') and str(DOM_EVENTS[self.kwargs['event']]) == "Started":
                     try:
                         logger.debug('Callback domain start to virtlet')
                         macs = get_macs(vm_name)

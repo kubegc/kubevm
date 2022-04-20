@@ -198,9 +198,6 @@ def qeury_and_prepare_by_path(path):
     runCmd('kubectl get vmd -o=jsonpath="{range .items[?(@.spec.volume.current==\"/mnt/localfs/pooldir/pooldir/diskdirclone/diskdirclone\")]}{.metadata.name}{\"\t\"}{.spec.nodeName}{\"\n\"}{end}"')
 
 def get_l3_network_info(name):
-    cfg = "/etc/kubevmm/config"
-    if not os.path.exists(cfg):
-        cfg = "/home/kubevmm/bin/config"
     
     master_ip = runCmdRaiseException('cat %s | grep server |awk -F"server:" \'{print$2}\' | awk -F"https://" \'{print$2}\' | awk -F":" \'{print$1}\'' % TOKEN)[0].strip()
     nb_port = '6641'
@@ -922,7 +919,7 @@ def trans_dict_to_xml(jsdict):
         return xml
 
 def updateDomain(jsondict):
-    with open('/etc/kubevmm/arraylist.cfg') as fr:
+    with open('/home/kubevmm/core/utils/arraylist.cfg') as fr:
         for line in fr:
             l = str.strip(line)
             alist = l.split('-')
@@ -930,7 +927,7 @@ def updateDomain(jsondict):
     return jsondict
 
 def updateDomainSnapshot(jsondict):
-    with open('/etc/kubevmm/arraylist.cfg') as fr:
+    with open('/home/kubevmm/core/utils/arraylist.cfg') as fr:
         for line in fr:
             l = str.strip(line)
             alist = l.split('-')

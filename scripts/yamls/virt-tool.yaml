@@ -45,6 +45,10 @@ spec:
             mountPath: /sys/fs/cgroup/
           - name: varrun
             mountPath: /var/run/
+          - name: virsh
+            mountPath: /usr/bin/virsh
+          - name: kubectl
+            mountPath: /usr/bin/kubectl
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:v1.0.2
         command: 
         - bash
@@ -71,6 +75,10 @@ spec:
             mountPath: /sys/fs/cgroup/
           - name: varrun
             mountPath: /var/run/
+          - name: virsh
+            mountPath: /usr/bin/virsh
+          - name: kubectl
+            mountPath: /usr/bin/kubectl
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:v1.0.2
         command: 
         - bash
@@ -97,6 +105,10 @@ spec:
             mountPath: /sys/fs/cgroup/
           - name: varrun
             mountPath: /var/run/
+          - name: virsh
+            mountPath: /usr/bin/virsh
+          - name: kubectl
+            mountPath: /usr/bin/kubectl
       - image: registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:v1.0.2
         command: 
         - bash
@@ -123,6 +135,10 @@ spec:
             mountPath: /sys/fs/cgroup/
           - name: varrun
             mountPath: /var/run/
+          - name: virsh
+            mountPath: /usr/bin/virsh
+          - name: kubectl
+            mountPath: /usr/bin/kubectl
       volumes: 
         - name: varlog
           hostPath: 
@@ -142,3 +158,9 @@ spec:
         - name: cgroup
           hostPath:
             path: /sys/fs/cgroup/
+        - name: virsh
+          hostPath:
+            path: /usr/bin/virsh
+        - name: kubectl
+          hostPath:
+            path: /usr/bin/kubectl

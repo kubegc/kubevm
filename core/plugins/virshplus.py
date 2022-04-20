@@ -10,8 +10,7 @@ from kubernetes.client import V1DeleteOptions
 from json import loads
 from json import dumps, dump
 import sys,os
-current_dir = os.path.abspath('.')
-sys.path.append(os.path.join(current_dir, '..'))
+sys.path.append(os.path.join('./core/'))
 import time
 import json
 from pprint import pprint

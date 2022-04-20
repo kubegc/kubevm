@@ -27,6 +27,8 @@ import collections
 from pprint import pprint
 from xml.dom import minidom
 from io import StringIO as _StringIO
+import logging
+import logging.handlers
 
 '''
 Import third party libs

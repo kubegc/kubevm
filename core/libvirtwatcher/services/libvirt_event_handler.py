@@ -178,7 +178,10 @@ class MyDomainEventHandler(threading.Thread):
                             vm_json = updateDomain(loads(vm_json))
                             jsondict = updateDomainStructureAndDeleteLifecycleInJson(jsondict, vm_json)
                             body = addPowerStatusMessage(jsondict, vm_power_state, 'The VM is %s' % vm_power_state)
+                            logger.debug(vm_power_state)
                         if jsondict_old == body:
+                            logger.debug(jsondict_old)
+                            logger.debug(body)
                             logger.debug('No changes in k8s, ignore pushing.')
                             return   
                         try:

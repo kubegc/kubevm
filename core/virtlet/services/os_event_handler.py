@@ -1270,6 +1270,8 @@ def main():
                 runCmdRaiseException('virsh pool-create-as --name %s --type dir --target %s' % ('default', VMD_TEMPLATE_DIR))
             except:
                 os.removedirs(VMD_TEMPLATE_DIR)
+                runCmdRaiseException('virsh pool-destroy --name %s' % ('default'))
+                runCmdRaiseException('virsh pool-undefine --name %s' % ('default'))
                 logger.error('Oops! ', exc_info=1)
         event_handler = VmdImageLibvirtXmlEventHandler('default', VMD_TEMPLATE_DIR, GROUP, VERSION,
                                                        PLURAL_VM_DISK_IMAGE)

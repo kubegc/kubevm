@@ -576,15 +576,16 @@ def create_disk(params):
 
 def create_pool(params):
     params_dict = _get_params(params)
-    pool, pool_type, pool_content, auto_start, pool_url, pool_uuid = params_dict.get('name'), params_dict.get('type'), \
+    pool, pool_type, pool_content, auto_start, pool_url, pool_uuid = params_dict.get('pool'), params_dict.get('type'), \
                   params_dict.get('content'), params_dict.get('auto-start'), params_dict.get('url'), params_dict.get('uuid')
-    cmd1 = 'virsh pool-create-as --name %s --type %s --target %s' % (pool, pool_type, pool_url)
+    cmd1 = 'mkdir -p %s' % pool_url
+    cmd2 = 'virsh pool-create-as --name %s --type %s --target %s' % (pool, pool_type, pool_url)
     if auto_start:
-        cmd2 = 'virsh pool-autostart --pool %s' % (pool)
+        cmd3 = 'virsh pool-autostart --pool %s' % (pool)
     else:
-        cmd2 = None
-    cmd3 = 'virsh pool-start --pool %s' % (pool)
-    operation_queue = [cmd1, cmd2, cmd3]
+        cmd3 = None
+    cmd4 = 'virsh pool-start --pool %s' % (pool)
+    operation_queue = [cmd1, cmd2, cmd3, cmd4]
     try:
         _runOperationQueue(operation_queue)
     except Exception as e:

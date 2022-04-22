@@ -12,9 +12,6 @@ from kubernetes.client import V1DeleteOptions
 from kubernetes.client.rest import ApiException
 import logging
 import logging.handlers
-from core.virtmonitor.virt_monitor_in_docker import PLURAL_VMP
-from core.virtlet.services.os_event_handler import PLURAL_VM_DISK,\
-    PLURAL_VM_DISK_IMAGE
 
 try:
     from utils import constants

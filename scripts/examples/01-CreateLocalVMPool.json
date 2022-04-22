@@ -14,7 +14,7 @@
           "type": "dir",
           "url": "/var/lib/libvirt/test",
           "content": "vmd",
-          "auto-start": true
+          "autostart": true
       }
     }
   }

@@ -577,7 +577,7 @@ def create_disk(params):
 def create_pool(params):
     params_dict = _get_params(params)
     pool, pool_type, pool_content, auto_start, pool_url, pool_uuid = params_dict.get('pool'), params_dict.get('type'), \
-                  params_dict.get('content'), params_dict.get('auto-start'), params_dict.get('url'), params_dict.get('uuid')
+                  params_dict.get('content'), params_dict.get('autostart'), params_dict.get('url'), params_dict.get('uuid')
     cmd1 = 'mkdir -p %s' % pool_url
     cmd2 = 'virsh pool-define-as --name %s --type %s --target %s' % (pool, pool_type, pool_url)
     if auto_start:
@@ -599,6 +599,7 @@ def create_pool(params):
         f.write(pool_content)
     helper = K8sHelper(VMP_KIND)
     data = params_dict
+    data.extend({'state':'active'})
     helper.update(pool,'pool',data)
     return
     

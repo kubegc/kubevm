@@ -94,10 +94,10 @@ CREATE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus create_disk_sn
 DELETE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus delete_disk_snapshot,virshplus dumpxml"
 REVERT_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus revert_disk_internal_snapshot,virshplus dumpxml"
 CREATE_DISK_FROM_DISK_IMAGE_CMD    = "default,name,none,kubesds-adm createDiskFromImage,kubesds-adm showDisk"
-CREATE_DISK_CMD                    = "default,vol,none,virshplus create_disk,virshplus show_disk"
+CREATE_DISK_CMD                    = "default,vol,none,virshplus create_disk,none"
 RESIZE_DISK_CMD                    = "default,vol,none,kubesds-adm resizeDisk,kubesds-adm showDisk"
 CLONE_DISK_CMD                     = "default,vol,none,kubesds-adm cloneDisk,kubesds-adm showDisk"
-DELETE_DISK_CMD                    = "default,vol,none,kubesds-adm deleteDisk,kubesds-adm showDisk"
+DELETE_DISK_CMD                    = "default,vol,none,virshplus delete_disk,none"
 CREATE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm createExternalSnapshot,kubesds-adm showDiskSnapshot"
 REVERT_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm revertExternalSnapshot,kubesds-adm showDiskSnapshot"
 DELETE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm deleteExternalSnapshot,kubesds-adm showDiskSnapshot"
@@ -108,8 +108,8 @@ CREATE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus create_vmdi,kubesd
 DELETE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus delete_vmdi"
 
 '''Virtual Machine Pool supported commands'''
-CREATE_POOL_CMD                    = "default,pool,none,kubesds-adm createPool,kubesds-adm showPool"
-DELETE_POOL_CMD                    = "default,pool,none,kubesds-adm deletePool,kubesds-adm showPool"
+CREATE_POOL_CMD                    = "default,pool,none,virshplus create_pool,none"
+DELETE_POOL_CMD                    = "default,pool,none,virshplus delete_pool,none"
 START_POOL_CMD                     = "default,pool,none,kubesds-adm startPool,kubesds-adm showPool"
 AUTO_START_POOL_CMD                = "default,pool,none,kubesds-adm autoStartPool,kubesds-adm showPool"
 STOP_POOL_CMD                      = "default,pool,none,kubesds-adm stopPool,kubesds-adm showPool"

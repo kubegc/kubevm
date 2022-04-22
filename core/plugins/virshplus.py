@@ -1823,11 +1823,11 @@ def main():
     elif sys.argv[1] == 'dump_l2_network_info':
         dump_l2_network_info(params)
     elif sys.argv[1] == 'delete_network':
-        delete_network()
+        delete_network(params)
     elif sys.argv[1] == 'create_disk':
-        create_disk()
+        create_disk(params)
     elif sys.argv[1] == 'create_pool':
-        create_pool()
+        create_pool(params)
     else:
         print ('invalid argument!')
         print (help_msg)

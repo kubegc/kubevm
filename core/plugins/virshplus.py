@@ -17,6 +17,8 @@ import threading
 import random
 import socket
 import datetime
+import traceback
+import operator
 from dateutil.tz import gettz
 from pprint import pformat
 from six import iteritems
@@ -63,14 +65,20 @@ from utils.exception import InternalServerError, NotFound, Forbidden, BadRequest
 from utils.libvirt_util import create, destroy, check_pool_content_type, refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
 from utils.misc import get_l2_network_info, get_address_set_info, get_l3_network_info, updateDomain, randomMAC, runCmd, get_rebase_backing_file_cmds, add_spec_in_volume, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, string_switch, deleteLifecycleInJson
 from utils import logger
+from utils.k8s import K8sHelper
 
 VM_PLURAL = constants.KUBERNETES_PLURAL_VM
+VMP_PLURAL = constants.KUBERNETES_PLURAL_VMP
 VMD_PLURAL = constants.KUBERNETES_PLURAL_VMD
 VMDI_PLURAL = constants.KUBERNETES_PLURAL_VMDI
+VMDSN_PLURAL = constants.KUBERNETES_PLURAL_VMDSN
+VM_KIND = constants.KUBERNETES_KIND_VM
+VMP_KIND = constants.KUBERNETES_KIND_VMP
+VMD_KIND = constants.KUBERNETES_KIND_VMD
+VMDI_KIND = constants.KUBERNETES_KIND_VMDI
+VMDSN_KIND = constants.KUBERNETES_KIND_VMDSN
 VERSION = constants.KUBERNETES_API_VERSION
 GROUP = constants.KUBERNETES_GROUP
-VMDI_KIND = constants.KUBERNETES_KIND_VMDI
-VMD_KIND = constants.KUBERNETES_KIND_VMD
 DEFAULT_DEVICE_DIR = constants.KUBEVMM_VM_DEVICES_DIR
 
 HOSTNAME = get_hostname_in_lower_case()
@@ -563,7 +571,31 @@ def updateOS(params):
             raise e   
         
 def create_disk(params):
-    
+    vol, pool = _get_param('--name', params), _get_param('--pool', params),
+    return
+
+def create_pool(params):
+    params_dict = _get_params(params)
+    pool, pool_type, pool_content, auto_start, pool_url, pool_uuid = params_dict.get('name'), params_dict.get('type'), \
+                  params_dict.get('content'), params_dict.get('auto-start'), params_dict.get('url'), params_dict.get('uuid')
+    cmd1 = 'virsh pool-create-as --name %s --type %s --target %s' % (pool, pool_type, pool_url)
+    cmd2 = 'virsh pool-autostart --pool %s' % (pool)
+    cmd3 = 'virsh pool-start --pool %s' % (pool)
+    operation_queue = [cmd1, cmd2, cmd3]
+    try:
+        _runOperationQueue(operation_queue)
+    except Exception as e:
+        logger.error('Oops! ', exc_info=1)
+        reverse1 = 'virsh pool-destroy --pool %s' % (pool)
+        reverse2 = 'virsh pool-undefine --pool %s' % (pool)
+        operation_queue1 = [reverse1, reverse2]
+        _runOperationQueue(operation_queue1, False)
+        raise e
+    with open('%s/content' % pool_url, 'w') as f:
+        f.write(pool_content)
+    helper = K8sHelper(VMP_KIND)
+    data = params_dict
+    helper.create(pool,'pool',data)
     return
     
 def create_disk_snapshot(params):
@@ -960,13 +992,13 @@ def delete_network():
     jsonDict = {'spec': {}}
     print(jsonDict)
     
-def _runOperationQueue(operation_queue, interval = 1):
+def _runOperationQueue(operation_queue, interval = 1, raise_it = True):
     for operation in operation_queue:
         logger.debug(operation)
         if operation.find('kubeovn-adm unbind-swport') != -1:
             runCmd(operation, False)
         else:
-            runCmd(operation)
+            runCmd(operation, raise_it)
         time.sleep(interval)
 
 def _unpackCmd(cmd, params):
@@ -1727,7 +1759,7 @@ def main():
     |set_guest_password|dumpxml|dump_l3_network_info|dump_l3_address_info|dump_l2_network_info|delete_network \
     |--help>' % sys.argv[0]
     if len(sys.argv) < 2 or sys.argv[1] == '--help':
-        print (help_msg)
+        print(help_msg)
         sys.exit(1)
  
     params = sys.argv[2:]
@@ -1791,6 +1823,8 @@ def main():
         delete_network()
     elif sys.argv[1] == 'create_disk':
         create_disk()
+    elif sys.argv[1] == 'create_pool':
+        create_pool()
     else:
         print ('invalid argument!')
         print (help_msg)

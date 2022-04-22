@@ -275,7 +275,7 @@ def write_result_to_kubernetes(plural, name, data):
             else:
                 raise e
         jsonDict = jsonStr.copy()
-        logger.debug(data)
+#         logger.debug(data)
         try:
             data = loads(data)
         except:

@@ -81,7 +81,7 @@ class MyDomainEventHandler(threading.Thread):
             #     elif event == 'Stopped' and detail == 'Destroyed':
             #         modify_token(vm_name, 'Stopped')
     
-            if 'event' in self.kwargs and 'detail' in self.kwargs and \
+            if 'event' in self.kwargs.keys() and 'detail' in self.kwargs.keys() and \
             str(DOM_EVENTS[self.kwargs['event']]) == "Undefined" and \
             str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == "Removed":
     
@@ -203,7 +203,7 @@ class MyDomainEventHandler(threading.Thread):
                             report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                         except:
                             logger.warning('Oops! ', exc_info=1)
-                if 'event' in self.kwargs and str(DOM_EVENTS[self.kwargs['event']]) == "Stopped":
+                if 'event' in self.kwargs.keys() and str(DOM_EVENTS[self.kwargs['event']]) == "Stopped":
                     try:
                         logger.debug('Callback domain shutdown to virtlet')
                         if str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == 'Migrated':
@@ -269,7 +269,7 @@ class MyDomainEventHandler(threading.Thread):
                             report_failure(vm_name, jsondict, 'VirtletError', str(info[1]), GROUP, VERSION, PLURAL)
                         except:
                             logger.warning('Oops! ', exc_info=1)
-                if step1_done and 'event' in self.kwargs and str(DOM_EVENTS[self.kwargs['event']]) == "Started":
+                if step1_done and 'event' in self.kwargs.keys() and str(DOM_EVENTS[self.kwargs['event']]) == "Started":
                     try:
                         logger.debug('Callback domain start to virtlet')
                         macs = get_macs(vm_name)

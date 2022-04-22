@@ -579,7 +579,7 @@ def create_pool(params):
     pool, pool_type, pool_content, auto_start, pool_url, pool_uuid = params_dict.get('pool'), params_dict.get('type'), \
                   params_dict.get('content'), params_dict.get('auto-start'), params_dict.get('url'), params_dict.get('uuid')
     cmd1 = 'mkdir -p %s' % pool_url
-    cmd2 = 'virsh pool-create-as --name %s --type %s --target %s' % (pool, pool_type, pool_url)
+    cmd2 = 'virsh pool-define-as --name %s --type %s --target %s' % (pool, pool_type, pool_url)
     if auto_start:
         cmd3 = 'virsh pool-autostart --pool %s' % (pool)
     else:

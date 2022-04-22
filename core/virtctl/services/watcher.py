@@ -279,7 +279,7 @@ def write_result_to_kubernetes(plural, name, data):
         try:
             data = loads(data)
         except:
-            logger.debug('Cannot write result to Kubernetes, because the output cannot convert to json')
+            logger.debug('No data to write back to Kubernetes')
         if isinstance(data, dict) and data.get('spec'):
             if data['spec']:
                 jsonDict['spec'] = data['spec']

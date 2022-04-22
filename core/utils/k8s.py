@@ -36,7 +36,7 @@ GROUP = constants.KUBERNETES_GROUP
 
 config.load_kube_config(config_file=TOKEN)
 
-LOG = '/var/log/kubesds.log'
+LOG = '/var/log/virtctl.log'
 
 RETRY_TIMES = 15
 

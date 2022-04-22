@@ -599,7 +599,7 @@ def create_pool(params):
         f.write(pool_content)
     helper = K8sHelper(VMP_KIND)
     data = params_dict
-    helper.create(pool,'pool',data)
+    helper.update(pool,'pool',data)
     return
     
 def create_disk_snapshot(params):

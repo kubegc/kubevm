@@ -517,9 +517,9 @@ if __name__ == '__main__':
     #     'domain': 'cloudinit',
     #     'pool': 'migratepoolnodepool22'
     # }
-    backup_helper = K8sHelper('VirtualMachineBackup')
+    helper = K8sHelper(VMP_KIND)
     # backup_helper.create('backup1', 'backup', data)
-    print backup_helper.add_label('vmbackup2', 'cloudinit')
+#     print(backup_helper.add_label('vmbackup2', 'cloudinit'))
 
 #     print get_all_node_ip()
 #     get_pools_by_path('/var/lib/libvirt/cstor/1709accf174vccaced76b0dbfccdev/1709accf174vccaced76b0dbfccdev')

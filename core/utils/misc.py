@@ -6,7 +6,7 @@ Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
 '''
 import json
 import xmltodict
-from json import loads, load, dumps
+from json import loads, load, dumps, dump
 
 try:
     from utils.libvirt_util import get_graphics, is_snapshot_exists, is_pool_exists, get_pool_path
@@ -408,6 +408,16 @@ def get_field_in_kubernetes_node(name, index):
             return None
     except:
         return None
+    
+def write_config(vol, dir, current, pool):
+    config = {}
+    config['name'] = vol
+    config['dir'] = dir
+    config['current'] = current
+    config['pool'] = pool
+
+    with open('%s/config.json' % dir, "w") as f:
+        dump(config, f)
 
 def get_field_in_kubernetes_by_index(name, group, version, plural, index):
     try:

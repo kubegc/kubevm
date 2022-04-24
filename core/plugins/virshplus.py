@@ -63,7 +63,7 @@ from kubernetes.client.rest import ApiException
 from utils import constants
 from utils.exception import InternalServerError, NotFound, Forbidden, BadRequest
 from utils.libvirt_util import create, destroy, check_pool_content_type, refresh_pool, get_vol_info_by_qemu, get_volume_xml, get_pool_path, is_volume_in_use, is_volume_exists, get_volume_current_path, vm_state, is_vm_exists, is_vm_active, get_boot_disk_path, get_xml, undefine_with_snapshot, undefine, define_xml_str
-from utils.misc import get_l2_network_info, get_address_set_info, get_l3_network_info, updateDomain, randomMAC, runCmd, get_rebase_backing_file_cmds, add_spec_in_volume, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, string_switch, deleteLifecycleInJson
+from utils.misc import get_l2_network_info, get_address_set_info, get_l3_network_info, updateDomain, randomMAC, runCmd, get_rebase_backing_file_cmds, add_spec_in_volume, get_hostname_in_lower_case, DiskImageHelper, updateDescription, get_volume_snapshots, updateJsonRemoveLifecycle, addSnapshots, report_failure, addPowerStatusMessage, RotatingOperation, string_switch, deleteLifecycleInJson, get_field_in_kubernetes_by_index, write_config
 from utils import logger
 from utils.k8s import K8sHelper
 
@@ -571,7 +571,32 @@ def updateOS(params):
             raise e   
         
 def create_disk(params):
-    vol, pool = _get_param('--name', params), _get_param('--pool', params),
+    params_dict = _get_params(params)
+    vol, pool, capacity, format, type = params_dict.get('vol'), params_dict.get('pool'), params_dict.get('capacity'), \
+                    params_dict.get('format'), params_dict.get('type')
+    pool_path = get_field_in_kubernetes_by_index(pool, GROUP, VERSION, VMP_PLURAL, ['spec','pool','url'])
+    if not os.path.isdir(pool_path):
+        raise BadRequest('can not get virsh pool path.')
+    # create disk dir and create disk in dir.
+    disk_dir = "%s/%s" % (pool_path, vol)
+    if os.path.isdir(disk_dir):
+        raise BadRequest('error: disk dir has exist.')
+    cmd1 = 'mkdir -p %s' % disk_dir
+    disk_path = os.path.join(disk_dir, vol)
+    cmd2 = 'qemu-img create -f %s %s %s' % (format, disk_path, capacity)
+    operation_queue = [cmd1, cmd2]
+    try:
+        _runOperationQueue(operation_queue)
+    except Exception as e:
+        logger.error('Oops! ', exc_info=1)
+        reverse1 = 'rm -rf %s' % (disk_path)
+        operation_queue1 = [reverse1]
+        _runOperationQueue(operation_queue1, False)
+        raise e
+    write_config(vol, disk_dir, disk_path, pool)
+    helper = K8sHelper(VMD_KIND)
+    data = params_dict
+    helper.update(vol,'volume',data)
     return
 
 def create_pool(params):

@@ -569,6 +569,38 @@ def updateOS(params):
         else:
             logger.error(e)
             raise e   
+
+def delete_disk(params):
+    params_dict = _get_params(params)
+    vol, pool, type = params_dict.get('vol'), params_dict.get('pool'), params_dict.get('type')
+    pool_path = get_field_in_kubernetes_by_index(pool, GROUP, VERSION, VMP_PLURAL, ['spec','pool','url'])
+    if not os.path.isdir(pool_path):
+        raise BadRequest('can not get pool path: %s.' % pool_path)
+    disk_dir = "%s/%s" % (pool_path, vol)
+    cmd1 = 'rm -rf %s' % disk_dir
+    operation_queue = [cmd1]
+    _runOperationQueue(operation_queue)
+    helper = K8sHelper(VMD_KIND)
+    helper.delete(vol)
+    return
+
+def delete_pool(params):
+    params_dict = _get_params(params)
+    pool = params_dict.get('pool')
+    cmd1 = 'virsh pool-destroy %s' % pool
+    cmd2 = 'virsh pool-undefine %s' % pool
+    operation_queue = [cmd1, cmd2]
+    try:
+        _runOperationQueue(operation_queue)
+    except Exception as e:
+        logger.error('Oops! ', exc_info=1)
+        reverse1 = 'virsh pool-start --pool %s' % (pool)
+        operation_queue1 = [reverse1]
+        _runOperationQueue(operation_queue1, False)
+        raise e
+    helper = K8sHelper(VMP_KIND)
+    helper.delete(pool)
+    return
         
 def create_disk(params):
     params_dict = _get_params(params)
@@ -576,11 +608,11 @@ def create_disk(params):
                     params_dict.get('format'), params_dict.get('type')
     pool_path = get_field_in_kubernetes_by_index(pool, GROUP, VERSION, VMP_PLURAL, ['spec','pool','url'])
     if not os.path.isdir(pool_path):
-        raise BadRequest('can not get virsh pool path.')
+        raise BadRequest('can not get pool path: %s.' % pool_path)
     # create disk dir and create disk in dir.
     disk_dir = "%s/%s" % (pool_path, vol)
     if os.path.isdir(disk_dir):
-        raise BadRequest('error: disk dir has exist.')
+        raise BadRequest('error: disk path %s already exists.' % disk_dir)
     cmd1 = 'mkdir -p %s' % disk_dir
     disk_path = os.path.join(disk_dir, vol)
     cmd2 = 'qemu-img create -f %s %s %s' % (format, disk_path, capacity)
@@ -596,6 +628,7 @@ def create_disk(params):
     write_config(vol, disk_dir, disk_path, pool)
     helper = K8sHelper(VMD_KIND)
     data = params_dict
+    data['current'] = disk_path
     helper.update(vol,'volume',data)
     return
 
@@ -1857,6 +1890,10 @@ def main():
         create_disk(params)
     elif sys.argv[1] == 'create_pool':
         create_pool(params)
+    elif sys.argv[1] == 'delete_disk':
+        delete_disk(params)
+    elif sys.argv[1] == 'delete_pool':
+        delete_pool(params)
     else:
         print ('invalid argument!')
         print (help_msg)

@@ -441,7 +441,6 @@ class K8sHelper(object):
         for i in range(RETRY_TIMES):
             try:
                 config.load_kube_config(TOKEN)
-                k8s_logger.debug('deleteVMBackupdebug %s' % name)
                 return client.CustomObjectsApi().delete_namespaced_custom_object(
                     group=resources[self.kind]['group'], version=resources[self.kind]['version'], namespace='default',
                     plural=resources[self.kind]['plural'], name=name, body=V1DeleteOptions())

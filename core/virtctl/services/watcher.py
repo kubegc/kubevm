@@ -142,6 +142,7 @@ def doExecutor(plural, k8s_object_kind, jsondict):
     logger.debug('metadata name: %s' % metadata_name)
     '''convertor'''
     (policy, the_cmd_key, prepare_cmd, invoke_cmd, query_cmd) = toCmds(jsondict)
+    logger.debug(policy, the_cmd_key, prepare_cmd, invoke_cmd, query_cmd)
     if the_cmd_key:
         _acquire_mutex_lock(the_cmd_key)
     try:

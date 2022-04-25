@@ -1,0 +1,17 @@
+{
+  "apiVersion": "doslab.io/v1",
+  "kind": "VirtualMachinePool",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "host": "vm.node31"
+    }
+  },
+  "spec": {
+    "nodeName": "vm.node31",
+    "lifecycle": {
+      "deletePool": {
+      }
+    }
+  }
+}

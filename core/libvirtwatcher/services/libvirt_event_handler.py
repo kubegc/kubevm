@@ -80,7 +80,6 @@ class MyDomainEventHandler(threading.Thread):
             #         modify_token(vm_name, 'Started')
             #     elif event == 'Stopped' and detail == 'Destroyed':
             #         modify_token(vm_name, 'Stopped')
-            logger.debug(self.kwargs)
             if 'event' in self.kwargs.keys() and 'detail' in self.kwargs.keys() and \
             str(DOM_EVENTS[self.kwargs['event']]) == "Undefined" and \
             str(DOM_EVENTS[self.kwargs['event']][self.kwargs['detail']]) == "Removed":

@@ -938,6 +938,7 @@ def delete_vm(params):
     metadata_name = _get_param('--domain', params)
     if is_vm_exists(metadata_name) and is_vm_active(metadata_name):
         destroy(metadata_name)
+        time.sleep(1)
     cmd = _unpackCmd('virsh undefine', params)
     try:
         runCmd(cmd)
@@ -946,7 +947,9 @@ def delete_vm(params):
             logger.debug('VM %s has already been deleted.' % metadata_name)
         else:
             raise BadRequest('Delete VM %s failed! Error: %s' %(metadata_name, e))
-    print(jsonDict)
+    helper = K8sHelper(VM_KIND)
+    helper.delete(metadata_name)
+    return
     
 def plug_nic(params):
     the_cmd_key = 'plugNIC'

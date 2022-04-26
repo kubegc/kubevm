@@ -16,7 +16,7 @@
         "vcpus": "1",
         "os_variant": "centos7.0",
         "cdrom": "/var/lib/libvirt/iso/centos7-minimal-1511.iso",
-        "disk": "/var/lib/libvirt/pooltest/test.qcow2,format=qcow2",
+        "disk": "/var/lib/libvirt/pooltest/disktest/disktest.qcow2,format=qcow2",
         "network": "type=bridge,source=virbr0",
         "graphics": "vnc,listen=0.0.0.0",
         "noautoconsole": true

@@ -2,7 +2,7 @@
   "apiVersion": "doslab.io/v1",
   "kind": "VirtualMachinePool",
   "metadata": {
-    "name": "test",
+    "name": "pooltest",
     "labels": {
       "host": "vm.node31"
     }

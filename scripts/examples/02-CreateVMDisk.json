@@ -12,7 +12,7 @@
     "lifecycle": {
       "createDisk": {
         "type": "localfs",
-        "pool": "test",
+        "pool": "pooltest",
         "capacity": "10G",
         "format": "qcow2"
       }

@@ -11,7 +11,7 @@
     "nodeName": "vm.node31",
     "lifecycle": {
       "deleteDisk": {
-        "pool": "test"
+        "pool": "pooltest"
       }
     }
   }

@@ -614,7 +614,8 @@ def create_disk(params):
     if os.path.isdir(disk_dir):
         raise BadRequest('error: disk path %s already exists.' % disk_dir)
     cmd1 = 'mkdir -p %s' % disk_dir
-    disk_path = os.path.join(disk_dir, vol)
+    vol_name_with_format = '%s.%s' % (vol, format)
+    disk_path = os.path.join(disk_dir, vol_name_with_format)
     cmd2 = 'qemu-img create -f %s %s %s' % (format, disk_path, capacity)
     operation_queue = [cmd1, cmd2]
     try:

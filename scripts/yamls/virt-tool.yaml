@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: virt-tool
-  namespace: doslab
+  namespace: kube-system
   labels:
     app: virt-tool
 spec:

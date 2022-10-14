@@ -155,24 +155,29 @@ cd ..
 #rm -rf ./compile
 #cd ..
 
-#step 2 docker build
+#step 2 docker build & push
 cd docker
 DOCKER_HUB_URL=registry.cn-beijing.aliyuncs.com
 IMAGE_TAG_PREFIX=${DOCKER_HUB_URL}/dosstack
 
-docker build base -t ${IMAGE_TAG_PREFIX}/kubestack-base:latest
-docker build virtlet -t ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION}
-docker build virtctl -t ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION}
-docker build libvirtwatcher -t ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION}
-docker build virtmonitor -t ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION}
+DOCKER_USER=netgenius201
+docker login -u ${DOCKER_USER} ${DOCKER_HUB_URL}
+
+# use docker buildx
+docker buildx create --name mybuilder --driver docker-container
+docker buildx use mybuilder
+docker run --privileged --rm tonistiigi/binfmt --install all
+
+docker buildx build base -t ${IMAGE_TAG_PREFIX}/kubestack-base:latest --platform linux/arm64,linux/amd64 --push
+docker buildx build virtlet -t ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION} --platform linux/arm64,linux/amd64 --push
+docker buildx build virtctl -t ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION} --platform linux/arm64,linux/amd64 --push
+docker buildx build libvirtwatcher -t ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION} --platform linux/arm64,linux/amd64 --push
+docker buildx build virtmonitor -t ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION} --platform linux/arm64,linux/amd64 --push
 
 #step 3 docker push
-DOCKER_USER=netgenius201
-
 echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
 echo "Username: $DOCKER_USER"
 #docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
-docker login -u ${DOCKER_USER} ${DOCKER_HUB_URL}
 
 if [ $? -ne 0 ]; then
     echo "    Failed to login aliyun repository!"
@@ -181,11 +186,11 @@ else
     echo "    Success login...Pushing images!"
 fi
 
-docker push ${IMAGE_TAG_PREFIX}/kubestack-base:latest
-docker push ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION}
-docker push ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION}
-docker push ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION}
-docker push ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION}
+#docker push ${IMAGE_TAG_PREFIX}/kubestack-base:latest
+#docker push ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION}
+#docker push ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION}
+#docker push ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION}
+#docker push ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION}
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"

@@ -207,8 +207,8 @@ def get_l3_network_info(name):
     Get switch informations.
     '''
     switchInfo = {'id': '', 'name': '', 'ports': []}
-    ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
-    lines = runCmdRaiseException('ovn-nbctl --db=%s show %s' % (ovn_master_ip, name))
+    # ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
+    lines = runCmdRaiseException('kubectl ko nbctl show %s' % (name))
 #     if not (len(lines) -1) % 4 == 0:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: wrong return value %s' % (master_ip, nb_port, name, lines))
     if lines:
@@ -251,7 +251,7 @@ def get_l3_network_info(name):
     Get router informations.
     '''
     routerInfo = {'id': '', 'name': '', 'ports': []}
-    lines = runCmdRaiseException('ovn-nbctl --db=%s show %s-router' % (ovn_master_ip, name))
+    lines = runCmdRaiseException('kubectl ko nbctl show %s-router' % (name))
     if lines:
         (_, routerInfo['id'], routerInfo['name']) = str.strip(lines[0].replace('(', '').replace(')', '')).split(' ')
         ports = lines[1:]
@@ -292,14 +292,14 @@ def get_l3_network_info(name):
 #     if not switchId:
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
     if switchId:
-        cmd = 'ovn-nbctl --db=%s show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (ovn_master_ip, name, name)
+        cmd = 'kubectl ko nbctl show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (name, name)
     #     print(cmd)
         lines = runCmdRaiseException(cmd)
 #         if not lines:
 #             raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
         if lines:
             gatewayInfo['id'] = lines[0].strip()
-            cmd = 'ovn-nbctl --db=%s dhcp-options-get-options %s' % (ovn_master_ip, gatewayInfo['id'])
+            cmd = 'kubectl ko nbctl dhcp-options-get-options %s' % (gatewayInfo['id'])
         #     print(cmd)
             lines = runCmdRaiseException(cmd)
             for line in lines:
@@ -382,8 +382,8 @@ def get_address_set_info(name):
     nb_port = '6641'
     data = {'addressInfo': ''}
     addressInfo = {'_uuid': '', 'addresses': [], 'external_ids': {}, 'name': ''}
-    ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
-    cmd = 'ovn-nbctl --db=%s list Address_Set %s' % (ovn_master_ip, name)
+    # ovn_master_ip = get_ovn_master_ip(master_ip, nb_port)
+    cmd = 'kubectl ko nbctl list Address_Set %s' % (name)
     lines = runCmdRaiseException(cmd)
     for line in lines:
         if line.find('_uuid') != -1:

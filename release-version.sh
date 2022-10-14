@@ -157,27 +157,35 @@ cd ..
 
 #step 2 docker build
 cd docker
-docker build base -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-base:latest
-docker build virtlet -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:${VERSION}
-docker build virtctl -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtctl:${VERSION}
-docker build libvirtwatcher -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:${VERSION}
-docker build virtmonitor -t registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:${VERSION}
+DOCKER_HUB_URL=registry.cn-beijing.aliyuncs.com
+IMAGE_TAG_PREFIX=${DOCKER_HUB_URL}/dosstack
+
+docker build base -t ${IMAGE_TAG_PREFIX}/kubestack-base:latest
+docker build virtlet -t ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION}
+docker build virtctl -t ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION}
+docker build libvirtwatcher -t ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION}
+docker build virtmonitor -t ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION}
 
 #step 3 docker push
+DOCKER_USER=netgenius201
+
 echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
-echo "Username: bigtree0613@126.com"
-docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
+echo "Username: $DOCKER_USER"
+#docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
+docker login -u ${DOCKER_USER} ${DOCKER_HUB_URL}
+
 if [ $? -ne 0 ]; then
     echo "    Failed to login aliyun repository!"
     exit 1
 else
     echo "    Success login...Pushing images!"
 fi
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-base:latest
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtctl:${VERSION}
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtlet:${VERSION}
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-libvirtwatcher:${VERSION}
-docker push registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-virtmonitor:${VERSION}
+
+docker push ${IMAGE_TAG_PREFIX}/kubestack-base:latest
+docker push ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION}
+docker push ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION}
+docker push ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION}
+docker push ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION}
 
 ###############################patch version to SPECS/kubevmm.spec######################################################
 echo -e "\033[3;30;47m*** Patch release version number to SPECS/kubevmm.spec\033[0m"

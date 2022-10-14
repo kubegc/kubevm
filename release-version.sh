@@ -179,11 +179,11 @@ docker buildx create --name mybuilder --driver docker-container
 docker buildx use mybuilder
 docker run --privileged --rm tonistiigi/binfmt --install all
 
-docker buildx build base -t ${IMAGE_TAG_PREFIX}/kubestack-base:latest --platform linux/arm64,linux/amd64 --push
-docker buildx build virtlet -t ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION} --platform linux/arm64,linux/amd64 --push
-docker buildx build virtctl -t ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION} --platform linux/arm64,linux/amd64 --push
-docker buildx build libvirtwatcher -t ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION} --platform linux/arm64,linux/amd64 --push
-docker buildx build virtmonitor -t ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION} --platform linux/arm64,linux/amd64 --push
+docker buildx build base -t ${IMAGE_TAG_PREFIX}/kubestack-base:latest --platform linux/amd64 --push
+docker buildx build virtlet -t ${IMAGE_TAG_PREFIX}/kubestack-virtlet:${VERSION} --platform linux/amd64 --push
+docker buildx build virtctl -t ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION} --platform linux/amd64 --push
+docker buildx build libvirtwatcher -t ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatcher:${VERSION} --platform linux/amd64 --push
+docker buildx build virtmonitor -t ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION} --platform linux/amd64 --push
 
 #step 3 docker push
 

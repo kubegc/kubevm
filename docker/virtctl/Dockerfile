@@ -1,4 +1,4 @@
-FROM registry.cn-hangzhou.aliyuncs.com/cloudplus-lab/kubernetes-kvm-base:latest
+FROM registry.cn-beijing.aliyuncs.com/dosstack/kubestack-base:latest
 
 RUN mkdir -p /home/kubevmm/bin
 

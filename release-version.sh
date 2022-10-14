@@ -161,7 +161,18 @@ DOCKER_HUB_URL=registry.cn-beijing.aliyuncs.com
 IMAGE_TAG_PREFIX=${DOCKER_HUB_URL}/dosstack
 
 DOCKER_USER=netgenius201
+
+echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
+echo "Username: $DOCKER_USER"
+#docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
 docker login -u ${DOCKER_USER} ${DOCKER_HUB_URL}
+
+if [ $? -ne 0 ]; then
+    echo "    Failed to login aliyun repository!"
+    exit 1
+else
+    echo "    Success login...Pushing images!"
+fi
 
 # use docker buildx
 docker buildx create --name mybuilder --driver docker-container
@@ -175,16 +186,6 @@ docker buildx build libvirtwatcher -t ${IMAGE_TAG_PREFIX}/kubestack-libvirtwatch
 docker buildx build virtmonitor -t ${IMAGE_TAG_PREFIX}/kubestack-virtmonitor:${VERSION} --platform linux/arm64,linux/amd64 --push
 
 #step 3 docker push
-echo -e "\033[3;30;47m*** Login docker image repository in aliyun.\033[0m"
-echo "Username: $DOCKER_USER"
-#docker login --username=bigtree0613@126.com registry.cn-hangzhou.aliyuncs.com
-
-if [ $? -ne 0 ]; then
-    echo "    Failed to login aliyun repository!"
-    exit 1
-else
-    echo "    Success login...Pushing images!"
-fi
 
 #docker push ${IMAGE_TAG_PREFIX}/kubestack-base:latest
 #docker push ${IMAGE_TAG_PREFIX}/kubestack-virtctl:${VERSION}

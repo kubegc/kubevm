@@ -293,14 +293,14 @@ def get_l3_network_info(name):
 #         raise Exception('ovn-nbctl --db=tcp:%s:%s show %s error: no id found!' % (master_ip, nb_port, name))
     if switchId:
         cmd = 'kubectl ko nbctl show %s | grep dhcpv4id | awk -F"dhcpv4id-%s-" \'{print$2}\''% (name, name)
-    #     print(cmd)
+        print("nbctl show:",cmd)
         lines = runCmdRaiseException(cmd)
 #         if not lines:
 #             raise Exception('error occurred: ovn-nbctl --db=tcp:%s:%s list DHCP_Options  | grep -B 3 "%s"  | grep "_uuid" | awk -F":" \'{print$2}\'' % (master_ip, nb_port, switchId))
         if lines:
             gatewayInfo['id'] = lines[0].strip()
             cmd = 'kubectl ko nbctl dhcp-options-get-options %s' % (gatewayInfo['id'])
-        #     print(cmd)
+            print("dhcp-options-get-options:",cmd)
             lines = runCmdRaiseException(cmd)
             for line in lines:
                 if line.find('server_mac') != -1:
@@ -312,6 +312,7 @@ def get_l3_network_info(name):
                 elif line.find('lease_time') != -1:
                     (_, gatewayInfo['lease_time']) = line.strip().split('=')
     data['gatewayInfo'] = gatewayInfo
+    print("data:",data)
     return data
 
 def get_ovn_master_ip(master_ip, nb_port):

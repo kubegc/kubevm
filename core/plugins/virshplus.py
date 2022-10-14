@@ -5,7 +5,6 @@ Copyright (2021, ) Institute of Software, Chinese Academy of
 @author: wuyuewen@otcaix.iscas.ac.cn
 '''
 import json
-import xmltodict
 from json import loads, load, dumps, dump
 import re
 import fcntl

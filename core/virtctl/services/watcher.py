@@ -38,10 +38,10 @@ from services.convertor import toCmds
 
 from utils.misc import get_label_selector, report_failure
 
-TOKEN = constants.KUBERNETES_TOKEN_FILE    
+TOKEN = constants.KUBERNETES_TOKEN_FILE
 logger = logger.set_logger(os.path.basename(__file__), constants.KUBEVMM_VIRTCTL_LOG)
 
-create_vm_mutex = threading.Lock()            
+create_vm_mutex = threading.Lock()
 start_vm_mutex = threading.Lock()
 stop_vm_mutex = threading.Lock()
 reboot_vm_mutex = threading.Lock()
@@ -50,6 +50,7 @@ delete_vm_mutex = threading.Lock()
 reset_vm_mutex = threading.Lock()
 suspend_vm_mutex = threading.Lock()
 migrate_vm_mutex = threading.Lock()
+
 
 def main():
     '''将Kubernetes资源监听器运行在python子进程里.
@@ -101,13 +102,14 @@ def main():
         thread_6.join()
     except:
         logger.error('Oops! ', exc_info=1)
-        
+
+
 def doWatch(plural, k8s_object_kind):
     '''监听器的请求处理逻辑，请求封装在{'spec': {'lifecycle': {...}}}里。\
     lifecycle通过解析器convertor解析，并与constatns里的配置项匹配，转化成invoke cmd和query cmd。\
     处理器executor用于顺序执行invoke cmd和query cmd。 \
     executor的结果如果符合json规范，并包含关键字{'spec': {...}}，则会被写回到Kubernetes里。
-    
+
     '''
     while True:
         watcher = watch.Watch()
@@ -117,24 +119,26 @@ def doWatch(plural, k8s_object_kind):
         kwargs['timeout_seconds'] = int(constants.KUBERNETES_WATCHER_TIME_OUT)
         try:
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
-                                        group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, plural=plural, **kwargs):
-                thread = Thread(target=doExecutor,args=(plural, k8s_object_kind, jsondict))
+                                           group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION,
+                                           plural=plural, **kwargs):
+                thread = Thread(target=doExecutor, args=(plural, k8s_object_kind, jsondict))
                 thread.daemon = True
                 thread.name = 'do_executor'
                 thread.start()
         except Exception as e:
-    #             master_ip = change_master_and_reload_config(fail_times)
+            #             master_ip = change_master_and_reload_config(fail_times)
             config.load_kube_config(config_file=TOKEN)
-    #             fail_times += 1
-    #             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
-            info=sys.exc_info()
+            #             fail_times += 1
+            #             logger.debug('retrying another master %s, retry times: %d' % (master_ip, fail_times))
+            info = sys.exc_info()
             logger.warning('Oops! ', exc_info=1)
-#             vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
+            #             vMWatcher(group=GROUP_VM, version=VERSION_VM, plural=PLURAL_VM)
             time.sleep(3)
             continue
         finally:
             watcher.stop()
-        
+
+
 def doExecutor(plural, k8s_object_kind, jsondict):
     operation_type = jsondict.get('type')
     logger.debug(operation_type)
@@ -146,7 +150,8 @@ def doExecutor(plural, k8s_object_kind, jsondict):
         _acquire_mutex_lock(the_cmd_key)
     try:
         if the_cmd_key and operation_type != 'DELETED':
-            logger.debug("cmd key: %s, prepare cmd: %s, invoke cmd: %s, query cmd: %s" % (the_cmd_key, prepare_cmd, invoke_cmd, query_cmd))
+            logger.debug("cmd key: %s, prepare cmd: %s, invoke cmd: %s, query cmd: %s" % (
+            the_cmd_key, prepare_cmd, invoke_cmd, query_cmd))
             '''delete lifecycle in Kubernetes'''
             delete_lifecycle_in_kubernetes(plural, metadata_name)
             '''create Kubernetes event'''
@@ -159,25 +164,29 @@ def doExecutor(plural, k8s_object_kind, jsondict):
                     executor = Executor(policy, prepare_cmd, invoke_cmd, query_cmd)
                     _, data = executor.execute()
                 '''write result'''
+                logger.debug("data:%s" % data)
                 write_result_to_kubernetes(plural, metadata_name, data)
                 '''update Kubernetes event'''
                 event.update_evet(constants.KUBEVMM_EVENT_LIFECYCLE_DONE, constants.KUBEVMM_EVENT_TYPE_NORMAL)
             except libvirtError:
                 logger.error('Oops! ', exc_info=1)
-                info=sys.exc_info()
+                info = sys.exc_info()
                 try:
-                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), constants.KUBERNETES_GROUP, constants.KUBERNETES_API_VERSION, plural)
+                    report_failure(metadata_name, jsondict, 'LibvirtError', str(info[1]), constants.KUBERNETES_GROUP,
+                                   constants.KUBERNETES_API_VERSION, plural)
                 except:
                     logger.warning('Oops! ', exc_info=1)
                 event.update_evet(constants.KUBEVMM_EVENT_LIFECYCLE_DONE, constants.KUBEVMM_EVENT_TYPE_ERROR)
             except Exception as e:
                 logger.error('Oops! ', exc_info=1)
-                info=sys.exc_info()
+                info = sys.exc_info()
                 try:
                     if hasattr(e, 'reason'):
-                        report_failure(metadata_name, jsondict, e.reason, e.message, constants.KUBERNETES_GROUP, constants.KUBERNETES_API_VERSION, plural)
+                        report_failure(metadata_name, jsondict, e.reason, e.message, constants.KUBERNETES_GROUP,
+                                       constants.KUBERNETES_API_VERSION, plural)
                     else:
-                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), constants.KUBERNETES_GROUP, constants.KUBERNETES_API_VERSION, plural)
+                        report_failure(metadata_name, jsondict, 'Exception', str(info[1]), constants.KUBERNETES_GROUP,
+                                       constants.KUBERNETES_API_VERSION, plural)
                 except:
                     logger.warning('Oops! ', exc_info=1)
                 event.update_evet(constants.KUBEVMM_EVENT_LIFECYCLE_DONE, constants.KUBEVMM_EVENT_TYPE_ERROR)
@@ -186,20 +195,23 @@ def doExecutor(plural, k8s_object_kind, jsondict):
                     _release_mutex_lock(the_cmd_key)
     except Exception as e:
         logger.error('Oops! ', exc_info=1)
-        info=sys.exc_info()
+        info = sys.exc_info()
         try:
             if hasattr(e, 'reason'):
-                report_failure(metadata_name, jsondict, e.reason, e.message, constants.KUBERNETES_GROUP, constants.KUBERNETES_API_VERSION, plural)
+                report_failure(metadata_name, jsondict, e.reason, e.message, constants.KUBERNETES_GROUP,
+                               constants.KUBERNETES_API_VERSION, plural)
             else:
-                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), constants.KUBERNETES_GROUP, constants.KUBERNETES_API_VERSION, plural)
+                report_failure(metadata_name, jsondict, 'Exception', str(info[1]), constants.KUBERNETES_GROUP,
+                               constants.KUBERNETES_API_VERSION, plural)
         except:
             logger.warning('Oops! ', exc_info=1)
+
 
 def _getMetadataName(jsondict):
     '''获取metadata name
     Returns:
         str: metadata name in Kubernetes
-        
+
     '''
     metadata = jsondict['raw_object']['metadata']
     metadata_name = metadata.get('name')
@@ -207,7 +219,8 @@ def _getMetadataName(jsondict):
         return metadata_name
     else:
         raise BadRequest('FATAL ERROR! No metadata name!')
-    
+
+
 def _getEventId(jsondict):
     '''获取event id
     Returns:
@@ -217,6 +230,7 @@ def _getEventId(jsondict):
     labels = metadata.get('labels')
     logger.debug(labels)
     return labels.get('eventId') if labels.get('eventId') else '-1'
+
 
 def _acquire_mutex_lock(the_cmd_key):
     if the_cmd_key == constants.CREATE_AND_START_VM_FROM_ISO_CMD or the_cmd_key == constants.CREATE_VM_CMD:
@@ -237,7 +251,8 @@ def _acquire_mutex_lock(the_cmd_key):
         suspend_vm_mutex.acquire()
     elif the_cmd_key == constants.MIGRATE_VM_CMD:
         migrate_vm_mutex.acquire()
-     
+
+
 def _release_mutex_lock(the_cmd_key):
     if the_cmd_key == constants.CREATE_AND_START_VM_FROM_ISO_CMD or the_cmd_key == constants.CREATE_VM_CMD:
         create_vm_mutex.release()
@@ -258,6 +273,7 @@ def _release_mutex_lock(the_cmd_key):
     elif the_cmd_key == constants.MIGRATE_VM_CMD:
         migrate_vm_mutex.release()
 
+
 def write_result_to_kubernetes(plural, name, data):
     '''将executor的处理结果写回到Kubernetes里，处理结果必须是json格式，\
     并且符合{'spec':{...}}规范，如果传{'spec':{}}则代表从Kubernetes中删除该对象。
@@ -267,7 +283,8 @@ def write_result_to_kubernetes(plural, name, data):
         # involved_object_name actually is nodeerror occurred during processing json data from apiserver
         try:
             jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-                group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default', plural=plural, name=name)
+                group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default',
+                plural=plural, name=name)
         except ApiException as e:
             if e.reason == 'Not Found':
                 logger.debug('**Object %s already deleted.' % name)
@@ -275,7 +292,7 @@ def write_result_to_kubernetes(plural, name, data):
             else:
                 raise e
         jsonDict = jsonStr.copy()
-#         logger.debug(data)
+        logger.debug(data)
         try:
             data = loads(data)
         except:
@@ -285,7 +302,8 @@ def write_result_to_kubernetes(plural, name, data):
                 jsonDict['spec'] = data['spec']
                 try:
                     client.CustomObjectsApi().replace_namespaced_custom_object(
-                        group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default', plural=plural, name=name, body=jsonDict)
+                        group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default',
+                        plural=plural, name=name, body=jsonDict)
                 except ApiException as e:
                     if e.reason == 'Conflict':
                         logger.debug('**Other process updated %s, ignore this 409 message.' % name)
@@ -295,7 +313,8 @@ def write_result_to_kubernetes(plural, name, data):
             else:
                 try:
                     client.CustomObjectsApi().delete_namespaced_custom_object(
-                        group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default', plural=plural, name=name, body=V1DeleteOptions())
+                        group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default',
+                        plural=plural, name=name, body=V1DeleteOptions())
                 except ApiException as e:
                     if e.reason == 'Not Found':
                         logger.debug('**Object %s already deleted, ignore this 404 message.' % name)
@@ -303,11 +322,13 @@ def write_result_to_kubernetes(plural, name, data):
                     else:
                         raise e
         elif isinstance(data, dict) and not data.get('spec'):
-            Forbidden('Wrong format in cmd results, only support "dict" with "spec" item, e.g. {"spec": {...}}. Please check the output of query cmd if exists, or the output of invoke cmd.')
+            Forbidden(
+                'Wrong format in cmd results, only support "dict" with "spec" item, e.g. {"spec": {...}}. Please check the output of query cmd if exists, or the output of invoke cmd.')
     except:
         logger.error('Oops! ', exc_info=1)
-        info=sys.exc_info()
+        info = sys.exc_info()
         raise InternalServerError('Write result to apiserver failed: %s %s' % (info[0], info[1]))
+
 
 def delete_lifecycle_in_kubernetes(plural, name):
     '''删除lifecycle结构，避免推送程序更新Kubernetes时再次进入lifecycle的处理逻辑。
@@ -316,7 +337,8 @@ def delete_lifecycle_in_kubernetes(plural, name):
     try:
         try:
             jsonStr = client.CustomObjectsApi().get_namespaced_custom_object(
-                group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default', plural=plural, name=name)
+                group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default',
+                plural=plural, name=name)
         except ApiException as e:
             if e.reason == 'Not Found':
                 logger.debug('**Object %s already deleted.' % name)
@@ -324,17 +346,19 @@ def delete_lifecycle_in_kubernetes(plural, name):
             else:
                 raise e
         # logger.debug(dumps(jsonStr))
-#         logger.debug("node name is: " + name)
+        #         logger.debug("node name is: " + name)
         jsonDict = jsonStr.copy()
         if jsonDict['spec'].get('lifecycle'):
             del jsonDict['spec']['lifecycle']
-#         jsonDict = updateDescription(jsonDict)
+        #         jsonDict = updateDescription(jsonDict)
         client.CustomObjectsApi().replace_namespaced_custom_object(
-            group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default', plural=plural, name=name, body=jsonDict)
+            group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION, namespace='default',
+            plural=plural, name=name, body=jsonDict)
     except:
         logger.error('Oops! ', exc_info=1)
-        info=sys.exc_info()
+        info = sys.exc_info()
         raise InternalServerError('Write result to apiserver failed: %s %s' % (info[0], info[1]))
+
 
 if __name__ == '__main__':
     config.load_kube_config(config_file=constants.KUBERNETES_TOKEN_FILE)

@@ -1040,7 +1040,8 @@ def dump_l3_network_info(params):
     jsonDict = {'spec': {'data': {}, 'nodeName': HOSTNAME, 'type': 'l3network', 'status': {}}}
     jsonDict['spec']['data'] = get_l3_network_info(name) 
     jsonDict = addPowerStatusMessage(jsonDict, 'Ready', 'The resource is ready.')   
-    print(jsonDict)
+    # print(jsonDict)
+    print(json.dumps(jsonDict))
     
 def dump_l3_address_info(params):
     name = _get_param('--name', params)

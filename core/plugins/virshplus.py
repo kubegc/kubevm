@@ -72,6 +72,8 @@ VMD_PLURAL = constants.KUBERNETES_PLURAL_VMD
 VMDI_PLURAL = constants.KUBERNETES_PLURAL_VMDI
 VMDSN_PLURAL = constants.KUBERNETES_PLURAL_VMDSN
 VM_KIND = constants.KUBERNETES_KIND_VM
+VMN_KIND=constants.KUBERNETES_KIND_VMN
+VMN_PLURAL=constants.KUBERNETES_PLURAL_VMN
 VMP_KIND = constants.KUBERNETES_KIND_VMP
 VMD_KIND = constants.KUBERNETES_KIND_VMD
 VMDI_KIND = constants.KUBERNETES_KIND_VMDI
@@ -1057,9 +1059,12 @@ def dump_l2_network_info(params):
     jsonDict = addPowerStatusMessage(jsonDict, 'Ready', 'The resource is ready.')   
     print(jsonDict)
     
-def delete_network():
+def delete_network(params):
     jsonDict = {'spec': {}}
-    print(jsonDict)
+    name = _get_param('--name', params)
+    helper = K8sHelper(VMN_KIND)
+    helper.delete(name)
+    return
     
 def _runOperationQueue(operation_queue, interval = 1, raise_it = True):
     for operation in operation_queue:

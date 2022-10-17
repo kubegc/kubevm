@@ -26,7 +26,9 @@ VMP_PLURAL = constants.KUBERNETES_PLURAL_VMP
 VMD_PLURAL = constants.KUBERNETES_PLURAL_VMD
 VMDI_PLURAL = constants.KUBERNETES_PLURAL_VMDI
 VMDSN_PLURAL = constants.KUBERNETES_PLURAL_VMDSN
+VMN_PLURAL=constants.KUBERNETES_PLURAL_VMN
 VM_KIND = constants.KUBERNETES_KIND_VM
+VMN_KIND=constants.KUBERNETES_KIND_VMN
 VMP_KIND = constants.KUBERNETES_KIND_VMP
 VMD_KIND = constants.KUBERNETES_KIND_VMD
 VMDI_KIND = constants.KUBERNETES_KIND_VMDI
@@ -63,8 +65,13 @@ def set_logger(header, fn):
 k8s_logger = set_logger(os.path.basename(__file__), LOG)
 
 resources = {}
-kind_plural = {VM_KIND:VM_PLURAL, VMP_KIND:VMP_PLURAL, VMD_KIND:VMD_PLURAL, 
-               VMDI_KIND:VMDI_PLURAL, VMDSN_KIND:VMDSN_PLURAL}
+kind_plural = {VM_KIND:VM_PLURAL,
+               VMP_KIND:VMP_PLURAL,
+               VMD_KIND:VMD_PLURAL,
+               VMDI_KIND:VMDI_PLURAL,
+               VMDSN_KIND:VMDSN_PLURAL,
+               VMN_KIND:VMN_PLURAL
+               }
 for kind,plural in kind_plural.items():
     resource = {}
     resource['version'] = VERSION

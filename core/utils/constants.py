@@ -19,10 +19,13 @@ KUBEVMM_VIRTCTL_SERVICE_LOCK       = "/var/run/virtctl_daemon.pid"
 KUBEVMM_VIRTLET_SERVICE_LOCK       = "/var/run/virtlet_daemon.pid"
 KUBEVMM_VIRTCTL_DOCKER_LOCK        = "/var/run/virtctl_in_docker.pid"
 KUBEVMM_VIRTLET_DOCKER_LOCK        = "/var/run/virtlet_in_docker.pid"
+
 KUBEVMM_EVENT_LIFECYCLE_DOING      = "Doing"
 KUBEVMM_EVENT_LIFECYCLE_DONE       = "Done"
+
 KUBEVMM_EVENT_TYPE_ERROR           = "Error"
 KUBEVMM_EVENT_TYPE_NORMAL          = "Normal"
+
 KUBEVMM_VM_DEVICES_DIR             = "/var/lib/libvirt/devices"
 KUBEVMM_LIBVIRT_VM_XML_DIR         = "/etc/libvirt/qemu"
 KUBEVMM_NOVNC_TOKEN                = "/root/noVNC/websockify/token/token.conf"
@@ -93,11 +96,13 @@ SET_GUEST_PASSWORD_CMD             = "default,domain,none,virshplus set_guest_pa
 CREATE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus create_disk_snapshot,virshplus dumpxml"
 DELETE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus delete_disk_snapshot,virshplus dumpxml"
 REVERT_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus revert_disk_internal_snapshot,virshplus dumpxml"
+
 CREATE_DISK_FROM_DISK_IMAGE_CMD    = "default,name,none,kubesds-adm createDiskFromImage,kubesds-adm showDisk"
 CREATE_DISK_CMD                    = "default,vol,none,virshplus create_disk,none"
 RESIZE_DISK_CMD                    = "default,vol,none,kubesds-adm resizeDisk,kubesds-adm showDisk"
 CLONE_DISK_CMD                     = "default,vol,none,kubesds-adm cloneDisk,kubesds-adm showDisk"
 DELETE_DISK_CMD                    = "default,vol,none,virshplus delete_disk,none"
+
 CREATE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm createExternalSnapshot,kubesds-adm showDiskSnapshot"
 REVERT_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm revertExternalSnapshot,kubesds-adm showDiskSnapshot"
 DELETE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm deleteExternalSnapshot,kubesds-adm showDiskSnapshot"
@@ -108,11 +113,13 @@ CREATE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus create_vmdi,kubesd
 DELETE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus delete_vmdi"
 
 '''Virtual Machine Pool supported commands'''
-CREATE_POOL_CMD                    = "default,pool,none,virshplus create_pool,none"
-DELETE_POOL_CMD                    = "default,pool,none,virshplus delete_pool,none"
-START_POOL_CMD                     = "default,pool,none,kubesds-adm startPool,kubesds-adm showPool"
-AUTO_START_POOL_CMD                = "default,pool,none,kubesds-adm autoStartPool,kubesds-adm showPool"
-STOP_POOL_CMD                      = "default,pool,none,kubesds-adm stopPool,kubesds-adm showPool"
+# CREATE_POOL_CMD                    = "default,pool,none,virshplus create_pool,none"
+CREATE_POOL_CMD                    = "default,pool,none,sdsctl create-pool,none"
+# DELETE_POOL_CMD                    = "default,pool,none,virshplus delete_pool,none"
+DELETE_POOL_CMD                    = "default,pool,none,sdsctl delete-pool,none"
+START_POOL_CMD                     = "default,pool,none,sdsctl start-pool,none"
+AUTO_START_POOL_CMD                = "default,pool,none,sdsctl auto-start-pool,none"
+STOP_POOL_CMD                      = "default,pool,none,sdsctl stop-pool,none"
 
 '''Virtual Machine Network supported commands'''
 BIND_PORT_VLAN_CMD                 = "default,name,none,kubeovn-adm bindport-vlan,virshplus dump_l2_network_info"

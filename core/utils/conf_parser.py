@@ -16,6 +16,7 @@ try:
 except:
     import constants
 
+# 匹配、解析constant中命令
 class UserDefinedParser:
     '''功能类：配置文件解析器'''
     
@@ -36,6 +37,7 @@ class UserDefinedParser:
         '''
         cmds = []
         for k in constants.__dict__.keys():
+            # 以cmd结尾的是命令 如CREATE_VM_CMD
             if k.endswith('CMD'):
                 cmd_key = k.replace('_CMD','').replace('_', '').lower()
                 cmds.append(cmd_key)
@@ -51,6 +53,7 @@ class UserDefinedParser:
         for k,v in constants.__dict__.items():
             if k.endswith('CMD'):
                 cmd_key = k.replace('_CMD','').replace('_', '').lower()
+                # 遍历constant中的cmd，和传入的the_cmd_key匹配
                 if cmd_key == the_cmd_key:
                     v_parser = ['' if i.strip() in ['none', 'None', 'null'] else i.strip() for i in v.split(',')]
                     for i, v_val in enumerate(v_parser):

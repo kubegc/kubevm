@@ -29,7 +29,7 @@ try:
 except ImportError:
     HAS_LIBVIRT = False
 import yaml
-
+print("import libvirt:",HAS_LIBVIRT)
 try:
     from utils.exception import InternalServerError, NotFound, Forbidden, BadRequest
 except:

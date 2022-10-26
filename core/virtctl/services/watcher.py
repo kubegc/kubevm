@@ -36,7 +36,7 @@ from utils.kubernetes_event_utils import KubernetesEvent
 from services.executor import Executor
 from services.convertor import toCmds
 
-from utils.misc import get_label_selector, report_failure
+from utils.misc import get_label_selector, report_failure,get_field_in_kubernetes_by_index,get_custom_object
 
 TOKEN = constants.KUBERNETES_TOKEN_FILE
 logger = logger.set_logger(os.path.basename(__file__), constants.KUBEVMM_VIRTCTL_LOG)
@@ -121,6 +121,8 @@ def doWatch(plural, k8s_object_kind):
             for jsondict in watcher.stream(client.CustomObjectsApi().list_cluster_custom_object,
                                            group=constants.KUBERNETES_GROUP, version=constants.KUBERNETES_API_VERSION,
                                            plural=plural, **kwargs):
+                logger.debug("watch here:")
+                logger.debug(jsondict)
                 thread = Thread(target=doExecutor, args=(plural, k8s_object_kind, jsondict))
                 thread.daemon = True
                 thread.name = 'do_executor'
@@ -145,11 +147,27 @@ def doExecutor(plural, k8s_object_kind, jsondict):
     metadata_name = _getMetadataName(jsondict)
     logger.debug('metadata name: %s' % metadata_name)
     '''convertor'''
+    if operation_type == 'DELETED':
+        # delete type特殊处理: kubectl delete vmp pooltest
+        if  k8s_object_kind==constants.KUBERNETES_KIND_VMP:
+            jsondict["raw_object"]["spec"]['lifecycle']={"deletePool":dict()}
+        elif k8s_object_kind==constants.KUBERNETES_KIND_VMD:
+            poolName=jsondict["raw_object"]["spec"]['volume']['pool']
+            # poolName=get_field_in_kubernetes_by_index(metadata_name, constants.KUBERNETES_GROUP,
+            #                                  constants.KUBERNETES_API_VERSION, constants.KUBERNETES_PLURAL_VMD,
+            #                                  ['spec','volume','pool'])
+            logger.debug('poolName: %s' % poolName)
+            jsondict["raw_object"]["spec"]['lifecycle'] = {"deleteDisk": {"pool": poolName}}
+    # 在此处检查lifecycle，只有带lifecycle的才继续处理
     (policy, the_cmd_key, prepare_cmd, invoke_cmd, query_cmd) = toCmds(jsondict)
+    logger.debug(toCmds(jsondict))
+
+    # acquire lock
     if the_cmd_key:
         _acquire_mutex_lock(the_cmd_key)
     try:
-        if the_cmd_key and operation_type != 'DELETED':
+        # if the_cmd_key and operation_type != 'DELETED':
+        if the_cmd_key :
             logger.debug("cmd key: %s, prepare cmd: %s, invoke cmd: %s, query cmd: %s" % (
             the_cmd_key, prepare_cmd, invoke_cmd, query_cmd))
             '''delete lifecycle in Kubernetes'''
@@ -164,7 +182,6 @@ def doExecutor(plural, k8s_object_kind, jsondict):
                     executor = Executor(policy, prepare_cmd, invoke_cmd, query_cmd)
                     _, data = executor.execute()
                 '''write result'''
-                logger.debug("data:%s" % data)
                 write_result_to_kubernetes(plural, metadata_name, data)
                 '''update Kubernetes event'''
                 event.update_evet(constants.KUBEVMM_EVENT_LIFECYCLE_DONE, constants.KUBEVMM_EVENT_TYPE_NORMAL)
@@ -191,6 +208,7 @@ def doExecutor(plural, k8s_object_kind, jsondict):
                     logger.warning('Oops! ', exc_info=1)
                 event.update_evet(constants.KUBEVMM_EVENT_LIFECYCLE_DONE, constants.KUBEVMM_EVENT_TYPE_ERROR)
             finally:
+                # 释放锁
                 if the_cmd_key:
                     _release_mutex_lock(the_cmd_key)
     except Exception as e:
@@ -219,7 +237,6 @@ def _getMetadataName(jsondict):
         return metadata_name
     else:
         raise BadRequest('FATAL ERROR! No metadata name!')
-
 
 def _getEventId(jsondict):
     '''获取event id
@@ -292,7 +309,6 @@ def write_result_to_kubernetes(plural, name, data):
             else:
                 raise e
         jsonDict = jsonStr.copy()
-        logger.debug(data)
         try:
             data = loads(data)
         except:

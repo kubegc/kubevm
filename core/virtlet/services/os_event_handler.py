@@ -1255,6 +1255,8 @@ def main():
         #                 os.makedirs(ob[1], 0x0711)
         #             event_handler = VmBlockDevEventHandler(ob[0], ob[1], GROUP_BLOCK_DEV_UIT, VERSION_BLOCK_DEV_UIT, PLURAL_BLOCK_DEV_UIT)
         #             observer.schedule(event_handler,ob[1],True)
+
+        # vm event handler
         if not os.path.exists(LIBVIRT_XML_DIR):
             os.makedirs(LIBVIRT_XML_DIR, 0x0711)
         event_handler = VmLibvirtXmlEventHandler('kvm', LIBVIRT_XML_DIR, GROUP, VERSION, PLURAL_VM)
@@ -1264,6 +1266,8 @@ def main():
 #                 os.makedirs(ob[1], 0x0711)
 #             event_handler = ImageLibvirtXmlEventHandler(ob[0], ob[1], GROUP_VMI, VERSION_VMI, PLURAL_VMI)
 #             observer.schedule(event_handler, ob[1], True)
+
+        # vmd event handler
         if not os.path.exists(VMD_TEMPLATE_DIR):
             os.makedirs(VMD_TEMPLATE_DIR, 0x0711)
             try:
@@ -1278,6 +1282,7 @@ def main():
         observer.schedule(event_handler, VMD_TEMPLATE_DIR, True)
         observer.start()
 
+        # vmp event handler
         OLD_PATH_WATCHERS = {}
         while True:
             try:

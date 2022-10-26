@@ -54,6 +54,7 @@ threadmax = threading.BoundedSemaphore(3)
 
 lock=threading.Lock()
 
+# 实现自定义处理逻辑
 class MyDomainEventHandler(threading.Thread):
     
     def __init__(self, conn, dom, *args, **kwargs):
@@ -144,6 +145,7 @@ class MyDomainEventHandler(threading.Thread):
                 step1_done = False
 #                 jsondict_old = None
                 try:
+                    # key point
                     jsondict = get_custom_object(GROUP, VERSION, PLURAL, vm_name)
 #                     jsondict_old = jsondict
                 except ApiException as e:
@@ -319,6 +321,12 @@ class MyDomainEventHandler(threading.Thread):
         finally:
             lock.release()
             threadmax.release()
+
+
+
+
+
+
 
 # def ttDomainEventHandler(conn, dom, *args, **kwargs):
 #     try:
@@ -518,7 +526,6 @@ class virEventLoopPoll:
             if h.get_id() == handleID:
                 return h
         return None
-
     # This is the heart of the event loop, performing one single
     # iteration. It asks when the next timeout is due, and then
     # calculates the maximum amount of time it is able to sleep

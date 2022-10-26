@@ -36,6 +36,8 @@ def toCmds(json):
     
     name = json['raw_object']['metadata']['name']
     the_cmd_keys = []
+
+    # lifecycle可能有多个命令，但是存在stop或是reset vm的命令，则放到列表第一位
     for lifecycle in json["raw_object"]["spec"]["lifecycle"]:
         if lifecycle == constants.STOP_VM_FORCE_CMD:
             the_cmd_keys.insert(0, lifecycle)
@@ -46,7 +48,11 @@ def toCmds(json):
         else:
             the_cmd_keys.append(lifecycle)
     the_cmd_key = the_cmd_keys[0] if the_cmd_keys else None
+    logger.debug(the_cmd_key)
     try:
+        # 得到类似
+        # "rpc,name,none,virshplus create_vmdi_from_disk,kubesds-adm showDisk"
+        # "default,name,none,kubeovn-adm create-address,virshplus dump_l3_network_info"
         desc = UserDefinedParser().getCmds(the_cmd_key)
         (policy, object_name, prepare_cmd, invoke_cmd, query_cmd) = desc.split(",")
         params = json["raw_object"]["spec"]["lifecycle"][the_cmd_key]
@@ -58,6 +64,7 @@ def toCmds(json):
     '''使用的转换策略，在constants里定义
     '''
     try:
+        # default or rpc
         policyObj = import_module('policies.%sPolicy' % (policy))
     except ImportError:
         logger.error("Unsupported policy %sPolicy." % policy) 

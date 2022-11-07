@@ -353,7 +353,7 @@ spec:
     - jsonPath: .spec.volume.format
       name: TYPE
       type: string  
-    - jsonPath: .spec.volume.filename
+    - jsonPath: .spec.volume.current
       name: PATH
       type: string 
     - jsonPath: .spec.volume.full_backing_filename

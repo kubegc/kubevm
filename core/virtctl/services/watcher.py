@@ -156,8 +156,20 @@ def doExecutor(plural, k8s_object_kind, jsondict):
             # poolName=get_field_in_kubernetes_by_index(metadata_name, constants.KUBERNETES_GROUP,
             #                                  constants.KUBERNETES_API_VERSION, constants.KUBERNETES_PLURAL_VMD,
             #                                  ['spec','volume','pool'])
-            logger.debug('poolName: %s' % poolName)
+            logger.debug('vmd poolName: %s' % poolName)
             jsondict["raw_object"]["spec"]['lifecycle'] = {"deleteDisk": {"pool": poolName}}
+        elif k8s_object_kind==constants.KUBERNETES_KIND_VMDI:
+            poolName = jsondict["raw_object"]["spec"]['volume']['pool']
+            logger.debug('vmdi poolName: %s' % poolName)
+            jsondict["raw_object"]["spec"]['lifecycle'] = {"deleteDiskImage": {"pool": poolName}}
+        elif k8s_object_kind==constants.KUBERNETES_KIND_VMDSN:
+            volumeDict = jsondict["raw_object"]["spec"]['volume']
+            poolName = volumeDict['pool']
+            logger.debug('vmdsn poolName: %s' % poolName)
+            domain=""
+            if "domain" in volumeDict.keys():
+                domain=volumeDict["domain"]
+            jsondict["raw_object"]["spec"]['lifecycle'] = {"deleteDiskExternalSnapshot": {"pool": poolName,"source":volumeDict["disk"],"domain":domain}}
     # 在此处检查lifecycle，只有带lifecycle的才继续处理
     (policy, the_cmd_key, prepare_cmd, invoke_cmd, query_cmd) = toCmds(jsondict)
     logger.debug(toCmds(jsondict))

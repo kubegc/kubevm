@@ -93,24 +93,31 @@ UNSET_VNC_PASSWORD_CMD             = "default,domain,none,virshplus unset_vnc_pa
 SET_GUEST_PASSWORD_CMD             = "default,domain,none,virshplus set_guest_password,virshplus dumpxml"
 
 '''Virtual Machine Disk supported commands'''
-CREATE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus create_disk_snapshot,virshplus dumpxml"
-DELETE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus delete_disk_snapshot,virshplus dumpxml"
-REVERT_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus revert_disk_internal_snapshot,virshplus dumpxml"
+# CREATE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus create_disk_snapshot,virshplus dumpxml"
+# DELETE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus delete_disk_snapshot,virshplus dumpxml"
+# REVERT_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,virshplus revert_disk_internal_snapshot,virshplus dumpxml"
+CREATE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,sdsctl create-internal-snapshot,none"
+DELETE_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,sdsctl delete-internal-snapshot,none"
+REVERT_DISK_INTERNAL_SNAPSHOT_CMD  = "default,name,none,sdsctl revert-internal-snapshot,none"
 
-CREATE_DISK_FROM_DISK_IMAGE_CMD    = "default,name,none,kubesds-adm createDiskFromImage,kubesds-adm showDisk"
-CREATE_DISK_CMD                    = "default,vol,none,virshplus create_disk,none"
-RESIZE_DISK_CMD                    = "default,vol,none,kubesds-adm resizeDisk,kubesds-adm showDisk"
-CLONE_DISK_CMD                     = "default,vol,none,kubesds-adm cloneDisk,kubesds-adm showDisk"
-DELETE_DISK_CMD                    = "default,vol,none,virshplus delete_disk,none"
+CREATE_DISK_FROM_DISK_IMAGE_CMD    = "default,name,none,sdsctl create-disk-from-image,none"
+CREATE_DISK_CMD                    = "default,vol,none,sdsctl create-disk,none"
+RESIZE_DISK_CMD                    = "default,vol,none,sdsctl resize-disk,none"
+CLONE_DISK_CMD                     = "default,vol,none,sdsctl clone-disk,none"
+DELETE_DISK_CMD                    = "default,vol,none,sdsctl delete-disk,none"
 
-CREATE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm createExternalSnapshot,kubesds-adm showDiskSnapshot"
-REVERT_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm revertExternalSnapshot,kubesds-adm showDiskSnapshot"
-DELETE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,kubesds-adm deleteExternalSnapshot,kubesds-adm showDiskSnapshot"
+CREATE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,sdsctl create-external-snapshot,none"
+REVERT_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,sdsctl revert-external-snapshot,none"
+DELETE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,sdsctl delete-external-snapshot,none"
 
 '''Virtual Machine Disk Image supported commands'''
-CREATE_DISK_IMAGE_FROM_DISK_CMD    = "rpc,name,none,virshplus create_vmdi_from_disk,kubesds-adm showDisk"
-CREATE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus create_vmdi,kubesds-adm showDisk"
-DELETE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus delete_vmdi"
+# CREATE_DISK_IMAGE_FROM_DISK_CMD    = "rpc,name,none,virshplus create_vmdi_from_disk,kubesds-adm showDisk"
+# CREATE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus create_vmdi,kubesds-adm showDisk"
+# DELETE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus delete_vmdi"
+CREATE_DISK_IMAGE_FROM_DISK_CMD    = "default,name,none,sdsctl create-disk-from-image,none"
+CREATE_DISK_IMAGE_CMD              = "default,name,none,sdsctl create-disk-image,none"
+DELETE_DISK_IMAGE_CMD              = "default,name,none,sdsctl delete-disk-image,none"
+# upload & download
 
 '''Virtual Machine Pool supported commands'''
 # CREATE_POOL_CMD                    = "default,pool,none,virshplus create_pool,none"

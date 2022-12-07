@@ -140,7 +140,6 @@ def doWatch(plural, k8s_object_kind):
         finally:
             watcher.stop()
 
-
 def doExecutor(plural, k8s_object_kind, jsondict):
     operation_type = jsondict.get('type')
     logger.debug(operation_type)
@@ -153,9 +152,6 @@ def doExecutor(plural, k8s_object_kind, jsondict):
             jsondict["raw_object"]["spec"]['lifecycle']={"deletePool":dict()}
         elif k8s_object_kind==constants.KUBERNETES_KIND_VMD:
             poolName=jsondict["raw_object"]["spec"]['volume']['pool']
-            # poolName=get_field_in_kubernetes_by_index(metadata_name, constants.KUBERNETES_GROUP,
-            #                                  constants.KUBERNETES_API_VERSION, constants.KUBERNETES_PLURAL_VMD,
-            #                                  ['spec','volume','pool'])
             logger.debug('vmd poolName: %s' % poolName)
             jsondict["raw_object"]["spec"]['lifecycle'] = {"deleteDisk": {"pool": poolName}}
         elif k8s_object_kind==constants.KUBERNETES_KIND_VMDI:

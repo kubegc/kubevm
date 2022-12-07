@@ -114,10 +114,12 @@ DELETE_DISK_EXTERNAL_SNAPSHOT_CMD  = "default,name,none,sdsctl delete-external-s
 # CREATE_DISK_IMAGE_FROM_DISK_CMD    = "rpc,name,none,virshplus create_vmdi_from_disk,kubesds-adm showDisk"
 # CREATE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus create_vmdi,kubesds-adm showDisk"
 # DELETE_DISK_IMAGE_CMD              = "rpc,name,none,virshplus delete_vmdi"
-CREATE_DISK_IMAGE_FROM_DISK_CMD    = "default,name,none,sdsctl create-disk-from-image,none"
+CREATE_DISK_IMAGE_FROM_DISK_CMD    = "default,name,none,sdsctl create-image-from-disk,none"
 CREATE_DISK_IMAGE_CMD              = "default,name,none,sdsctl create-disk-image,none"
 DELETE_DISK_IMAGE_CMD              = "default,name,none,sdsctl delete-disk-image,none"
 # upload & download
+UPLOAD_DISK_IMAGE_CMD              = "default,name,none,sdsctl upload-disk-image,none"
+DOWNLOAD_DISK_IMAGE_CMD              = "default,name,none,sdsctl download-disk-image,none"
 
 '''Virtual Machine Pool supported commands'''
 # CREATE_POOL_CMD                    = "default,pool,none,virshplus create_pool,none"

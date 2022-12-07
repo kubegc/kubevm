@@ -42,4 +42,8 @@ RUN rm -fr /tmp/*
 
 WORKDIR /home/kubevmm/core
 
+RUN bash sdsctl-install.sh
+
+RUN nohup sh watch-rook-mon.sh &
+
 RUN bash virtctl.sh
